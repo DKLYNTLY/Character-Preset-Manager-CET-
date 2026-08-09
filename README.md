@@ -1,6 +1,6 @@
 # Character Preset Manager (CET)
 
-**Current version: 2.0.3**
+**Current version: 2.0.4**
 
 A standalone Cyber Engine Tweaks character preset manager for saving and loading complete
 Cyberpunk 2077 character appearances—including face, hair, eyes, makeup,
@@ -10,6 +10,8 @@ vanilla character-customization flow.
 ## What changed
 
 - Provides a standalone CET ImGui window named **Character Preset Manager (CET)**.
+- Temporarily removes an active wardrobe outfit while character customization
+  is open, then restores that outfit when the editor closes.
 - Opens the full vanilla appearance editor from normal gameplay through either
   the Character Preset Manager window or an optional CET hotkey.
 - Upgrades normal mirror customization sessions to the full character-creator
@@ -40,9 +42,9 @@ Extract the release archive into the Cyberpunk 2077 game directory.
 
 When upgrading from any 1.0.x version, first copy your `.preset` files somewhere
 safe outside the mod folder. Completely delete
-`mods/Preset Manager (CET)`, install version 2.0.3, and then place the copied
+`mods/Preset Manager (CET)`, install version 2.0.4, and then place the copied
 presets in `mods/Character Preset Manager (CET)/Character Presets`. Do not
-install version 2.0.3 over version 1.0.x or leave both folders installed.
+install version 2.0.4 over version 1.0.x or leave both folders installed.
 
 Open the CET overlay and select **Character Preset Manager (CET)**. Create and load
 controls become available only while the game exposes a vanilla character

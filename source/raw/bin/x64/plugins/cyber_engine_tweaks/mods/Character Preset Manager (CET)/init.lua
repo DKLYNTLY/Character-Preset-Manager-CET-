@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "2.0.3"
+local VERSION = "2.0.4"
 local PRESET_DIR = "Character Presets"
 local FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
 local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
@@ -81,6 +81,7 @@ local state = {
   editorPauseRedirectCount = 0,
   editorPuppetReadyCount = 0,
   editorOpenedByLauncher = false,
+  wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
 }
 
@@ -253,6 +254,70 @@ local function setEditorOpenStatus(message, isError)
   log("[editor] " .. tostring(message), isError and "error" or "info")
 end
 
+local function activeWardrobeSetEquipped()
+  local playerOk, player = pcall(Game.GetPlayer)
+  if not playerOk or not player then return false, nil end
+  local setOk, activeSet = pcall(EquipmentSystem.GetActiveWardrobeSetID, player)
+  if not setOk or activeSet == nil then return false, player end
+  return activeSet ~= gameWardrobeClothingSetIndex.INVALID, player
+end
+
+local function equipmentSystem()
+  local ok, system = pcall(function()
+    return Game.GetScriptableSystemsContainer():Get("EquipmentSystem")
+  end)
+  if ok then return system end
+  return nil
+end
+
+local function temporarilyDisableWardrobe()
+  if state.wardrobeTemporarilyDisabled then return true end
+  local active, player = activeWardrobeSetEquipped()
+  if not active then return true end
+  local system = equipmentSystem()
+  if not system then
+    log("[wardrobe] Active outfit detected, but the equipment system is unavailable.", "warn")
+    return false
+  end
+  local ok, disableError = pcall(function()
+    local request = QuestDisableWardrobeSetRequest.new()
+    request.owner = player
+    request.blockReequipping = true
+    system:QueueRequest(request)
+  end)
+  if not ok then
+    log("[wardrobe] Could not temporarily remove the active outfit: " ..
+      tostring(disableError), "warn")
+    return false
+  end
+  state.wardrobeTemporarilyDisabled = true
+  log("[wardrobe] Active outfit temporarily removed for character customization.", "info")
+  return true
+end
+
+local function restoreTemporarilyDisabledWardrobe()
+  if not state.wardrobeTemporarilyDisabled then return true end
+  local playerOk, player = pcall(Game.GetPlayer)
+  local system = equipmentSystem()
+  if not playerOk or not player or not system then
+    log("[wardrobe] Outfit restoration is waiting for a valid player and equipment system.", "warn")
+    return false
+  end
+  local ok, restoreError = pcall(function()
+    local request = QuestRestoreWardrobeSetRequest.new()
+    request.owner = player
+    system:QueueRequest(request)
+  end)
+  if not ok then
+    log("[wardrobe] Could not restore the temporarily removed outfit: " ..
+      tostring(restoreError), "warn")
+    return false
+  end
+  state.wardrobeTemporarilyDisabled = false
+  log("[wardrobe] Restored the outfit used before character customization.", "info")
+  return true
+end
+
 local function openFullAppearanceEditor()
   log(("[editor diagnostic] launch requested: controller=%s pending=%s customization=%s")
     :format(tostring(state.inGameMenuController ~= nil),
@@ -271,6 +336,7 @@ local function openFullAppearanceEditor()
   end
 
   state.editorOpenTimer = 0
+  temporarilyDisableWardrobe()
   local ok, openError = pcall(
     state.inGameMenuController.SpawnMenuInstanceEvent,
     state.inGameMenuController,
@@ -278,6 +344,7 @@ local function openFullAppearanceEditor()
   )
   if not ok then
     state.editorOpenPending = false
+    restoreTemporarilyDisabledWardrobe()
     setEditorOpenStatus("The game rejected the request: " ..
       tostring(openError), true)
     return false
@@ -2464,6 +2531,7 @@ registerForEvent("onInit", function()
     "characterCreationBodyMorphMenu",
     "OnInitialize",
     function(menu)
+      temporarilyDisableWardrobe()
       state.activeBodyMorphMenu = menu
     end
   )
@@ -2476,6 +2544,7 @@ registerForEvent("onInit", function()
         state.activeBodyMorphMenu = nil
       end
       state.editorOpenedByLauncher = false
+      restoreTemporarilyDisabledWardrobe()
     end
   )
   if not observeInitOk or not observeExitOk then
@@ -2582,6 +2651,7 @@ registerForEvent("onShutdown", function()
   log(("[SUMMARY] inputs=%d controllerCaptures=%d pauseRedirects=%d editorPuppets=%d")
     :format(state.editorInputCount, state.editorControllerCaptureCount,
       state.editorPauseRedirectCount, state.editorPuppetReadyCount), "info")
+  restoreTemporarilyDisabledWardrobe()
   state.ready = false
   state.inCustomization = false
   state.editorStateRefreshTimer = 0
@@ -2610,6 +2680,7 @@ registerForEvent("onUpdate", function(delta)
     if state.editorOpenTimer >= EDITOR_OPEN_TIMEOUT then
       state.editorOpenPending = false
       state.editorOpenTimer = 0
+      restoreTemporarilyDisabledWardrobe()
       setEditorOpenStatus("The editor didn't open. Return to normal gameplay and try again.", true)
     end
   end
@@ -2683,6 +2754,7 @@ registerInput("preset_manager_open_editor_input", "Open Full Appearance Editor",
   if not launchOk then
     state.editorOpenPending = false
     state.editorOpenTimer = 0
+    restoreTemporarilyDisabledWardrobe()
     setEditorOpenStatus("Editor hotkey failed before the menu request: " ..
       tostring(launchError), true)
   end

@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.4
+
+- Temporarily disables an active wardrobe outfit before the character editor
+  initializes and restores it when the editor closes.
+- Prevents wardrobe outfits from leaving the customization confirmation screen
+  stuck in an endless loading state.
+
 ## 2.0.3
 
 - Groups presets in the Load list beneath collapsible `Name (folder)` rows.
