@@ -8,6 +8,8 @@
   default and the other sections collapsed to save vertical space.
 - Rewrites the in-game help, warnings, status messages, and section text in
   shorter, more conversational language without changing behavior.
+- Keeps Appearance Editor expanded by default and replaces the small collapse
+  arrows with clearer `[+]` and `[-]` markers.
 
 ## 2.0.2
 

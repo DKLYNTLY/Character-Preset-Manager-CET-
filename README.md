@@ -16,8 +16,8 @@ vanilla character-customization flow.
   option set.
 - Creates a named preset from the appearance currently shown in the vanilla editor.
 - Loads any saved preset back into an active vanilla editor.
-- Keeps Load and Create expanded by default while Appearance Editor, Folders,
-  and Manage start collapsed; click any section heading to show or hide it.
+- Keeps Appearance Editor, Load, and Create expanded by default while Folders
+  and Manage start collapsed; click any `[+]` or `[-]` heading to show or hide it.
 - Runs directly through Cyber Engine Tweaks with no additional runtime layer.
 - Contains no RED4ext plugin, DLL, redscript, Codeware, archive, or additional
   runtime dependency.

@@ -29,7 +29,7 @@ local state = {
   folders = {},
   expandedLoadFolders = {},
   openSections = {
-    editor = false,
+    editor = true,
     load = true,
     create = true,
     folders = false,
@@ -1802,7 +1802,7 @@ local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
   local open = state.openSections[key] ~= false
   ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
-  if ImGui.Selectable((open and "v " or "> ") .. label .. "##section:" .. key, false) then
+  if ImGui.Selectable((open and "[-] " or "[+] ") .. label .. "##section:" .. key, false) then
     open = not open
     state.openSections[key] = open
   end
@@ -2245,7 +2245,7 @@ local function draw()
         local folderPresets = presetsInFolder(folder)
         if #folderPresets > 0 then
           local expanded = state.expandedLoadFolders[folder] == true
-          local indicator = expanded and "v " or "> "
+          local indicator = expanded and "[-] " or "[+] "
           if ImGui.Selectable(indicator .. baseName(folder) .. " (folder)##loadFolder:" .. folder, false) then
             state.expandedLoadFolders[folder] = not expanded
           end
