@@ -1,6 +1,6 @@
 # Character Preset Manager (CET)
 
-**Current version: 2.0.2**
+**Current version: 2.0.3**
 
 A standalone Cyber Engine Tweaks character preset manager for saving and loading complete
 Cyberpunk 2077 character appearances—including face, hair, eyes, makeup,
@@ -16,6 +16,8 @@ vanilla character-customization flow.
   option set.
 - Creates a named preset from the appearance currently shown in the vanilla editor.
 - Loads any saved preset back into an active vanilla editor.
+- Keeps Load and Create expanded by default while Appearance Editor, Folders,
+  and Manage start collapsed; click any section heading to show or hide it.
 - Runs directly through Cyber Engine Tweaks with no additional runtime layer.
 - Contains no RED4ext plugin, DLL, redscript, Codeware, archive, or additional
   runtime dependency.
@@ -38,9 +40,9 @@ Extract the release archive into the Cyberpunk 2077 game directory.
 
 When upgrading from any 1.0.x version, first copy your `.preset` files somewhere
 safe outside the mod folder. Completely delete
-`mods/Preset Manager (CET)`, install version 2.0.2, and then place the copied
+`mods/Preset Manager (CET)`, install version 2.0.3, and then place the copied
 presets in `mods/Character Preset Manager (CET)/Character Presets`. Do not
-install version 2.0.2 over version 1.0.x or leave both folders installed.
+install version 2.0.3 over version 1.0.x or leave both folders installed.
 
 Open the CET overlay and select **Character Preset Manager (CET)**. Create and load
 controls become available only while the game exposes a vanilla character
@@ -81,7 +83,9 @@ Presets are individual files stored in:
 
 Each `.preset` file can be shared or packaged for Nexus Mods. Drop downloaded
 preset files into that directory or any folder beneath it and reopen the CET
-overlay to refresh the list. The Folders section can create and rename folders,
+overlay to refresh the list. In Load, folder rows appear first as
+`Name (folder)` and can be clicked to show or hide the presets inside them;
+presets in the root directory appear below every folder. The Folders section can create and rename folders,
 move presets between them, and delete folders. Empty folders require two delete
 clicks. Folders containing presets or other contents require three red-button
 clicks and permanently delete everything inside them, including nested folders.

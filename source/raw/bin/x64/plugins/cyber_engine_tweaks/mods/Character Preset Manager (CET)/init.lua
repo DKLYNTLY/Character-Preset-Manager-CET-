@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "2.0.2"
+local VERSION = "2.0.3"
 local PRESET_DIR = "Character Presets"
 local FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
 local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
@@ -27,6 +27,14 @@ local state = {
   renameName = "",
   presets = {},
   folders = {},
+  expandedLoadFolders = {},
+  openSections = {
+    editor = false,
+    load = true,
+    create = true,
+    folders = false,
+    manage = false,
+  },
   selectedFolder = "",
   folderName = "",
   folderRenameName = "",
@@ -407,6 +415,15 @@ end
 
 local function baseName(name)
   return name:match("([^/]+)$") or name
+end
+
+local function presetsInFolder(folder)
+  local names = {}
+  for name in pairs(state.presets) do
+    if parentFolder(name) == folder then table.insert(names, name) end
+  end
+  table.sort(names, function(a, b) return baseName(a):lower() < baseName(b):lower() end)
+  return names
 end
 
 local function joinFolder(folder, name)
@@ -843,6 +860,9 @@ local function refreshPresets(scanReason)
 
   state.presets = presets
   state.folders = folders
+  for folder in pairs(state.expandedLoadFolders) do
+    if not folders[folder] then state.expandedLoadFolders[folder] = nil end
+  end
   writeInventory(presets, folders)
   if state.selectedFolder ~= "" and not folders[state.selectedFolder] then
     state.selectedFolder = ""
@@ -1778,11 +1798,18 @@ local function popTheme()
   ImGui.PopStyleColor(#THEME_COLORS)
 end
 
-local function sectionHeader(label)
+local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
-  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, label)
+  local open = state.openSections[key] ~= false
+  ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
+  if ImGui.Selectable((open and "v " or "> ") .. label .. "##section:" .. key, false) then
+    open = not open
+    state.openSections[key] = open
+  end
+  ImGui.PopStyleColor()
   ImGui.Separator()
-  ImGui.Spacing()
+  if open then ImGui.Spacing() end
+  return open
 end
 
 local function fullWidthButton(label, height)
@@ -2108,7 +2135,7 @@ local function draw()
       ImGui.TextWrapped("3. If that name already exists in the chosen location, click Confirm Overwrite to replace it.")
 
       helpHeading("Folders: Add, Select, and Move")
-      ImGui.TextWrapped("Preset folders and nested folders are scanned automatically. Folder-qualified names appear in the Load list.")
+      ImGui.TextWrapped("Preset folders and nested folders are scanned automatically. Click a Name (folder) row in Load to show or hide the presets inside it. Root presets appear below the folder rows.")
       ImGui.TextWrapped("Enter a New folder name and click Add Folder. Selecting a folder also chooses the destination used by Create and Move Selected Preset Here.")
       ImGui.TextWrapped("To move a preset: select it in Load, select its destination in Folders, then click Move Selected Preset Here. Choose All Presets (root) to move it out of a folder.")
       ImGui.TextWrapped("Rename Folder changes the selected folder's name without changing its contents.")
@@ -2170,7 +2197,7 @@ local function draw()
       ImGui.PopStyleColor(4)
     end
 
-    sectionHeader("APPEARANCE EDITOR")
+    if collapsibleSectionHeader("APPEARANCE EDITOR", "editor") then
     ImGui.TextWrapped("Open the full vanilla character editor. Apartment mirrors are upgraded to the same full option set.")
     ImGui.Spacing()
     if state.editorOpenPending or state.inCustomization then ImGui.BeginDisabled() end
@@ -2179,8 +2206,9 @@ local function draw()
     end
     if state.editorOpenPending or state.inCustomization then ImGui.EndDisabled() end
     drawSectionStatus("editor", "##editorStatus", isEditorSuccess, statusHeight)
+    end
 
-    sectionHeader("LOAD")
+    if collapsibleSectionHeader("LOAD", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Choose a preset to load")
     ImGui.Spacing()
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
@@ -2188,8 +2216,8 @@ local function draw()
     if #names == 0 then
       ImGui.TextDisabled("No presets saved.")
     else
-      for _, name in ipairs(names) do
-        if ImGui.Selectable(name, state.selected == name)
+      local function drawPresetChoice(name, label)
+        if ImGui.Selectable(label .. "##preset:" .. name, state.selected == name)
             and state.selected ~= name then
           log(("[UI] Preset selection changed: old='%s' new='%s'.")
             :format(tostring(state.selected), name), "info")
@@ -2212,6 +2240,24 @@ local function draw()
           state.deleteStatus = ""
           state.deleteStatusError = false
         end
+      end
+      for _, folder in ipairs(sortedFolderNames()) do
+        local folderPresets = presetsInFolder(folder)
+        if #folderPresets > 0 then
+          local expanded = state.expandedLoadFolders[folder] == true
+          local indicator = expanded and "v " or "> "
+          if ImGui.Selectable(indicator .. baseName(folder) .. " (folder)##loadFolder:" .. folder, false) then
+            state.expandedLoadFolders[folder] = not expanded
+          end
+          if expanded then
+            ImGui.Indent(12)
+            for _, name in ipairs(folderPresets) do drawPresetChoice(name, baseName(name)) end
+            ImGui.Unindent(12)
+          end
+        end
+      end
+      for _, name in ipairs(presetsInFolder("")) do
+        drawPresetChoice(name, name)
       end
     end
     ImGui.EndChild()
@@ -2243,8 +2289,9 @@ local function draw()
     if state.autoLoad then ImGui.EndDisabled() end
     if not state.selected then ImGui.EndDisabled() end
     drawSectionStatus("load", "##loadStatus", isLoadSuccess, statusHeight)
+    end
 
-    sectionHeader("CREATE")
+    if collapsibleSectionHeader("CREATE", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save your current appearance as a new preset")
     ImGui.Spacing()
@@ -2263,8 +2310,9 @@ local function draw()
       savePreset(state.pendingOverwriteName == pendingCreateName)
     end
     drawSectionStatus("create", "##createStatus", isCreateSuccess, statusHeight)
+    end
 
-    sectionHeader("FOLDERS")
+    if collapsibleSectionHeader("FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Choose where new or moved presets are stored")
     local slotsAvailable = availableFolderSlots()
@@ -2344,8 +2392,9 @@ local function draw()
       end
     end
     drawSectionStatus("folder", "##folderStatus", isFolderSuccess, statusHeight)
+    end
 
-    sectionHeader("MANAGE")
+    if collapsibleSectionHeader("MANAGE", "manage") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Rename or delete the selected preset")
     ImGui.Spacing()
@@ -2377,6 +2426,7 @@ local function draw()
     if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then deletePreset() end
     if not state.selected then ImGui.EndDisabled() end
     drawSectionStatus("delete", "##deleteStatus", isDeleteSuccess, statusHeight)
+    end
 
   end
   ImGui.End()

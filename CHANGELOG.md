@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.0.3
+
+- Groups presets in the Load list beneath collapsible `Name (folder)` rows.
+- Lists presets stored in the root preset directory below all folder groups.
+- Makes every main section collapsible, with Load and Create expanded by
+  default and the other sections collapsed to save vertical space.
+
 ## 2.0.2
 
 - Removes nonfunctional explanatory and decorative comments from the shipped
