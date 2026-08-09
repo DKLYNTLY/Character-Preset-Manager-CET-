@@ -6,6 +6,8 @@
 - Lists presets stored in the root preset directory below all folder groups.
 - Makes every main section collapsible, with Load and Create expanded by
   default and the other sections collapsed to save vertical space.
+- Rewrites the in-game help, warnings, status messages, and section text in
+  shorter, more conversational language without changing behavior.
 
 ## 2.0.2
 
