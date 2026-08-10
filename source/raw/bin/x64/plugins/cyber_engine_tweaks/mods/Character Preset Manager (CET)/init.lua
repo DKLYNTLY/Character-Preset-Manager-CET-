@@ -94,14 +94,14 @@ local INCOMPATIBLE_MODS = {
       "../../../../../../red4ext/plugins/ACU/acu_rs.dll",
       "../AppearanceChangeUnlocker/init.lua",
     },
-    reason = "It also changes character appearance and customization.",
+    reason = "It also messes with character appearance and customization.",
   },
   {
     name = "Character Customization Anywhere",
     paths = {
       "../characterCustomizationAnywhere/init.lua",
     },
-    reason = "It changes vanilla mirrors and the customization screen.",
+    reason = "It changes vanilla mirrors and the customization screen too.",
   },
 }
 
@@ -2210,7 +2210,7 @@ local function draw()
       for _, mod in ipairs(state.incompatibleMods) do
         coloredWrapped(1.0, 0.4, 0.4, 1.0,
           mod.name .. " is installed. " .. mod.reason ..
-          " Delete or remove this mod, fully close Cyberpunk 2077, and restart the game.")
+          " Remove it, fully close Cyberpunk 2077, and restart the game.")
       end
     end
     if state.debugOpen then
@@ -2301,12 +2301,12 @@ local function draw()
 
       helpHeading("Important Compatibility Warning")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Don't run this alongside Appearance Change Unlocker (ACU) or Character Customization Anywhere. Remove either incompatible mod, fully close Cyberpunk 2077, then restart the game.")
+        "Don't run this alongside Appearance Change Unlocker (ACU) or Character Customization Anywhere. Remove whichever one you have, fully close Cyberpunk 2077, then restart the game.")
 
       helpHeading("Infinite Loading When Leaving Customization")
-      ImGui.TextWrapped("This is a long-standing game issue that can also happen with the vanilla mirror, especially with Equipment-EX or detailed outfits.")
+      ImGui.TextWrapped("This is an old game bug, not something this mod causes — it can even happen with the vanilla mirror, especially with Equipment-EX or detailed outfits.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Workaround: before opening customization, unequip your clothing and select No Outfit in the wardrobe. After you leave customization, equip everything again.")
+        "Workaround: unequip your clothes and pick No Outfit in the wardrobe before opening customization. Put everything back on once you're done.")
 
       helpHeading("If an Older Preset Needs Updating")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
