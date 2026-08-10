@@ -11,6 +11,8 @@
 - Resets saved section state so Appearance Editor, Load, and Create start expanded.
 - Uses `[+]` and `[-]` markers for preset-folder rows to distinguish expansion
   controls from folder names.
+- Clears completed, error, and informational status messages after eight seconds
+  while retaining active operations, confirmations, and required guidance.
 - Rewrites all user-facing interface text in a concise, neutral, formal tone.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
   customization and shares the game's customization-exit loading issue.

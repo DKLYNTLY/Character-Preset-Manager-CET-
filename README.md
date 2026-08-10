@@ -29,6 +29,8 @@ vanilla character-customization flow.
 - Applies each active option through the game's `ApplyChangeToOption` method.
 - Stores values by option localization key rather than by array position.
 - Adds rename, delete, refresh, and visible success/error status.
+- Clears completed, error, and informational status messages after eight seconds.
+  Active operations, delete confirmations, and required editor guidance remain visible.
 - Reads presets recursively from folders and lets users add, rename, delete, or
   move folders and presets from the CET window.
 - Duplicates individual presets in place or recursively copies an entire folder

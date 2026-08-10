@@ -15,6 +15,7 @@ local AUTO_LOAD_MAX_PASSES = 400
 local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_STATE_REFRESH_INTERVAL = 0.25
 local EDITOR_OPEN_TIMEOUT = 5.0
+local STATUS_CLEAR_DELAY = 8.0
 local log
 
 local state = {
@@ -84,7 +85,11 @@ local state = {
   editorOpenedByLauncher = false,
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
+  statusTimers = {},
+  statusSnapshots = {},
 }
+
+local STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete" }
 
 local function fileExists(path)
   local file = io.open(path, "rb")
@@ -211,6 +216,8 @@ local function setStatus(section, message, isError)
   local effectiveError = isError == true or loadStopped
   state[section .. "Status"] = message
   state[section .. "StatusError"] = effectiveError
+  state.statusSnapshots[section] = message
+  state.statusTimers[section] = 0
   if section == "load" then
     local transient = message:find("Applied one option.", 1, true) == 1
       or message:find("Applied one replacement CCXL option.", 1, true) == 1
@@ -227,6 +234,51 @@ local function setStatus(section, message, isError)
     log(message, level)
   else
     log(("[%s] %s"):format(section, message), isError and "error" or "info")
+  end
+end
+
+local function statusShouldRemain(section, text)
+  if not text or text == "" then return true end
+  if section == "load" then
+    return state.autoLoad
+      or state.loadNeedsContinue
+      or text:find("Open the character creator", 1, true) == 1
+  end
+  if section == "editor" then return state.editorOpenPending end
+  if section == "delete" then
+    return state.pendingDeleteName ~= nil
+      and state.pendingDeleteName == state.selected
+  end
+  if section == "folder" then
+    return state.pendingDeleteFolder ~= nil
+      and state.pendingDeleteFolder == state.selectedFolder
+      and state.pendingDeleteFolderStage > 0
+  end
+  return false
+end
+
+local function updateStatusTimers(delta)
+  local elapsed = tonumber(delta) or 0
+  for _, section in ipairs(STATUS_SECTIONS) do
+    local statusKey = section .. "Status"
+    local errorKey = section .. "StatusError"
+    local text = state[statusKey] or ""
+    if state.statusSnapshots[section] ~= text then
+      state.statusSnapshots[section] = text
+      state.statusTimers[section] = 0
+    elseif text ~= "" and not statusShouldRemain(section, text) then
+      local timer = (state.statusTimers[section] or 0) + elapsed
+      if timer >= STATUS_CLEAR_DELAY then
+        state[statusKey] = ""
+        state[errorKey] = false
+        state.statusSnapshots[section] = ""
+        state.statusTimers[section] = 0
+      else
+        state.statusTimers[section] = timer
+      end
+    else
+      state.statusTimers[section] = 0
+    end
   end
 end
 
@@ -2751,6 +2803,7 @@ registerForEvent("onShutdown", function()
 end)
 
 registerForEvent("onUpdate", function(delta)
+  updateStatusTimers(delta)
   if state.editorOpenPending then
     state.editorOpenTimer = state.editorOpenTimer + (tonumber(delta) or 0)
     if state.editorOpenTimer >= EDITOR_OPEN_TIMEOUT then
