@@ -1907,6 +1907,8 @@ local function popTheme()
   ImGui.PopStyleColor(#THEME_COLORS)
 end
 
+local coloredWrapped
+
 local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
   local open = state.openSections[key] ~= false
@@ -1927,7 +1929,7 @@ local function drawCompatibilityWarnings()
   ImGui.PushStyleColor(ImGuiCol.Header, 0.56, 0.10, 0.10, 0.92)
   ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.72, 0.16, 0.14, 1.0)
   ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.45, 0.07, 0.07, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.82, 0.82, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.25, 0.25, 1.0)
   if ImGui.Selectable(
       (open and "v  " or ">  ") ..
         "COMPATIBILITY WARNINGS - READ FIRST##compatibilityWarnings",
@@ -1939,11 +1941,11 @@ local function drawCompatibilityWarnings()
   if not open then return end
   ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.12, 0.055, 0.055, 0.88)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
-  ImGui.BeginChild("##compatibilityWarningsBody", 0, 245, true)
-  coloredWrapped(1.0, 0.4, 0.4, 1.0,
+  ImGui.BeginChild("##compatibilityWarningsBody", 0, 215, true)
+  coloredWrapped(1.0, 0.22, 0.22, 1.0,
     "Appearance Change Unlocker (ACU) and Character Customization Anywhere are incompatible. Remove both mods, close Cyberpunk 2077, and restart the game.")
   ImGui.Spacing()
-  coloredWrapped(1.0, 0.4, 0.4, 1.0,
+  coloredWrapped(1.0, 0.22, 0.22, 1.0,
     "Photo Mode and Appearance Menu Mod are not supported.")
   ImGui.Spacing()
   ImGui.TextWrapped("A game bug can cause infinite loading when customization closes. It can also occur with vanilla mirrors, Equipment-EX, or detailed outfits.")
@@ -1971,7 +1973,7 @@ local function dangerButton(label, width, height)
   return pressed
 end
 
-local function coloredWrapped(r, g, b, a, text)
+coloredWrapped = function(r, g, b, a, text)
   ImGui.PushStyleColor(ImGuiCol.Text, r, g, b, a)
   ImGui.TextWrapped(text)
   ImGui.PopStyleColor(1)

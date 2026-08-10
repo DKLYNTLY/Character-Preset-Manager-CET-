@@ -9,6 +9,10 @@
 - Replaces `[+]` and `[-]` section controls with CET-compatible arrow rows.
 - Avoids optional ImGui collapsing-header and tree-node bindings that can prevent
   the mod window from rendering on some CET builds.
+- Fixes the Compatibility Warnings panel rendering before its text helper was
+  available, which produced an empty box and stopped the remaining interface.
+- Uses stronger red text for incompatibility warnings and keeps Appearance Editor
+  expanded by default.
 - Rewrites all user-facing interface text in a concise, neutral, formal tone.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
   customization and shares the game's customization-exit loading issue.
