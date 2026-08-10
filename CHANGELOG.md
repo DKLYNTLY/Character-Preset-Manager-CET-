@@ -8,6 +8,10 @@
   and tells the user to remove it and fully restart Cyberpunk 2077.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
   customization and shares the game's customization-exit loading issue.
+- Adds an in-game Help workaround recommending that affected users unequip
+  clothing and select No Outfit before customization, especially with
+  Equipment-EX or highly detailed outfits.
+- Leaves equipment management manual to avoid interfering with equipment mods.
 
 ## 2.0.4
 

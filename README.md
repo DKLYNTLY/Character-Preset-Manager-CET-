@@ -149,6 +149,12 @@ Preset Manager checks for its installed CET entry point and displays a warning w
 it is found. Remove Character Customization Anywhere and fully restart Cyberpunk
 before using Character Preset Manager.
 
+If the game gets stuck loading when leaving any customization screen, unequip
+your clothing and select **No Outfit** in the wardrobe before opening customization.
+This long-standing game issue can also affect the vanilla mirror and may happen
+more often with Equipment-EX or highly detailed outfits. Re-equip everything after
+leaving customization.
+
 ### CC and CCXL customization mods
 
 Character Preset Manager saves and loads custom options when those mods expose them

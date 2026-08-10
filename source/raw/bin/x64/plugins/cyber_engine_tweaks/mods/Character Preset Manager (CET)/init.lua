@@ -2303,6 +2303,11 @@ local function draw()
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
         "Don't run this alongside Appearance Change Unlocker (ACU) or Character Customization Anywhere. Remove either incompatible mod, fully close Cyberpunk 2077, then restart the game.")
 
+      helpHeading("Infinite Loading When Leaving Customization")
+      ImGui.TextWrapped("This is a long-standing game issue that can also happen with the vanilla mirror, especially with Equipment-EX or detailed outfits.")
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "Workaround: before opening customization, unequip your clothing and select No Outfit in the wardrobe. After you leave customization, equip everything again.")
+
       helpHeading("If an Older Preset Needs Updating")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "The mirror and editor both show the full option set. If your CCXL setup changed, fix anything that's off and resave the preset from the editor you already have open.")
