@@ -1,1 +1,1 @@
-Place .preset files here.
+Place .preset files here or in manually created folders inside this directory.

@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.0.6
+
+- Shows the assigned editor input and window-toggle hotkey directly in Help by
+  using CET's supported binding API, with an honest session-detection fallback
+  when the installed CET version cannot return a key name.
+- Clarifies that Photo Mode and Appearance Menu Mod are compatible and may remain
+  installed; Character Preset Manager simply cannot save or load presets from
+  inside their interfaces.
+- Separates the Photo Mode and Appearance Menu Mod limitation from the in-game
+  incompatible-mod warning.
+- Makes recursive manual-folder scans fail closed when a directory entry cannot
+  be verified or nesting exceeds the safety limit.
+- Retains the previous in-memory preset list and inventory after an incomplete
+  filesystem scan instead of replacing them with partial or empty results.
+- Rejects oversized and unsafe imported preset data before it reaches the game,
+  with limits for file size, lines, entries, key length, and option indexes, plus
+  active option-choice range checks when the game exposes that metadata.
+- Removes positional CCXL replacement guessing so a missing saved option can no
+  longer be applied to a different option based only on neighboring positions.
+- Reports accurate in-progress load counts and cancels automatic loading when
+  the selected preset disappears.
+- Centralizes load-state and confirmation cleanup, clears destructive actions
+  when the overlay or selection changes, fingerprints confirmed preset files,
+  and restarts folder confirmation if its inspected entries change.
+- Replaces the 16 packaged directory slots with virtual folders stored in a
+  manager-owned catalog, removing the fixed slot limit.
+- Removes untouched legacy slot directories during startup while leaving any
+  slot directory containing unrecognized files or folders unchanged.
+- Discovers manually created directories recursively, labels them as imported,
+  retains each preset's physical path, and never renames or removes the manual
+  directory itself during virtual folder operations.
+- Reports incomplete duplicate-folder rollback honestly and streams copied files
+  and activity-log reads instead of loading them entirely into memory.
+- Keeps the preset inventory synchronized after in-app saves and deletions.
+- Uses actual new-game scenario tracking so expanded mirrors are not mistaken
+  for the new-game editor.
+- Disables the full-editor launcher when required hooks are unavailable and
+  falls back to the game's original handler if custom editor setup fails.
+- Validates final truncated names, handles case-insensitive folder collisions,
+  removes duplicate file helpers, and replaces unsupported punctuation.
+
 ## 2.0.5
 
 - Removes unreliable automatic checks for Appearance Change Unlocker and Character

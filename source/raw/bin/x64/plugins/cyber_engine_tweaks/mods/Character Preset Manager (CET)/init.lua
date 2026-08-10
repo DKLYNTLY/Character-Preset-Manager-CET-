@@ -1,8 +1,9 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "2.0.5"
+local VERSION = "2.0.6"
 local PRESET_DIR = "Character Presets"
-local FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
+local CATALOG_FILE = "Character Preset Manager (CET) Folders.txt"
+local LEGACY_FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
 local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
 local LOG_FILE = "Character Preset Manager (CET) Activity.log"
 local LOG_ARCHIVE_PREFIX = "Character Preset Manager (CET) Activity "
@@ -16,6 +17,15 @@ local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_STATE_REFRESH_INTERVAL = 0.25
 local EDITOR_OPEN_TIMEOUT = 5.0
 local STATUS_CLEAR_DELAY = 8.0
+local MAX_TREE_DEPTH = 12
+local MAX_PRESET_BYTES = 1048576
+local MAX_PRESET_ENTRIES = 4096
+local MAX_PRESET_LINES = 8192
+local MAX_PRESET_KEY_BYTES = 256
+local MAX_OPTION_INDEX = 65535
+local FILE_COPY_CHUNK_SIZE = 65536
+local MAX_CATALOG_BYTES = 8388608
+local MAX_CATALOG_LINES = 32768
 local log
 
 local state = {
@@ -29,6 +39,8 @@ local state = {
   renameName = "",
   presets = {},
   folders = {},
+  manualFolders = {},
+  ignoredPhysicalFolders = {},
   expandedLoadFolders = {},
   openSections = {
     editor = true,
@@ -47,6 +59,7 @@ local state = {
   pendingDeleteFolderStage = 0,
   pendingDeleteFolderPresetCount = 0,
   pendingDeleteFolderHasContents = false,
+  pendingDeleteFolderFingerprint = nil,
   loadStatus = "Load a save and open the character editor.",
   loadStatusError = false,
   createStatus = "",
@@ -64,7 +77,9 @@ local state = {
   unresolvedRepeatCount = 0,
   loadSatisfied = {},
   pendingOverwriteName = nil,
+  pendingOverwriteFingerprint = nil,
   pendingDeleteName = nil,
+  pendingDeleteFingerprint = nil,
   helpOpen = false,
   debugOpen = false,
   debugLogText = "",
@@ -78,11 +93,13 @@ local state = {
   editorOpenTimer = 0,
   editorStatus = "Load a save before opening the full editor.",
   editorStatusError = false,
+  windowHotkeyCount = 0,
   editorInputCount = 0,
   editorControllerCaptureCount = 0,
   editorPauseRedirectCount = 0,
   editorPuppetReadyCount = 0,
   editorOpenedByLauncher = false,
+  editorHooksAvailable = false,
   newGameCharacterCreator = false,
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
@@ -99,13 +116,125 @@ local function fileExists(path)
   return true
 end
 
-local function isNewGameCharacterCreator()
-  if state.editorOpenedByLauncher or not state.activeBodyMorphMenu then return false end
-  if state.newGameCharacterCreator then return true end
-  local modeOk, editMode = pcall(function()
-    return state.activeBodyMorphMenu.m_editMode
+local function fileFingerprint(path)
+  local file = io.open(path, "rb")
+  if not file then return nil end
+  local sizeOk, fileSize = pcall(file.seek, file, "end")
+  local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
+  if not sizeOk or not fileSize or fileSize > MAX_PRESET_BYTES
+      or not rewindOk or rewindResult == nil then
+    file:close()
+    return nil
+  end
+  local hash, bytesRead = 0, 0
+  local ok = pcall(function()
+    while true do
+      local chunk = file:read(FILE_COPY_CHUNK_SIZE)
+      if not chunk then break end
+      bytesRead = bytesRead + #chunk
+      for index = 1, #chunk do
+        hash = (hash * 131 + chunk:byte(index)) % 2147483647
+      end
+    end
   end)
-  return modeOk and editMode == gameuiCharacterCustomizationEditTag.NewGame
+  local closeOk, closeResult = pcall(file.close, file)
+  if not ok or bytesRead ~= fileSize
+      or not closeOk or closeResult == nil then return nil end
+  return tostring(bytesRead) .. ":" .. tostring(hash)
+end
+
+local function cancelConfirmations()
+  state.pendingOverwriteName = nil
+  state.pendingOverwriteFingerprint = nil
+  state.pendingDeleteName = nil
+  state.pendingDeleteFingerprint = nil
+  state.pendingDeleteFolder = nil
+  state.pendingDeleteFolderStage = 0
+  state.pendingDeleteFolderPresetCount = 0
+  state.pendingDeleteFolderHasContents = false
+  state.pendingDeleteFolderFingerprint = nil
+end
+
+local function resetLoadState()
+  state.loadPresetName = nil
+  state.loadPass = 0
+  state.loadRemaining = 0
+  state.loadNeedsContinue = false
+  state.loadStalled = false
+  state.previousUnresolvedSignature = nil
+  state.unresolvedRepeatCount = 0
+  state.loadSatisfied = {}
+  state.autoLoad = false
+  state.autoLoadTimer = 0
+  state.autoLoadPasses = 0
+  state.resetBeforeLoad = false
+end
+
+local function safeDirectoryEntries(path, depth)
+  if (tonumber(depth) or 0) > MAX_TREE_DEPTH then
+    return nil, "folder nesting exceeds the safety limit"
+  end
+  local ok, entries = pcall(dir, path)
+  if not ok or type(entries) ~= "table" then
+    return nil, "folder could not be listed safely"
+  end
+  local validated = {}
+  for _, entry in pairs(entries) do
+    if type(entry) ~= "table"
+        or type(entry.name) ~= "string"
+        or (entry.type ~= "file" and entry.type ~= "directory")
+        or entry.name == ""
+        or entry.name == "."
+        or entry.name == ".."
+        or entry.name:find("/", 1, true)
+        or entry.name:find("\\", 1, true)
+        or entry.name:find("%c") then
+      return nil, "folder contains an invalid directory entry"
+    end
+    table.insert(validated, entry)
+  end
+  table.sort(validated, function(a, b) return a.name:lower() < b.name:lower() end)
+  return validated
+end
+
+local function removeLegacyFolderSlots()
+  local slots = safeDirectoryEntries(LEGACY_FOLDER_POOL, 0)
+  if not slots then return 0 end
+  local removedCount = 0
+  for _, slot in ipairs(slots) do
+    if slot.type == "directory" and slot.name:match("^Slot %d+$") then
+      local slotPath = LEGACY_FOLDER_POOL .. "/" .. slot.name
+      local contents = safeDirectoryEntries(slotPath, 0)
+      local removable = contents ~= nil and (#contents == 0
+        or (#contents == 1 and contents[1].type == "file"
+          and contents[1].name == ".Character Preset Manager Folder"))
+      local removedMarker = false
+      if removable and #contents == 1 then
+        removedMarker = os.remove(slotPath .. "/" .. contents[1].name) ~= nil
+        if not removedMarker then removable = false end
+      end
+      if removable and os.remove(slotPath) then
+        removedCount = removedCount + 1
+      elseif removedMarker then
+        local marker = io.open(slotPath .. "/.Character Preset Manager Folder", "wb")
+        if marker then
+          marker:write("Character Preset Manager recyclable folder slot. Do not remove.\n")
+          marker:close()
+        end
+      end
+    end
+  end
+  local remaining = safeDirectoryEntries(LEGACY_FOLDER_POOL, 0)
+  if remaining and #remaining == 0 then os.remove(LEGACY_FOLDER_POOL) end
+  if removedCount > 0 then
+    log(("[MIGRATION] Removed %d unused legacy folder slot%s.")
+      :format(removedCount, removedCount == 1 and "" or "s"), "info")
+  end
+  return removedCount
+end
+
+local function isNewGameCharacterCreator()
+  return state.newGameCharacterCreator == true
 end
 
 local function logTimestamp()
@@ -161,18 +290,17 @@ end
 local function archiveLogForNewSession()
   local file = io.open(LOG_FILE, "rb")
   if not file then return true, nil end
-  local readOk, contents = pcall(file.read, file, "*a")
-  file:close()
-  if not readOk then return false, "the existing activity log could not be read" end
-
-  contents = type(contents) == "string" and contents or ""
-  if contents ~= "" then
+  local sizeOk, size = pcall(file.seek, file, "end")
+  if not sizeOk or not size then file:close(); return false, "the existing activity log could not be measured" end
+  if size > 0 then
+    local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
+    if not rewindOk or rewindResult == nil then file:close(); return false, "the existing activity log could not be rewound" end
     local dateOk, timestamp = pcall(os.date, "%Y-%m-%d_%H-%M-%S")
     if not dateOk or not timestamp then timestamp = "unknown-date" end
 
     local archiveName = LOG_ARCHIVE_PREFIX .. tostring(timestamp) .. ".txt"
     local suffix = 2
-    while suffix <= 99 do
+    while suffix <= 9999 do
       local existing = io.open(archiveName, "rb")
       if not existing then break end
       existing:close()
@@ -180,12 +308,26 @@ local function archiveLogForNewSession()
         ("-%d.txt"):format(suffix)
       suffix = suffix + 1
     end
+    if suffix > 9999 and fileExists(archiveName) then
+      file:close()
+      return false, "a unique dated activity-log archive name could not be found"
+    end
 
     local archive = io.open(archiveName, "wb")
-    if not archive then return false, "the dated activity-log archive could not be created" end
-    local writeOk, writeResult = pcall(archive.write, archive, contents)
-    archive:close()
-    if not writeOk or not writeResult then
+    if not archive then file:close(); return false, "the dated activity-log archive could not be created" end
+    local archivedBytes = 0
+    local writeOk, writeResult = pcall(function()
+      while true do
+        local chunk = file:read(FILE_COPY_CHUNK_SIZE)
+        if not chunk then break end
+        if not archive:write(chunk) then return false end
+        archivedBytes = archivedBytes + #chunk
+      end
+      return archivedBytes == size and archive:flush() ~= nil
+    end)
+    file:close()
+    local closeOk, closeResult = pcall(archive.close, archive)
+    if not writeOk or writeResult ~= true or not closeOk or closeResult == nil then
       return false, "the dated activity-log archive could not be written"
     end
 
@@ -197,6 +339,7 @@ local function archiveLogForNewSession()
     return true, archiveName, pruneError, deleted
   end
 
+  file:close()
   local fresh = io.open(LOG_FILE, "w")
   if not fresh then return false, "the empty activity log could not be refreshed" end
   fresh:close()
@@ -222,7 +365,6 @@ local function setStatus(section, message, isError)
   state.statusTimers[section] = 0
   if section == "load" then
     local transient = message:find("Applied one option.", 1, true) == 1
-      or message:find("Applied one replacement CCXL option.", 1, true) == 1
       or message:find("Cleared a remaining option.", 1, true) == 1
       or message:find("Cleanup complete.", 1, true) == 1
       or message:find("Pass ", 1, true) == 1
@@ -293,11 +435,11 @@ end
 
 local function validatedPresetName(value)
   local raw = tostring(value or "")
-  if raw:match("[%. ]$") then
-    return nil, "Preset names cannot end with a period or space."
-  end
   local name = sanitizeName(raw)
   if name == "" then return nil, "Enter a name." end
+  if name:match("[%. ]$") then
+    return nil, "Preset names cannot end with a period or space."
+  end
 
   local deviceName = (name:match("^([^%.]+)") or name):upper()
   if deviceName == "CON" or deviceName == "PRN"
@@ -421,6 +563,10 @@ local function openFullAppearanceEditor()
     setEditorOpenStatus("The editor is already opening.", true)
     return false
   end
+  if not state.editorHooksAvailable then
+    setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
+    return false
+  end
   if isCustomizationActive() then
     setEditorOpenStatus("A customization screen is already open.", true)
     return false
@@ -527,6 +673,27 @@ local function optionAuditIdentity(option, key, occurrence)
       tostring(occurrence or 1))
 end
 
+local function optionIndexIsValid(option, index)
+  if type(index) ~= "number"
+      or index ~= math.floor(index)
+      or index < 0
+      or index > MAX_OPTION_INDEX then
+    return false
+  end
+  if not option or not option.info then return true end
+  for _, field in ipairs({ "options", "morphNames", "definitions" }) do
+    local ok, count = pcall(function()
+      local values = option.info[field]
+      if values == nil then return nil end
+      return #values
+    end)
+    if ok and type(count) == "number" and count > 0 then
+      return index < count
+    end
+  end
+  return true
+end
+
 local function occurrenceKeyParts(value)
   local raw = tostring(value or "")
   local key, occurrence = raw:match("^(.-)\31(%d+)$")
@@ -593,7 +760,29 @@ local function joinFolder(folder, name)
   return folder .. "/" .. name
 end
 
-local function findExistingName(name, excludeName)
+local function isInFolderTree(path, folder)
+  return path == folder or path:sub(1, #folder + 1) == folder .. "/"
+end
+
+local function addFolderAncestors(folders, folder)
+  local current = folder
+  while current and current ~= "" do
+    folders[current] = true
+    current = parentFolder(current)
+  end
+end
+
+local function presetPath(name)
+  local preset = state.presets[name]
+  local storage = preset and preset.storage or name
+  return PRESET_DIR .. "/" .. storage .. ".preset"
+end
+
+local function folderPath(name)
+  return name == "" and PRESET_DIR or (PRESET_DIR .. "/" .. name)
+end
+
+local function findPresetCollision(name, excludeName)
   local lowered = name:lower()
   for existing in pairs(state.presets) do
     if existing:lower() == lowered and existing ~= excludeName then
@@ -603,12 +792,90 @@ local function findExistingName(name, excludeName)
   return nil
 end
 
-local function presetPath(name)
-  return PRESET_DIR .. "/" .. name .. ".preset"
+local function validRelativePath(value)
+  if type(value) ~= "string" or value == ""
+      or value:sub(1, 1) == "/" or value:sub(-1) == "/"
+      or value:find("//", 1, true) or value:find("\\", 1, true) then
+    return false
+  end
+  for part in value:gmatch("[^/]+") do
+    if part == "." or part == ".." or part == "" then return false end
+  end
+  return true
 end
 
-local function folderPath(name)
-  return name == "" and PRESET_DIR or (PRESET_DIR .. "/" .. name)
+local function catalogEncode(value)
+  return (tostring(value or ""):gsub("([^%w%-%._/])", function(character)
+    return ("%%%02X"):format(character:byte())
+  end))
+end
+
+local function catalogDecode(value)
+  return (tostring(value or ""):gsub("%%(%x%x)", function(hex)
+    return string.char(tonumber(hex, 16))
+  end))
+end
+
+local function readCatalog()
+  local assignments, folders, ignored = {}, {}, {}
+  local file = io.open(CATALOG_FILE, "rb")
+  if not file then return assignments, folders, ignored, nil end
+  local sizeOk, size = pcall(file.seek, file, "end")
+  local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
+  if not sizeOk or not size or size > MAX_CATALOG_BYTES
+      or not rewindOk or rewindResult == nil then
+    file:close()
+    log("[CATALOG] Virtual-folder catalog is unreadable or exceeds the safety limit.", "error")
+    return assignments, folders, ignored, false
+  end
+  local lineCount = 0
+  for line in file:lines() do
+    lineCount = lineCount + 1
+    if lineCount > MAX_CATALOG_LINES then
+      file:close()
+      log("[CATALOG] Virtual-folder catalog exceeds the line limit.", "error")
+      return {}, {}, {}, false
+    end
+    local kind, first, second = line:match("^([PFX])\t([^\t]+)\t?([^\t]*)$")
+    first = catalogDecode(first)
+    second = catalogDecode(second)
+    if kind == "P" and validRelativePath(first) and validRelativePath(second) then
+      assignments[first] = second
+    elseif kind == "F" and validRelativePath(first) then
+      folders[first] = true
+    elseif kind == "X" and validRelativePath(first) then
+      ignored[first] = true
+    elseif line:match("%S") then
+      file:close()
+      log(("[CATALOG] Invalid virtual-folder catalog line %d."):format(lineCount), "error")
+      return {}, {}, {}, false
+    end
+  end
+  file:close()
+  return assignments, folders, ignored, true
+end
+
+local function storageFilenamesInUse()
+  local entries = safeDirectoryEntries(PRESET_DIR, 0)
+  if not entries then return nil end
+  local used = {}
+  for _, entry in ipairs(entries) do used[entry.name:lower()] = true end
+  return used
+end
+
+local function uniqueStorageName(leafName, used)
+  used = used or storageFilenamesInUse()
+  if not used then return nil end
+  for index = 1, 9999 do
+    local suffix = index == 1 and "" or (" %d"):format(index)
+    local candidate = leafName:sub(1, 64 - #suffix) .. suffix
+    local filename = (candidate .. ".preset"):lower()
+    if not used[filename] then
+      used[filename] = true
+      return candidate
+    end
+  end
+  return nil
 end
 
 local function validatedFolderName(value)
@@ -622,123 +889,51 @@ local function validatedFolderName(value)
   return name
 end
 
-local function ensureFolderMarker(path, context)
-  local markerPath = path .. "/.Character Preset Manager Folder"
-  local existing = io.open(markerPath, "r")
-  if existing then
-    existing:close()
-    return true
-  end
-  local marker = io.open(markerPath, "w")
-  if not marker then
-    log(("[FOLDER SLOT] Could not restore marker='%s' context='%s'.")
-      :format(markerPath, tostring(context)), "error")
-    return false
-  end
-  marker:write("Character Preset Manager recyclable folder slot. Do not remove.\n")
-  local closed, closeResult = pcall(marker.close, marker)
-  local success = closed and closeResult ~= nil
-  log(("[FOLDER SLOT] Restored marker='%s' context='%s' success=%s.")
-    :format(markerPath, tostring(context), tostring(success)), success and "info" or "error")
-  return success
-end
-
-local function repairFolderSlots()
-  local ok, slots = pcall(dir, FOLDER_POOL)
-  if not ok or type(slots) ~= "table" then
-    log(("[FOLDER SLOT] Startup repair could not list pool='%s'."):format(FOLDER_POOL), "error")
-    return 0, 0
-  end
-  local inspected, repaired = 0, 0
-  for _, entry in pairs(slots) do
-    local name = type(entry) == "table" and entry.name or tostring(entry)
-    local entryType = type(entry) == "table" and entry.type or nil
-    if name and name ~= "." and name ~= ".." and entryType ~= "file" then
-      inspected = inspected + 1
-      local slotPath = FOLDER_POOL .. "/" .. name
-      local marker = io.open(slotPath .. "/.Character Preset Manager Folder", "r")
-      if marker then marker:close()
-      elseif ensureFolderMarker(slotPath, "startup repair") then repaired = repaired + 1 end
-    end
-  end
-  log(("[FOLDER SLOT] Startup repair complete: inspected=%d repaired=%d.")
-    :format(inspected, repaired), repaired > 0 and "warn" or "info")
-  return inspected, repaired
-end
-
-local function acquireFolderSlot(path)
-  local ok, slots = pcall(dir, FOLDER_POOL)
-  if not ok or type(slots) ~= "table" then
-    log(("[FOLDER SLOT] Could not list pool '%s' for destination '%s'."):format(FOLDER_POOL, path), "error")
-    return false
-  end
-  for _, entry in pairs(slots) do
-    local name = type(entry) == "table" and entry.name or tostring(entry)
-    local entryType = type(entry) == "table" and entry.type or nil
-    if name and name ~= "." and name ~= ".." and entryType ~= "file" then
-      if os.rename(FOLDER_POOL .. "/" .. name, path) then
-        log(("[FOLDER SLOT] Acquired '%s' -> '%s'."):format(name, path), "info")
-        return true
-      end
-    end
-  end
-  log(("[FOLDER SLOT] No slot could be acquired for '%s'."):format(path), "error")
-  return false
-end
-
-local function availableFolderSlots()
-  local ok, slots = pcall(dir, FOLDER_POOL)
-  if not ok or type(slots) ~= "table" then return nil end
-  local count = 0
-  for _, entry in pairs(slots) do
-    local name = type(entry) == "table" and entry.name or tostring(entry)
-    local entryType = type(entry) == "table" and entry.type or nil
-    if name and name:match("^Slot %d+$") and entryType ~= "file" then
-      count = count + 1
-    end
-  end
-  return count
-end
-
-local function recycleFolder(path)
-  if not ensureFolderMarker(path, "recycle") then return false end
-  local ok, slots = pcall(dir, FOLDER_POOL)
-  if not ok or type(slots) ~= "table" then
-    log(("[FOLDER SLOT] Could not list pool while recycling '%s'."):format(path), "error")
-    return false
-  end
-  local used = {}
-  for _, entry in pairs(slots) do
-    local name = type(entry) == "table" and entry.name or tostring(entry)
-    if name then used[name:lower()] = true end
-  end
-  for index = 1, 64 do
-    local name = ("Slot %02d"):format(index)
-    if not used[name:lower()] and os.rename(path, FOLDER_POOL .. "/" .. name) then
-      log(("[FOLDER SLOT] Recycled '%s' -> '%s'."):format(path, name), "info")
-      return true
-    end
-  end
-  log(("[FOLDER SLOT] Could not recycle '%s': no destination slot was available."):format(path), "error")
-  return false
-end
-
-local fileExists, presetsMatch
+local presetsMatch
 
 local function readPresetFile(path)
   local file = io.open(path, "r")
   if not file then return nil end
+  local sizeOk, size = pcall(file.seek, file, "end")
+  if not sizeOk or not size or size > MAX_PRESET_BYTES then
+    file:close()
+    log(("[FILES] Preset rejected because its size is invalid: file='%s' bytes='%s'.")
+      :format(path, tostring(size)), "warn")
+    return nil
+  end
+  local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
+  if not rewindOk or rewindResult == nil then file:close(); return nil end
   local entries = {}
   local lineNumber, malformed = 0, 0
   for line in file:lines() do
     lineNumber = lineNumber + 1
+    if lineNumber > MAX_PRESET_LINES then
+      file:close()
+      log(("[FILES] Preset rejected because it exceeds %d lines: file='%s'.")
+        :format(MAX_PRESET_LINES, path), "warn")
+      return nil
+    end
     local key, index = line:match("^%s*(.-):(-?%d+)%s*$")
+    local numericIndex = tonumber(index)
     if key and key ~= "" then
-      table.insert(entries, { key = key, index = tonumber(index) or 0 })
+      if #key > MAX_PRESET_KEY_BYTES
+          or not numericIndex
+          or numericIndex < 0
+          or numericIndex > MAX_OPTION_INDEX
+          or numericIndex ~= math.floor(numericIndex)
+          or #entries >= MAX_PRESET_ENTRIES then
+        file:close()
+        log(("[FILES] Preset rejected because line %d exceeds safe option limits: file='%s'.")
+          :format(lineNumber, path), "warn")
+        return nil
+      end
+      table.insert(entries, { key = key, index = numericIndex })
     elseif line:match("%S") then
       malformed = malformed + 1
-      log(("[FILES] Malformed preset line skipped: file='%s' line=%d content='%s'.")
-        :format(path, lineNumber, line), "warn")
+      if malformed <= 20 then
+        log(("[FILES] Malformed preset line skipped: file='%s' line=%d content='%s'.")
+          :format(path, lineNumber, line), "warn")
+      end
     end
   end
   file:close()
@@ -800,15 +995,62 @@ local function atomicReplace(path, writeTemporary, description)
   return true
 end
 
+local function writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders)
+  local lines = {}
+  for logicalName, preset in pairs(presets or {}) do
+    if preset.storage and validRelativePath(preset.storage)
+        and validRelativePath(logicalName) then
+      table.insert(lines, "P\t" .. catalogEncode(preset.storage) .. "\t" ..
+        catalogEncode(logicalName))
+    end
+  end
+  for folder in pairs(folders or {}) do
+    if not (manualFolders or {})[folder] and validRelativePath(folder) then
+      table.insert(lines, "F\t" .. catalogEncode(folder))
+    end
+  end
+  for folder in pairs(ignoredPhysicalFolders or {}) do
+    if validRelativePath(folder) then
+      table.insert(lines, "X\t" .. catalogEncode(folder))
+    end
+  end
+  table.sort(lines, function(a, b) return a:lower() < b:lower() end)
+  if #lines > MAX_CATALOG_LINES then
+    log("[CATALOG] Virtual-folder catalog exceeds the safe entry limit.", "error")
+    return false
+  end
+  local catalogBytes = 0
+  for _, line in ipairs(lines) do catalogBytes = catalogBytes + #line + 1 end
+  if catalogBytes > MAX_CATALOG_BYTES then
+    log("[CATALOG] Virtual-folder catalog exceeds the safe size limit.", "error")
+    return false
+  end
+  local result = atomicReplace(CATALOG_FILE, function(temporary)
+    local file = io.open(temporary, "wb")
+    if not file then return false end
+    local wrote, writeResult = pcall(function()
+      for _, line in ipairs(lines) do
+        if not file:write(line .. "\n") then return false end
+      end
+      return file:flush() ~= nil
+    end)
+    local closeOk, closeResult = pcall(file.close, file)
+    return wrote and writeResult == true and closeOk and closeResult ~= nil
+  end, "virtual-folder catalog")
+  log(("[CATALOG] Saved presets=%d folders=%d ignoredPhysicalFolders=%d success=%s.")
+    :format(
+      (function() local count = 0; for _ in pairs(presets or {}) do count = count + 1 end; return count end)(),
+      (function() local count = 0; for _ in pairs(folders or {}) do count = count + 1 end; return count end)(),
+      (function() local count = 0; for _ in pairs(ignoredPhysicalFolders or {}) do count = count + 1 end; return count end)(),
+      tostring(result)), result and "info" or "error")
+  return result
+end
+
 local function writePresetPath(path, preset)
   return atomicReplace(path, function(temporary)
     if not writePresetContents(temporary, preset) then return false end
     return presetsMatch(preset, readPresetFile(temporary))
   end, "preset")
-end
-
-local function writePresetFile(name, preset)
-  return writePresetPath(presetPath(name), preset)
 end
 
 presetsMatch = function(expected, actual)
@@ -862,36 +1104,51 @@ local function writeInventory(presets, folders)
   return result
 end
 
-fileExists = function(path)
-  local file = io.open(path, "r")
-  if not file then return false end
-  file:close()
-  return true
-end
-
 local function copyFile(source, destination)
   local input = io.open(source, "rb")
   if not input then
     log(("[FILES] Copy failed: could not open source='%s'."):format(source), "error")
     return false
   end
-  local readOk, contents = pcall(input.read, input, "*a")
-  input:close()
-  if not readOk then
-    log(("[FILES] Copy failed while reading source='%s'."):format(source), "error")
+  local sizeOk, sourceSize = pcall(input.seek, input, "end")
+  local rewindOk, rewindResult = pcall(input.seek, input, "set", 0)
+  if not sizeOk or not sourceSize or not rewindOk or rewindResult == nil then
+    input:close()
+    log(("[FILES] Copy failed: could not measure source='%s'."):format(source), "error")
     return false
   end
   local output = io.open(destination, "wb")
   if not output then
+    input:close()
     log(("[FILES] Copy failed: could not open destination='%s'."):format(destination), "error")
     return false
   end
-  local writeOk, writeResult = pcall(output.write, output, contents or "")
+  local copiedBytes = 0
+  local writeOk, writeResult = pcall(function()
+    while true do
+      local chunk = input:read(FILE_COPY_CHUNK_SIZE)
+      if not chunk then break end
+      if not output:write(chunk) then return false end
+      copiedBytes = copiedBytes + #chunk
+    end
+    return copiedBytes == sourceSize and output:flush() ~= nil
+  end)
+  local inputCloseOk, inputCloseResult = pcall(input.close, input)
   local closeOk, closeResult = pcall(output.close, output)
-  local copied = writeOk and writeResult ~= nil and closeOk and closeResult ~= nil
+  local copied = writeOk and writeResult == true
+    and inputCloseOk and inputCloseResult ~= nil
+    and closeOk and closeResult ~= nil
   log(("[FILES] Copy source='%s' destination='%s' bytes=%d success=%s.")
-    :format(source, destination, #(contents or ""), tostring(copied)), copied and "info" or "error")
+    :format(source, destination, copiedBytes, tostring(copied)), copied and "info" or "error")
   return copied
+end
+
+local function removeFileList(paths)
+  local success = true
+  for _, path in ipairs(paths or {}) do
+    if fileExists(path) and not os.remove(path) then success = false end
+  end
+  return success
 end
 
 local function uniquePresetCopyName(sourceName)
@@ -900,17 +1157,21 @@ local function uniquePresetCopyName(sourceName)
   for index = 1, 999 do
     local suffix = index == 1 and " Copy" or (" Copy %d"):format(index)
     local candidate = joinFolder(folder, leaf .. suffix)
-    if not findExistingName(candidate) then return candidate end
+    if not findPresetCollision(candidate) then return candidate end
+  end
+  return nil
+end
+
+local function findExistingFolderName(name, excludeName)
+  local lowered = name:lower()
+  for existing in pairs(state.folders) do
+    if existing:lower() == lowered and existing ~= excludeName then return existing end
   end
   return nil
 end
 
 local function folderNameExists(name)
-  local lowered = name:lower()
-  for existing in pairs(state.folders) do
-    if existing:lower() == lowered then return true end
-  end
-  return false
+  return findExistingFolderName(name) ~= nil
 end
 
 local function uniqueFolderCopyName(sourceName)
@@ -924,13 +1185,11 @@ local function uniqueFolderCopyName(sourceName)
   return nil
 end
 
-local function replacePresetFile(name, preset)
-  return writePresetPath(presetPath(name), preset)
-end
-
 local function refreshPresets(scanReason)
-  local previousPresets = state.presets or {}
-  local previousFolders = state.folders or {}
+  local currentPresets = state.presets or {}
+  local currentFolders = state.folders or {}
+  local previousPresets = currentPresets
+  local previousFolders = currentFolders
   local baselineAvailable = state.ready
   if scanReason == "startup" then
     previousPresets, previousFolders, baselineAvailable = readInventory()
@@ -939,43 +1198,113 @@ local function refreshPresets(scanReason)
         (function() local count = 0; for _ in pairs(previousPresets) do count = count + 1 end; return count end)(),
         (function() local count = 0; for _ in pairs(previousFolders) do count = count + 1 end; return count end)()), "info")
   end
+  local assignments, catalogFolders, ignoredPhysicalFolders, catalogStatus = readCatalog()
+  if catalogStatus == false then
+    log("[CATALOG] Preset scan stopped because the existing virtual-folder catalog is invalid.", "error")
+    return currentPresets, false
+  end
+  local scannedPresets = {}
+  local physicalFolders = {}
+  local function scan(relative, depth)
+    local path = folderPath(relative)
+    local files, listError = safeDirectoryEntries(path, depth)
+    if not files then
+      log(("[FILES] Scan stopped at '%s': %s."):format(path, tostring(listError)), "error")
+      return false
+    end
+    if relative ~= "" then physicalFolders[relative] = true end
+    for _, entry in ipairs(files) do
+      local filename = entry.name
+      local childRelative = joinFolder(relative, filename)
+      local name = filename:lower():sub(-7) == ".preset"
+        and filename:sub(1, -8) or nil
+      if entry.type == "file" and name and name ~= "" then
+        local storage = joinFolder(relative, name)
+        local preset = readPresetFile(path .. "/" .. filename)
+        if preset then
+          preset.storage = storage
+          scannedPresets[storage] = preset
+        else
+          log(("[FILES] Skipped unreadable, unsafe, or empty preset '%s'.")
+            :format(childRelative), "warn")
+        end
+      elseif entry.type == "directory"
+          and childRelative ~= ".Character Preset Manager Folder Slots"
+          and not scan(childRelative, depth + 1) then
+        return false
+      end
+    end
+    return true
+  end
+
+  if not scan("", 0) then
+    log(("[FILES] Preset scan was incomplete; previous state and inventory were retained (reason=%s).")
+      :format(tostring(scanReason or "unspecified")), "error")
+    return currentPresets, false
+  end
+
   local presets = {}
   local folders = {}
-  local function scan(relative, depth)
-    if depth > 12 then
-      log(("[FILES] Folder nesting limit reached at '%s'."):format(relative), "warn")
-      return
-    end
-    local path = folderPath(relative)
-    local ok, files = pcall(dir, path)
-    if not ok or type(files) ~= "table" then return end
-    if relative ~= "" then folders[relative] = true end
-    for _, entry in pairs(files) do
-      local filename = type(entry) == "table" and entry.name or tostring(entry)
-      local entryType = type(entry) == "table" and entry.type or nil
-      if filename and filename ~= "." and filename ~= ".." then
-        local childRelative = joinFolder(relative, filename)
-        local name = filename:match("^(.*)%.preset$")
-        if entryType ~= "directory" and name and name ~= "" then
-          local presetName = joinFolder(relative, name)
-          local preset = readPresetFile(presetPath(presetName))
-          if preset then
-            presets[presetName] = preset
-          else
-            log(("[FILES] Skipped unreadable or empty preset '%s'.")
-              :format(childRelative), "warn")
-          end
-        elseif entryType ~= "file" and childRelative ~= ".Character Preset Manager Folder Slots" then
-          local childOk, childFiles = pcall(dir, folderPath(childRelative))
-          if childOk and type(childFiles) == "table" then scan(childRelative, depth + 1) end
+  local manualFolders = {}
+  local usedLogicalNames = {}
+  for folder in pairs(catalogFolders) do addFolderAncestors(folders, folder) end
+  local storageNames = {}
+  for storage in pairs(scannedPresets) do table.insert(storageNames, storage) end
+  table.sort(storageNames, function(a, b) return a:lower() < b:lower() end)
+  for _, storage in ipairs(storageNames) do
+    local preset = scannedPresets[storage]
+    local preferred = assignments[storage]
+    if not validRelativePath(preferred) then preferred = storage end
+    local logicalName = preferred
+    local lowered = logicalName:lower()
+    if usedLogicalNames[lowered] then
+      local folder = parentFolder(preferred)
+      local leaf = baseName(preferred)
+      local resolved = false
+      for index = 2, 9999 do
+        local suffix = (" %d"):format(index)
+        local candidate = joinFolder(folder, leaf:sub(1, 64 - #suffix) .. suffix)
+        if not usedLogicalNames[candidate:lower()] then
+          logicalName = candidate
+          lowered = candidate:lower()
+          resolved = true
+          break
         end
+      end
+      if not resolved then
+        log(("[CATALOG] Could not assign a unique display name for storage='%s'.")
+          :format(storage), "error")
+        return currentPresets, false
+      end
+    end
+    usedLogicalNames[lowered] = true
+    preset.storage = storage
+    presets[logicalName] = preset
+    local logicalFolder = parentFolder(logicalName)
+    addFolderAncestors(folders, logicalFolder)
+    if logicalName == storage and logicalFolder ~= "" then
+      local current = logicalFolder
+      while current ~= "" do
+        manualFolders[current] = true
+        ignoredPhysicalFolders[current] = nil
+        current = parentFolder(current)
+      end
+    end
+  end
+  for folder in pairs(physicalFolders) do
+    if not ignoredPhysicalFolders[folder] then
+      addFolderAncestors(folders, folder)
+      local current = folder
+      while current ~= "" do
+        manualFolders[current] = true
+        current = parentFolder(current)
       end
     end
   end
 
-  local rootOk, rootFiles = pcall(dir, PRESET_DIR)
-  if rootOk and type(rootFiles) == "table" then scan("", 0) else
-    log(("[FILES] Could not scan preset folder '%s'."):format(PRESET_DIR), "error")
+  if not writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders) then
+    log("[CATALOG] Preset scan retained the previous state because the virtual-folder catalog could not be updated.", "error")
+    return currentPresets, false
   end
 
   local externalScan = scanReason == "external" or scanReason == "startup"
@@ -985,29 +1314,31 @@ local function refreshPresets(scanReason)
     for name, preset in pairs(presets) do
       if not previousPresets[name] then
         added = added + 1
-        log(("[EXTERNAL CHANGE] Preset added or moved in: '%s'."):format(presetPath(name)), "warn")
+        log(("[EXTERNAL CHANGE] Preset added or moved in: '%s'.")
+          :format(PRESET_DIR .. "/" .. preset.storage .. ".preset"), "warn")
       elseif type(previousPresets[name]) == "table"
           and not presetsMatch(previousPresets[name], preset) then
         modified = modified + 1
-        log(("[EXTERNAL CHANGE] Preset contents changed: '%s'."):format(presetPath(name)), "warn")
+        log(("[EXTERNAL CHANGE] Preset contents changed: '%s'.")
+          :format(PRESET_DIR .. "/" .. preset.storage .. ".preset"), "warn")
       end
     end
     for name in pairs(previousPresets) do
       if not presets[name] then
         removed = removed + 1
-        log(("[EXTERNAL CHANGE] Preset removed or moved out: '%s'."):format(presetPath(name)), "warn")
+        log(("[EXTERNAL CHANGE] Preset removed or moved out: '%s'."):format(name), "warn")
       end
     end
     for name in pairs(folders) do
       if not previousFolders[name] then
         foldersAdded = foldersAdded + 1
-        log(("[EXTERNAL CHANGE] Folder added or moved in: '%s'."):format(folderPath(name)), "warn")
+        log(("[EXTERNAL CHANGE] Folder added or moved in: '%s'."):format(name), "warn")
       end
     end
     for name in pairs(previousFolders) do
       if not folders[name] then
         foldersRemoved = foldersRemoved + 1
-        log(("[EXTERNAL CHANGE] Folder removed or moved out: '%s'."):format(folderPath(name)), "warn")
+        log(("[EXTERNAL CHANGE] Folder removed or moved out: '%s'."):format(name), "warn")
       end
     end
     local total = added + removed + modified + foldersAdded + foldersRemoved
@@ -1022,18 +1353,26 @@ local function refreshPresets(scanReason)
 
   state.presets = presets
   state.folders = folders
+  state.manualFolders = manualFolders
+  state.ignoredPhysicalFolders = ignoredPhysicalFolders
   for folder in pairs(state.expandedLoadFolders) do
     if not folders[folder] then state.expandedLoadFolders[folder] = nil end
   end
   writeInventory(presets, folders)
   if state.selectedFolder ~= "" and not folders[state.selectedFolder] then
     state.selectedFolder = ""
+    cancelConfirmations()
+  end
+  if state.selected and not presets[state.selected] then
+    state.selected = nil
+    resetLoadState()
+    cancelConfirmations()
   end
   local count = 0
   for _ in pairs(presets) do count = count + 1 end
   log(("[FILES] Scanned '%s': %d readable preset file%s found (reason=%s).")
     :format(PRESET_DIR, count, count == 1 and "" or "s", tostring(scanReason or "unspecified")), "info")
-  return presets
+  return presets, true
 end
 
 local function savePreset(confirmOverwrite)
@@ -1047,33 +1386,40 @@ local function savePreset(confirmOverwrite)
   local leafName, nameError = validatedPresetName(state.newName)
   if not leafName then setStatus("create", nameError, true); return end
   local name = joinFolder(state.selectedFolder, leafName)
-  state.pendingDeleteName = nil
-  state.loadPresetName = nil
-  state.loadPass = 0
-  state.loadRemaining = 0
-  state.loadNeedsContinue = false
-  state.loadStalled = false
-  state.previousUnresolvedSignature = nil
-  state.unresolvedRepeatCount = 0
-  state.autoLoad = false
-  state.autoLoadTimer = 0
-  state.autoLoadPasses = 0
-  state.resetBeforeLoad = false
+  local armedOverwriteName = state.pendingOverwriteName
+  local armedOverwriteFingerprint = state.pendingOverwriteFingerprint
+  cancelConfirmations()
+  resetLoadState()
 
-  local collision = findExistingName(name)
+  local collision = findPresetCollision(name)
   if collision and collision ~= name then
     state.pendingOverwriteName = nil
     setStatus("create", ("\"%s\" conflicts with \"%s\" because Windows treats them as the same name. Enter another name.")
       :format(name, collision), true)
     return
   end
-  if collision == name and not confirmOverwrite then
-    state.pendingOverwriteName = name
-    setStatus("create", ("\"%s\" already exists. Select Confirm Overwrite to replace it.")
-      :format(name), true)
-    return
+  if collision == name then
+    local currentFingerprint = fileFingerprint(presetPath(collision))
+    if not currentFingerprint then
+      setStatus("create", "The existing preset could not be verified safely.", true)
+      return
+    end
+    if not confirmOverwrite
+        or armedOverwriteName ~= name
+        or armedOverwriteFingerprint ~= currentFingerprint then
+      state.pendingOverwriteName = name
+      state.pendingOverwriteFingerprint = currentFingerprint
+      local message = confirmOverwrite and armedOverwriteName == name
+        and ("\"%s\" changed after confirmation. Review it and select Confirm Overwrite again.")
+          :format(name)
+        or ("\"%s\" already exists. Select Confirm Overwrite to replace it.")
+          :format(name)
+      setStatus("create", message, true)
+      return
+    end
   end
   state.pendingOverwriteName = nil
+  state.pendingOverwriteFingerprint = nil
 
   local _, options, err = getOptions()
   if not options then setStatus("create", err, true); return end
@@ -1083,13 +1429,20 @@ local function savePreset(confirmOverwrite)
   for _, option in ipairs(options) do
     local key = legacyOptionKey(option)
     if key and option.isEditable and option.isActive then
+      local currentIndex = tonumber(option.currIndex)
+      if #key > MAX_PRESET_KEY_BYTES
+          or #entries >= MAX_PRESET_ENTRIES
+          or not optionIndexIsValid(option, currentIndex) then
+        setStatus("create", "The current customization data exceeds the safe preset limits.", true)
+        return
+      end
       savedOccurrences[key] = (savedOccurrences[key] or 0) + 1
       log(("[SNAPSHOT] Saved %s index=%d editable=true active=true")
         :format(optionAuditIdentity(option, key, savedOccurrences[key]),
-          tonumber(option.currIndex) or 0), "info")
+          currentIndex), "info")
       table.insert(entries, {
         key = key,
-        index = tonumber(option.currIndex) or 0,
+        index = currentIndex,
       })
     end
   end
@@ -1099,37 +1452,56 @@ local function savePreset(confirmOverwrite)
   end
 
   local previousPreset = state.presets[name]
-  state.presets[name] = {
+  local storage = previousPreset and previousPreset.storage
+    or uniqueStorageName(leafName)
+  if not storage then
+    setStatus("create", "A safe storage filename could not be allocated.", true)
+    return
+  end
+  local newPreset = {
     format = 4,
     entries = entries,
+    storage = storage,
   }
+  local storagePath = PRESET_DIR .. "/" .. storage .. ".preset"
+  if not writePresetPath(storagePath, newPreset) then
+    setStatus("create", "Could not write " .. storagePath .. ".", true)
+    return
+  end
+  state.presets[name] = newPreset
+  if not writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) then
+    local rolledBack = true
+    if previousPreset then
+      rolledBack = writePresetPath(storagePath, previousPreset)
+      state.presets[name] = previousPreset
+    else
+      rolledBack = removeFileList({ storagePath })
+      state.presets[name] = nil
+    end
+    setStatus("create", rolledBack
+      and "The preset was not saved because its virtual folder could not be recorded."
+      or "The virtual-folder catalog failed, and the preset file could not be rolled back safely.", true)
+    return
+  end
   state.selected = name
   state.renameName = ""
   state.newName = ""
-  state.loadPresetName = nil
-  state.loadPass = 0
-  state.loadRemaining = 0
-  state.loadNeedsContinue = false
-  state.loadStalled = false
-  state.previousUnresolvedSignature = nil
-  state.unresolvedRepeatCount = 0
-  state.autoLoad = false
-  state.autoLoadTimer = 0
-  state.autoLoadPasses = 0
-  state.resetBeforeLoad = false
-  if not replacePresetFile(name, state.presets[name]) then
-    state.presets[name] = previousPreset
-    setStatus("create", "Could not write " .. presetPath(name) .. ".", true)
-    return
-  end
+  resetLoadState()
   log(("Created preset '%s': format=4 orderedOptions=%d")
     :format(name, #entries), "info")
-  setStatus("create", ("Saved \"%s\" with %d options.")
-    :format(name, #entries))
+  if writeInventory(state.presets, state.folders) then
+    setStatus("create", ("Saved \"%s\" with %d options.")
+      :format(name, #entries))
+  else
+    setStatus("create", ("Saved \"%s\", but the inventory could not be updated.")
+      :format(name), true)
+  end
 end
 
 local function loadPreset()
   if not state.selected or not state.presets[state.selected] then
+    resetLoadState()
     setStatus("load", "Select a preset.", true)
     return
   end
@@ -1151,7 +1523,7 @@ local function loadPreset()
     state.loadSatisfied = {}
   end
   state.loadStalled = false
-  local values, occurrences, savedKeys = {}, {}, {}
+  local values, occurrences = {}, {}
   local valueCount = 0
   for _, entry in ipairs(preset.entries or {}) do
     local label = tostring(entry.key or "")
@@ -1159,7 +1531,6 @@ local function loadPreset()
       occurrences[label] = (occurrences[label] or 0) + 1
       local savedKey = label .. "\31" .. tostring(occurrences[label])
       values[savedKey] = tonumber(entry.index) or 0
-      table.insert(savedKeys, savedKey)
       valueCount = valueCount + 1
     end
   end
@@ -1230,24 +1601,45 @@ local function loadPreset()
     end
   end
 
-  local applied, skipped, failed, missing, ambiguous = 0, 0, 0, 0, 0
+  local applied, missing, ambiguous, invalid = 0, 0, 0, 0
   local unresolved = {}
   local seen = {}
   local exposed = {}
-  local activeKeys = {}
-  local activeOptionsByKey = {}
+  local activeKeySet = {}
   occurrences = {}
   for _, option in ipairs(options) do
     local label = legacyOptionKey(option)
     local key = nil
+    local occurrence = nil
     if label and option.isEditable and option.isActive then
       occurrences[label] = (occurrences[label] or 0) + 1
-      key = label .. "\31" .. tostring(occurrences[label])
+      occurrence = occurrences[label]
+      key = label .. "\31" .. tostring(occurrence)
     end
-    table.insert(exposed, { option = option, label = label, key = key })
-    if key then
-      table.insert(activeKeys, key)
-      activeOptionsByKey[key] = option
+    table.insert(exposed, {
+      option = option,
+      label = label,
+      key = key,
+      occurrence = occurrence,
+    })
+    if key then activeKeySet[key] = true end
+  end
+
+  local satisfiedBefore = 0
+  for _, exposedOption in ipairs(exposed) do
+    local key = exposedOption.key
+    local label = exposedOption.label
+    local wanted = key and values[key] or nil
+    local countMatches = label
+      and (savedCounts[label] or 0) == (activeCounts[label] or 0)
+    if wanted ~= nil and countMatches and optionIndexIsValid(exposedOption.option, wanted)
+        and (tonumber(exposedOption.option.currIndex) or 0) == wanted then
+      satisfiedBefore = satisfiedBefore + 1
+    end
+  end
+  for key in pairs(values) do
+    if not activeKeySet[key] and state.loadSatisfied[key] then
+      satisfiedBefore = satisfiedBefore + 1
     end
   end
 
@@ -1259,6 +1651,7 @@ local function loadPreset()
     local wanted = key and values[key] or nil
     local countMatches = label
       and (savedCounts[label] or 0) == (activeCounts[label] or 0)
+    local indexIsValid = wanted == nil or optionIndexIsValid(option, wanted)
     if wanted ~= nil then
       seen[key] = true
       if not countMatches then
@@ -1266,13 +1659,20 @@ local function loadPreset()
         unresolved["ambiguous:" .. tostring(key)] = true
         log(("[SKIPPED] Ambiguous repeated option: %s savedCount=%d exposedCount=%d")
           :format(
-            optionAuditIdentity(option, label, occurrences[label]),
+            optionAuditIdentity(option, label, exposedOption.occurrence),
             savedCounts[label] or 0,
             activeCounts[label] or 0
           ), "warn")
+      elseif not indexIsValid then
+        invalid = invalid + 1
+        unresolved["invalid-index:" .. tostring(key)] = true
+        log(("[SKIPPED] Saved index is outside the option's available choices: %s targetIndex=%s")
+          :format(optionAuditIdentity(option, label, exposedOption.occurrence),
+            tostring(wanted)), "warn")
       end
     end
-    if wanted ~= nil and countMatches and option.isEditable and option.isActive then
+    if wanted ~= nil and countMatches and indexIsValid
+        and option.isEditable and option.isActive then
       local current = tonumber(option.currIndex) or 0
       if current == wanted then
         state.loadSatisfied[key] = true
@@ -1282,13 +1682,13 @@ local function loadPreset()
         local ok, applyError = pcall(system.ApplyChangeToOption, system, option, wanted)
         if ok then
           state.loadSatisfied[key] = true
-          state.loadRemaining = math.max(1, valueCount - applied)
+          state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
           state.loadNeedsContinue = true
           state.previousUnresolvedSignature = nil
           state.unresolvedRepeatCount = 0
           log(("CHANGE | pass=%d | %s | index %s -> %s")
             :format(state.loadPass,
-              optionAuditIdentity(option, label, occurrences[label]),
+              optionAuditIdentity(option, label, exposedOption.occurrence),
               tostring(current), tostring(wanted)), "info")
           setStatus("load", ("Applied one option. %d %s remain%s to be checked.")
             :format(state.loadRemaining,
@@ -1299,7 +1699,7 @@ local function loadPreset()
           state.loadStalled = true
           log(("FAILED | pass=%d | %s | target index %s | %s")
             :format(state.loadPass,
-              optionAuditIdentity(option, label, occurrences[label]),
+              optionAuditIdentity(option, label, exposedOption.occurrence),
               tostring(wanted), tostring(applyError)), "error")
           setStatus("load", 
             "Loading stopped because an option could not be applied safely. " ..
@@ -1309,99 +1709,6 @@ local function loadPreset()
         end
         return
       end
-    end
-  end
-
-  local activePositions = {}
-  for i, key in ipairs(activeKeys) do activePositions[key] = i end
-
-  local replacementCandidates = {}
-  for savedIndex, savedKey in ipairs(savedKeys) do
-    if not seen[savedKey] then
-      local previousPosition, nextPosition = nil, nil
-      for i = savedIndex - 1, 1, -1 do
-        previousPosition = activePositions[savedKeys[i]]
-        if previousPosition then break end
-      end
-      for i = savedIndex + 1, #savedKeys do
-        nextPosition = activePositions[savedKeys[i]]
-        if nextPosition then break end
-      end
-      if previousPosition and nextPosition
-          and nextPosition == previousPosition + 2 then
-        local replacementKey = activeKeys[previousPosition + 1]
-        local replacementOption = replacementKey and activeOptionsByKey[replacementKey]
-        if replacementOption and values[replacementKey] == nil then
-          local candidate = replacementCandidates[replacementKey]
-          if not candidate then
-            candidate = { option = replacementOption, savedKeys = {} }
-            replacementCandidates[replacementKey] = candidate
-          end
-          table.insert(candidate.savedKeys, savedKey)
-        end
-      end
-    end
-  end
-
-  for replacementKey, candidate in pairs(replacementCandidates) do
-    if #candidate.savedKeys == 1 then
-      local savedKey = candidate.savedKeys[1]
-      local replacementOption = candidate.option
-      local wanted = values[savedKey]
-      local current = tonumber(replacementOption.currIndex) or 0
-      if current == wanted then
-        state.loadSatisfied[savedKey] = true
-      else
-        state.loadSatisfied[savedKey] = nil
-        local ok, applyError = pcall(
-          system.ApplyChangeToOption,
-          system,
-          replacementOption,
-          wanted
-        )
-        if ok then
-          state.loadSatisfied[savedKey] = true
-          state.loadRemaining = math.max(1, valueCount - applied)
-          state.loadNeedsContinue = true
-          state.previousUnresolvedSignature = nil
-          state.unresolvedRepeatCount = 0
-          local savedLabel, savedOccurrence = occurrenceKeyParts(savedKey)
-          local replacementLabel, replacementOccurrence = occurrenceKeyParts(replacementKey)
-          log(("CHANGE (mapped CCXL) | pass=%d | %s | replacement: %s | index %s -> %s")
-            :format(state.loadPass,
-              optionAuditIdentity(nil, savedLabel, savedOccurrence),
-              optionAuditIdentity(replacementOption, replacementLabel,
-                replacementOccurrence), tostring(current), tostring(wanted)), "info")
-          setStatus("load", ("Applied one replacement CCXL option. %d %s remain%s to be checked.")
-            :format(state.loadRemaining,
-              state.loadRemaining == 1 and "option" or "options",
-              state.loadRemaining == 1 and "s" or ""))
-        else
-          state.loadNeedsContinue = false
-          state.loadStalled = true
-          local savedLabel, savedOccurrence = occurrenceKeyParts(savedKey)
-          local replacementLabel, replacementOccurrence = occurrenceKeyParts(replacementKey)
-          log(("FAILED (mapped CCXL) | pass=%d | %s | replacement: %s | target index=%s | %s")
-            :format(state.loadPass,
-              optionAuditIdentity(nil, savedLabel, savedOccurrence),
-              optionAuditIdentity(replacementOption, replacementLabel,
-                replacementOccurrence), tostring(wanted), tostring(applyError)), "error")
-          setStatus("load", 
-            "Loading stopped because a replacement CCXL option could not be applied safely. " ..
-            "Close the editor without confirming, reopen it, and retry.",
-            true
-          )
-        end
-        return
-      end
-    else
-      for _, savedKey in ipairs(candidate.savedKeys) do
-        unresolved["ambiguous-replacement:" .. tostring(savedKey)] = true
-      end
-      local replacementLabel, replacementOccurrence = occurrenceKeyParts(replacementKey)
-      log(("[SKIPPED] Ambiguous mapped CCXL option: %s competingSavedOptions=%d")
-        :format(optionAuditIdentity(candidate.option, replacementLabel,
-          replacementOccurrence), #candidate.savedKeys), "warn")
     end
   end
   for key in pairs(values) do
@@ -1422,7 +1729,7 @@ local function loadPreset()
       end
     end
   end
-  state.loadRemaining = failed + skipped + missing + ambiguous
+  state.loadRemaining = missing + ambiguous + invalid
   if state.loadRemaining > 0 then
     local signature = unresolvedSignature(unresolved)
     if state.previousUnresolvedSignature == signature then
@@ -1448,7 +1755,7 @@ local function loadPreset()
     else
       state.loadNeedsContinue = true
       setStatus("load", ("Pass %d complete: %d of %d applied, %d remaining. Continuing automatically.")
-        :format(state.loadPass, applied, valueCount, state.loadRemaining), failed > 0)
+        :format(state.loadPass, applied, valueCount, state.loadRemaining))
     end
   else
     state.loadNeedsContinue = false
@@ -1475,107 +1782,119 @@ local function deletePreset()
     setStatus("delete", "The selected preset is no longer available.", true)
     return
   end
+  local currentFingerprint = fileFingerprint(presetPath(old))
+  if not currentFingerprint then
+    cancelConfirmations()
+    setStatus("delete", "The selected preset file could not be verified safely.", true)
+    return
+  end
   if state.pendingDeleteName ~= old then
     state.pendingDeleteName = old
+    state.pendingDeleteFingerprint = currentFingerprint
     setStatus("delete", ("Permanently delete \"%s\"? Select Confirm Delete to continue.")
       :format(old))
     return
   end
+  if state.pendingDeleteFingerprint ~= currentFingerprint then
+    cancelConfirmations()
+    setStatus("delete", "The preset changed after confirmation. Review it and start deletion again.", true)
+    return
+  end
   state.pendingDeleteName = nil
+  state.pendingDeleteFingerprint = nil
 
-  local removed, removeError = os.remove(presetPath(old))
+  local oldPath = presetPath(old)
+  local removed, removeError = os.remove(oldPath)
   if not removed then
     setStatus("delete", ("Could not delete \"%s\": %s")
       :format(old, tostring(removeError)), true)
     return
   end
   state.presets[old] = nil
+  if not writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) then
+    state.presets[old] = preset
+    local restored = writePresetPath(oldPath, preset)
+    setStatus("delete", restored
+      and "Deletion was rolled back because the virtual-folder catalog could not be updated."
+      or "Deletion failed, and the preset file could not be restored.", true)
+    return
+  end
   state.selected = nil
   state.renameName = ""
-  state.loadPresetName = nil
-  state.loadPass = 0
-  state.loadRemaining = 0
-  state.loadNeedsContinue = false
-  state.loadStalled = false
-  state.previousUnresolvedSignature = nil
-  state.unresolvedRepeatCount = 0
-  state.autoLoad = false
-  state.autoLoadTimer = 0
-  state.autoLoadPasses = 0
-  state.resetBeforeLoad = false
+  resetLoadState()
   state.renameStatus = ""
   state.renameStatusError = false
-  setStatus("delete", "Deleted \"" .. old .. "\".")
+  if writeInventory(state.presets, state.folders) then
+    setStatus("delete", "Deleted \"" .. old .. "\".")
+  else
+    setStatus("delete", "Deleted \"" .. old .. "\", but the inventory could not be updated.", true)
+  end
+end
+
+local function cloneMap(source)
+  local copy = {}
+  for key, value in pairs(source or {}) do copy[key] = value end
+  return copy
+end
+
+local function remapFolderTreePath(path, source, destination)
+  if path == source then return destination end
+  if path:sub(1, #source + 1) == source .. "/" then
+    return destination .. path:sub(#source + 1)
+  end
+  return path
+end
+
+local function persistVirtualState(presets, folders, manualFolders, ignoredPhysicalFolders)
+  if not writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders) then
+    return false
+  end
+  writeInventory(presets, folders)
+  return true
 end
 
 local function renamePreset()
   auditSection("RENAME PRESET")
-  log(("Rename requested: selected='%s' input='%s'")
-    :format(tostring(state.selected), tostring(state.renameName)), "info")
   if not state.selected or not state.presets[state.selected] then
     setStatus("rename", "Select a preset before renaming it.", true)
     return
   end
   local newLeafName, nameError = validatedPresetName(state.renameName)
   if not newLeafName then setStatus("rename", nameError, true); return end
-  state.pendingDeleteName = nil
   local old = state.selected
   local newName = joinFolder(parentFolder(old), newLeafName)
-  if newName == old then
-    setStatus("rename", "The preset already has this name.")
+  if newName == old then setStatus("rename", "The preset already has this name."); return end
+  if newName:lower() == old:lower() then
+    setStatus("rename", "Preset names cannot differ only by capitalization.", true)
     return
   end
-  if newName ~= old and newName:lower() == old:lower() then
-    setStatus("rename", "Windows cannot distinguish those names by capitalization. Enter another name.", true)
-    return
-  end
-  local collision = findExistingName(newName, old)
+  local collision = findPresetCollision(newName, old)
   if collision then
     setStatus("rename", ("A preset named \"%s\" already exists."):format(collision), true)
     return
   end
-  state.presets[newName] = state.presets[old]
-  if not writePresetFile(newName, state.presets[newName]) then
-    state.presets[newName] = nil
-    setStatus("rename", "Could not write " .. presetPath(newName) .. ".", true)
-    return
-  end
-  if not readPresetFile(presetPath(newName)) then
-    state.presets[newName] = nil
-    setStatus("rename", "The renamed file could not be verified. The original file was retained.", true)
-    return
-  end
-  local removed, removeError = os.remove(presetPath(old))
-  if not removed then
-    os.remove(presetPath(newName))
-    state.presets[newName] = nil
-    setStatus("rename", ("Could not remove the old preset file: %s"):format(tostring(removeError)), true)
-    return
-  end
+  local preset = state.presets[old]
   state.presets[old] = nil
-  refreshPresets("internal:rename preset")
+  state.presets[newName] = preset
+  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) then
+    state.presets[newName] = nil
+    state.presets[old] = preset
+    setStatus("rename", "The preset could not be renamed because the virtual-folder catalog could not be saved.", true)
+    return
+  end
   state.selected = newName
   state.renameName = ""
-  state.loadPresetName = nil
-  state.loadPass = 0
-  state.loadRemaining = 0
-  state.loadNeedsContinue = false
-  state.loadStalled = false
-  state.previousUnresolvedSignature = nil
-  state.unresolvedRepeatCount = 0
-  state.autoLoad = false
-  state.autoLoadTimer = 0
-  state.autoLoadPasses = 0
-  state.resetBeforeLoad = false
-  state.deleteStatus = ""
-  state.deleteStatusError = false
+  cancelConfirmations()
+  resetLoadState()
   setStatus("rename", "Renamed \"" .. old .. "\" to \"" .. newName .. "\".")
+  log(("[PRESET] Virtual rename completed: '%s' -> '%s' storage='%s'.")
+    :format(old, newName, preset.storage), "complete")
 end
 
 local function movePresetToSelectedFolder()
   auditSection("MOVE PRESET")
-  log(("[PRESET] Move requested: selected='%s' destinationFolder='%s'.")
-    :format(tostring(state.selected), state.selectedFolder == "" and "<root>" or state.selectedFolder), "info")
   if not state.selected or not state.presets[state.selected] then
     state.folderStatus, state.folderStatusError = "Select a preset before moving it.", true; return
   end
@@ -1584,36 +1903,33 @@ local function movePresetToSelectedFolder()
   if newName == old then
     state.folderStatus, state.folderStatusError = "The preset is already in the selected folder.", false; return
   end
-  local collision = findExistingName(newName, old)
+  local collision = findPresetCollision(newName, old)
   if collision then
     state.folderStatus, state.folderStatusError =
-      ("A preset named \"%s\" already exists there."):format(baseName(collision)), true
-    return
+      ("A preset named \"%s\" already exists there."):format(baseName(collision)), true; return
   end
   local preset = state.presets[old]
-  if not writePresetFile(newName, preset) or not presetsMatch(preset, readPresetFile(presetPath(newName))) then
-    os.remove(presetPath(newName))
+  state.presets[old] = nil
+  state.presets[newName] = preset
+  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) then
+    state.presets[newName] = nil
+    state.presets[old] = preset
     state.folderStatus, state.folderStatusError =
-      "The preset could not be copied to that folder.", true; return
+      "The preset could not be moved because the virtual-folder catalog could not be saved.", true; return
   end
-  local removed, removeError = os.remove(presetPath(old))
-  if not removed then
-    os.remove(presetPath(newName))
-    state.folderStatus, state.folderStatusError =
-      ("Could not remove the old preset file: %s"):format(tostring(removeError)), true; return
-  end
-  log(("[FILES] Move completed: old='%s' new='%s'."):format(presetPath(old), presetPath(newName)), "info")
-  refreshPresets("internal:move preset")
   state.selected = newName
-  state.pendingDeleteName = nil
+  cancelConfirmations()
+  resetLoadState()
   state.folderStatus, state.folderStatusError =
     ("Moved \"%s\" to %s."):format(baseName(newName),
       state.selectedFolder == "" and "All Presets" or state.selectedFolder), false
+  log(("[PRESET] Virtual move completed: '%s' -> '%s' storage='%s'.")
+    :format(old, newName, preset.storage), "complete")
 end
 
 local function duplicatePreset()
   auditSection("DUPLICATE PRESET")
-  log(("[PRESET] Duplicate requested: selected='%s'."):format(tostring(state.selected)), "info")
   if not state.selected or not state.presets[state.selected] then
     setStatus("rename", "Select a preset before duplicating it.", true); return
   end
@@ -1622,83 +1938,140 @@ local function duplicatePreset()
   if not destination then
     setStatus("rename", "Could not find an available name for the duplicate.", true); return
   end
-  local preset = state.presets[source]
-  log(("[PRESET] Duplicate target selected: source='%s' destination='%s'."):format(source, destination), "info")
-  if not writePresetFile(destination, preset)
-      or not presetsMatch(preset, readPresetFile(presetPath(destination))) then
-    os.remove(presetPath(destination))
-    setStatus("rename", "The duplicate could not be written and verified.", true); return
+  local sourcePreset = state.presets[source]
+  local storage = uniqueStorageName(baseName(destination))
+  if not storage then
+    setStatus("rename", "A safe storage filename could not be allocated.", true); return
   end
-  refreshPresets("internal:duplicate preset")
+  local destinationPath = PRESET_DIR .. "/" .. storage .. ".preset"
+  if not copyFile(presetPath(source), destinationPath) then
+    local cleaned = removeFileList({ destinationPath })
+    setStatus("rename", cleaned and "The duplicate could not be written."
+      or "The duplicate failed, and its partial file could not be removed.", true); return
+  end
+  local duplicate = readPresetFile(destinationPath)
+  if not duplicate or not presetsMatch(sourcePreset, duplicate) then
+    local cleaned = removeFileList({ destinationPath })
+    setStatus("rename", cleaned and "The duplicate could not be verified."
+      or "Duplicate verification failed, and its file could not be removed.", true); return
+  end
+  duplicate.storage = storage
+  state.presets[destination] = duplicate
+  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) then
+    state.presets[destination] = nil
+    local cleaned = removeFileList({ destinationPath })
+    setStatus("rename", cleaned
+      and "The duplicate was removed because the virtual-folder catalog could not be saved."
+      or "The catalog failed, and the duplicated file could not be removed.", true)
+    return
+  end
   state.selected = destination
-  state.pendingDeleteName = nil
   state.renameName = ""
-  state.loadPresetName = nil
-  state.loadPass = 0
-  state.loadRemaining = 0
-  state.loadNeedsContinue = false
-  state.autoLoad = false
-  log(("[PRESET] Duplicate verified: source='%s' destination='%s' entries=%d.")
-    :format(source, destination, #(preset.entries or {})), "complete")
+  cancelConfirmations()
+  resetLoadState()
   setStatus("rename", ("Duplicated \"%s\" as \"%s\"."):format(source, destination))
+  log(("[PRESET] Duplicate completed: source='%s' destination='%s' storage='%s'.")
+    :format(source, destination, storage), "complete")
 end
 
 local function createFolder()
   auditSection("CREATE FOLDER")
-  log(("[FOLDER] Create requested: enteredName='%s'."):format(tostring(state.folderName)), "info")
-  local name, nameError = validatedFolderName(state.folderName)
-  if not name then state.folderStatus, state.folderStatusError = nameError, true; return end
-  if state.folders[name] then
-    state.folderStatus, state.folderStatusError = "The folder already exists.", true; return
+  local leaf, nameError = validatedFolderName(state.folderName)
+  if not leaf then state.folderStatus, state.folderStatusError = nameError, true; return end
+  local name = joinFolder(state.selectedFolder, leaf)
+  local existing = findExistingFolderName(name)
+  if existing then
+    state.folderStatus, state.folderStatusError =
+      ("A folder named \"%s\" already exists."):format(existing), true; return
   end
-  if not acquireFolderSlot(folderPath(name)) then
-    state.folderStatus, state.folderStatusError = "The folder could not be created because no folder slots are available.", true; return
+  state.folders[name] = true
+  state.manualFolders[name] = nil
+  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) then
+    state.folders[name] = nil
+    state.folderStatus, state.folderStatusError = "The virtual folder could not be saved.", true; return
   end
-  refreshPresets("internal:create folder")
   state.selectedFolder = name
   state.folderName = ""
-  state.folderStatus, state.folderStatusError = "Created folder \"" .. name .. "\".", false
-  log(("[FOLDER] Created and selected '%s'."):format(name), "complete")
+  cancelConfirmations()
+  state.folderStatus, state.folderStatusError = "Created virtual folder \"" .. name .. "\".", false
+  log(("[FOLDER] Created virtual folder '%s'."):format(name), "complete")
 end
 
 local function renameFolder()
   auditSection("RENAME FOLDER")
-  log(("[FOLDER] Rename requested: selected='%s' enteredName='%s'.")
-    :format(tostring(state.selectedFolder), tostring(state.folderRenameName)), "info")
-  if state.selectedFolder == "" then
+  local old = state.selectedFolder
+  if old == "" or not state.folders[old] then
     state.folderStatus, state.folderStatusError = "Select a folder to rename.", true; return
   end
-  local newName, nameError = validatedFolderName(state.folderRenameName)
-  if not newName then state.folderStatus, state.folderStatusError = nameError, true; return end
-  local old = state.selectedFolder
-  local destination = joinFolder(parentFolder(old), newName)
+  local newLeaf, nameError = validatedFolderName(state.folderRenameName)
+  if not newLeaf then state.folderStatus, state.folderStatusError = nameError, true; return end
+  local destination = joinFolder(parentFolder(old), newLeaf)
   if destination == old then
     state.folderStatus, state.folderStatusError = "The folder already has this name.", false; return
   end
-  if state.folders[destination] then
-    state.folderStatus, state.folderStatusError = "The folder already exists.", true; return
+  if destination:lower() == old:lower() then
+    state.folderStatus, state.folderStatusError =
+      "Folder names cannot differ only by capitalization.", true; return
   end
-  local selectedBeforeRename = state.selected
-  local moved, moveError = os.rename(folderPath(old), folderPath(destination))
-  if not moved then
-    state.folderStatus, state.folderStatusError = ("Could not rename the folder: %s"):format(tostring(moveError)), true; return
+  local existing = findExistingFolderName(destination, old)
+  if existing then
+    state.folderStatus, state.folderStatusError =
+      ("A folder named \"%s\" already exists."):format(existing), true; return
   end
-  refreshPresets("internal:rename folder")
+
+  local newPresets, newFolders = {}, {}
+  local newManualFolders = {}
+  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  local usedPresetNames = {}
+  for name, preset in pairs(state.presets) do
+    local mapped = isInFolderTree(parentFolder(name), old)
+      and remapFolderTreePath(name, old, destination) or name
+    if usedPresetNames[mapped:lower()] then
+      state.folderStatus, state.folderStatusError = "The rename would create duplicate preset names.", true; return
+    end
+    usedPresetNames[mapped:lower()] = true
+    newPresets[mapped] = preset
+  end
+  local usedFolders = {}
+  for folder in pairs(state.folders) do
+    local mapped = remapFolderTreePath(folder, old, destination)
+    if usedFolders[mapped:lower()] then
+      state.folderStatus, state.folderStatusError = "The rename would create duplicate folders.", true; return
+    end
+    usedFolders[mapped:lower()] = true
+    newFolders[mapped] = true
+    if mapped == folder and state.manualFolders[folder] then
+      newManualFolders[mapped] = true
+    elseif mapped ~= folder and state.manualFolders[folder] then
+      newIgnored[folder] = true
+    end
+  end
+  if not persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored) then
+    state.folderStatus, state.folderStatusError = "The folder could not be renamed because the catalog could not be saved.", true; return
+  end
+  local selectedPreset = state.selected
+  if selectedPreset and isInFolderTree(parentFolder(selectedPreset), old) then
+    selectedPreset = remapFolderTreePath(selectedPreset, old, destination)
+  end
+  state.presets = newPresets
+  state.folders = newFolders
+  state.manualFolders = newManualFolders
+  state.ignoredPhysicalFolders = newIgnored
   state.selectedFolder = destination
-  if selectedBeforeRename and selectedBeforeRename:sub(1, #old + 1) == old .. "/" then
-    state.selected = destination .. selectedBeforeRename:sub(#old + 1)
-  end
-  state.loadPresetName = nil
-  state.autoLoad = false
+  state.selected = selectedPreset
   state.folderRenameName = ""
-  state.folderStatus, state.folderStatusError = ("Renamed folder \"%s\" to \"%s\"."):format(old, destination), false
-  log(("[FOLDER] Renamed '%s' -> '%s'."):format(old, destination), "complete")
+  cancelConfirmations()
+  resetLoadState()
+  state.folderStatus, state.folderStatusError =
+    ("Renamed virtual folder \"%s\" to \"%s\"."):format(old, destination), false
+  log(("[FOLDER] Virtual rename completed: '%s' -> '%s'."):format(old, destination), "complete")
 end
 
 local function duplicateFolder()
   auditSection("DUPLICATE FOLDER")
   local source = state.selectedFolder
-  log(("[FOLDER] Duplicate requested: selected='%s'."):format(tostring(source)), "info")
   if source == "" or not state.folders[source] then
     state.folderStatus, state.folderStatusError = "Select a folder to duplicate.", true; return
   end
@@ -1706,191 +2079,191 @@ local function duplicateFolder()
   if not destination then
     state.folderStatus, state.folderStatusError = "Could not find an available name for the duplicate folder.", true; return
   end
-  log(("[FOLDER] Duplicate target selected: source='%s' destination='%s'."):format(source, destination), "info")
-
-  local function cleanup(relative, recycleSelf)
-    local ok, contents = pcall(dir, folderPath(relative))
-    if ok and type(contents) == "table" then
-      for _, entry in pairs(contents) do
-        local filename = type(entry) == "table" and entry.name or tostring(entry)
-        local entryType = type(entry) == "table" and entry.type or nil
-        if filename and filename ~= "." and filename ~= ".." then
-          local child = joinFolder(relative, filename)
-          local isDirectory = entryType == "directory"
-          if entryType == nil then
-            local childOk, childContents = pcall(dir, folderPath(child))
-            isDirectory = childOk and type(childContents) == "table"
-          end
-          if isDirectory then
-            cleanup(child, true)
-          else
-            local removed, removeError = os.remove(folderPath(child))
-            log(("[FOLDER ROLLBACK] Removed file='%s' success=%s error=%s.")
-              :format(folderPath(child), tostring(removed ~= nil), tostring(removeError)), removed and "info" or "error")
-          end
-        end
-      end
+  local newPresets = cloneMap(state.presets)
+  local newFolders = cloneMap(state.folders)
+  local newManualFolders = cloneMap(state.manualFolders)
+  local reservedStorage = storageFilenamesInUse()
+  if not reservedStorage then
+    state.folderStatus, state.folderStatusError = "Storage filenames could not be checked safely.", true; return
+  end
+  local createdFiles = {}
+  for folder in pairs(state.folders) do
+    if isInFolderTree(folder, source) then
+      local mapped = remapFolderTreePath(folder, source, destination)
+      newFolders[mapped] = true
+      newManualFolders[mapped] = nil
     end
-    if recycleSelf then recycleFolder(folderPath(relative)) end
   end
-
-  local function copyTree(sourceRelative, destinationRelative)
-    local ok, contents = pcall(dir, folderPath(sourceRelative))
-    if not ok or type(contents) ~= "table" then return false end
-    for _, entry in pairs(contents) do
-      local filename = type(entry) == "table" and entry.name or tostring(entry)
-      local entryType = type(entry) == "table" and entry.type or nil
-      if filename and filename ~= "." and filename ~= ".." then
-        local sourceChild = joinFolder(sourceRelative, filename)
-        local destinationChild = joinFolder(destinationRelative, filename)
-        local isDirectory = entryType == "directory"
-        if entryType == nil then
-          local childOk, childContents = pcall(dir, folderPath(sourceChild))
-          isDirectory = childOk and type(childContents) == "table"
-        end
-        if isDirectory then
-          log(("[FOLDER COPY] Creating nested folder source='%s' destination='%s'.")
-            :format(sourceChild, destinationChild), "info")
-          if not acquireFolderSlot(folderPath(destinationChild))
-              or not copyTree(sourceChild, destinationChild) then return false end
-        elseif not copyFile(folderPath(sourceChild), folderPath(destinationChild)) then
-          return false
-        end
+  newFolders[destination] = true
+  for name, preset in pairs(state.presets) do
+    if isInFolderTree(parentFolder(name), source) then
+      local mapped = remapFolderTreePath(name, source, destination)
+      if findPresetCollision(mapped) or newPresets[mapped] then
+        local cleaned = removeFileList(createdFiles)
+        state.folderStatus, state.folderStatusError = cleaned
+          and "The copied folder would contain duplicate preset names."
+          or "Folder duplication found duplicate names, and some partial files could not be removed.", true; return
       end
+      local storage = uniqueStorageName(baseName(mapped), reservedStorage)
+      if not storage then
+        local cleaned = removeFileList(createdFiles)
+        state.folderStatus, state.folderStatusError = cleaned
+          and "A safe storage filename could not be allocated."
+          or "Storage allocation failed, and some partial files could not be removed.", true; return
+      end
+      local path = PRESET_DIR .. "/" .. storage .. ".preset"
+      if not copyFile(PRESET_DIR .. "/" .. preset.storage .. ".preset", path) then
+        table.insert(createdFiles, path)
+        local cleaned = removeFileList(createdFiles)
+        state.folderStatus, state.folderStatusError = cleaned
+          and "Folder duplication failed; partial preset copies were removed."
+          or "Folder duplication failed, and some partial files could not be removed.", true; return
+      end
+      local copy = readPresetFile(path)
+      if not copy or not presetsMatch(preset, copy) then
+        table.insert(createdFiles, path)
+        local cleaned = removeFileList(createdFiles)
+        state.folderStatus, state.folderStatusError = cleaned
+          and "Folder duplication verification failed; partial copies were removed."
+          or "Folder duplication verification failed, and some partial files could not be removed.", true; return
+      end
+      copy.storage = storage
+      newPresets[mapped] = copy
+      table.insert(createdFiles, path)
     end
-    return true
   end
-
-  if not acquireFolderSlot(folderPath(destination)) then
-    state.folderStatus, state.folderStatusError = "The folder could not be duplicated because no folder slots are available.", true; return
+  if not persistVirtualState(newPresets, newFolders, newManualFolders,
+      state.ignoredPhysicalFolders) then
+    local cleaned = removeFileList(createdFiles)
+    state.folderStatus, state.folderStatusError = cleaned
+      and "Folder duplication was rolled back because the catalog could not be saved."
+      or "The catalog failed, and some duplicated files could not be removed.", true; return
   end
-  if not copyTree(source, destination) then
-    log(("[FOLDER ROLLBACK] Duplicate failed; removing partial destination='%s'."):format(destination), "warn")
-    cleanup(destination, true)
-    log(("[FOLDER ROLLBACK] Partial destination cleanup finished for '%s'."):format(destination), "info")
-    state.folderStatus, state.folderStatusError = "Duplicate failed. The partial copy was removed.", true; return
-  end
-  refreshPresets("internal:duplicate folder")
+  state.presets = newPresets
+  state.folders = newFolders
+  state.manualFolders = newManualFolders
   state.selectedFolder = destination
-  state.pendingDeleteFolder = nil
-  state.pendingDeleteFolderStage = 0
-  state.pendingDeleteFolderPresetCount = 0
-  state.pendingDeleteFolderHasContents = false
+  cancelConfirmations()
   state.folderStatus, state.folderStatusError =
-    ("Duplicated folder \"%s\" as \"%s\"."):format(source, destination), false
-  log(("[FOLDER] Duplicate completed: source='%s' destination='%s'."):format(source, destination), "complete")
+    ("Duplicated virtual folder \"%s\" as \"%s\"."):format(source, destination), false
+  log(("[FOLDER] Virtual duplicate completed: source='%s' destination='%s' presets=%d.")
+    :format(source, destination, #createdFiles), "complete")
 end
 
 local function deleteFolder()
   auditSection("DELETE FOLDER")
   local folder = state.selectedFolder
-  log(("[FOLDER] Delete click: selected='%s' pending='%s' stage=%d.")
-    :format(tostring(folder), tostring(state.pendingDeleteFolder), tonumber(state.pendingDeleteFolderStage) or 0), "info")
-  if folder == "" then
+  if folder == "" or not state.folders[folder] then
     state.folderStatus, state.folderStatusError = "Select a folder to delete.", true; return
   end
-
-  local filesToDelete = {}
-  local foldersToDelete = {}
-  local presetCount = 0
-  local meaningfulFileCount = 0
-  local function inspect(relative)
-    local ok, contents = pcall(dir, folderPath(relative))
-    if not ok or type(contents) ~= "table" then return false end
-    for _, entry in pairs(contents) do
-      local filename = type(entry) == "table" and entry.name or tostring(entry)
-      local entryType = type(entry) == "table" and entry.type or nil
-      if filename and filename ~= "." and filename ~= ".." then
-        local child = joinFolder(relative, filename)
-        local isDirectory = entryType == "directory"
-        if entryType == nil then
-          local childOk, childContents = pcall(dir, folderPath(child))
-          isDirectory = childOk and type(childContents) == "table"
-        end
-        if isDirectory then
-          if not inspect(child) then return false end
-          table.insert(foldersToDelete, folderPath(child))
-        else
-          table.insert(filesToDelete, folderPath(child))
-          if filename:match("%.preset$") then presetCount = presetCount + 1 end
-          if filename ~= ".Character Preset Manager Folder"
-              and filename ~= "__folder_managed_by_vortex" then
-            meaningfulFileCount = meaningfulFileCount + 1
-          end
-        end
+  local presetsToDelete = {}
+  local fingerprintParts = {}
+  local nestedFolderCount = 0
+  for name, preset in pairs(state.presets) do
+    if isInFolderTree(parentFolder(name), folder) then
+      local path = PRESET_DIR .. "/" .. preset.storage .. ".preset"
+      local fingerprint = fileFingerprint(path)
+      if not fingerprint then
+        state.folderStatus, state.folderStatusError =
+          ("The preset \"%s\" could not be verified safely."):format(name), true; return
       end
+      table.insert(presetsToDelete, { name = name, preset = preset, path = path })
+      table.insert(fingerprintParts, "P:" .. name .. ":" .. preset.storage .. ":" .. fingerprint)
     end
-    return true
   end
-
-  if not inspect(folder) then
-    log(("[FOLDER] Inspection failed for '%s'."):format(folder), "error")
-    state.folderStatus, state.folderStatusError = "The folder contents could not be verified.", true; return
+  for candidate in pairs(state.folders) do
+    if candidate ~= folder and isInFolderTree(candidate, folder) then
+      nestedFolderCount = nestedFolderCount + 1
+      table.insert(fingerprintParts, "F:" .. candidate)
+    end
   end
-  log(("[FOLDER] Inspection complete: folder='%s' files=%d nestedFolders=%d presets=%d meaningfulFiles=%d.")
-    :format(folder, #filesToDelete, #foldersToDelete, presetCount, meaningfulFileCount), "info")
-
+  table.sort(fingerprintParts)
+  local fingerprint = table.concat(fingerprintParts, "\30")
+  if state.pendingDeleteFolder == folder
+      and state.pendingDeleteFolderStage > 0
+      and state.pendingDeleteFolderFingerprint ~= fingerprint then
+    cancelConfirmations()
+    state.folderStatus, state.folderStatusError =
+      "The virtual folder changed. Review it and start deletion again.", true
+    return
+  end
+  local hasContents = #presetsToDelete > 0 or nestedFolderCount > 0
   if state.pendingDeleteFolder ~= folder or state.pendingDeleteFolderStage == 0 then
-    local hasContents = meaningfulFileCount > 0 or #foldersToDelete > 0
     state.pendingDeleteFolder = folder
     state.pendingDeleteFolderStage = hasContents and 1 or 2
-    state.pendingDeleteFolderPresetCount = presetCount
+    state.pendingDeleteFolderPresetCount = #presetsToDelete
     state.pendingDeleteFolderHasContents = hasContents
-    if hasContents then
-      state.folderStatus, state.folderStatusError =
-        ("Delete \"%s\" and all contents? This will permanently delete %d preset%s. Select Confirm Delete Folder.")
-          :format(folder, presetCount, presetCount == 1 and "" or "s"), false
-    else
-      state.folderStatus, state.folderStatusError =
-          "Delete empty folder \"" .. folder .. "\"? Select Confirm Delete Empty Folder.", false
-    end
-    log(("[FOLDER] Delete confirmation armed: folder='%s' stage=%d hasContents=%s presets=%d.")
-      :format(folder, state.pendingDeleteFolderStage, tostring(hasContents), presetCount), "warn")
+    state.pendingDeleteFolderFingerprint = fingerprint
+    state.folderStatus, state.folderStatusError = hasContents
+      and (("Delete virtual folder \"%s\" and permanently delete %d preset%s? Select Confirm Delete Folder.")
+        :format(folder, #presetsToDelete, #presetsToDelete == 1 and "" or "s"))
+      or ("Delete empty virtual folder \"" .. folder .. "\"? Select Confirm Delete Empty Folder."), false
     return
   end
   if state.pendingDeleteFolderStage == 1 then
     state.pendingDeleteFolderStage = 2
     state.folderStatus, state.folderStatusError =
-      "This action cannot be undone. Select Permanently Delete Folder to continue.", false
-    log(("[FOLDER] Final delete confirmation armed: folder='%s' presets=%d.")
-      :format(folder, presetCount), "warn")
+      "Preset deletion cannot be undone. Select Permanently Delete Folder to continue.", false
     return
   end
 
-  for _, path in ipairs(filesToDelete) do
-    local removed, removeError = os.remove(path)
-    log(("[FILES] Delete folder content: path='%s' success=%s error=%s.")
-      :format(path, tostring(removed ~= nil), tostring(removeError)), removed and "info" or "error")
+  local removedFiles = {}
+  for _, item in ipairs(presetsToDelete) do
+    local removed, removeError = os.remove(item.path)
     if not removed then
-      state.folderStatus, state.folderStatusError =
-        ("Deletion stopped because '%s' could not be removed: %s"):format(path, tostring(removeError)), true
+      local restored = true
+      for _, removedItem in ipairs(removedFiles) do
+        if not writePresetPath(removedItem.path, removedItem.preset) then restored = false end
+      end
+      state.folderStatus, state.folderStatusError = restored
+        and (("Folder deletion was rolled back because \"%s\" could not be removed: %s")
+          :format(item.name, tostring(removeError)))
+        or (("Folder deletion failed at \"%s\", and some removed presets could not be restored.")
+          :format(item.name)), true
       return
     end
+    table.insert(removedFiles, item)
   end
-  for _, path in ipairs(foldersToDelete) do
-    local removed, removeError = os.remove(path)
-    log(("[FILES] Delete nested folder: path='%s' success=%s error=%s.")
-      :format(path, tostring(removed ~= nil), tostring(removeError)), removed and "info" or "error")
-    if not removed then
-      state.folderStatus, state.folderStatusError =
-        ("Deletion stopped because nested folder '%s' could not be removed: %s"):format(path, tostring(removeError)), true
-      return
+
+  local newPresets, newFolders = {}, {}
+  local newManualFolders = {}
+  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  for name, preset in pairs(state.presets) do
+    if not isInFolderTree(parentFolder(name), folder) then newPresets[name] = preset end
+  end
+  for candidate in pairs(state.folders) do
+    if not isInFolderTree(candidate, folder) then
+      newFolders[candidate] = true
+      if state.manualFolders[candidate] then newManualFolders[candidate] = true end
+    elseif state.manualFolders[candidate] then
+      newIgnored[candidate] = true
     end
   end
-  if not recycleFolder(folderPath(folder)) then
-    state.folderStatus, state.folderStatusError = "The contents were deleted, but the empty folder could not be recycled.", true; return
+  if not persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored) then
+    local restored = true
+    for _, item in ipairs(removedFiles) do
+      if not writePresetPath(item.path, item.preset) then restored = false end
+    end
+    state.folderStatus, state.folderStatusError = restored
+      and "Folder deletion was rolled back because the catalog could not be saved."
+      or "Folder deletion failed, and some preset files could not be restored.", true
+    return
   end
+  state.presets = newPresets
+  state.folders = newFolders
+  state.manualFolders = newManualFolders
+  state.ignoredPhysicalFolders = newIgnored
   state.selectedFolder = ""
-  state.pendingDeleteFolder = nil
-  state.pendingDeleteFolderStage = 0
-  state.pendingDeleteFolderPresetCount = 0
-  state.pendingDeleteFolderHasContents = false
-  refreshPresets("internal:delete folder")
+  if state.selected and isInFolderTree(parentFolder(state.selected), folder) then
+    state.selected = nil
+  end
+  cancelConfirmations()
+  resetLoadState()
   state.folderStatus, state.folderStatusError =
-    ("Permanently deleted folder \"%s\" and %d preset%s.")
-      :format(folder, presetCount, presetCount == 1 and "" or "s"), false
-  log(("[FOLDER] Delete completed: folder='%s' files=%d nestedFolders=%d presets=%d.")
-    :format(folder, #filesToDelete, #foldersToDelete, presetCount), "complete")
+    ("Deleted virtual folder \"%s\" and %d preset%s. Manual directories were left in place.")
+      :format(folder, #presetsToDelete, #presetsToDelete == 1 and "" or "s"), false
+  log(("[FOLDER] Virtual delete completed: folder='%s' presets=%d nestedFolders=%d.")
+    :format(folder, #presetsToDelete, nestedFolderCount), "complete")
 end
 
 local function refreshEditorState()
@@ -2077,28 +2450,38 @@ local function isRenameSuccess(text) return text:find("^Renamed ") ~= nil end
 local function isDeleteSuccess(text) return text:find("^Deleted ") ~= nil end
 local function isEditorSuccess(text) return text == "Full editor opened." end
 local function isFolderSuccess(text)
-  return text:find("^Created folder ") ~= nil
-    or text:find("^Renamed folder ") ~= nil
-    or text:find("^Duplicated folder ") ~= nil
-    or text:find("^Permanently deleted folder ") ~= nil
+  return text:find("^Created virtual folder ") ~= nil
+    or text:find("^Renamed virtual folder ") ~= nil
+    or text:find("^Duplicated virtual folder ") ~= nil
+    or text:find("^Deleted virtual folder ") ~= nil
 end
 
 local function readDiagnosticLog()
-  local file = io.open(LOG_FILE, "r")
+  local file = io.open(LOG_FILE, "rb")
   if not file then
-    state.debugLogText = "No activity log yet — nothing's happened this session."
+    state.debugLogText = "No activity log yet -- nothing has happened this session."
     return
   end
-  local ok, contents = pcall(file.read, file, "*a")
+  local limit = 65536
+  local sizeOk, size = pcall(file.seek, file, "end")
+  if not sizeOk or not size then
+    file:close()
+    state.debugLogText = "The activity log could not be measured."
+    return
+  end
+  local truncated = size > limit
+  local start = truncated and (size - limit) or 0
+  local seekOk, seekResult = pcall(file.seek, file, "set", start)
+  local ok, contents = false, nil
+  if seekOk and seekResult ~= nil then ok, contents = pcall(file.read, file, "*a") end
   file:close()
   if not ok or type(contents) ~= "string" then
     state.debugLogText = "The activity log could not be read."
     return
   end
-  local limit = 65536
-  if #contents > limit then
+  if truncated then
     contents = "[Showing the newest 64 KB of Character Preset Manager (CET) Activity.log]\n\n" ..
-      contents:sub(#contents - limit + 1)
+      contents
   end
   state.debugLogText = contents ~= "" and contents or "Character Preset Manager (CET) Activity.log is empty."
 end
@@ -2162,6 +2545,51 @@ local function helpHeading(text)
   ImGui.Spacing()
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, text)
   ImGui.Separator()
+end
+
+local function readCETBinding(slug)
+  local bound
+  local queryAvailable = false
+  if type(IsBound) == "function" then
+    local ok, result = pcall(IsBound, slug)
+    if ok and type(result) == "boolean" then
+      queryAvailable = true
+      bound = result
+    end
+  end
+  if bound == false then return "unbound" end
+  if type(GetBind) == "function" then
+    local ok, result = pcall(GetBind, slug)
+    if ok then
+      queryAvailable = true
+      if type(result) == "string" then
+        result = result:match("^%s*(.-)%s*$")
+        if result ~= "" then return "bound", result end
+      end
+      if bound == nil then return "unbound" end
+    end
+  end
+  if bound then return "bound" end
+  if queryAvailable then return "unbound" end
+  return "unavailable"
+end
+
+local function drawBindingHelp(label, slug, receivedCount)
+  ImGui.TextWrapped(label)
+  local status, assignedKey = readCETBinding(slug)
+  if status == "bound" and assignedKey then
+    coloredWrapped(0.3, 1.0, 0.4, 1.0, "Assigned key: " .. assignedKey)
+  elseif status == "bound" then
+    coloredWrapped(0.3, 1.0, 0.4, 1.0, "Assigned in CET Bindings.")
+  elseif status == "unbound" then
+    coloredWrapped(1.0, 0.4, 0.4, 1.0, "Assigned key: Not set")
+  elseif receivedCount > 0 then
+    coloredWrapped(0.3, 1.0, 0.4, 1.0,
+      ("CET input detected %d time%s this session.")
+        :format(receivedCount, receivedCount == 1 and "" or "s"))
+  else
+    ImGui.TextDisabled("Assigned key unavailable; view it in CET Bindings.")
+  end
 end
 
 local function pathCallout(childId, label, path)
@@ -2299,13 +2727,19 @@ local function draw()
       helpHeading("Character Option Mods")
       ImGui.TextWrapped("Keep the same character option mods and load order used when the preset was made.")
       ImGui.TextWrapped("If they changed, fix the appearance and save the preset again.")
-      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod are not supported. Use the full editor, a mirror, or a ripperdoc.")
+
+      helpHeading("Photo Mode and Appearance Menu Mod")
+      ImGui.TextWrapped("Both mods are compatible and may remain installed. Character Preset Manager cannot save or load presets from inside their interfaces. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
 
       ImGui.Separator()
 
       helpHeading("Open the Editor")
       ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. Mirrors, ripperdocs, and the new-game editor also work.")
-      ImGui.TextWrapped("Set or view the editor hotkey under CET Bindings. Close the CET window before using the hotkey.")
+      ImGui.TextWrapped("Set or change these under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor input.")
+      drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
+        state.editorInputCount)
+      drawBindingHelp("Toggle Character Preset Manager (CET)",
+        "vanilla_character_presets_toggle", state.windowHotkeyCount)
 
       helpHeading("Load a Preset")
       ImGui.TextWrapped("1. Select a preset under Load.")
@@ -2323,17 +2757,20 @@ local function draw()
       helpHeading("Folders")
       ImGui.TextWrapped("Use [+] and [-] under Load to open or close a folder.")
       ImGui.TextWrapped("To move a preset, select the preset, select a folder, then select Move Selected Preset Here. Select All Presets to move it out of a folder.")
-      ImGui.TextWrapped("The mod has 16 reusable folder slots. Adding or copying a folder uses one slot. Deleting a folder returns it.")
+      ImGui.TextWrapped("Adding a folder creates it inside the selected folder. Select All Presets first to add a root folder.")
+      ImGui.TextWrapped("Folders created in CET are virtual and have no packaged slot limit. Renaming them or moving presets between them does not rename directories in File Explorer.")
+      ImGui.TextWrapped("Manually created directories are discovered recursively and labeled Imported. Their preset files remain at their existing paths.")
 
       helpHeading("Rename, Copy, or Delete")
       ImGui.TextWrapped("Select a preset or folder before using its rename, copy, or delete button.")
-      ImGui.TextWrapped("Copies are placed beside the original. Copying a folder also copies everything inside it.")
+      ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Deleting is permanent. Read each confirmation before continuing.")
+        "Deleting a folder permanently deletes its presets, but leaves manually created directories and unrelated files in place.")
 
       helpHeading("Import and Share")
       ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy a .preset file to share it.")
-      ImGui.TextWrapped("Close and reopen the CET window after changing files outside the game. ACU-format .preset files are supported.")
+      ImGui.TextWrapped("Virtual folder assignments are local and are not embedded in shared preset files. New imports follow the manual directory where they are placed.")
+      ImGui.TextWrapped("Close and reopen the CET window after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
 
@@ -2347,11 +2784,13 @@ local function draw()
     if collapsibleSectionHeader("APPEARANCE EDITOR", "editor") then
     ImGui.TextWrapped("Opens the full vanilla character editor. Apartment mirrors provide the same options.")
     ImGui.Spacing()
-    if state.editorOpenPending or state.inCustomization then ImGui.BeginDisabled() end
+    local editorUnavailable = state.editorOpenPending or state.inCustomization
+      or not state.editorHooksAvailable
+    if editorUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
       openFullAppearanceEditor()
     end
-    if state.editorOpenPending or state.inCustomization then ImGui.EndDisabled() end
+    if editorUnavailable then ImGui.EndDisabled() end
     drawSectionStatus("editor", "##editorStatus", isEditorSuccess, statusHeight)
     end
 
@@ -2369,19 +2808,9 @@ local function draw()
           log(("[UI] Preset selection changed: old='%s' new='%s'.")
             :format(tostring(state.selected), name), "info")
           state.selected = name
-          state.pendingDeleteName = nil
+          cancelConfirmations()
           state.renameName = ""
-          state.loadPresetName = nil
-          state.loadPass = 0
-          state.loadRemaining = 0
-          state.loadNeedsContinue = false
-          state.loadStalled = false
-          state.previousUnresolvedSignature = nil
-          state.unresolvedRepeatCount = 0
-          state.autoLoad = false
-          state.autoLoadTimer = 0
-          state.autoLoadPasses = 0
-          state.resetBeforeLoad = false
+          resetLoadState()
           state.renameStatus = ""
           state.renameStatusError = false
           state.deleteStatus = ""
@@ -2392,9 +2821,11 @@ local function draw()
         local folderPresets = presetsInFolder(folder)
         if #folderPresets > 0 then
           local expanded = state.expandedLoadFolders[folder] == true
+          local folderKind = state.manualFolders[folder]
+            and " (imported folder)" or " (folder)"
           if ImGui.Selectable(
-              (expanded and "[-] " or "[+] ") .. baseName(folder) ..
-                " (folder)##loadFolder:" .. folder,
+              (expanded and "[-] " or "[+] ") .. folder ..
+                folderKind .. "##loadFolder:" .. folder,
               false) then
             expanded = not expanded
             state.expandedLoadFolders[folder] = expanded
@@ -2425,10 +2856,7 @@ local function draw()
     if state.autoLoad then ImGui.BeginDisabled() end
     if fullWidthButton(loadLabel .. "##loadPreset", actionButtonHeight) then
       if not state.loadNeedsContinue then
-        state.loadPresetName = nil
-        state.loadPass = 0
-        state.previousUnresolvedSignature = nil
-        state.unresolvedRepeatCount = 0
+        resetLoadState()
       end
       state.autoLoadTimer = 0
       state.autoLoadPasses = 0
@@ -2449,7 +2877,10 @@ local function draw()
     local previousNewName = state.newName
     state.newName = ImGui.InputTextWithHint("##newPreset", "Name", state.newName, 65)
     ImGui.PopItemWidth()
-    if state.newName ~= previousNewName then state.pendingOverwriteName = nil end
+    if state.newName ~= previousNewName then
+      state.pendingOverwriteName = nil
+      state.pendingOverwriteFingerprint = nil
+    end
     local saveLabel = "Create New Preset"
     local pendingCreateName = joinFolder(state.selectedFolder, sanitizeName(state.newName))
     if state.pendingOverwriteName == pendingCreateName then
@@ -2464,18 +2895,8 @@ local function draw()
 
     if collapsibleSectionHeader("FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      "Select where new or moved presets are stored")
-    local slotsAvailable = availableFolderSlots()
-    if slotsAvailable then
-      local slotText = ("Free folder slots: %d"):format(slotsAvailable)
-      if slotsAvailable <= 2 then
-        coloredWrapped(1.0, 0.8, 0.2, 1.0, slotText)
-      else
-        ImGui.TextDisabled(slotText)
-      end
-    else
-      coloredWrapped(1.0, 0.4, 0.4, 1.0, "Available folder slots could not be checked.")
-    end
+      "Select how new or moved presets are organized")
+    ImGui.TextDisabled("Virtual folders have no packaged slot limit. Imported folders come from File Explorer.")
     ImGui.Spacing()
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
     if ImGui.Selectable("All Presets (root)##rootFolder", state.selectedFolder == "")
@@ -2483,21 +2904,16 @@ local function draw()
       log(("[UI] Folder selection changed: old='%s' new='<root>'.")
         :format(state.selectedFolder), "info")
       state.selectedFolder = ""
-      state.pendingDeleteFolder = nil
-      state.pendingDeleteFolderStage = 0
-      state.pendingDeleteFolderPresetCount = 0
-      state.pendingDeleteFolderHasContents = false
+      cancelConfirmations()
     end
     for _, folder in ipairs(sortedFolderNames()) do
-      if ImGui.Selectable(folder .. "##folder", state.selectedFolder == folder)
+      local label = folder .. (state.manualFolders[folder] and " (imported)" or "")
+      if ImGui.Selectable(label .. "##folder:" .. folder, state.selectedFolder == folder)
           and state.selectedFolder ~= folder then
         log(("[UI] Folder selection changed: old='%s' new='%s'.")
           :format(tostring(state.selectedFolder), folder), "info")
         state.selectedFolder = folder
-        state.pendingDeleteFolder = nil
-        state.pendingDeleteFolderStage = 0
-        state.pendingDeleteFolderPresetCount = 0
-        state.pendingDeleteFolderHasContents = false
+        cancelConfirmations()
         state.folderRenameName = ""
       end
     end
@@ -2516,7 +2932,7 @@ local function draw()
       if folderRenameUnavailable then ImGui.EndDisabled() end
       if fullWidthButton("Duplicate Selected Folder", actionButtonHeight) then duplicateFolder() end
       if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then movePresetToSelectedFolder() end
-      local folderDeleteLabel = "Delete Folder & Contents##folderDanger"
+      local folderDeleteLabel = "Delete Virtual Folder & Presets##folderDanger"
       if state.pendingDeleteFolder == state.selectedFolder then
         if state.pendingDeleteFolderStage == 1 then
           folderDeleteLabel = ("Confirm Delete Folder (%d presets)##folderDanger")
@@ -2599,7 +3015,7 @@ registerForEvent("onInit", function()
     log(("Deleted %d oldest activity-log archive%s to keep the newest %d.")
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
-  repairFolderSlots()
+  removeLegacyFolderSlots()
   state.initialWindowPlacementPending = not fileExists(WINDOW_POSITION_STATUS_FILE)
   if state.initialWindowPlacementPending then
     log(("[UI] Window position status '%s' not found; right-side default will be applied once.")
@@ -2723,14 +3139,16 @@ registerForEvent("onInit", function()
         setEditorOpenStatus("Full editor setup failed: " ..
           tostring(editorError), true)
         state.editorOpenedByLauncher = false
-        return
+        restoreTemporarilyDisabledWardrobe()
+        return wrappedMethod()
       end
       setEditorOpenStatus("Full editor opened.", false)
     end
   )
 
-  if (not menuObserverOk and not menuInitializeObserverOk)
-      or not pauseOverrideOk or not editorOverrideOk then
+  state.editorHooksAvailable = (menuObserverOk or menuInitializeObserverOk)
+    and pauseOverrideOk and editorOverrideOk
+  if not state.editorHooksAvailable then
     log(("Full-editor hooks unavailable: controller=%s initialize=%s pause=%s editor=%s")
       :format(tostring(menuObserverError), tostring(menuInitializeObserverError),
         tostring(pauseOverrideError), tostring(editorOverrideError)), "error")
@@ -2760,23 +3178,14 @@ registerForEvent("onShutdown", function()
   state.inCustomization = false
   state.newGameCharacterCreator = false
   state.editorStateRefreshTimer = 0
-  state.pendingDeleteName = nil
-  state.loadPresetName = nil
-  state.loadPass = 0
-  state.loadRemaining = 0
-  state.loadNeedsContinue = false
-  state.loadStalled = false
-  state.previousUnresolvedSignature = nil
-  state.unresolvedRepeatCount = 0
-  state.autoLoad = false
-  state.autoLoadTimer = 0
-  state.autoLoadPasses = 0
-  state.resetBeforeLoad = false
+  cancelConfirmations()
+  resetLoadState()
   state.activeBodyMorphMenu = nil
   state.inGameMenuController = nil
   state.editorOpenPending = false
   state.editorOpenTimer = 0
   state.editorOpenedByLauncher = false
+  state.editorHooksAvailable = false
 end)
 
 registerForEvent("onUpdate", function(delta)
@@ -2843,10 +3252,11 @@ end)
 registerForEvent("onOverlayClose", function()
   log("[UI] CET overlay closed.", "info")
   state.overlayOpen = false
-  state.pendingDeleteName = nil
+  cancelConfirmations()
 end)
 registerForEvent("onDraw", draw)
 registerHotkey("vanilla_character_presets_toggle", "Toggle Character Preset Manager (CET)", function()
+  state.windowHotkeyCount = state.windowHotkeyCount + 1
   state.windowOpen = not state.windowOpen
   log(("[UI] Character Preset Manager window visibility changed to %s.")
     :format(tostring(state.windowOpen)), "info")

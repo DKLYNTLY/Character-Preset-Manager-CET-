@@ -1,6 +1,6 @@
 # Character Preset Manager (CET)
 
-**Current version: 2.0.5**
+**Current version: 2.0.6**
 
 Save, load, organize, and share complete Cyberpunk 2077 character appearances
 directly through Cyber Engine Tweaks.
@@ -52,6 +52,11 @@ move it.
 3. Assign a key to **Open Full Appearance Editor**.
 4. Close CET before using the hotkey during gameplay.
 
+The in-mod **Help** panel shows the current assignments for both **Open Full
+Appearance Editor** and **Toggle Character Preset Manager (CET)**. If a CET
+version cannot return the key name, Help falls back to confirming whether that
+input has been received during the current session.
+
 ## Creating a preset
 
 1. Open **Full Appearance Editor**, a mirror, a ripperdoc customization screen,
@@ -83,17 +88,34 @@ or their load order changed after the preset was created.
 
 - Use `[+]` and `[-]` under **Load** to open or close preset folders.
 - Root presets appear below the folders.
-- New presets are saved in the folder selected under **Folders**.
+- New presets are organized under the virtual folder selected under **Folders**.
+- Adding a folder while another folder is selected creates a nested virtual
+  folder. Select **All Presets** first to create one at the root.
 - To move a preset, select it under **Load**, select a destination under
   **Folders**, then select **Move Selected Preset Here**.
 - Select **All Presets** as the destination to move a preset out of a folder.
 - A copied preset is placed beside the original.
-- A copied folder includes its presets and subfolders.
+- A copied virtual folder includes its presets and nested virtual folders.
 - Copy names use `Copy`, `Copy 2`, and so on.
 - Preset and folder deletion requires confirmation and is permanent.
 
-The mod includes 16 reusable folder slots. Adding or copying a folder uses one
-slot. Deleting a folder returns its slot.
+Folders created through CET are virtual and are not limited by packaged slots.
+Their organization is stored in `Character Preset Manager (CET) Folders.txt`;
+creating or renaming one, or moving presets between them, does not create or
+rename a directory in File Explorer.
+
+On upgrade, untouched legacy folder-slot directories are removed automatically.
+Any legacy slot containing an unrecognized file or folder is left unchanged.
+
+Directories added manually under `Character Presets` are discovered recursively
+and labeled **Imported**. Their presets remain at their existing file paths.
+Renaming an imported folder in CET changes only its virtual name, and moving one
+of its presets changes only the catalog assignment. Deleting a folder
+permanently deletes the presets assigned to it but leaves manually created
+directories and unrelated files in place.
+
+Directory discovery stops if an entry cannot be verified or nesting exceeds 12
+levels. Linked folders and junctions are not supported.
 
 ## Compatibility
 
@@ -131,9 +153,10 @@ Character Preset Manager does not automatically check for this mod.
 
 ### Photo Mode and Appearance Menu Mod
 
-**Not supported.** Photo Mode and Appearance Menu Mod do not provide the vanilla
-character option list required by Character Preset Manager. Create and load
-presets through the full editor, a mirror, a ripperdoc, or the new-game editor.
+**Compatible, with a usage limitation.** Both mods may remain installed, but
+Character Preset Manager cannot save or load presets from inside Photo Mode or
+Appearance Menu Mod. Create and load presets through the full editor, a mirror,
+a ripperdoc, or the new-game editor.
 
 ### Known game issue: loading screen after customization
 
@@ -160,8 +183,14 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 - To share a preset, upload its `.preset` file.
 - To install a preset, place the file in this folder or any folder inside it.
 - Close and reopen the CET window after changing preset files outside the game.
+- Virtual folder assignments are local catalog data and are not embedded in a
+  shared `.preset` file. A newly imported file initially follows the manual
+  directory where it was placed.
 - Imported ACU-format files work like normal presets and can be renamed, copied,
   saved again, or deleted.
+- Unsafe or unusually large preset files are ignored. A preset is limited to
+  1 MB, 8,192 lines, 4,096 valid options, 256 bytes per option key, and option
+  indexes from 0 through 65,535.
 
 ## Activity log
 
@@ -178,11 +207,11 @@ and time. The 10 newest old logs are kept.
 
 ## Upgrading from version 1.0.x
 
-Do not install version 2.0.5 directly over a 1.0.x installation.
+Do not install version 2.0.6 directly over a 1.0.x installation.
 
 1. Back up your `.preset` files outside the mod folder.
 2. Delete `mods/Preset Manager (CET)`.
-3. Install version 2.0.5 normally.
+3. Install version 2.0.6 normally.
 4. Move your presets into
    `mods/Character Preset Manager (CET)/Character Presets`.
 5. Launch the game and open CET.
@@ -206,7 +235,9 @@ No. It changes the same mirrors and customization screens.
 
 ### Does this work with Photo Mode or Appearance Menu Mod?
 
-No. They use a different appearance system.
+They are compatible and may remain installed. Character Preset Manager cannot
+save or load presets from inside their interfaces; use a supported character
+editor instead.
 
 ### Is the character preset shown in the screenshots included?
 
