@@ -19,7 +19,8 @@ vanilla character-customization flow.
 - Creates a named preset from the appearance currently shown in the vanilla editor.
 - Loads any saved preset back into an active vanilla editor.
 - Keeps Appearance Editor, Load, and Create expanded by default while Folders
-  and Manage start collapsed. Sections use standard ImGui collapsing headers.
+  and Manage start collapsed. Sections use standard ImGui collapsing headers
+  that match the window background.
 - Uses `[+]` and `[-]` markers for preset-folder rows so expansion controls are
   clearly separate from folder names.
 - Runs directly through Cyber Engine Tweaks with no additional runtime layer.

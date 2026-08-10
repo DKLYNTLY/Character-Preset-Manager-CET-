@@ -1960,9 +1960,9 @@ end
 
 local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
-  ImGui.PushStyleColor(ImGuiCol.Header, 0.13, 0.14, 0.17, 0.96)
-  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.36, 0.22, 0.06, 0.96)
-  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.52, 0.29, 0.05, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.055, 0.059, 0.078, 0.98)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.12, 0.09, 0.04, 0.98)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.18, 0.12, 0.04, 1.0)
   ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
   local defaultFlag = state.openSections[key] ~= false and 32 or 0
   local open = ImGui.CollapsingHeader(label .. "##CPMSectionV2:" .. key, defaultFlag)

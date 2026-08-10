@@ -7,7 +7,8 @@
 - Moves compatibility and known-issue information from the main window to the top
   of Help, ordered by the problems users are most likely to encounter.
 - Uses the same standard ImGui collapsing-header pattern as 0-Engine.
-- Uses dark section headers with amber text to match the existing interface.
+- Matches section-header backgrounds to the window while retaining amber text,
+  borders, and interaction feedback.
 - Resets saved section state so Appearance Editor, Load, and Create start expanded.
 - Uses `[+]` and `[-]` markers for preset-folder rows to distinguish expansion
   controls from folder names.
