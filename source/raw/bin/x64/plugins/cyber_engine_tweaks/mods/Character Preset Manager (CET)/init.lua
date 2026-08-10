@@ -83,6 +83,7 @@ local state = {
   editorPauseRedirectCount = 0,
   editorPuppetReadyCount = 0,
   editorOpenedByLauncher = false,
+  newGameCharacterCreator = false,
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
   statusTimers = {},
@@ -100,11 +101,7 @@ end
 
 local function isNewGameCharacterCreator()
   if state.editorOpenedByLauncher or not state.activeBodyMorphMenu then return false end
-  local preGameOk, preGame = pcall(function()
-    local requests = Game.GetSystemRequestsHandler()
-    return requests and requests:IsPreGame()
-  end)
-  if preGameOk and preGame then return true end
+  if state.newGameCharacterCreator then return true end
   local modeOk, editMode = pcall(function()
     return state.activeBodyMorphMenu.m_editMode
   end)
@@ -2641,6 +2638,27 @@ registerForEvent("onInit", function()
     log("[HOOK] Character customization UI observers registered.", "info")
   end
 
+  local newGameEnterOk, newGameEnterError = pcall(
+    Observe,
+    "MenuScenario_CharacterCustomization",
+    "OnEnterScenario",
+    function()
+      state.newGameCharacterCreator = true
+    end
+  )
+  local newGameExitOk, newGameExitError = pcall(
+    Observe,
+    "MenuScenario_CharacterCustomization",
+    "OnLeaveScenario",
+    function()
+      state.newGameCharacterCreator = false
+    end
+  )
+  if not newGameEnterOk or not newGameExitOk then
+    log(("New-game screen tracking unavailable: enter=%s leave=%s")
+      :format(tostring(newGameEnterError), tostring(newGameExitError)), "warn")
+  end
+
   local menuObserverOk, menuObserverError = pcall(
     Observe,
     "gameuiInGameMenuGameController",
@@ -2740,6 +2758,7 @@ registerForEvent("onShutdown", function()
   restoreTemporarilyDisabledWardrobe()
   state.ready = false
   state.inCustomization = false
+  state.newGameCharacterCreator = false
   state.editorStateRefreshTimer = 0
   state.pendingDeleteName = nil
   state.loadPresetName = nil

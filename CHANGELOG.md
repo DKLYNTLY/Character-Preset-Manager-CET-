@@ -27,8 +27,8 @@
   less repeated information.
 - Rewrites the README to match the public mod description and removes internal
   implementation details that are not needed for installation or normal use.
-- Uses Cyberpunk's pre-game state to hide the clothing notice in the real
-  new-game editor, where hidden starter items can appear as equipped.
+- Tracks the dedicated new-game customization screen to hide clothing notices
+  caused by hidden starter items without running a native pre-game query.
 - Suppresses the clothing warning in the genuine new-game character creator.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 
