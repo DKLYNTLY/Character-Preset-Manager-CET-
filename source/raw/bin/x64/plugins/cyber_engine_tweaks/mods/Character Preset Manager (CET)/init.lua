@@ -100,6 +100,11 @@ end
 
 local function isNewGameCharacterCreator()
   if state.editorOpenedByLauncher or not state.activeBodyMorphMenu then return false end
+  local preGameOk, preGame = pcall(function()
+    local requests = Game.GetSystemRequestsHandler()
+    return requests and requests:IsPreGame()
+  end)
+  if preGameOk and preGame then return true end
   local modeOk, editMode = pcall(function()
     return state.activeBodyMorphMenu.m_editMode
   end)

@@ -146,7 +146,8 @@ the editor. Put the items back on afterward. Equipment-EX and detailed outfits
 may make the issue more likely.
 
 The Load section may show an optional clothing notice. You can ignore it and
-load normally. The notice does not mean the mod is broken.
+load normally. The notice does not mean the mod is broken. It is hidden in the
+new-game editor because that screen may contain hidden starter equipment.
 
 ## Sharing and importing presets
 
