@@ -131,8 +131,8 @@ CCXL options with the same localization key do not overwrite one another.
 
 The full Appearance Change Unlocker mod is incompatible with Character Preset Manager;
 do not run both mods together. Character Preset Manager checks for ACU's installed
-files and displays a prominent warning when it finds them. Remove ACU and fully
-restart Cyberpunk before using Character Preset Manager.
+mod object through CET and displays a prominent warning when it finds it. Remove
+ACU and fully restart Cyberpunk before using Character Preset Manager.
 
 This does not prevent Character Preset Manager from reading ACU-format `.preset` files
 copied into its own `Character Presets` folder. If the installed customization
@@ -145,9 +145,11 @@ Character Customization Anywhere is incompatible because it changes vanilla mirr
 and the character customization screen used by Character Preset Manager. It is also
 affected by the game's long-standing risk of an infinite loading screen when leaving
 customization, especially while equipment or wardrobe outfits are active. Character
-Preset Manager checks for its installed CET entry point and displays a warning when
-it is found. Remove Character Customization Anywhere and fully restart Cyberpunk
-before using Character Preset Manager.
+Preset Manager asks CET whether the mod identifies itself. Version 1.2 does not
+return a mod object, and CET prevents mods from reading sibling mod folders, so
+Character Preset Manager always shows a visible removal reminder instead of
+pretending it can reliably detect that version. Remove Character Customization
+Anywhere and fully restart Cyberpunk before using Character Preset Manager.
 
 If the game gets stuck loading when leaving any customization screen, unequip
 your clothing and select **No Outfit** in the wardrobe before opening customization.
@@ -155,7 +157,8 @@ This long-standing game issue can also affect the vanilla mirror and may happen
 more often with Equipment-EX or highly detailed outfits. Re-equip everything after
 leaving customization. The Load section repeats this workaround beside the preset
 controls when it detects equipped clothing, replacing the normal ready message
-with a yellow warning before loading.
+with a yellow warning before loading. The warning is suppressed in the genuine
+new-game character creator.
 
 ### CC and CCXL customization mods
 

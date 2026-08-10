@@ -2,8 +2,10 @@
 
 ## 2.0.5
 
-- Detects the installed files for Appearance Change Unlocker and Character
-  Customization Anywhere without relying on runtime symbols.
+- Detects Appearance Change Unlocker through CET's supported mod-to-mod API.
+- Replaces the ineffective sibling-file check for Character Customization Anywhere
+  with an always-visible removal reminder because version 1.2 does not identify
+  itself to CET and CET sandboxes other mod folders.
 - Shows a prominent in-game warning identifying each detected incompatible mod
   and tells the user to remove it and fully restart Cyberpunk 2077.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
@@ -13,6 +15,7 @@
   Equipment-EX or highly detailed outfits.
 - Detects equipped clothing while customization is open and replaces the normal
   green Load status with a yellow warning explaining the workaround.
+- Suppresses the clothing warning in the genuine new-game character creator.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 
 ## 2.0.4

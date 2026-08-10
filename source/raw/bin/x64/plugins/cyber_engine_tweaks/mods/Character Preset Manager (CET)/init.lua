@@ -90,17 +90,12 @@ local state = {
 local INCOMPATIBLE_MODS = {
   {
     name = "Appearance Change Unlocker (ACU)",
-    paths = {
-      "../../../../../../red4ext/plugins/ACU/acu_rs.dll",
-      "../AppearanceChangeUnlocker/init.lua",
-    },
+    modNames = { "AppearanceChangeUnlocker" },
     reason = "It also messes with character appearance and customization.",
   },
   {
     name = "Character Customization Anywhere",
-    paths = {
-      "../characterCustomizationAnywhere/init.lua",
-    },
+    modNames = { "characterCustomizationAnywhere" },
     reason = "It changes vanilla mirrors and the customization screen too.",
   },
 }
@@ -116,8 +111,9 @@ local function detectIncompatibleMods()
   state.incompatibleMods = {}
   for _, mod in ipairs(INCOMPATIBLE_MODS) do
     local detected = false
-    for _, path in ipairs(mod.paths) do
-      if fileExists(path) then
+    for _, modName in ipairs(mod.modNames) do
+      local getOk, loadedMod = pcall(GetMod, modName)
+      if getOk and loadedMod ~= nil then
         detected = true
         break
       end
@@ -128,6 +124,14 @@ local function detectIncompatibleMods()
         :format(mod.name), "error")
     end
   end
+end
+
+local function isNewGameCharacterCreator()
+  if state.editorOpenedByLauncher or not state.activeBodyMorphMenu then return false end
+  local modeOk, editMode = pcall(function()
+    return state.activeBodyMorphMenu.m_editMode
+  end)
+  return modeOk and editMode == gameuiCharacterCustomizationEditTag.NewGame
 end
 
 local function logTimestamp()
@@ -1975,6 +1979,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   local clothingWarning = section == "load"
     and not isError
     and state.inCustomization
+    and not isNewGameCharacterCreator()
     and not state.autoLoad
     and not state.loadNeedsContinue
     and text:find("Open the character creator", 1, true) == 1
@@ -2253,6 +2258,18 @@ local function draw()
           mod.name .. " is installed. " .. mod.reason ..
           " Remove it, fully close Cyberpunk 2077, and restart the game.")
       end
+    end
+    local ccaDetected = false
+    for _, mod in ipairs(state.incompatibleMods) do
+      if mod.name == "Character Customization Anywhere" then
+        ccaDetected = true
+        break
+      end
+    end
+    if not ccaDetected then
+      ImGui.Spacing()
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "Using Character Customization Anywhere? Remove it, fully close Cyberpunk 2077, and restart the game. That older mod doesn't identify itself to CET, so it can't be checked automatically.")
     end
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
