@@ -277,28 +277,30 @@ local function activeWardrobeSetEquipped()
   return activeSet ~= gameWardrobeClothingSetIndex.INVALID, player
 end
 
-local function hasEquippedClothing()
+local CLOTHING_AREAS = {
+  { area = gamedataEquipmentArea.Head, label = "Head" },
+  { area = gamedataEquipmentArea.Face, label = "Face" },
+  { area = gamedataEquipmentArea.OuterChest, label = "Outer torso" },
+  { area = gamedataEquipmentArea.InnerChest, label = "Inner torso" },
+  { area = gamedataEquipmentArea.Legs, label = "Legs" },
+  { area = gamedataEquipmentArea.Feet, label = "Feet" },
+  { area = gamedataEquipmentArea.Outfit, label = "Outfit" },
+}
+
+local function equippedClothingLabels()
   local playerOk, player = pcall(Game.GetPlayer)
-  if not playerOk or not player then return false end
+  if not playerOk or not player then return nil end
   local dataOk, data = pcall(EquipmentSystem.GetData, player)
-  if not dataOk or not data then return false end
-  local areas = {
-    gamedataEquipmentArea.Head,
-    gamedataEquipmentArea.Face,
-    gamedataEquipmentArea.OuterChest,
-    gamedataEquipmentArea.InnerChest,
-    gamedataEquipmentArea.Legs,
-    gamedataEquipmentArea.Feet,
-    gamedataEquipmentArea.Outfit,
-  }
-  for _, area in ipairs(areas) do
-    local itemOk, item = pcall(data.GetActiveItem, data, area)
+  if not dataOk or not data then return nil end
+  local labels = {}
+  for _, entry in ipairs(CLOTHING_AREAS) do
+    local itemOk, item = pcall(data.GetActiveItem, data, entry.area)
     if itemOk and item then
       local validOk, valid = pcall(ItemID.IsValid, item)
-      if validOk and valid then return true end
+      if validOk and valid then table.insert(labels, entry.label) end
     end
   end
-  return false
+  return labels
 end
 
 local function equipmentSystem()
@@ -1971,16 +1973,22 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   local text = state[section .. "Status"]
   if not text or text == "" then return end
   local isError = state[section .. "StatusError"]
-  local clothingWarning = section == "load"
+  local checkClothing = section == "load"
     and not isError
     and state.inCustomization
     and not isNewGameCharacterCreator()
     and not state.autoLoad
     and not state.loadNeedsContinue
     and text:find("Open the character creator", 1, true) == 1
-    and hasEquippedClothing()
+  local clothingLabels = checkClothing and equippedClothingLabels() or {}
+  local clothingCheckUnavailable = checkClothing and clothingLabels == nil
+  clothingLabels = clothingLabels or {}
+  local clothingWarning = #clothingLabels > 0
   if clothingWarning then
-    text = "Unequip all clothing before loading a preset. Clothing can trigger infinite loading when customization closes. Select No Outfit in the wardrobe."
+    text = "Equipped areas: " .. table.concat(clothingLabels, ", ") ..
+      ". Unequip these items and select No Outfit before loading. This manual precaution helps prevent the game's infinite-loading bug when customization closes."
+  elseif clothingCheckUnavailable then
+    text = "Equipped clothing could not be verified. For safety, unequip all clothing and select No Outfit before loading. Items must be removed manually."
   end
   local success = not isError and isSuccess and isSuccess(text)
   local destructiveWarning = (section == "delete"
@@ -1996,7 +2004,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
     customColors = true
-  elseif clothingWarning then
+  elseif clothingWarning or clothingCheckUnavailable then
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.97, 0.72, 0.20, 0.90)
     customColors = true
@@ -2014,8 +2022,9 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   elseif destructiveWarning then
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "WARNING")
     coloredWrapped(1.0, 0.4, 0.4, 1.0, text)
-  elseif clothingWarning then
-    ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "CLOTHING DETECTED")
+  elseif clothingWarning or clothingCheckUnavailable then
+    ImGui.TextColored(1.0, 0.8, 0.2, 1.0,
+      clothingWarning and "CLOTHING DETECTED" or "CLOTHING CHECK UNAVAILABLE")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   elseif section == "load" and state.loadStalled then
     ImGui.TextColored(1.0, 0.55, 0.15, 1.0, "ATTENTION")

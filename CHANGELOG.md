@@ -15,6 +15,7 @@
   Equipment-EX or highly detailed outfits.
 - Detects equipped clothing while customization is open and replaces the normal
   green Load status with a yellow warning explaining the workaround.
+- Lists the detected clothing areas and states that items must be removed manually.
 - Suppresses the clothing warning in the genuine new-game character creator.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 
