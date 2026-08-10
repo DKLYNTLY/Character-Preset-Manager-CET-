@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "2.0.4"
+local VERSION = "2.0.5"
 local PRESET_DIR = "Character Presets"
 local FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
 local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
@@ -15,6 +15,7 @@ local AUTO_LOAD_MAX_PASSES = 400
 local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_STATE_REFRESH_INTERVAL = 0.25
 local EDITOR_OPEN_TIMEOUT = 5.0
+local log
 
 local state = {
   overlayOpen = false,
@@ -83,7 +84,51 @@ local state = {
   editorOpenedByLauncher = false,
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
+  incompatibleMods = {},
 }
+
+local INCOMPATIBLE_MODS = {
+  {
+    name = "Appearance Change Unlocker (ACU)",
+    paths = {
+      "../../../../../../red4ext/plugins/ACU/acu_rs.dll",
+      "../AppearanceChangeUnlocker/init.lua",
+    },
+    reason = "It also changes character appearance and customization.",
+  },
+  {
+    name = "Character Customization Anywhere",
+    paths = {
+      "../characterCustomizationAnywhere/init.lua",
+    },
+    reason = "It changes vanilla mirrors and the customization screen.",
+  },
+}
+
+local function fileExists(path)
+  local file = io.open(path, "rb")
+  if not file then return false end
+  file:close()
+  return true
+end
+
+local function detectIncompatibleMods()
+  state.incompatibleMods = {}
+  for _, mod in ipairs(INCOMPATIBLE_MODS) do
+    local detected = false
+    for _, path in ipairs(mod.paths) do
+      if fileExists(path) then
+        detected = true
+        break
+      end
+    end
+    if detected then
+      table.insert(state.incompatibleMods, mod)
+      log(("[compatibility] Incompatible mod detected: %s. Remove it and fully restart the game.")
+        :format(mod.name), "error")
+    end
+  end
+end
 
 local function logTimestamp()
   local ok, value = pcall(os.date, "%Y-%m-%d %H:%M:%S")
@@ -180,7 +225,7 @@ local function archiveLogForNewSession()
   return true, nil
 end
 
-local function log(message, level)
+log = function(message, level)
   level = level or "info"
   writeLog(message, level)
 end
@@ -2158,6 +2203,16 @@ local function draw()
     if ImGui.Button("Help##help", 58, 0) then
       state.helpOpen = not state.helpOpen
     end
+    if #state.incompatibleMods > 0 then
+      ImGui.Spacing()
+      coloredWrapped(1.0, 0.25, 0.25, 1.0,
+        "INCOMPATIBLE MOD DETECTED")
+      for _, mod in ipairs(state.incompatibleMods) do
+        coloredWrapped(1.0, 0.4, 0.4, 1.0,
+          mod.name .. " is installed. " .. mod.reason ..
+          " Delete or remove this mod, fully close Cyberpunk 2077, and restart the game.")
+      end
+    end
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
     end
@@ -2246,7 +2301,7 @@ local function draw()
 
       helpHeading("Important Compatibility Warning")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Don't run this alongside the full Appearance Change Unlocker (ACU) mod. Disable or uninstall ACU, fully close Cyberpunk 2077, then restart the game.")
+        "Don't run this alongside Appearance Change Unlocker (ACU) or Character Customization Anywhere. Remove either incompatible mod, fully close Cyberpunk 2077, then restart the game.")
 
       helpHeading("If an Older Preset Needs Updating")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
@@ -2636,6 +2691,7 @@ registerForEvent("onInit", function()
   end
 
   refreshPresets("startup")
+  detectIncompatibleMods()
   local presetCount = 0
   for _ in pairs(state.presets) do presetCount = presetCount + 1 end
   log(("Preset files loaded: presets=%d directory='%s'")

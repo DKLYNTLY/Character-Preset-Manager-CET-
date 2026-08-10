@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.0.5
+
+- Detects the installed files for Appearance Change Unlocker and Character
+  Customization Anywhere without relying on runtime symbols.
+- Shows a prominent in-game warning identifying each detected incompatible mod
+  and tells the user to remove it and fully restart Cyberpunk 2077.
+- Documents why Character Customization Anywhere conflicts with vanilla mirror
+  customization and shares the game's customization-exit loading issue.
+
 ## 2.0.4
 
 - Temporarily disables an active wardrobe outfit before the character editor

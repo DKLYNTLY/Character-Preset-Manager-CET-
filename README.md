@@ -1,6 +1,6 @@
 # Character Preset Manager (CET)
 
-**Current version: 2.0.4**
+**Current version: 2.0.5**
 
 A standalone Cyber Engine Tweaks character preset manager for saving and loading complete
 Cyberpunk 2077 character appearances—including face, hair, eyes, makeup,
@@ -42,9 +42,9 @@ Extract the release archive into the Cyberpunk 2077 game directory.
 
 When upgrading from any 1.0.x version, first copy your `.preset` files somewhere
 safe outside the mod folder. Completely delete
-`mods/Preset Manager (CET)`, install version 2.0.4, and then place the copied
+`mods/Preset Manager (CET)`, install version 2.0.5, and then place the copied
 presets in `mods/Character Preset Manager (CET)/Character Presets`. Do not
-install version 2.0.4 over version 1.0.x or leave both folders installed.
+install version 2.0.5 over version 1.0.x or leave both folders installed.
 
 Open the CET overlay and select **Character Preset Manager (CET)**. Create and load
 controls become available only while the game exposes a vanilla character
@@ -130,16 +130,24 @@ CCXL options with the same localization key do not overwrite one another.
 ### Appearance Change Unlocker
 
 The full Appearance Change Unlocker mod is incompatible with Character Preset Manager;
-do not run both mods together. Character Preset Manager no longer attempts to
-detect or block ACU automatically because runtime symbol checks produced false
-positives for users who did not have ACU installed. The incompatibility warning
-remains in the in-game Help panel. Disable or uninstall ACU and fully restart
-Cyberpunk before using Character Preset Manager.
+do not run both mods together. Character Preset Manager checks for ACU's installed
+files and displays a prominent warning when it finds them. Remove ACU and fully
+restart Cyberpunk before using Character Preset Manager.
 
 This does not prevent Character Preset Manager from reading ACU-format `.preset` files
 copied into its own `Character Presets` folder. If the installed customization
 or CCXL setup has changed since a preset was created, correct anything necessary
 and resave the preset from the editor you already have open.
+
+### Character Customization Anywhere
+
+Character Customization Anywhere is incompatible because it changes vanilla mirrors
+and the character customization screen used by Character Preset Manager. It is also
+affected by the game's long-standing risk of an infinite loading screen when leaving
+customization, especially while equipment or wardrobe outfits are active. Character
+Preset Manager checks for its installed CET entry point and displays a warning when
+it is found. Remove Character Customization Anywhere and fully restart Cyberpunk
+before using Character Preset Manager.
 
 ### CC and CCXL customization mods
 
