@@ -20,6 +20,8 @@ vanilla character-customization flow.
 - Loads any saved preset back into an active vanilla editor.
 - Keeps Appearance Editor, Load, and Create expanded by default while Folders
   and Manage start collapsed. Sections use standard ImGui collapsing headers.
+- Uses `[+]` and `[-]` markers for preset-folder rows so expansion controls are
+  clearly separate from folder names.
 - Runs directly through Cyber Engine Tweaks with no additional runtime layer.
 - Contains no RED4ext plugin, DLL, redscript, Codeware, archive, or additional
   runtime dependency.

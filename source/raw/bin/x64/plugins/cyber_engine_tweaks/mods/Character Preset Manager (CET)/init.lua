@@ -2386,7 +2386,7 @@ local function draw()
         if #folderPresets > 0 then
           local expanded = state.expandedLoadFolders[folder] == true
           if ImGui.Selectable(
-              (expanded and "v  " or ">  ") .. baseName(folder) ..
+              (expanded and "[-] " or "[+] ") .. baseName(folder) ..
                 " (folder)##loadFolder:" .. folder,
               false) then
             expanded = not expanded
