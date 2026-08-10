@@ -159,9 +159,9 @@ This long-standing game issue can also affect the vanilla mirror and may happen
 more often with Equipment-EX or highly detailed outfits. Re-equip everything after
 leaving customization. The Load section repeats this workaround beside the preset
 controls when it detects equipped clothing, replacing the normal ready message
-with a yellow warning before loading. The warning lists each detected equipment
-area and states that removal is manual. It is suppressed in the genuine new-game
-character creator.
+with an optional yellow notice before loading. The notice lists each detected
+equipment area and may be ignored. It does not indicate a problem with the mod.
+It is suppressed in the genuine new-game character creator.
 
 Help begins with known issues and compatibility information, ordered by the
 problems users are most likely to encounter.

@@ -21,8 +21,8 @@
   clothing and select No Outfit before customization, especially with
   Equipment-EX or highly detailed outfits.
 - Detects equipped clothing while customization is open and replaces the normal
-  green Load status with a yellow warning explaining the workaround.
-- Lists the detected clothing areas and states that items must be removed manually.
+  green Load status with an optional yellow notice explaining the workaround.
+- States that the clothing notice may be ignored and does not indicate a mod problem.
 - Suppresses the clothing warning in the genuine new-game character creator.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 

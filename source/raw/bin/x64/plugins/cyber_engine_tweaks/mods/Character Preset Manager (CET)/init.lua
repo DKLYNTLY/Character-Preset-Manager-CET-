@@ -2008,9 +2008,9 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   local clothingWarning = #clothingLabels > 0
   if clothingWarning then
     text = "Equipped areas: " .. table.concat(clothingLabels, ", ") ..
-      ". Unequip these items and select No Outfit before loading. This manual precaution helps prevent the game's infinite-loading bug when customization closes."
+      ". You may ignore this notice and load normally. If the game hangs when customization closes, unequip these items and select No Outfit before trying again."
   elseif clothingCheckUnavailable then
-    text = "Equipped clothing could not be verified. For safety, unequip all clothing and select No Outfit before loading. Items must be removed manually."
+    text = "Clothing could not be checked. You may ignore this notice and load normally. If the game hangs when customization closes, unequip all clothing and select No Outfit before trying again."
   end
   local success = not isError and isSuccess and isSuccess(text)
   local destructiveWarning = (section == "delete"
@@ -2045,8 +2045,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "WARNING")
     coloredWrapped(1.0, 0.4, 0.4, 1.0, text)
   elseif clothingWarning or clothingCheckUnavailable then
-    ImGui.TextColored(1.0, 0.8, 0.2, 1.0,
-      clothingWarning and "CLOTHING DETECTED" or "CLOTHING CHECK UNAVAILABLE")
+    ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "OPTIONAL CLOTHING NOTICE")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   elseif section == "load" and state.loadStalled then
     ImGui.TextColored(1.0, 0.55, 0.15, 1.0, "ATTENTION")
