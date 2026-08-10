@@ -6,7 +6,9 @@
   Customization Anywhere.
 - Adds a red Compatibility Warnings — Read First panel at the top of the interface.
   It starts expanded and consolidates incompatibilities and known-issue workarounds.
-- Replaces `[+]` and `[-]` section controls with native ImGui collapsing headers.
+- Replaces `[+]` and `[-]` section controls with CET-compatible arrow rows.
+- Avoids optional ImGui collapsing-header and tree-node bindings that can prevent
+  the mod window from rendering on some CET builds.
 - Rewrites all user-facing interface text in a concise, neutral, formal tone.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
   customization and shares the game's customization-exit loading issue.

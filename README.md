@@ -19,7 +19,7 @@ vanilla character-customization flow.
 - Creates a named preset from the appearance currently shown in the vanilla editor.
 - Loads any saved preset back into an active vanilla editor.
 - Keeps Appearance Editor, Load, and Create expanded by default while Folders
-  and Manage start collapsed. Native arrow headers control each section.
+  and Manage start collapsed. CET-compatible arrow rows control each section.
 - Runs directly through Cyber Engine Tweaks with no additional runtime layer.
 - Contains no RED4ext plugin, DLL, redscript, Codeware, archive, or additional
   runtime dependency.

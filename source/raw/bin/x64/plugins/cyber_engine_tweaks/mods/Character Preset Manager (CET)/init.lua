@@ -28,7 +28,9 @@ local state = {
   renameName = "",
   presets = {},
   folders = {},
+  expandedLoadFolders = {},
   openSections = {
+    compatibility = true,
     editor = true,
     load = true,
     create = true,
@@ -277,23 +279,22 @@ local function activeWardrobeSetEquipped()
   return activeSet ~= gameWardrobeClothingSetIndex.INVALID, player
 end
 
-local CLOTHING_AREAS = {
-  { area = gamedataEquipmentArea.Head, label = "Head" },
-  { area = gamedataEquipmentArea.Face, label = "Face" },
-  { area = gamedataEquipmentArea.OuterChest, label = "Outer torso" },
-  { area = gamedataEquipmentArea.InnerChest, label = "Inner torso" },
-  { area = gamedataEquipmentArea.Legs, label = "Legs" },
-  { area = gamedataEquipmentArea.Feet, label = "Feet" },
-  { area = gamedataEquipmentArea.Outfit, label = "Outfit" },
-}
-
 local function equippedClothingLabels()
   local playerOk, player = pcall(Game.GetPlayer)
   if not playerOk or not player then return nil end
   local dataOk, data = pcall(EquipmentSystem.GetData, player)
   if not dataOk or not data then return nil end
+  local areas = {
+    { area = gamedataEquipmentArea.Head, label = "Head" },
+    { area = gamedataEquipmentArea.Face, label = "Face" },
+    { area = gamedataEquipmentArea.OuterChest, label = "Outer torso" },
+    { area = gamedataEquipmentArea.InnerChest, label = "Inner torso" },
+    { area = gamedataEquipmentArea.Legs, label = "Legs" },
+    { area = gamedataEquipmentArea.Feet, label = "Feet" },
+    { area = gamedataEquipmentArea.Outfit, label = "Outfit" },
+  }
   local labels = {}
-  for _, entry in ipairs(CLOTHING_AREAS) do
+  for _, entry in ipairs(areas) do
     local itemOk, item = pcall(data.GetActiveItem, data, entry.area)
     if itemOk and item then
       local validOk, valid = pcall(ItemID.IsValid, item)
@@ -1908,9 +1909,12 @@ end
 
 local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
+  local open = state.openSections[key] ~= false
   ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
-  local flags = state.openSections[key] ~= false and ImGuiTreeNodeFlags.DefaultOpen or 0
-  local open = ImGui.CollapsingHeader(label .. "##section:" .. key, flags)
+  if ImGui.Selectable((open and "v  " or ">  ") .. label .. "##section:" .. key, false) then
+    open = not open
+    state.openSections[key] = open
+  end
   ImGui.PopStyleColor()
   ImGui.Separator()
   if open then ImGui.Spacing() end
@@ -1919,14 +1923,18 @@ end
 
 local function drawCompatibilityWarnings()
   ImGui.Spacing()
+  local open = state.openSections.compatibility ~= false
   ImGui.PushStyleColor(ImGuiCol.Header, 0.56, 0.10, 0.10, 0.92)
   ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.72, 0.16, 0.14, 1.0)
   ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.45, 0.07, 0.07, 1.0)
   ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.82, 0.82, 1.0)
-  local open = ImGui.CollapsingHeader(
-    "COMPATIBILITY WARNINGS - READ FIRST##compatibilityWarnings",
-    ImGuiTreeNodeFlags.DefaultOpen
-  )
+  if ImGui.Selectable(
+      (open and "v  " or ">  ") ..
+        "COMPATIBILITY WARNINGS - READ FIRST##compatibilityWarnings",
+      false) then
+    open = not open
+    state.openSections.compatibility = open
+  end
   ImGui.PopStyleColor(4)
   if not open then return end
   ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.12, 0.055, 0.055, 0.88)
@@ -2396,9 +2404,18 @@ local function draw()
       for _, folder in ipairs(sortedFolderNames()) do
         local folderPresets = presetsInFolder(folder)
         if #folderPresets > 0 then
-          if ImGui.TreeNode(baseName(folder) .. " (folder)##loadFolder:" .. folder) then
+          local expanded = state.expandedLoadFolders[folder] == true
+          if ImGui.Selectable(
+              (expanded and "v  " or ">  ") .. baseName(folder) ..
+                " (folder)##loadFolder:" .. folder,
+              false) then
+            expanded = not expanded
+            state.expandedLoadFolders[folder] = expanded
+          end
+          if expanded then
+            ImGui.Indent(12)
             for _, name in ipairs(folderPresets) do drawPresetChoice(name, baseName(name)) end
-            ImGui.TreePop()
+            ImGui.Unindent(12)
           end
         end
       end
