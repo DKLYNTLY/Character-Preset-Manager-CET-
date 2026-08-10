@@ -163,8 +163,9 @@ with an optional yellow notice before loading. The notice lists each detected
 equipment area and may be ignored. It does not indicate a problem with the mod.
 It is suppressed in the genuine new-game character creator.
 
-Help begins with known issues and compatibility information, ordered by the
-problems users are most likely to encounter.
+Help uses short, separate sections. Known issues and incompatible mods appear
+first, followed by setup, loading, creation, folders, management, importing, and
+debug information.
 
 ### CC and CCXL customization mods
 

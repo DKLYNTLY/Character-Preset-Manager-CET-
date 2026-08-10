@@ -2285,104 +2285,58 @@ local function draw()
       ImGui.PushStyleColor(ImGuiCol.TextDisabled, 0.64, 0.67, 0.73, 1.0)
       ImGui.BeginChild("##help", 0, 230 + math.min(extraHeight * 0.20, 80), true)
 
-      helpHeading("Infinite Loading When Customization Closes")
-      ImGui.TextWrapped("This game bug can also occur with vanilla mirrors, Equipment-EX, or detailed outfits.")
+      helpHeading("Known Game Issue")
+      ImGui.TextWrapped("Cyberpunk may stay on a loading screen after any character editor closes. This can happen without this mod.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Unequip all clothing and select No Outfit before customization. Re-equip items afterward.")
+        "If this happens, unequip all clothing and select No Outfit before opening the editor. Put the items back on afterward.")
 
       helpHeading("Incompatible Mods")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Appearance Change Unlocker (ACU) and Character Customization Anywhere change the same customization screens. Remove both mods, close Cyberpunk 2077, and restart the game.")
+        "Remove Appearance Change Unlocker (ACU) and Character Customization Anywhere. They change the same character editor screens. Restart the game after removing them.")
 
-      helpHeading("Customization and CCXL Mods")
-      ImGui.TextWrapped("Use the same customization mods and load order used to create the preset.")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "If the setup changed, correct the appearance and save the preset again.")
-
-      helpHeading("Photo Mode and Appearance Menu Mod")
-      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod do not use the vanilla customization option list. Create and load presets in a supported character creator, mirror, or ripperdoc screen.")
+      helpHeading("Character Option Mods")
+      ImGui.TextWrapped("Keep the same character option mods and load order used when the preset was made.")
+      ImGui.TextWrapped("If they changed, fix the appearance and save the preset again.")
+      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod are not supported. Use the full editor, a mirror, or a ripperdoc.")
 
       ImGui.Separator()
 
-      helpHeading("Before You Begin")
-      ImGui.TextWrapped("Load a save, then select Open Full Appearance Editor or use a mirror. Both provide the full character creator. Ripperdocs and the new-game editor are also supported.")
-
-      helpHeading("Open the Full Appearance Editor")
-      ImGui.TextWrapped("View the current hotkey on the CET Bindings page.")
-      ImGui.TextWrapped("To change it, open Bindings, locate Character Preset Manager (CET), and assign Open Full Appearance Editor.")
-      ImGui.TextWrapped("Close the CET overlay before using the hotkey during gameplay.")
-      if state.editorInputCount > 0 then
-        coloredWrapped(0.3, 1.0, 0.4, 1.0,
-          ("Hotkey activations this session: %d.")
-            :format(state.editorInputCount))
-      else
-        ImGui.TextDisabled("The hotkey has not been used this session.")
-      end
+      helpHeading("Open the Editor")
+      ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. Mirrors, ripperdocs, and the new-game editor also work.")
+      ImGui.TextWrapped("Set or view the editor hotkey under CET Bindings. Close the CET window before using the hotkey.")
 
       helpHeading("Load a Preset")
-      ImGui.TextWrapped("1. Select a preset from the list.")
-      ImGui.TextWrapped("2. Select Load Selected Preset once. Loading continues automatically.")
+      ImGui.TextWrapped("1. Select a preset under Load.")
+      ImGui.TextWrapped("2. Select Load Selected Preset once.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
-        "3. Wait for the green Preset Fully Applied message.")
+        "3. Wait for Preset Fully Applied.")
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "Options not saved in the preset may be removed.")
+
+      helpHeading("Create a Preset")
+      ImGui.TextWrapped("1. Select a folder under Folders, or select All Presets.")
+      ImGui.TextWrapped("2. Enter a name under Create.")
+      ImGui.TextWrapped("3. Select Create New Preset. Confirm only if replacing an existing preset.")
+
+      helpHeading("Folders")
+      ImGui.TextWrapped("Use [+] and [-] under Load to open or close a folder.")
+      ImGui.TextWrapped("To move a preset, select the preset, select a folder, then select Move Selected Preset Here. Select All Presets to move it out of a folder.")
+      ImGui.TextWrapped("The mod has 16 reusable folder slots. Adding or copying a folder uses one slot. Deleting a folder returns it.")
+
+      helpHeading("Rename, Copy, or Delete")
+      ImGui.TextWrapped("Select a preset or folder before using its rename, copy, or delete button.")
+      ImGui.TextWrapped("Copies are placed beside the original. Copying a folder also copies everything inside it.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Loading may remove cosmetic options that are not included in the preset.")
+        "Deleting is permanent. Read each confirmation before continuing.")
+
+      helpHeading("Import and Share")
+      ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy a .preset file to share it.")
+      ImGui.TextWrapped("Close and reopen the CET window after changing files outside the game. ACU-format .preset files are supported.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
 
-      helpHeading("Create a Preset")
-      ImGui.TextWrapped("1. Select a folder or All Presets under Folders.")
-      ImGui.TextWrapped("2. Enter a name under Create and select Create New Preset.")
-      ImGui.TextWrapped("3. If the name exists, select Confirm Overwrite to replace it.")
-
-      helpHeading("Folders: Add, Select, and Move")
-      ImGui.TextWrapped("Folders and subfolders appear automatically. Select a folder in Load to expand or collapse it. Root presets appear below the folders.")
-      ImGui.TextWrapped("Enter a name and select Add Folder. New and moved presets use the selected folder.")
-      ImGui.TextWrapped("To move a preset, select it under Load, select a destination under Folders, and select Move Selected Preset Here. Select All Presets to move it to the root.")
-      ImGui.TextWrapped("Renaming a folder does not change its contents.")
-
-      helpHeading("Duplicate Presets and Folders")
-      ImGui.TextWrapped("Duplicate Selected Preset creates a copy beside the original, named Copy, Copy 2, and so on.")
-      ImGui.TextWrapped("Duplicate Selected Folder copies the folder, presets, and subfolders. The original remains unchanged.")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Copying a folder uses a folder slot for every folder copied. If it fails or runs out of slots, the partial copy is cleaned up and the slots are returned.")
-
-      helpHeading("Rename or Delete a Preset")
-      ImGui.TextWrapped("Select a preset under Load. Rename Selected changes only the file name and retains the folder.")
-      ImGui.TextWrapped("Duplicate Selected Preset retains the original and selects the new copy.")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Delete Preset requires two confirmations and permanently deletes the file.")
-
-      helpHeading("Delete a Folder")
-      ImGui.TextWrapped("Empty folder: select Delete Folder & Contents, then Confirm Delete Empty Folder.")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Non-empty folder: three confirmations permanently delete all contents.")
-      ImGui.TextWrapped("The confirmation displays the preset count. Vortex metadata is also deleted.")
-
-      helpHeading("Folder Slots")
-      ImGui.TextWrapped("CET cannot create folders directly. This mod includes 16 reusable folder slots.")
-      ImGui.TextWrapped("Creating or copying a folder uses one slot. Deleting a folder returns its slot. Manually created folders do not use slots.")
-      ImGui.TextWrapped("Each slot contains a marker file that prevents deployment tools from removing it. Startup repairs missing markers.")
-      ImGui.TextWrapped("Reinstalling the mod restores bundled slots without changing existing folders.")
-
-      helpHeading("Share, Import, and Refresh")
-      ImGui.TextWrapped("Place .preset files in the preset folder or a subfolder to import them. Copy a .preset file elsewhere to share it.")
-      ImGui.TextWrapped("After changing files outside CET, close and reopen the overlay to refresh the list.")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "External file changes are recorded as activity-log warnings. Changes made while the game is closed are checked at the next launch.")
-      coloredWrapped(1.0, 1.0, 1.0, 1.0,
-        "ACU-format .preset files are supported.")
-
-      helpHeading("If an Older Preset Needs Updating")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Mirrors and the editor provide the full option set. If the CCXL setup changed, correct the appearance and save the preset again.")
-
-      helpHeading("Debug and Log Files")
-      ImGui.TextWrapped("Open Debug to view or copy the activity log. It records selections, actions, file changes, and results.")
-      ImGui.TextWrapped("Green indicates completion, yellow indicates a warning, and red indicates an error.")
-      pathCallout("##currentLogPath", "Current Log File",
-        "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Preset Manager (CET) Activity.log")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Previous sessions are stored as dated log files. The 10 most recent files are retained.")
+      helpHeading("Debug")
+      ImGui.TextWrapped("Open Debug to view or copy the activity log. Green means complete, yellow means notice, and red means error.")
 
       ImGui.EndChild()
       ImGui.PopStyleColor(4)

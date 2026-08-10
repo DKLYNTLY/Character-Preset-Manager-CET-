@@ -23,6 +23,8 @@
 - Detects equipped clothing while customization is open and replaces the normal
   green Load status with an optional yellow notice explaining the workaround.
 - States that the clothing notice may be ignored and does not indicate a mod problem.
+- Reorganizes Help into short, clearly labeled sections with simpler wording and
+  less repeated information.
 - Suppresses the clothing warning in the genuine new-game character creator.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 
