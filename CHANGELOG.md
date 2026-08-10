@@ -11,6 +11,8 @@
 - Adds an in-game Help workaround recommending that affected users unequip
   clothing and select No Outfit before customization, especially with
   Equipment-EX or highly detailed outfits.
+- Detects equipped clothing while customization is open and replaces the normal
+  green Load status with a yellow warning explaining the workaround.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 
 ## 2.0.4

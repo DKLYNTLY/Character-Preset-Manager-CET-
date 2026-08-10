@@ -153,7 +153,9 @@ If the game gets stuck loading when leaving any customization screen, unequip
 your clothing and select **No Outfit** in the wardrobe before opening customization.
 This long-standing game issue can also affect the vanilla mirror and may happen
 more often with Equipment-EX or highly detailed outfits. Re-equip everything after
-leaving customization.
+leaving customization. The Load section repeats this workaround beside the preset
+controls when it detects equipped clothing, replacing the normal ready message
+with a yellow warning before loading.
 
 ### CC and CCXL customization mods
 

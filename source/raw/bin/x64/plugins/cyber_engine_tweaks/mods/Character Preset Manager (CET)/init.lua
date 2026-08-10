@@ -307,6 +307,30 @@ local function activeWardrobeSetEquipped()
   return activeSet ~= gameWardrobeClothingSetIndex.INVALID, player
 end
 
+local function hasEquippedClothing()
+  local playerOk, player = pcall(Game.GetPlayer)
+  if not playerOk or not player then return false end
+  local dataOk, data = pcall(EquipmentSystem.GetData, player)
+  if not dataOk or not data then return false end
+  local areas = {
+    gamedataEquipmentArea.Head,
+    gamedataEquipmentArea.Face,
+    gamedataEquipmentArea.OuterChest,
+    gamedataEquipmentArea.InnerChest,
+    gamedataEquipmentArea.Legs,
+    gamedataEquipmentArea.Feet,
+    gamedataEquipmentArea.Outfit,
+  }
+  for _, area in ipairs(areas) do
+    local itemOk, item = pcall(data.GetActiveItem, data, area)
+    if itemOk and item then
+      local validOk, valid = pcall(ItemID.IsValid, item)
+      if validOk and valid then return true end
+    end
+  end
+  return false
+end
+
 local function equipmentSystem()
   local ok, system = pcall(function()
     return Game.GetScriptableSystemsContainer():Get("EquipmentSystem")
@@ -1948,6 +1972,16 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   local text = state[section .. "Status"]
   if not text or text == "" then return end
   local isError = state[section .. "StatusError"]
+  local clothingWarning = section == "load"
+    and not isError
+    and state.inCustomization
+    and not state.autoLoad
+    and not state.loadNeedsContinue
+    and text:find("Open the character creator", 1, true) == 1
+    and hasEquippedClothing()
+  if clothingWarning then
+    text = "Take off your clothes before loading a preset. Clothing can trigger the game's old infinite-loading bug when you leave customization. Pick No Outfit in the wardrobe too."
+  end
   local success = not isError and isSuccess and isSuccess(text)
   local destructiveWarning = (section == "delete"
       and state.pendingDeleteName ~= nil
@@ -1961,6 +1995,10 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   if isError or destructiveWarning then
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
+    customColors = true
+  elseif clothingWarning then
+    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
+    ImGui.PushStyleColor(ImGuiCol.Border, 0.97, 0.72, 0.20, 0.90)
     customColors = true
   elseif success then
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
@@ -1976,6 +2014,9 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   elseif destructiveWarning then
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "WARNING")
     coloredWrapped(1.0, 0.4, 0.4, 1.0, text)
+  elseif clothingWarning then
+    ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "CLOTHING DETECTED")
+    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   elseif section == "load" and state.loadStalled then
     ImGui.TextColored(1.0, 0.55, 0.15, 1.0, "ATTENTION")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
