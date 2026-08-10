@@ -5,6 +5,10 @@
 Save, load, organize, and share complete Cyberpunk 2077 character appearances
 directly through Cyber Engine Tweaks.
 
+**[Download Character Preset Manager on Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886)**
+
+[View the complete changelog](CHANGELOG.md)
+
 ## AI disclosure
 
 The CET interface used AI-generated visual work for its layout, style, and
@@ -25,11 +29,25 @@ were written and tested by the author.
   incoming preset.
 - **Preset folders:** Create, rename, copy, delete, and move presets between
   folders from CET.
+- **Preset and folder duplication:** Copy one preset or an entire virtual folder,
+  including its presets and nested folders.
 - **Preset sharing:** Every appearance is stored as one shareable `.preset` file.
 - **ACU preset import:** Import supported ACU-format preset files without running
   the ACU mod.
 - **Activity log:** View preset actions, results, notices, and errors.
 - **Clean interface:** Collapsible sections keep the CET window organized.
+
+## Version 2.0.6 highlights
+
+- Replaces the old 16 packaged folder slots with unlimited virtual folders.
+- Finds manually created directories recursively and labels them **Imported**
+  without renaming or removing the physical directory.
+- Shows the assigned editor input and window-toggle hotkey in the Help panel.
+- Rejects unsafe or unusually large imported preset data before loading it.
+- Stops missing CCXL options from being guessed by position and applied to the
+  wrong character option.
+- Clarifies that Photo Mode and Appearance Menu Mod may remain installed, but
+  presets cannot be created or loaded from inside their interfaces.
 
 ## Requirements
 
@@ -38,7 +56,8 @@ were written and tested by the author.
 
 ## Installation
 
-1. Extract the release archive into the Cyberpunk 2077 game folder.
+1. [Download the latest release from Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886)
+   and extract the archive into the Cyberpunk 2077 game folder.
 2. Launch the game and open the Cyber Engine Tweaks overlay.
 3. Select **Character Preset Manager (CET)**.
 
@@ -145,9 +164,9 @@ files after ACU itself has been removed.
 
 ### Character Customization Anywhere
 
-**Incompatible.** Character Customization Anywhere changes the same mirrors and
-character customization screens used by Character Preset Manager. Remove it and
-fully restart Cyberpunk before using this mod.
+**Incompatible.** [Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
+changes the same mirrors and character customization screens used by Character
+Preset Manager. Remove it and fully restart Cyberpunk before using this mod.
 
 Character Preset Manager does not automatically check for this mod.
 
@@ -246,6 +265,9 @@ No. The author's personal preset is not included or planned for release.
 ## Changelog
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete version history.
+
+The current release and downloads are available on the
+[Character Preset Manager Nexus Mods page](https://www.nexusmods.com/cyberpunk2077/mods/31886).
 
 ## Credits
 
