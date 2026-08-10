@@ -19,7 +19,7 @@ vanilla character-customization flow.
 - Creates a named preset from the appearance currently shown in the vanilla editor.
 - Loads any saved preset back into an active vanilla editor.
 - Keeps Appearance Editor, Load, and Create expanded by default while Folders
-  and Manage start collapsed; click any `[+]` or `[-]` heading to show or hide it.
+  and Manage start collapsed. Native arrow headers control each section.
 - Runs directly through Cyber Engine Tweaks with no additional runtime layer.
 - Contains no RED4ext plugin, DLL, redscript, Codeware, archive, or additional
   runtime dependency.
@@ -130,9 +130,8 @@ CCXL options with the same localization key do not overwrite one another.
 ### Appearance Change Unlocker
 
 The full Appearance Change Unlocker mod is incompatible with Character Preset Manager;
-do not run both mods together. Character Preset Manager checks for ACU's installed
-mod object through CET and displays a prominent warning when it finds it. Remove
-ACU and fully restart Cyberpunk before using Character Preset Manager.
+do not run both mods together. Remove ACU and fully restart Cyberpunk before using
+Character Preset Manager. This warning appears in the Compatibility Warnings panel.
 
 This does not prevent Character Preset Manager from reading ACU-format `.preset` files
 copied into its own `Character Presets` folder. If the installed customization
@@ -145,11 +144,9 @@ Character Customization Anywhere is incompatible because it changes vanilla mirr
 and the character customization screen used by Character Preset Manager. It is also
 affected by the game's long-standing risk of an infinite loading screen when leaving
 customization, especially while equipment or wardrobe outfits are active. Character
-Preset Manager asks CET whether the mod identifies itself. Version 1.2 does not
-return a mod object, and CET prevents mods from reading sibling mod folders, so
-Character Preset Manager always shows a visible removal reminder instead of
-pretending it can reliably detect that version. Remove Character Customization
-Anywhere and fully restart Cyberpunk before using Character Preset Manager.
+Preset Manager does not attempt to detect this mod. Remove Character Customization
+Anywhere and fully restart Cyberpunk before using Character Preset Manager. This
+warning appears in the Compatibility Warnings panel.
 
 If the game gets stuck loading when leaving any customization screen, unequip
 your clothing and select **No Outfit** in the wardrobe before opening customization.
@@ -159,6 +156,10 @@ leaving customization. The Load section repeats this workaround beside the prese
 controls when it detects equipped clothing, replacing the normal ready message
 with a yellow warning before loading. The warning is suppressed in the genuine
 new-game character creator.
+
+The red **Compatibility Warnings — Read First** panel appears at the top of the
+interface and starts expanded. It contains all compatibility restrictions and
+known-issue workarounds in one location.
 
 ### CC and CCXL customization mods
 

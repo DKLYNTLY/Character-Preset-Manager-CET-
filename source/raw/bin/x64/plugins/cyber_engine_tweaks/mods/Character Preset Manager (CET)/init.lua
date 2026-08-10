@@ -28,7 +28,6 @@ local state = {
   renameName = "",
   presets = {},
   folders = {},
-  expandedLoadFolders = {},
   openSections = {
     editor = true,
     load = true,
@@ -75,7 +74,7 @@ local state = {
   inGameMenuController = nil,
   editorOpenPending = false,
   editorOpenTimer = 0,
-  editorStatus = "Load a save first to open the full editor.",
+  editorStatus = "Load a save before opening the full editor.",
   editorStatusError = false,
   editorInputCount = 0,
   editorControllerCaptureCount = 0,
@@ -84,20 +83,6 @@ local state = {
   editorOpenedByLauncher = false,
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
-  incompatibleMods = {},
-}
-
-local INCOMPATIBLE_MODS = {
-  {
-    name = "Appearance Change Unlocker (ACU)",
-    modNames = { "AppearanceChangeUnlocker" },
-    reason = "It also messes with character appearance and customization.",
-  },
-  {
-    name = "Character Customization Anywhere",
-    modNames = { "characterCustomizationAnywhere" },
-    reason = "It changes vanilla mirrors and the customization screen too.",
-  },
 }
 
 local function fileExists(path)
@@ -105,25 +90,6 @@ local function fileExists(path)
   if not file then return false end
   file:close()
   return true
-end
-
-local function detectIncompatibleMods()
-  state.incompatibleMods = {}
-  for _, mod in ipairs(INCOMPATIBLE_MODS) do
-    local detected = false
-    for _, modName in ipairs(mod.modNames) do
-      local getOk, loadedMod = pcall(GetMod, modName)
-      if getOk and loadedMod ~= nil then
-        detected = true
-        break
-      end
-    end
-    if detected then
-      table.insert(state.incompatibleMods, mod)
-      log(("[compatibility] Incompatible mod detected: %s. Remove it and fully restart the game.")
-        :format(mod.name), "error")
-    end
-  end
 end
 
 local function isNewGameCharacterCreator()
@@ -247,8 +213,8 @@ local function setStatus(section, message, isError)
   if section == "load" then
     local transient = message:find("Applied one option.", 1, true) == 1
       or message:find("Applied one replacement CCXL option.", 1, true) == 1
-      or message:find("Cleared a leftover option.", 1, true) == 1
-      or message:find("Cleanup done.", 1, true) == 1
+      or message:find("Cleared a remaining option.", 1, true) == 1
+      or message:find("Cleanup complete.", 1, true) == 1
       or message:find("Pass ", 1, true) == 1
     if transient and not effectiveError then return end
     local level = "load"
@@ -273,17 +239,17 @@ end
 local function validatedPresetName(value)
   local raw = tostring(value or "")
   if raw:match("[%. ]$") then
-    return nil, "Preset names can't end with a period or space."
+    return nil, "Preset names cannot end with a period or space."
   end
   local name = sanitizeName(raw)
-  if name == "" then return nil, "Enter a name first." end
+  if name == "" then return nil, "Enter a name." end
 
   local deviceName = (name:match("^([^%.]+)") or name):upper()
   if deviceName == "CON" or deviceName == "PRN"
       or deviceName == "AUX" or deviceName == "NUL"
       or deviceName:match("^COM[1-9]$")
       or deviceName:match("^LPT[1-9]$") then
-    return nil, ("\"%s\" is a reserved Windows name. Pick something else.")
+    return nil, ("\"%s\" is a reserved Windows name. Enter another name.")
       :format(name)
   end
   return name
@@ -396,7 +362,7 @@ local function openFullAppearanceEditor()
     :format(tostring(state.inGameMenuController ~= nil),
       tostring(state.editorOpenPending), tostring(isCustomizationActive())), "info")
   if state.editorOpenPending then
-    setEditorOpenStatus("Already opening the editor.", true)
+    setEditorOpenStatus("The editor is already opening.", true)
     return false
   end
   if isCustomizationActive() then
@@ -404,7 +370,7 @@ local function openFullAppearanceEditor()
     return false
   end
   if not state.inGameMenuController then
-    setEditorOpenStatus("Load or reload a save first.", true)
+    setEditorOpenStatus("Load or reload a save.", true)
     return false
   end
 
@@ -1019,7 +985,7 @@ local function savePreset(confirmOverwrite)
   log(("[PRESET] Create requested: enteredName='%s' overwriteConfirmed=%s")
     :format(tostring(state.newName), tostring(confirmOverwrite == true)), "info")
   if not isCustomizationActive() then
-    setStatus("create", "Open the character creator, a mirror, or a ripperdoc first.", true)
+    setStatus("create", "Open the character creator, a mirror, or a ripperdoc.", true)
     return
   end
   local leafName, nameError = validatedPresetName(state.newName)
@@ -1041,13 +1007,13 @@ local function savePreset(confirmOverwrite)
   local collision = findExistingName(name)
   if collision and collision ~= name then
     state.pendingOverwriteName = nil
-    setStatus("create", ("\"%s\" clashes with \"%s\" — Windows treats them as the same name. Try something else.")
+    setStatus("create", ("\"%s\" conflicts with \"%s\" because Windows treats them as the same name. Enter another name.")
       :format(name, collision), true)
     return
   end
   if collision == name and not confirmOverwrite then
     state.pendingOverwriteName = name
-    setStatus("create", ("\"%s\" already exists. Click Confirm Overwrite to replace it.")
+    setStatus("create", ("\"%s\" already exists. Select Confirm Overwrite to replace it.")
       :format(name), true)
     return
   end
@@ -1108,7 +1074,7 @@ end
 
 local function loadPreset()
   if not state.selected or not state.presets[state.selected] then
-    setStatus("load", "Select a preset first.", true)
+    setStatus("load", "Select a preset.", true)
     return
   end
   if not isCustomizationActive() then
@@ -1142,7 +1108,7 @@ local function loadPreset()
     end
   end
   local savedCounts = occurrences
-  if valueCount == 0 then setStatus("load", "That preset has no options saved.", true); return end
+  if valueCount == 0 then setStatus("load", "The preset contains no saved options.", true); return end
 
   local system, options, err = getOptions()
   if not options then setStatus("load", err, true); return end
@@ -1172,7 +1138,7 @@ local function loadPreset()
           log(("CHANGE | pass=%d | %s | index %d -> 0 | reset leftover")
             :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
               current), "info")
-          setStatus("load", "Cleared a leftover option. Waiting for the editor to catch up.")
+          setStatus("load", "Cleared a remaining option. Waiting for the editor.")
         else
           state.resetBeforeLoad = false
           state.loadNeedsContinue = false
@@ -1181,8 +1147,8 @@ local function loadPreset()
             :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
               current, tostring(clearError)), "error")
           setStatus("load", 
-            "Loading stopped — couldn't clear a leftover option safely. " ..
-            "Close the editor without confirming, reopen it, and try again.",
+            "Loading stopped because a remaining option could not be cleared safely. " ..
+            "Close the editor without confirming, reopen it, and retry.",
             true
           )
         end
@@ -1196,7 +1162,7 @@ local function loadPreset()
     state.previousUnresolvedSignature = nil
     state.unresolvedRepeatCount = 0
     log("CLEANUP | No additional leftover options require resetting.", "info")
-    setStatus("load", "Cleanup done. Applying the preset now.")
+    setStatus("load", "Cleanup complete. Applying the preset.")
     return
   end
 
@@ -1268,7 +1234,7 @@ local function loadPreset()
             :format(state.loadPass,
               optionAuditIdentity(option, label, occurrences[label]),
               tostring(current), tostring(wanted)), "info")
-          setStatus("load", ("Applied one option. %d %s still need%s checking.")
+          setStatus("load", ("Applied one option. %d %s remain%s to be checked.")
             :format(state.loadRemaining,
               state.loadRemaining == 1 and "option" or "options",
               state.loadRemaining == 1 and "s" or ""))
@@ -1280,8 +1246,8 @@ local function loadPreset()
               optionAuditIdentity(option, label, occurrences[label]),
               tostring(wanted), tostring(applyError)), "error")
           setStatus("load", 
-            "Loading stopped — couldn't apply an option safely. " ..
-            "Close the editor without confirming, reopen it, and try again.",
+            "Loading stopped because an option could not be applied safely. " ..
+            "Close the editor without confirming, reopen it, and retry.",
             true
           )
         end
@@ -1350,7 +1316,7 @@ local function loadPreset()
               optionAuditIdentity(nil, savedLabel, savedOccurrence),
               optionAuditIdentity(replacementOption, replacementLabel,
                 replacementOccurrence), tostring(current), tostring(wanted)), "info")
-          setStatus("load", ("Applied one replacement CCXL option. %d %s still need%s checking.")
+          setStatus("load", ("Applied one replacement CCXL option. %d %s remain%s to be checked.")
             :format(state.loadRemaining,
               state.loadRemaining == 1 and "option" or "options",
               state.loadRemaining == 1 and "s" or ""))
@@ -1365,8 +1331,8 @@ local function loadPreset()
               optionAuditIdentity(replacementOption, replacementLabel,
                 replacementOccurrence), tostring(wanted), tostring(applyError)), "error")
           setStatus("load", 
-            "Loading stopped — couldn't apply a replacement CCXL option safely. " ..
-            "Close the editor without confirming, reopen it, and try again.",
+            "Loading stopped because a replacement CCXL option could not be applied safely. " ..
+            "Close the editor without confirming, reopen it, and retry.",
             true
           )
         end
@@ -1419,13 +1385,13 @@ local function loadPreset()
         :format(state.selected, state.loadPass, state.loadRemaining, signature), "warn")
       setStatus("load", (
         "Loading stopped: %d of %d options never resolved after %d identical checks. " ..
-        "Changing your CCXL mods (adding, removing, or reordering them) can shift option keys, " ..
-        "counts, or indexes. Check your CCXL setup, fix the appearance if " ..
-        "needed, then resave the preset from the editor you already have open."
+        "Adding, removing, or reordering CCXL mods can change option keys, " ..
+        "counts, or indexes. Verify the CCXL setup and correct the appearance if " ..
+        "required, then save the preset again from the current editor."
       ):format(state.loadRemaining, valueCount, STALL_CONFIRMATION_PASSES))
     else
       state.loadNeedsContinue = true
-      setStatus("load", ("Pass %d done: %d of %d applied, %d left. Continuing automatically.")
+      setStatus("load", ("Pass %d complete: %d of %d applied, %d remaining. Continuing automatically.")
         :format(state.loadPass, applied, valueCount, state.loadRemaining), failed > 0)
     end
   else
@@ -1436,7 +1402,7 @@ local function loadPreset()
     refreshCustomizationUi()
     log(("SUMMARY | preset='%s' | applied=%d | skipped=0 | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=complete")
       :format(state.selected, applied, state.loadPass), "complete")
-    setStatus("load", ("Preset fully applied: all %d options done in %d pass%s.")
+    setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
       :format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es"))
   end
 end
@@ -1455,7 +1421,7 @@ local function deletePreset()
   end
   if state.pendingDeleteName ~= old then
     state.pendingDeleteName = old
-    setStatus("delete", ("Delete \"%s\" permanently? Click Confirm Delete to continue.")
+    setStatus("delete", ("Permanently delete \"%s\"? Select Confirm Delete to continue.")
       :format(old))
     return
   end
@@ -1500,11 +1466,11 @@ local function renamePreset()
   local old = state.selected
   local newName = joinFolder(parentFolder(old), newLeafName)
   if newName == old then
-    setStatus("rename", "That preset already has this name.")
+    setStatus("rename", "The preset already has this name.")
     return
   end
   if newName ~= old and newName:lower() == old:lower() then
-    setStatus("rename", "Windows can't tell those names apart by capitalization alone. Pick something else.", true)
+    setStatus("rename", "Windows cannot distinguish those names by capitalization. Enter another name.", true)
     return
   end
   local collision = findExistingName(newName, old)
@@ -1520,7 +1486,7 @@ local function renamePreset()
   end
   if not readPresetFile(presetPath(newName)) then
     state.presets[newName] = nil
-    setStatus("rename", "Couldn't verify the renamed file, so the original was kept.", true)
+    setStatus("rename", "The renamed file could not be verified. The original file was retained.", true)
     return
   end
   local removed, removeError = os.remove(presetPath(old))
@@ -1560,7 +1526,7 @@ local function movePresetToSelectedFolder()
   local old = state.selected
   local newName = joinFolder(state.selectedFolder, baseName(old))
   if newName == old then
-    state.folderStatus, state.folderStatusError = "That preset is already in the selected folder.", false; return
+    state.folderStatus, state.folderStatusError = "The preset is already in the selected folder.", false; return
   end
   local collision = findExistingName(newName, old)
   if collision then
@@ -1572,7 +1538,7 @@ local function movePresetToSelectedFolder()
   if not writePresetFile(newName, preset) or not presetsMatch(preset, readPresetFile(presetPath(newName))) then
     os.remove(presetPath(newName))
     state.folderStatus, state.folderStatusError =
-      "Couldn't copy the preset to that folder.", true; return
+      "The preset could not be copied to that folder.", true; return
   end
   local removed, removeError = os.remove(presetPath(old))
   if not removed then
@@ -1605,7 +1571,7 @@ local function duplicatePreset()
   if not writePresetFile(destination, preset)
       or not presetsMatch(preset, readPresetFile(presetPath(destination))) then
     os.remove(presetPath(destination))
-    setStatus("rename", "Couldn't write and verify the duplicate.", true); return
+    setStatus("rename", "The duplicate could not be written and verified.", true); return
   end
   refreshPresets("internal:duplicate preset")
   state.selected = destination
@@ -1627,10 +1593,10 @@ local function createFolder()
   local name, nameError = validatedFolderName(state.folderName)
   if not name then state.folderStatus, state.folderStatusError = nameError, true; return end
   if state.folders[name] then
-    state.folderStatus, state.folderStatusError = "That folder already exists.", true; return
+    state.folderStatus, state.folderStatusError = "The folder already exists.", true; return
   end
   if not acquireFolderSlot(folderPath(name)) then
-    state.folderStatus, state.folderStatusError = "Couldn't create the folder — out of folder slots.", true; return
+    state.folderStatus, state.folderStatusError = "The folder could not be created because no folder slots are available.", true; return
   end
   refreshPresets("internal:create folder")
   state.selectedFolder = name
@@ -1651,10 +1617,10 @@ local function renameFolder()
   local old = state.selectedFolder
   local destination = joinFolder(parentFolder(old), newName)
   if destination == old then
-    state.folderStatus, state.folderStatusError = "That folder already has this name.", false; return
+    state.folderStatus, state.folderStatusError = "The folder already has this name.", false; return
   end
   if state.folders[destination] then
-    state.folderStatus, state.folderStatusError = "That folder already exists.", true; return
+    state.folderStatus, state.folderStatusError = "The folder already exists.", true; return
   end
   local selectedBeforeRename = state.selected
   local moved, moveError = os.rename(folderPath(old), folderPath(destination))
@@ -1740,7 +1706,7 @@ local function duplicateFolder()
   end
 
   if not acquireFolderSlot(folderPath(destination)) then
-    state.folderStatus, state.folderStatusError = "Couldn't duplicate the folder — no folder slot free.", true; return
+    state.folderStatus, state.folderStatusError = "The folder could not be duplicated because no folder slots are available.", true; return
   end
   if not copyTree(source, destination) then
     log(("[FOLDER ROLLBACK] Duplicate failed; removing partial destination='%s'."):format(destination), "warn")
@@ -1803,7 +1769,7 @@ local function deleteFolder()
 
   if not inspect(folder) then
     log(("[FOLDER] Inspection failed for '%s'."):format(folder), "error")
-    state.folderStatus, state.folderStatusError = "Couldn't check everything in that folder.", true; return
+    state.folderStatus, state.folderStatusError = "The folder contents could not be verified.", true; return
   end
   log(("[FOLDER] Inspection complete: folder='%s' files=%d nestedFolders=%d presets=%d meaningfulFiles=%d.")
     :format(folder, #filesToDelete, #foldersToDelete, presetCount, meaningfulFileCount), "info")
@@ -1816,11 +1782,11 @@ local function deleteFolder()
     state.pendingDeleteFolderHasContents = hasContents
     if hasContents then
       state.folderStatus, state.folderStatusError =
-        ("Delete \"%s\" and everything inside it? %d preset%s will be gone for good. Click Confirm Delete Folder.")
+        ("Delete \"%s\" and all contents? This will permanently delete %d preset%s. Select Confirm Delete Folder.")
           :format(folder, presetCount, presetCount == 1 and "" or "s"), false
     else
       state.folderStatus, state.folderStatusError =
-        "Delete empty folder \"" .. folder .. "\"? Click Confirm Delete Empty Folder.", false
+          "Delete empty folder \"" .. folder .. "\"? Select Confirm Delete Empty Folder.", false
     end
     log(("[FOLDER] Delete confirmation armed: folder='%s' stage=%d hasContents=%s presets=%d.")
       :format(folder, state.pendingDeleteFolderStage, tostring(hasContents), presetCount), "warn")
@@ -1829,7 +1795,7 @@ local function deleteFolder()
   if state.pendingDeleteFolderStage == 1 then
     state.pendingDeleteFolderStage = 2
     state.folderStatus, state.folderStatusError =
-      "Last chance — this can't be undone. Click Permanently Delete Folder to continue.", false
+      "This action cannot be undone. Select Permanently Delete Folder to continue.", false
     log(("[FOLDER] Final delete confirmation armed: folder='%s' presets=%d.")
       :format(folder, presetCount), "warn")
     return
@@ -1841,7 +1807,7 @@ local function deleteFolder()
       :format(path, tostring(removed ~= nil), tostring(removeError)), removed and "info" or "error")
     if not removed then
       state.folderStatus, state.folderStatusError =
-        ("Deletion stopped — couldn't remove '%s': %s"):format(path, tostring(removeError)), true
+        ("Deletion stopped because '%s' could not be removed: %s"):format(path, tostring(removeError)), true
       return
     end
   end
@@ -1851,12 +1817,12 @@ local function deleteFolder()
       :format(path, tostring(removed ~= nil), tostring(removeError)), removed and "info" or "error")
     if not removed then
       state.folderStatus, state.folderStatusError =
-        ("Deletion stopped — couldn't remove nested folder '%s': %s"):format(path, tostring(removeError)), true
+        ("Deletion stopped because nested folder '%s' could not be removed: %s"):format(path, tostring(removeError)), true
       return
     end
   end
   if not recycleFolder(folderPath(folder)) then
-    state.folderStatus, state.folderStatusError = "Contents deleted, but the empty folder couldn't be recycled.", true; return
+    state.folderStatus, state.folderStatusError = "The contents were deleted, but the empty folder could not be recycled.", true; return
   end
   state.selectedFolder = ""
   state.pendingDeleteFolder = nil
@@ -1940,16 +1906,45 @@ end
 
 local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
-  local open = state.openSections[key] ~= false
   ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
-  if ImGui.Selectable((open and "[-] " or "[+] ") .. label .. "##section:" .. key, false) then
-    open = not open
-    state.openSections[key] = open
-  end
+  local flags = state.openSections[key] ~= false and ImGuiTreeNodeFlags.DefaultOpen or 0
+  local open = ImGui.CollapsingHeader(label .. "##section:" .. key, flags)
   ImGui.PopStyleColor()
   ImGui.Separator()
   if open then ImGui.Spacing() end
   return open
+end
+
+local function drawCompatibilityWarnings()
+  ImGui.Spacing()
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.56, 0.10, 0.10, 0.92)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.72, 0.16, 0.14, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.45, 0.07, 0.07, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.82, 0.82, 1.0)
+  local open = ImGui.CollapsingHeader(
+    "COMPATIBILITY WARNINGS - READ FIRST##compatibilityWarnings",
+    ImGuiTreeNodeFlags.DefaultOpen
+  )
+  ImGui.PopStyleColor(4)
+  if not open then return end
+  ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.12, 0.055, 0.055, 0.88)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
+  ImGui.BeginChild("##compatibilityWarningsBody", 0, 245, true)
+  coloredWrapped(1.0, 0.4, 0.4, 1.0,
+    "Appearance Change Unlocker (ACU) and Character Customization Anywhere are incompatible. Remove both mods, close Cyberpunk 2077, and restart the game.")
+  ImGui.Spacing()
+  coloredWrapped(1.0, 0.4, 0.4, 1.0,
+    "Photo Mode and Appearance Menu Mod are not supported.")
+  ImGui.Spacing()
+  ImGui.TextWrapped("A game bug can cause infinite loading when customization closes. It can also occur with vanilla mirrors, Equipment-EX, or detailed outfits.")
+  coloredWrapped(1.0, 0.8, 0.2, 1.0,
+    "Workaround: unequip all clothing and select No Outfit before opening customization. Re-equip all items afterward.")
+  ImGui.Spacing()
+  ImGui.TextWrapped("Use the same customization mods and load order used when the preset was created.")
+  coloredWrapped(1.0, 0.8, 0.2, 1.0,
+    "If the setup changed, correct the appearance and save the preset again.")
+  ImGui.EndChild()
+  ImGui.PopStyleColor(2)
 end
 
 local function fullWidthButton(label, height)
@@ -1985,7 +1980,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
     and text:find("Open the character creator", 1, true) == 1
     and hasEquippedClothing()
   if clothingWarning then
-    text = "Take off your clothes before loading a preset. Clothing can trigger the game's old infinite-loading bug when you leave customization. Pick No Outfit in the wardrobe too."
+    text = "Unequip all clothing before loading a preset. Clothing can trigger infinite loading when customization closes. Select No Outfit in the wardrobe."
   end
   local success = not isError and isSuccess and isSuccess(text)
   local destructiveWarning = (section == "delete"
@@ -2065,7 +2060,7 @@ local function readDiagnosticLog()
   local ok, contents = pcall(file.read, file, "*a")
   file:close()
   if not ok or type(contents) ~= "string" then
-    state.debugLogText = "Couldn't read the activity log."
+    state.debugLogText = "The activity log could not be read."
     return
   end
   local limit = 65536
@@ -2234,10 +2229,10 @@ local function draw()
     ImGui.SameLine()
     if state.inCustomization then
       ImGui.TextColored(0.35, 0.9, 0.45, 1.0,
-        narrowTopRow and "CC menu ready" or "Editor open")
+        narrowTopRow and "Editor ready" or "Customization editor open")
     else
       ImGui.TextColored(1.0, 0.65, 0.2, 1.0,
-        narrowTopRow and "Open CC menu" or "Open the CC menu to save or load presets")
+        narrowTopRow and "Open editor" or "Open customization to save or load presets")
     end
     ImGui.SameLine()
     ImGui.SetCursorPosX(topRowStartX + topRowWidth - topControlsWidth)
@@ -2249,28 +2244,7 @@ local function draw()
     if ImGui.Button("Help##help", 58, 0) then
       state.helpOpen = not state.helpOpen
     end
-    if #state.incompatibleMods > 0 then
-      ImGui.Spacing()
-      coloredWrapped(1.0, 0.25, 0.25, 1.0,
-        "INCOMPATIBLE MOD DETECTED")
-      for _, mod in ipairs(state.incompatibleMods) do
-        coloredWrapped(1.0, 0.4, 0.4, 1.0,
-          mod.name .. " is installed. " .. mod.reason ..
-          " Remove it, fully close Cyberpunk 2077, and restart the game.")
-      end
-    end
-    local ccaDetected = false
-    for _, mod in ipairs(state.incompatibleMods) do
-      if mod.name == "Character Customization Anywhere" then
-        ccaDetected = true
-        break
-      end
-    end
-    if not ccaDetected then
-      ImGui.Spacing()
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Using Character Customization Anywhere? Remove it, fully close Cyberpunk 2077, and restart the game. That older mod doesn't identify itself to CET, so it can't be checked automatically.")
-    end
+    drawCompatibilityWarnings()
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
     end
@@ -2283,107 +2257,91 @@ local function draw()
       ImGui.BeginChild("##help", 0, 230 + math.min(extraHeight * 0.20, 80), true)
 
       helpHeading("Before You Begin")
-      ImGui.TextWrapped("Load a save, then hit Open Full Appearance Editor below or use a mirror. Both give you the full character creator. Ripperdocs and the new-game editor work too.")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Photo Mode and Appearance Menu Mod won't work with this.")
+      ImGui.TextWrapped("Load a save, then select Open Full Appearance Editor or use a mirror. Both provide the full character creator. Ripperdocs and the new-game editor are also supported.")
 
       helpHeading("Open the Full Appearance Editor")
-      ImGui.TextWrapped("Check CET's Bindings page to see your current hotkey.")
-      ImGui.TextWrapped("To set or change it: open CET, go to Bindings, find Character Preset Manager (CET), then assign Open Full Appearance Editor.")
-      ImGui.TextWrapped("Close the CET overlay, then press the key during normal gameplay.")
+      ImGui.TextWrapped("View the current hotkey on the CET Bindings page.")
+      ImGui.TextWrapped("To change it, open Bindings, locate Character Preset Manager (CET), and assign Open Full Appearance Editor.")
+      ImGui.TextWrapped("Close the CET overlay before using the hotkey during gameplay.")
       if state.editorInputCount > 0 then
         coloredWrapped(0.3, 1.0, 0.4, 1.0,
-          ("Hotkey test: worked %d time%s this session.")
-            :format(state.editorInputCount, state.editorInputCount == 1 and "" or "s"))
+          ("Hotkey activations this session: %d.")
+            :format(state.editorInputCount))
       else
-        ImGui.TextDisabled("Hotkey test: hasn't been pressed yet this session.")
+        ImGui.TextDisabled("The hotkey has not been used this session.")
       end
 
       helpHeading("Load a Preset")
-      ImGui.TextWrapped("1. Pick a preset from the list.")
-      ImGui.TextWrapped("2. Click Load Selected Preset once — it keeps applying on its own after that.")
+      ImGui.TextWrapped("1. Select a preset from the list.")
+      ImGui.TextWrapped("2. Select Load Selected Preset once. Loading continues automatically.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
-        "3. Wait for the green Preset fully applied message.")
+        "3. Wait for the green Preset Fully Applied message.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Loading can remove leftover cosmetics that aren't part of the preset.")
+        "Loading may remove cosmetic options that are not included in the preset.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
 
       helpHeading("Create a Preset")
-      ImGui.TextWrapped("1. Pick a folder (or All Presets) under Folders.")
-      ImGui.TextWrapped("2. Type a name under Create and click Create New Preset.")
-      ImGui.TextWrapped("3. Name already taken? Click Confirm Overwrite to replace it.")
+      ImGui.TextWrapped("1. Select a folder or All Presets under Folders.")
+      ImGui.TextWrapped("2. Enter a name under Create and select Create New Preset.")
+      ImGui.TextWrapped("3. If the name exists, select Confirm Overwrite to replace it.")
 
       helpHeading("Folders: Add, Select, and Move")
-      ImGui.TextWrapped("Folders and subfolders show up automatically. Click a folder in the Load list to open or close it. Root presets sit below the folder rows.")
-      ImGui.TextWrapped("Type a name and click Add Folder. Whatever folder is selected is also where Create and Move Selected Preset Here will save to.")
-      ImGui.TextWrapped("To move a preset: select it in Load, pick a destination in Folders, then click Move Selected Preset Here. Pick All Presets (root) to move it back out.")
-      ImGui.TextWrapped("Rename Folder just renames it — everything inside stays put.")
+      ImGui.TextWrapped("Folders and subfolders appear automatically. Select a folder in Load to expand or collapse it. Root presets appear below the folders.")
+      ImGui.TextWrapped("Enter a name and select Add Folder. New and moved presets use the selected folder.")
+      ImGui.TextWrapped("To move a preset, select it under Load, select a destination under Folders, and select Move Selected Preset Here. Select All Presets to move it to the root.")
+      ImGui.TextWrapped("Renaming a folder does not change its contents.")
 
       helpHeading("Duplicate Presets and Folders")
-      ImGui.TextWrapped("Duplicate Selected Preset makes a copy next to the original, named Copy, Copy 2, and so on.")
-      ImGui.TextWrapped("Duplicate Selected Folder copies the whole folder — presets, subfolders, everything. The original is never touched.")
+      ImGui.TextWrapped("Duplicate Selected Preset creates a copy beside the original, named Copy, Copy 2, and so on.")
+      ImGui.TextWrapped("Duplicate Selected Folder copies the folder, presets, and subfolders. The original remains unchanged.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "Copying a folder uses a folder slot for every folder copied. If it fails or runs out of slots, the partial copy is cleaned up and the slots are returned.")
 
       helpHeading("Rename or Delete a Preset")
-      ImGui.TextWrapped("Select a preset in Load first. Rename Selected only changes the file name and keeps it in the same folder.")
-      ImGui.TextWrapped("Duplicate Selected Preset keeps the original and switches to the new copy.")
+      ImGui.TextWrapped("Select a preset under Load. Rename Selected changes only the file name and retains the folder.")
+      ImGui.TextWrapped("Duplicate Selected Preset retains the original and selects the new copy.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Delete Preset takes two clicks and permanently deletes the file. No undo.")
+        "Delete Preset requires two confirmations and permanently deletes the file.")
 
       helpHeading("Delete a Folder")
-      ImGui.TextWrapped("Empty folder: two clicks — Delete Folder & Contents, then Confirm Delete Empty Folder.")
+      ImGui.TextWrapped("Empty folder: select Delete Folder & Contents, then Confirm Delete Empty Folder.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Folder with stuff in it: three clicks. The last one wipes everything inside for good.")
-      ImGui.TextWrapped("It'll show you how many presets are about to be deleted first. Vortex bookkeeping files go with it.")
+        "Non-empty folder: three confirmations permanently delete all contents.")
+      ImGui.TextWrapped("The confirmation displays the preset count. Vortex metadata is also deleted.")
 
       helpHeading("Folder Slots")
-      ImGui.TextWrapped("CET can't make new folders on its own, so this mod ships with 16 reusable folder slots.")
-      ImGui.TextWrapped("Making or copying a folder uses a slot; deleting one frees it back up. Folders you make by hand outside the mod don't use a slot.")
-      ImGui.TextWrapped("Each slot has a tiny marker file so Vortex and archive tools don't delete the folder. Recycling puts the marker back, and startup automatically fixes any empty slot.")
-      ImGui.TextWrapped("Reinstalling the mod restores the bundled slots without touching folders you've already made.")
+      ImGui.TextWrapped("CET cannot create folders directly. This mod includes 16 reusable folder slots.")
+      ImGui.TextWrapped("Creating or copying a folder uses one slot. Deleting a folder returns its slot. Manually created folders do not use slots.")
+      ImGui.TextWrapped("Each slot contains a marker file that prevents deployment tools from removing it. Startup repairs missing markers.")
+      ImGui.TextWrapped("Reinstalling the mod restores bundled slots without changing existing folders.")
 
       helpHeading("Share, Import, and Refresh")
-      ImGui.TextWrapped("Drop .preset files into the preset folder (or any folder inside it) to import them. Copy a .preset file out to share it.")
-      ImGui.TextWrapped("Added, moved, or removed files outside CET? Close and reopen the CET overlay to pick up the changes.")
+      ImGui.TextWrapped("Place .preset files in the preset folder or a subfolder to import them. Copy a .preset file elsewhere to share it.")
+      ImGui.TextWrapped("After changing files outside CET, close and reopen the overlay to refresh the list.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Outside changes get logged as warnings in the activity log. The mod also checks for changes made while the game was closed, next time you launch it.")
+        "External file changes are recorded as activity-log warnings. Changes made while the game is closed are checked at the next launch.")
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
-        "ACU-format .preset files work fine here too, just like any other preset.")
-
-      helpHeading("Customization and CCXL Mods")
-      ImGui.TextWrapped("Presets load best when you keep the same customization mods installed, in the same order you had them when you saved the preset.")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "If your mods or option order changed, fix anything that looks off and resave the preset from the current editor.")
-
-      helpHeading("Important Compatibility Warning")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Don't run this alongside Appearance Change Unlocker (ACU) or Character Customization Anywhere. Remove whichever one you have, fully close Cyberpunk 2077, then restart the game.")
-
-      helpHeading("Infinite Loading When Leaving Customization")
-      ImGui.TextWrapped("This is an old game bug, not something this mod causes — it can even happen with the vanilla mirror, especially with Equipment-EX or detailed outfits.")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Workaround: unequip your clothes and pick No Outfit in the wardrobe before opening customization. Put everything back on once you're done.")
+        "ACU-format .preset files are supported.")
 
       helpHeading("If an Older Preset Needs Updating")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "The mirror and editor both show the full option set. If your CCXL setup changed, fix anything that's off and resave the preset from the editor you already have open.")
+        "Mirrors and the editor provide the full option set. If the CCXL setup changed, correct the appearance and save the preset again.")
 
       helpHeading("Debug and Log Files")
-      ImGui.TextWrapped("Open Debug to see or copy the activity log. It tracks preset and folder picks, button clicks, file changes, and how everything turned out.")
-      ImGui.TextWrapped("Green means done, yellow means warning, red means error.")
+      ImGui.TextWrapped("Open Debug to view or copy the activity log. It records selections, actions, file changes, and results.")
+      ImGui.TextWrapped("Green indicates completion, yellow indicates a warning, and red indicates an error.")
       pathCallout("##currentLogPath", "Current Log File",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Preset Manager (CET) Activity.log")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Older sessions get saved next to it as dated log files. The last 10 are kept; a new one bumps out the oldest.")
+        "Previous sessions are stored as dated log files. The 10 most recent files are retained.")
 
       ImGui.EndChild()
       ImGui.PopStyleColor(4)
     end
 
     if collapsibleSectionHeader("APPEARANCE EDITOR", "editor") then
-    ImGui.TextWrapped("Opens the full vanilla character editor. Apartment mirrors now have the same full options too.")
+    ImGui.TextWrapped("Opens the full vanilla character editor. Apartment mirrors provide the same options.")
     ImGui.Spacing()
     if state.editorOpenPending or state.inCustomization then ImGui.BeginDisabled() end
     if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
@@ -2394,7 +2352,7 @@ local function draw()
     end
 
     if collapsibleSectionHeader("LOAD", "load") then
-    ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Choose a preset to load")
+    ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     ImGui.Spacing()
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
     local names = sortedPresetNames()
@@ -2429,15 +2387,9 @@ local function draw()
       for _, folder in ipairs(sortedFolderNames()) do
         local folderPresets = presetsInFolder(folder)
         if #folderPresets > 0 then
-          local expanded = state.expandedLoadFolders[folder] == true
-          local indicator = expanded and "[-] " or "[+] "
-          if ImGui.Selectable(indicator .. baseName(folder) .. " (folder)##loadFolder:" .. folder, false) then
-            state.expandedLoadFolders[folder] = not expanded
-          end
-          if expanded then
-            ImGui.Indent(12)
+          if ImGui.TreeNode(baseName(folder) .. " (folder)##loadFolder:" .. folder) then
             for _, name in ipairs(folderPresets) do drawPresetChoice(name, baseName(name)) end
-            ImGui.Unindent(12)
+            ImGui.TreePop()
           end
         end
       end
@@ -2453,7 +2405,7 @@ local function draw()
     if state.autoLoad then
       loadLabel = ("Loading... (pass %d)"):format(state.loadPass)
     elseif state.loadNeedsContinue then
-      loadLabel = ("Continue Loading Preset (%d left)"):format(state.loadRemaining)
+      loadLabel = ("Continue Loading Preset (%d remaining)"):format(state.loadRemaining)
     else
       loadLabel = "Load Selected Preset"
     end
@@ -2478,7 +2430,7 @@ local function draw()
 
     if collapsibleSectionHeader("CREATE", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      "Save your current appearance as a new preset")
+      "Save the current appearance as a new preset")
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
     local previousNewName = state.newName
@@ -2499,7 +2451,7 @@ local function draw()
 
     if collapsibleSectionHeader("FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      "Choose where new or moved presets are stored")
+      "Select where new or moved presets are stored")
     local slotsAvailable = availableFolderSlots()
     if slotsAvailable then
       local slotText = ("Free folder slots: %d"):format(slotsAvailable)
@@ -2509,7 +2461,7 @@ local function draw()
         ImGui.TextDisabled(slotText)
       end
     else
-      coloredWrapped(1.0, 0.4, 0.4, 1.0, "Can't check free folder slots right now.")
+      coloredWrapped(1.0, 0.4, 0.4, 1.0, "Available folder slots could not be checked.")
     end
     ImGui.Spacing()
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
@@ -2581,7 +2533,7 @@ local function draw()
 
     if collapsibleSectionHeader("MANAGE", "manage") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      "Rename or delete the selected preset")
+      "Manage the selected preset")
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
     state.renameName = ImGui.InputTextWithHint("##renamePreset", "New Name", state.renameName, 65)
@@ -2601,7 +2553,7 @@ local function draw()
     ImGui.Separator()
     ImGui.Spacing()
     coloredWrapped(1.0, 0.4, 0.4, 1.0,
-      "Deleting a preset is permanent")
+      "Preset deletion is permanent")
     ImGui.Spacing()
     if not state.selected then ImGui.BeginDisabled() end
     local deleteLabel = state.selected
@@ -2748,13 +2700,12 @@ registerForEvent("onInit", function()
     log(("Full-editor hooks unavailable: controller=%s initialize=%s pause=%s editor=%s")
       :format(tostring(menuObserverError), tostring(menuInitializeObserverError),
         tostring(pauseOverrideError), tostring(editorOverrideError)), "error")
-    setEditorOpenStatus("The full editor isn't available on this game/CET version.", true)
+    setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
   else
     log("[HOOK] Full-editor launch and mirror-unlock hooks registered.", "info")
   end
 
   refreshPresets("startup")
-  detectIncompatibleMods()
   local presetCount = 0
   for _ in pairs(state.presets) do presetCount = presetCount + 1 end
   log(("Preset files loaded: presets=%d directory='%s'")
@@ -2800,7 +2751,7 @@ registerForEvent("onUpdate", function(delta)
       state.editorOpenPending = false
       state.editorOpenTimer = 0
       restoreTemporarilyDisabledWardrobe()
-      setEditorOpenStatus("The editor didn't open. Return to normal gameplay and try again.", true)
+      setEditorOpenStatus("The editor did not open. Return to normal gameplay and retry.", true)
     end
   end
   if state.overlayOpen then

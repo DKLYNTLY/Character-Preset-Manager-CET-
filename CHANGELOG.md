@@ -2,12 +2,12 @@
 
 ## 2.0.5
 
-- Detects Appearance Change Unlocker through CET's supported mod-to-mod API.
-- Replaces the ineffective sibling-file check for Character Customization Anywhere
-  with an always-visible removal reminder because version 1.2 does not identify
-  itself to CET and CET sandboxes other mod folders.
-- Shows a prominent in-game warning identifying each detected incompatible mod
-  and tells the user to remove it and fully restart Cyberpunk 2077.
+- Removes unreliable automatic checks for Appearance Change Unlocker and Character
+  Customization Anywhere.
+- Adds a red Compatibility Warnings — Read First panel at the top of the interface.
+  It starts expanded and consolidates incompatibilities and known-issue workarounds.
+- Replaces `[+]` and `[-]` section controls with native ImGui collapsing headers.
+- Rewrites all user-facing interface text in a concise, neutral, formal tone.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
   customization and shares the game's customization-exit loading issue.
 - Adds an in-game Help workaround recommending that affected users unequip
