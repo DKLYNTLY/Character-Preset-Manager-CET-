@@ -4,15 +4,11 @@
 
 - Removes unreliable automatic checks for Appearance Change Unlocker and Character
   Customization Anywhere.
-- Adds a red Compatibility Warnings — Read First panel at the top of the interface.
-  It starts expanded and consolidates incompatibilities and known-issue workarounds.
+- Moves compatibility and known-issue information from the main window to the top
+  of Help, ordered by the problems users are most likely to encounter.
 - Uses the same standard ImGui collapsing-header pattern as 0-Engine.
-- Fixes the Compatibility Warnings panel rendering before its text helper was
-  available, which produced an empty box and stopped the remaining interface.
-- Uses stronger red text for incompatibility warnings and keeps Appearance Editor
-  expanded by default.
-- Shortens the top warning panel to the two incompatible mods, infinite-loading
-  workaround, CCXL requirement, and a reference to Help for full details.
+- Uses dark section headers with amber text to match the existing interface.
+- Resets saved section state so Appearance Editor, Load, and Create start expanded.
 - Rewrites all user-facing interface text in a concise, neutral, formal tone.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
   customization and shares the game's customization-exit loading issue.

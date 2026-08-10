@@ -131,7 +131,7 @@ CCXL options with the same localization key do not overwrite one another.
 
 The full Appearance Change Unlocker mod is incompatible with Character Preset Manager;
 do not run both mods together. Remove ACU and fully restart Cyberpunk before using
-Character Preset Manager. This warning appears in the Compatibility Warnings panel.
+Character Preset Manager. This warning appears at the top of Help.
 
 This does not prevent Character Preset Manager from reading ACU-format `.preset` files
 copied into its own `Character Presets` folder. If the installed customization
@@ -146,7 +146,7 @@ affected by the game's long-standing risk of an infinite loading screen when lea
 customization, especially while equipment or wardrobe outfits are active. Character
 Preset Manager does not attempt to detect this mod. Remove Character Customization
 Anywhere and fully restart Cyberpunk before using Character Preset Manager. This
-warning appears in the Compatibility Warnings panel.
+warning appears at the top of Help.
 
 If the game gets stuck loading when leaving any customization screen, unequip
 your clothing and select **No Outfit** in the wardrobe before opening customization.
@@ -158,9 +158,8 @@ with a yellow warning before loading. The warning lists each detected equipment
 area and states that removal is manual. It is suppressed in the genuine new-game
 character creator.
 
-The red **Compatibility Warnings — Read First** panel appears at the top of the
-interface and starts expanded. It contains all compatibility restrictions and
-known-issue workarounds in one location.
+Help begins with known issues and compatibility information, ordered by the
+problems users are most likely to encounter.
 
 ### CC and CCXL customization mods
 

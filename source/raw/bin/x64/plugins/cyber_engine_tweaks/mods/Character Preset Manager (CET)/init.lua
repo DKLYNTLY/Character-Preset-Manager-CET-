@@ -1906,42 +1906,17 @@ local function popTheme()
   ImGui.PopStyleColor(#THEME_COLORS)
 end
 
-local coloredWrapped
-
 local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.13, 0.14, 0.17, 0.96)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.36, 0.22, 0.06, 0.96)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.52, 0.29, 0.05, 1.0)
   ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
   local defaultFlag = state.openSections[key] ~= false and 32 or 0
-  local open = ImGui.CollapsingHeader(label .. "##section:" .. key, defaultFlag)
-  ImGui.PopStyleColor()
+  local open = ImGui.CollapsingHeader(label .. "##CPMSectionV2:" .. key, defaultFlag)
+  ImGui.PopStyleColor(4)
   if open then ImGui.Spacing() end
   return open
-end
-
-local function drawCompatibilityWarnings()
-  ImGui.Spacing()
-  ImGui.PushStyleColor(ImGuiCol.Header, 0.56, 0.10, 0.10, 0.92)
-  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.72, 0.16, 0.14, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.45, 0.07, 0.07, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.25, 0.25, 1.0)
-  local open = ImGui.CollapsingHeader(
-    "COMPATIBILITY WARNINGS - READ FIRST##compatibilityWarnings",
-    32
-  )
-  ImGui.PopStyleColor(4)
-  if not open then return end
-  ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.12, 0.055, 0.055, 0.88)
-  ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
-  ImGui.BeginChild("##compatibilityWarningsBody", 0, 125, true)
-  coloredWrapped(1.0, 0.22, 0.22, 1.0,
-    "Incompatible: ACU and Character Customization Anywhere.")
-  coloredWrapped(1.0, 0.8, 0.2, 1.0,
-    "Infinite loading: unequip all clothing and select No Outfit.")
-  coloredWrapped(1.0, 0.8, 0.2, 1.0,
-    "CCXL: use the same mods and load order.")
-  ImGui.TextWrapped("See Help for full details.")
-  ImGui.EndChild()
-  ImGui.PopStyleColor(2)
 end
 
 local function fullWidthButton(label, height)
@@ -1958,7 +1933,7 @@ local function dangerButton(label, width, height)
   return pressed
 end
 
-coloredWrapped = function(r, g, b, a, text)
+local function coloredWrapped(r, g, b, a, text)
   ImGui.PushStyleColor(ImGuiCol.Text, r, g, b, a)
   ImGui.TextWrapped(text)
   ImGui.PopStyleColor(1)
@@ -2248,7 +2223,6 @@ local function draw()
     if ImGui.Button("Help##help", 58, 0) then
       state.helpOpen = not state.helpOpen
     end
-    drawCompatibilityWarnings()
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
     end
@@ -2259,6 +2233,25 @@ local function draw()
       ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
       ImGui.PushStyleColor(ImGuiCol.TextDisabled, 0.64, 0.67, 0.73, 1.0)
       ImGui.BeginChild("##help", 0, 230 + math.min(extraHeight * 0.20, 80), true)
+
+      helpHeading("Infinite Loading When Customization Closes")
+      ImGui.TextWrapped("This game bug can also occur with vanilla mirrors, Equipment-EX, or detailed outfits.")
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "Unequip all clothing and select No Outfit before customization. Re-equip items afterward.")
+
+      helpHeading("Incompatible Mods")
+      coloredWrapped(1.0, 0.4, 0.4, 1.0,
+        "Appearance Change Unlocker (ACU) and Character Customization Anywhere change the same customization screens. Remove both mods, close Cyberpunk 2077, and restart the game.")
+
+      helpHeading("Customization and CCXL Mods")
+      ImGui.TextWrapped("Use the same customization mods and load order used to create the preset.")
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "If the setup changed, correct the appearance and save the preset again.")
+
+      helpHeading("Photo Mode and Appearance Menu Mod")
+      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod do not use the vanilla customization option list. Create and load presets in a supported character creator, mirror, or ripperdoc screen.")
+
+      ImGui.Separator()
 
       helpHeading("Before You Begin")
       ImGui.TextWrapped("Load a save, then select Open Full Appearance Editor or use a mirror. Both provide the full character creator. Ripperdocs and the new-game editor are also supported.")
@@ -2327,23 +2320,6 @@ local function draw()
         "External file changes are recorded as activity-log warnings. Changes made while the game is closed are checked at the next launch.")
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
         "ACU-format .preset files are supported.")
-
-      helpHeading("Customization and CCXL Mods")
-      ImGui.TextWrapped("Use the same customization mods and load order used to create the preset.")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "If the setup changed, correct the appearance and save the preset again.")
-
-      helpHeading("Incompatible Mods")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Appearance Change Unlocker (ACU) and Character Customization Anywhere change the same customization screens. Remove both mods, close Cyberpunk 2077, and restart the game.")
-
-      helpHeading("Infinite Loading When Customization Closes")
-      ImGui.TextWrapped("This game bug can also occur with vanilla mirrors, Equipment-EX, or detailed outfits.")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Unequip all clothing and select No Outfit before customization. Re-equip items afterward.")
-
-      helpHeading("Photo Mode and Appearance Menu Mod")
-      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod do not use the vanilla customization option list. Create and load presets in a supported character creator, mirror, or ripperdoc screen.")
 
       helpHeading("If an Older Preset Needs Updating")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
