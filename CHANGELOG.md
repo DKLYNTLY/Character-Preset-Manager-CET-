@@ -25,6 +25,8 @@
 - States that the clothing notice may be ignored and does not indicate a mod problem.
 - Reorganizes Help into short, clearly labeled sections with simpler wording and
   less repeated information.
+- Rewrites the README to match the public mod description and removes internal
+  implementation details that are not needed for installation or normal use.
 - Suppresses the clothing warning in the genuine new-game character creator.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 
