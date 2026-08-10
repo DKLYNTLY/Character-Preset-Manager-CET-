@@ -6,13 +6,13 @@
   Customization Anywhere.
 - Adds a red Compatibility Warnings — Read First panel at the top of the interface.
   It starts expanded and consolidates incompatibilities and known-issue workarounds.
-- Replaces `[+]` and `[-]` section controls with CET-compatible arrow rows.
-- Avoids optional ImGui collapsing-header and tree-node bindings that can prevent
-  the mod window from rendering on some CET builds.
+- Uses the same standard ImGui collapsing-header pattern as 0-Engine.
 - Fixes the Compatibility Warnings panel rendering before its text helper was
   available, which produced an empty box and stopped the remaining interface.
 - Uses stronger red text for incompatibility warnings and keeps Appearance Editor
   expanded by default.
+- Shortens the top warning panel to the two incompatible mods, infinite-loading
+  workaround, CCXL requirement, and a reference to Help for full details.
 - Rewrites all user-facing interface text in a concise, neutral, formal tone.
 - Documents why Character Customization Anywhere conflicts with vanilla mirror
   customization and shares the game's customization-exit loading issue.

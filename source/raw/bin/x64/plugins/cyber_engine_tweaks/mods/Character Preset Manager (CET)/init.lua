@@ -30,7 +30,6 @@ local state = {
   folders = {},
   expandedLoadFolders = {},
   openSections = {
-    compatibility = true,
     editor = true,
     load = true,
     create = true,
@@ -1911,50 +1910,36 @@ local coloredWrapped
 
 local function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
-  local open = state.openSections[key] ~= false
   ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
-  if ImGui.Selectable((open and "v  " or ">  ") .. label .. "##section:" .. key, false) then
-    open = not open
-    state.openSections[key] = open
-  end
+  local defaultFlag = state.openSections[key] ~= false and 32 or 0
+  local open = ImGui.CollapsingHeader(label .. "##section:" .. key, defaultFlag)
   ImGui.PopStyleColor()
-  ImGui.Separator()
   if open then ImGui.Spacing() end
   return open
 end
 
 local function drawCompatibilityWarnings()
   ImGui.Spacing()
-  local open = state.openSections.compatibility ~= false
   ImGui.PushStyleColor(ImGuiCol.Header, 0.56, 0.10, 0.10, 0.92)
   ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.72, 0.16, 0.14, 1.0)
   ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.45, 0.07, 0.07, 1.0)
   ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.25, 0.25, 1.0)
-  if ImGui.Selectable(
-      (open and "v  " or ">  ") ..
-        "COMPATIBILITY WARNINGS - READ FIRST##compatibilityWarnings",
-      false) then
-    open = not open
-    state.openSections.compatibility = open
-  end
+  local open = ImGui.CollapsingHeader(
+    "COMPATIBILITY WARNINGS - READ FIRST##compatibilityWarnings",
+    32
+  )
   ImGui.PopStyleColor(4)
   if not open then return end
   ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.12, 0.055, 0.055, 0.88)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
-  ImGui.BeginChild("##compatibilityWarningsBody", 0, 215, true)
+  ImGui.BeginChild("##compatibilityWarningsBody", 0, 125, true)
   coloredWrapped(1.0, 0.22, 0.22, 1.0,
-    "Appearance Change Unlocker (ACU) and Character Customization Anywhere are incompatible. Remove both mods, close Cyberpunk 2077, and restart the game.")
-  ImGui.Spacing()
-  coloredWrapped(1.0, 0.22, 0.22, 1.0,
-    "Photo Mode and Appearance Menu Mod are not supported.")
-  ImGui.Spacing()
-  ImGui.TextWrapped("A game bug can cause infinite loading when customization closes. It can also occur with vanilla mirrors, Equipment-EX, or detailed outfits.")
+    "Incompatible: ACU and Character Customization Anywhere.")
   coloredWrapped(1.0, 0.8, 0.2, 1.0,
-    "Workaround: unequip all clothing and select No Outfit before opening customization. Re-equip all items afterward.")
-  ImGui.Spacing()
-  ImGui.TextWrapped("Use the same customization mods and load order used when the preset was created.")
+    "Infinite loading: unequip all clothing and select No Outfit.")
   coloredWrapped(1.0, 0.8, 0.2, 1.0,
-    "If the setup changed, correct the appearance and save the preset again.")
+    "CCXL: use the same mods and load order.")
+  ImGui.TextWrapped("See Help for full details.")
   ImGui.EndChild()
   ImGui.PopStyleColor(2)
 end
@@ -2342,6 +2327,23 @@ local function draw()
         "External file changes are recorded as activity-log warnings. Changes made while the game is closed are checked at the next launch.")
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
         "ACU-format .preset files are supported.")
+
+      helpHeading("Customization and CCXL Mods")
+      ImGui.TextWrapped("Use the same customization mods and load order used to create the preset.")
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "If the setup changed, correct the appearance and save the preset again.")
+
+      helpHeading("Incompatible Mods")
+      coloredWrapped(1.0, 0.4, 0.4, 1.0,
+        "Appearance Change Unlocker (ACU) and Character Customization Anywhere change the same customization screens. Remove both mods, close Cyberpunk 2077, and restart the game.")
+
+      helpHeading("Infinite Loading When Customization Closes")
+      ImGui.TextWrapped("This game bug can also occur with vanilla mirrors, Equipment-EX, or detailed outfits.")
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "Unequip all clothing and select No Outfit before customization. Re-equip items afterward.")
+
+      helpHeading("Photo Mode and Appearance Menu Mod")
+      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod do not use the vanilla customization option list. Create and load presets in a supported character creator, mirror, or ripperdoc screen.")
 
       helpHeading("If an Older Preset Needs Updating")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
