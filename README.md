@@ -339,8 +339,9 @@ that both mods provide the same feature set.
 
 - Restores preset saving for CCXL and other custom options that expose the
   game's unsigned no-selection index.
-- Uses all available choice metadata when validating custom option indexes and
-  identifies the exact option if future customization data cannot be saved.
+- Uses the same native unsigned-index validation when saving and loading so
+  shared custom presets are not rejected by incomplete CCXL choice metadata.
+- Identifies the exact option if future customization data cannot be saved.
 
 ## Version 2.0.6 highlights
 

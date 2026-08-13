@@ -673,7 +673,7 @@ local function optionAuditIdentity(option, key, occurrence)
       tostring(occurrence or 1))
 end
 
-local function storedOptionIndexIsValid(index)
+local function optionIndexIsValid(index)
   if type(index) ~= "number"
       or index ~= math.floor(index)
       or index < 0
@@ -681,24 +681,6 @@ local function storedOptionIndexIsValid(index)
     return false
   end
   return true
-end
-
-local function optionIndexIsValid(option, index)
-  if not storedOptionIndexIsValid(index) then return false end
-  if index == MAX_OPTION_INDEX then return true end
-  if not option or not option.info then return true end
-  local availableCount = nil
-  for _, field in ipairs({ "options", "morphNames", "definitions" }) do
-    local ok, count = pcall(function()
-      local values = option.info[field]
-      if values == nil then return nil end
-      return #values
-    end)
-    if ok and type(count) == "number" and count > 0 then
-      availableCount = math.max(availableCount or 0, count)
-    end
-  end
-  return availableCount == nil or index < availableCount
 end
 
 local function occurrenceKeyParts(value)
@@ -1439,7 +1421,7 @@ local function savePreset(confirmOverwrite)
       local currentIndex = tonumber(option.currIndex)
       if #key > MAX_PRESET_KEY_BYTES
           or #entries >= MAX_PRESET_ENTRIES
-          or not storedOptionIndexIsValid(currentIndex) then
+          or not optionIndexIsValid(currentIndex) then
         log(("[SNAPSHOT] Rejected %s | index=%s keyBytes=%d savedEntries=%d")
           :format(optionAuditIdentity(option, key, (savedOccurrences[key] or 0) + 1),
             tostring(currentIndex), #key, #entries), "error")
@@ -1642,7 +1624,7 @@ local function loadPreset()
     local wanted = key and values[key] or nil
     local countMatches = label
       and (savedCounts[label] or 0) == (activeCounts[label] or 0)
-    if wanted ~= nil and countMatches and optionIndexIsValid(exposedOption.option, wanted)
+    if wanted ~= nil and countMatches and optionIndexIsValid(wanted)
         and (tonumber(exposedOption.option.currIndex) or 0) == wanted then
       satisfiedBefore = satisfiedBefore + 1
     end
@@ -1661,7 +1643,7 @@ local function loadPreset()
     local wanted = key and values[key] or nil
     local countMatches = label
       and (savedCounts[label] or 0) == (activeCounts[label] or 0)
-    local indexIsValid = wanted == nil or optionIndexIsValid(option, wanted)
+    local indexIsValid = wanted == nil or optionIndexIsValid(wanted)
     if wanted ~= nil then
       seen[key] = true
       if not countMatches then
@@ -1676,7 +1658,7 @@ local function loadPreset()
       elseif not indexIsValid then
         invalid = invalid + 1
         unresolved["invalid-index:" .. tostring(key)] = true
-        log(("[SKIPPED] Saved index is outside the option's available choices: %s targetIndex=%s")
+        log(("[SKIPPED] Saved index is outside the supported native range: %s targetIndex=%s")
           :format(optionAuditIdentity(option, label, exposedOption.occurrence),
             tostring(wanted)), "warn")
       end

@@ -5,10 +5,9 @@
 - Restores preset saving for CCXL and other custom options that expose the
   game's unsigned 32-bit no-selection index instead of rejecting the entire
   snapshot at the 2.0.6 safety limit.
-- Trusts valid native indexes read from the active character editor while
-  retaining choice-range checks when imported preset values are applied.
-- Validates against all available custom-option choice metadata instead of
-  stopping at the first populated collection.
+- Uses the same native unsigned-index validation when saving and loading so
+  incomplete CCXL choice metadata cannot prevent a shared preset from applying;
+  the game's protected apply call remains the final compatibility check.
 - Logs the exact option, index, key size, and saved-entry count if customization
   data still cannot be represented safely.
 
