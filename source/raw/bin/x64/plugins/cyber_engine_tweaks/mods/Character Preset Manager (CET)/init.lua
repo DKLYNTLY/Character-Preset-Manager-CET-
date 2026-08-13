@@ -9,8 +9,8 @@ local LOG_FILE = "Character Preset Manager (CET) Activity.log"
 local LOG_ARCHIVE_PREFIX = "Character Preset Manager (CET) Activity "
 local WINDOW_POSITION_STATUS_FILE = "Window Position Status.txt"
 local DISCOVERY_NOTICE_STATUS_FILE = "Discovery Notice Ignored.txt"
-local DISCOVERY_NOTICE_TITLE = "CHARACTER PRESET MANAGER IS READY"
-local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open the manager window."
+local DISCOVERY_NOTICE_TITLE = "OPEN CHARACTER PRESET MANAGER"
+local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open its window."
 local LOG_ARCHIVE_LIMIT = 10
 local activitySequence = 0
 
@@ -2814,12 +2814,13 @@ local function drawDiscoveryHudNotice()
   local layout = state.discoveryNoticeLayout
   if not layout then
     local viewportX, viewportY, viewportWidth = discoveryViewport()
-    local width = math.min(520, math.max(360, viewportWidth - 48))
     local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE) * 1.12
     local messageWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_MESSAGE)
+    local width = math.min(viewportWidth - 48,
+      math.max(340, math.max(titleWidth, messageWidth) + 32))
     layout = {
       width = width,
-      height = 76,
+      height = 64,
       x = viewportX + math.max(24, (viewportWidth - width) * 0.5),
       y = viewportY + 72,
       titleX = math.max(14, (width - titleWidth) * 0.5),
@@ -2843,7 +2844,7 @@ local function drawDiscoveryHudNotice()
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.85)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
-  ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 9.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 7.0)
   if ImGui.Begin("##CharacterPresetManagerDiscovery", true, layout.flags) then
     ImGui.SetWindowFontScale(1.12)
     ImGui.SetCursorPosX(layout.titleX)

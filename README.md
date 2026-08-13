@@ -351,6 +351,8 @@ that both mods provide the same feature set.
   it remains visible instead of repeating the layout work every frame.
 - Reuses its constant text and window flags and skips manager drawing entirely
   while CET or the manager window is closed.
+- Sizes the centered discovery reminder to its text instead of stretching it
+  into a wide banner.
 - Keeps a compact notification toggle beside Debug and Help without an
   additional text box. All three controls share one right-aligned row. Select
   **Ignore Notification** to suppress future popups or **Enable Notification**

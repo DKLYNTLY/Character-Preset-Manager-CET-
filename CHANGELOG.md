@@ -2,6 +2,8 @@
 
 ## 2.0.8
 
+- Tightens the centered discovery reminder around its text, reduces its height,
+  and uses a shorter direct prompt so it reads like a compact notification.
 - Places the notification toggle, Debug, and Help side by side in one
   right-aligned top row, with Help kept at the far-right edge.
 - Uses the compact editor-status label until the window is wide enough to show
