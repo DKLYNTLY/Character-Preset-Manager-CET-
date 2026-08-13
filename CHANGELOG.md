@@ -2,6 +2,12 @@
 
 ## 2.0.8
 
+- Replaces the unreliable game-blackboard reminder with a small borderless CET
+  HUD notification modeled on the proven ImGui approach used by Save Guardian.
+- Draws the notification only for eight seconds after a customization screen
+  opens and otherwise returns immediately without performing layout work.
+- Removes the title from the in-manager reminder and places a compact
+  **Ignore Notification** button above its message.
 - Shortens the character-customization reminder to tell players to press their
   assigned CET Overlay key and then open Character Preset Manager.
 - Adds a compact reminder inside the manager using its existing gold, white,

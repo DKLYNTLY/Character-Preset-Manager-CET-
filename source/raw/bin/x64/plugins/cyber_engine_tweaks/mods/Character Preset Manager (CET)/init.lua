@@ -18,7 +18,7 @@ local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_OPEN_TIMEOUT = 5.0
 local STATUS_CLEAR_DELAY = 8.0
 local STATUS_UPDATE_INTERVAL = 0.25
-local DISCOVERY_NOTICE_DELAY = 1.0
+local DISCOVERY_NOTICE_DURATION = 8.0
 local MAX_TREE_DEPTH = 12
 local MAX_PRESET_BYTES = 1048576
 local MAX_PRESET_ENTRIES = 4096
@@ -111,7 +111,6 @@ local state = {
   initialWindowPlacementPending = true,
   discoveryNoticePending = false,
   discoveryNoticeTimer = 0,
-  discoveryNoticeAttempts = 0,
   discoveryNoticeIgnored = false,
   viewCacheDirty = true,
   cachedPresetNames = {},
@@ -707,41 +706,10 @@ assert(optionIndexIsValid(0)
   and not optionIndexIsValid(4294967296),
   MOD_NAME .. " option-index validation contract failed")
 
-local discoveryNoticeDefinitions
-local discoveryNoticeBlackboard
-
-local function showDiscoveryNotice()
-  local called, shown, showError = pcall(function()
-    local definitions = discoveryNoticeDefinitions
-      or GetAllBlackboardDefs().UI_Notifications
-    local blackboard = discoveryNoticeBlackboard
-      or Game.GetBlackboardSystem():Get(definitions)
-    if not definitions or not blackboard then return false, "waiting" end
-    discoveryNoticeDefinitions = definitions
-    discoveryNoticeBlackboard = blackboard
-    local message = SimpleScreenMessage.new()
-    message.isShown = true
-    message.duration = 6.0
-    message.message = "PRESS YOUR ASSIGNED CET OVERLAY KEY, THEN OPEN CHARACTER PRESET MANAGER."
-    message.isInstant = true
-    message.type = SimpleMessageType.Neutral
-    blackboard:SetVariant(definitions.OnscreenMessage, ToVariant(message), true)
-    return true
-  end)
-  if not called then
-    discoveryNoticeDefinitions = nil
-    discoveryNoticeBlackboard = nil
-    return false, tostring(shown)
-  end
-  if not shown then return false, tostring(showError or "waiting") end
-  return true
-end
-
 local function ignoreDiscoveryNotice()
   state.discoveryNoticeIgnored = true
   state.discoveryNoticePending = false
   state.discoveryNoticeTimer = 0
-  state.discoveryNoticeAttempts = 0
   local file = io.open(DISCOVERY_NOTICE_STATUS_FILE, "w")
   if not file then
     log("[UI] Discovery reminder ignored for this session; preference file could not be created.", "warn")
@@ -2815,18 +2783,66 @@ local function drawDiscoveryReminder()
   ImGui.Spacing()
   ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.96)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.70)
-  ImGui.BeginChild("##discoveryReminder", 0, 62, true)
+  ImGui.BeginChild("##discoveryReminder", 0, 72, true)
   local startX = ImGui.GetCursorPosX()
   local availableWidth = ImGui.GetContentRegionAvail()
-  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "CHARACTER PRESET MANAGER")
-  ImGui.SameLine()
-  ImGui.SetCursorPosX(startX + availableWidth - 56)
-  if ImGui.Button("Ignore##discoveryReminder", 56, 0) then
+  ImGui.SetCursorPosX(startX + availableWidth - 116)
+  if ImGui.Button("Ignore Notification##discoveryReminder", 116, 0) then
     ignoreDiscoveryNotice()
   end
-  ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-    "Press your assigned CET Overlay key, then open this manager.")
+  ImGui.TextWrapped("Press your assigned CET Overlay key, then open Character Preset Manager.")
   ImGui.EndChild()
+  ImGui.PopStyleColor(2)
+end
+
+local function discoveryViewport()
+  if ImGui.GetMainViewport then
+    local viewport = ImGui.GetMainViewport()
+    if viewport and viewport.WorkPos and viewport.WorkSize then
+      return viewport.WorkPos.x, viewport.WorkPos.y,
+        viewport.WorkSize.x, viewport.WorkSize.y
+    end
+  end
+  if ImGui.GetDisplaySize then
+    local width, height = ImGui.GetDisplaySize()
+    if width and height then return 0, 0, width, height end
+  end
+  return 0, 0, 1920, 1080
+end
+
+local function drawDiscoveryHudNotice()
+  if not state.discoveryNoticePending or state.discoveryNoticeIgnored
+      or state.overlayOpen then return end
+  local viewportX, viewportY, viewportWidth = discoveryViewport()
+  local width = math.min(480, math.max(320, viewportWidth - 48))
+  local height = 68
+  local x = viewportX + math.max(24, (viewportWidth - width) * 0.5)
+  local y = viewportY + 72
+  local flags = bit32.bor(
+    ImGuiWindowFlags.NoTitleBar,
+    ImGuiWindowFlags.NoResize,
+    ImGuiWindowFlags.NoScrollbar,
+    ImGuiWindowFlags.NoScrollWithMouse,
+    ImGuiWindowFlags.NoCollapse,
+    ImGuiWindowFlags.NoSavedSettings,
+    ImGuiWindowFlags.NoMove,
+    ImGuiWindowFlags.NoInputs
+  )
+  ImGui.SetNextWindowPos(x, y, ImGuiCond.Always)
+  ImGui.SetNextWindowSize(width, height, ImGuiCond.Always)
+  ImGui.PushStyleColor(ImGuiCol.WindowBg, 0.055, 0.059, 0.078, 0.94)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.85)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 9.0)
+  if ImGui.Begin("##CharacterPresetManagerDiscovery", true, flags) then
+    ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
+      "Press your assigned CET Overlay key")
+    ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
+      "Then open Character Preset Manager.")
+  end
+  ImGui.End()
+  ImGui.PopStyleVar(3)
   ImGui.PopStyleColor(2)
 end
 
@@ -3239,8 +3255,8 @@ registerForEvent("onInit", function()
       state.clothingCheckDirty = true
       state.cachedClothingLabels = nil
       state.discoveryNoticePending = not state.discoveryNoticeIgnored
-      state.discoveryNoticeTimer = 0
-      state.discoveryNoticeAttempts = 0
+      state.discoveryNoticeTimer = state.discoveryNoticePending
+        and DISCOVERY_NOTICE_DURATION or 0
       log(state.discoveryNoticeIgnored
         and "[UI] Character customization opened; discovery reminder is ignored."
         or "[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
@@ -3258,7 +3274,6 @@ registerForEvent("onInit", function()
         state.cachedClothingLabels = nil
         state.discoveryNoticePending = false
         state.discoveryNoticeTimer = 0
-        state.discoveryNoticeAttempts = 0
       end
       state.editorOpenedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
@@ -3406,9 +3421,6 @@ registerForEvent("onShutdown", function()
   state.editorHooksAvailable = false
   state.discoveryNoticePending = false
   state.discoveryNoticeTimer = 0
-  state.discoveryNoticeAttempts = 0
-  discoveryNoticeDefinitions = nil
-  discoveryNoticeBlackboard = nil
 end)
 
 registerForEvent("onUpdate", function(delta)
@@ -3429,24 +3441,11 @@ registerForEvent("onUpdate", function(delta)
     end
   end
   if state.discoveryNoticePending then
-    state.discoveryNoticeTimer = state.discoveryNoticeTimer + elapsed
-    if state.discoveryNoticeTimer >= DISCOVERY_NOTICE_DELAY then
+    state.discoveryNoticeTimer = math.max(0, state.discoveryNoticeTimer - elapsed)
+    if state.discoveryNoticeTimer <= 0 then
       state.discoveryNoticeTimer = 0
-      local shown, noticeError = showDiscoveryNotice()
-      if shown then
-        state.discoveryNoticePending = false
-        log("[UI] Character-customization CET menu discovery notice shown.", "info")
-      else
-        state.discoveryNoticeAttempts = state.discoveryNoticeAttempts + 1
-        if noticeError ~= "waiting" then
-          log(("[UI] CET menu discovery notice attempt %d failed: %s")
-            :format(state.discoveryNoticeAttempts, tostring(noticeError)), "warn")
-        end
-        if state.discoveryNoticeAttempts >= 3 then
-          state.discoveryNoticePending = false
-          log("[UI] CET menu discovery notice is unavailable in this game session after 3 attempts.", "warn")
-        end
-      end
+      state.discoveryNoticePending = false
+      log("[UI] Character-customization CET discovery notification finished.", "info")
     end
   end
   if state.editorOpenPending then
@@ -3515,7 +3514,10 @@ registerForEvent("onOverlayClose", function()
   state.statusUpdateTimer = 0
   cancelConfirmations()
 end)
-registerForEvent("onDraw", draw)
+registerForEvent("onDraw", function()
+  drawDiscoveryHudNotice()
+  draw()
+end)
 registerHotkey("vanilla_character_presets_toggle", "Toggle Character Preset Manager (CET)", function()
   state.windowHotkeyCount = state.windowHotkeyCount + 1
   state.windowOpen = not state.windowOpen
