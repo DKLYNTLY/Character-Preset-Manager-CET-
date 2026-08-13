@@ -8,7 +8,7 @@
   <a href="CHANGELOG.md">View the complete changelog</a>
 </p>
 
-**Current version: 2.0.6**
+**Current version: 2.0.7**
 
 ## AI disclosure
 
@@ -234,7 +234,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
   is not stored inside a shared `.preset` file.
 - **Import safety:** Unsafe or unusually large preset files are ignored. A preset
   is limited to 1 MB, 8,192 lines, 4,096 valid options, 256 bytes per option key,
-  and option indexes from 0 through 65,535.
+  and option indexes within the game's unsigned 32-bit range.
 
 ## Activity log
 
@@ -297,11 +297,11 @@ release. The screenshots showcase Character Preset Manager itself.
 <details>
 <summary><strong>Show upgrade instructions</strong></summary>
 
-Do not install version 2.0.6 directly over a 1.0.x installation.
+Do not install version 2.0.7 directly over a 1.0.x installation.
 
 1. Back up your `.preset` files somewhere outside the mod folder.
 2. Delete `mods/Preset Manager (CET)`.
-3. Install version 2.0.6 normally.
+3. Install version 2.0.7 normally.
 4. Move your presets into
    `mods/Character Preset Manager (CET)/Character Presets`.
 5. Launch the game and open CET.
@@ -334,6 +334,13 @@ This comparison explains differences between the approaches. It does not claim
 that both mods provide the same feature set.
 
 </details>
+
+## Version 2.0.7 highlights
+
+- Restores preset saving for CCXL and other custom options that expose the
+  game's unsigned no-selection index.
+- Uses all available choice metadata when validating custom option indexes and
+  identifies the exact option if future customization data cannot be saved.
 
 ## Version 2.0.6 highlights
 

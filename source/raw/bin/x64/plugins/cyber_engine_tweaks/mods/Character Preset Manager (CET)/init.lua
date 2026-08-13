@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "2.0.6"
+local VERSION = "2.0.7"
 local PRESET_DIR = "Character Presets"
 local CATALOG_FILE = "Character Preset Manager (CET) Folders.txt"
 local LEGACY_FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
@@ -22,7 +22,7 @@ local MAX_PRESET_BYTES = 1048576
 local MAX_PRESET_ENTRIES = 4096
 local MAX_PRESET_LINES = 8192
 local MAX_PRESET_KEY_BYTES = 256
-local MAX_OPTION_INDEX = 65535
+local MAX_OPTION_INDEX = 4294967295
 local FILE_COPY_CHUNK_SIZE = 65536
 local MAX_CATALOG_BYTES = 8388608
 local MAX_CATALOG_LINES = 32768
@@ -673,14 +673,21 @@ local function optionAuditIdentity(option, key, occurrence)
       tostring(occurrence or 1))
 end
 
-local function optionIndexIsValid(option, index)
+local function storedOptionIndexIsValid(index)
   if type(index) ~= "number"
       or index ~= math.floor(index)
       or index < 0
       or index > MAX_OPTION_INDEX then
     return false
   end
+  return true
+end
+
+local function optionIndexIsValid(option, index)
+  if not storedOptionIndexIsValid(index) then return false end
+  if index == MAX_OPTION_INDEX then return true end
   if not option or not option.info then return true end
+  local availableCount = nil
   for _, field in ipairs({ "options", "morphNames", "definitions" }) do
     local ok, count = pcall(function()
       local values = option.info[field]
@@ -688,10 +695,10 @@ local function optionIndexIsValid(option, index)
       return #values
     end)
     if ok and type(count) == "number" and count > 0 then
-      return index < count
+      availableCount = math.max(availableCount or 0, count)
     end
   end
-  return true
+  return availableCount == nil or index < availableCount
 end
 
 local function occurrenceKeyParts(value)
@@ -1432,7 +1439,10 @@ local function savePreset(confirmOverwrite)
       local currentIndex = tonumber(option.currIndex)
       if #key > MAX_PRESET_KEY_BYTES
           or #entries >= MAX_PRESET_ENTRIES
-          or not optionIndexIsValid(option, currentIndex) then
+          or not storedOptionIndexIsValid(currentIndex) then
+        log(("[SNAPSHOT] Rejected %s | index=%s keyBytes=%d savedEntries=%d")
+          :format(optionAuditIdentity(option, key, (savedOccurrences[key] or 0) + 1),
+            tostring(currentIndex), #key, #entries), "error")
         setStatus("create", "The current customization data exceeds the safe preset limits.", true)
         return
       end

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2.0.7
+
+- Restores preset saving for CCXL and other custom options that expose the
+  game's unsigned 32-bit no-selection index instead of rejecting the entire
+  snapshot at the 2.0.6 safety limit.
+- Trusts valid native indexes read from the active character editor while
+  retaining choice-range checks when imported preset values are applied.
+- Validates against all available custom-option choice metadata instead of
+  stopping at the first populated collection.
+- Logs the exact option, index, key size, and saved-entry count if customization
+  data still cannot be represented safely.
+
 ## 2.0.6
 
 - Shows the assigned editor input and window-toggle hotkey directly in Help by
