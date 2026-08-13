@@ -2,6 +2,8 @@
 
 ## 2.0.8
 
+- Draws the reminder heading at CET's native font size so its gold color stays
+  crisp instead of becoming blurred by fractional font scaling.
 - Tightens the centered discovery reminder around its text, reduces its height,
   and uses a shorter direct prompt so it reads like a compact notification.
 - Places the notification toggle, Debug, and Help side by side in one

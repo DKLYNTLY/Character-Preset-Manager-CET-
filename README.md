@@ -353,6 +353,7 @@ that both mods provide the same feature set.
   while CET or the manager window is closed.
 - Sizes the centered discovery reminder to its text instead of stretching it
   into a wide banner.
+- Uses CET's native font size for crisp notification text and color.
 - Keeps a compact notification toggle beside Debug and Help without an
   additional text box. All three controls share one right-aligned row. Select
   **Ignore Notification** to suppress future popups or **Enable Notification**

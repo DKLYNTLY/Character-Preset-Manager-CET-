@@ -2814,7 +2814,7 @@ local function drawDiscoveryHudNotice()
   local layout = state.discoveryNoticeLayout
   if not layout then
     local viewportX, viewportY, viewportWidth = discoveryViewport()
-    local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE) * 1.12
+    local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE)
     local messageWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_MESSAGE)
     local width = math.min(viewportWidth - 48,
       math.max(340, math.max(titleWidth, messageWidth) + 32))
@@ -2846,11 +2846,9 @@ local function drawDiscoveryHudNotice()
   ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 7.0)
   if ImGui.Begin("##CharacterPresetManagerDiscovery", true, layout.flags) then
-    ImGui.SetWindowFontScale(1.12)
     ImGui.SetCursorPosX(layout.titleX)
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
       DISCOVERY_NOTICE_TITLE)
-    ImGui.SetWindowFontScale(1.0)
     ImGui.SetCursorPosX(layout.messageX)
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       DISCOVERY_NOTICE_MESSAGE)
