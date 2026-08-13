@@ -2804,8 +2804,8 @@ local function drawDiscoveryHudNotice()
   if not state.discoveryNoticePending or state.discoveryNoticeIgnored
       or state.overlayOpen then return end
   local viewportX, viewportY, viewportWidth = discoveryViewport()
-  local width = math.min(480, math.max(320, viewportWidth - 48))
-  local height = 68
+  local width = math.min(520, math.max(360, viewportWidth - 48))
+  local height = 76
   local x = viewportX + math.max(24, (viewportWidth - width) * 0.5)
   local y = viewportY + 72
   local flags = bit32.bor(
@@ -2826,10 +2826,18 @@ local function drawDiscoveryHudNotice()
   ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 9.0)
   if ImGui.Begin("##CharacterPresetManagerDiscovery", true, flags) then
+    local title = "CHARACTER PRESET MANAGER IS READY"
+    local message = "Press your assigned CET Overlay key to open the manager window."
+    ImGui.SetWindowFontScale(1.12)
+    local titleWidth = ImGui.CalcTextSize(title)
+    ImGui.SetCursorPosX(math.max(14, (width - titleWidth) * 0.5))
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
-      "Press your assigned CET Overlay key")
+      title)
+    ImGui.SetWindowFontScale(1.0)
+    local messageWidth = ImGui.CalcTextSize(message)
+    ImGui.SetCursorPosX(math.max(14, (width - messageWidth) * 0.5))
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      "Then open Character Preset Manager.")
+      message)
   end
   ImGui.End()
   ImGui.PopStyleVar(3)

@@ -2,6 +2,8 @@
 
 ## 2.0.8
 
+- Centers the gameplay notification and gives it a larger, heavier gold heading
+  with clearer wording that tells players how to open the manager window.
 - Removes the in-manager notification text box and places only the compact
   **Ignore Notification** button beneath Debug and Help at the top-right.
 - Arms the full-editor launch before dispatching the pause-menu event, removing
