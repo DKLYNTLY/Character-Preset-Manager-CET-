@@ -2,10 +2,12 @@
 
 ## 2.0.8
 
+- Keeps the notification control permanently visible beneath Debug and Help,
+  switching between **Ignore Notification** and **Enable Notification**.
+- Persists the chosen notification state across restarts while drawing directly
+  from cached state without repeated file checks or polling.
 - Centers the gameplay notification and gives it a larger, heavier gold heading
   with clearer wording that tells players how to open the manager window.
-- Removes the in-manager notification text box and places only the compact
-  **Ignore Notification** button beneath Debug and Help at the top-right.
 - Arms the full-editor launch before dispatching the pause-menu event, removing
   a race if the game processes that event immediately.
 - Isolates the optional HUD notification from the main manager draw so a future
@@ -23,7 +25,6 @@
   returns immediately without performing layout work.
 - Shortens the character-customization reminder to tell players to press their
   assigned CET Overlay key and then open Character Preset Manager.
-- Adds **Show Reminder Again** under Help so an ignored reminder can be restored.
 - Makes the per-frame update return immediately while the UI and all background
   actions are inactive, and throttles status expiration while the window is
   visible.

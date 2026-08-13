@@ -2775,13 +2775,19 @@ local function defaultWindowPosition()
   return math.max(20, displayWidth - 440), displayWidth
 end
 
-local function drawDiscoveryIgnoreButton(rightEdge)
-  if state.discoveryNoticeIgnored or not state.inCustomization then return end
+local function drawDiscoveryNotificationToggle(rightEdge)
   ImGui.Spacing()
   local buttonWidth = 132
+  local label = state.discoveryNoticeIgnored
+    and "Enable Notification##discoveryReminder"
+    or "Ignore Notification##discoveryReminder"
   ImGui.SetCursorPosX(rightEdge - buttonWidth)
-  if ImGui.Button("Ignore Notification##discoveryReminder", buttonWidth, 28) then
-    ignoreDiscoveryNotice()
+  if ImGui.Button(label, buttonWidth, 28) then
+    if state.discoveryNoticeIgnored then
+      restoreDiscoveryNotice()
+    else
+      ignoreDiscoveryNotice()
+    end
   end
 end
 
@@ -2911,7 +2917,7 @@ local function draw()
       state.helpOpen = not state.helpOpen
       if state.helpOpen then state.bindingCache = {} end
     end
-    drawDiscoveryIgnoreButton(topRowStartX + topRowWidth)
+    drawDiscoveryNotificationToggle(topRowStartX + topRowWidth)
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
     end
@@ -2944,12 +2950,6 @@ local function draw()
       helpHeading("Open the Editor")
       ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. Mirrors, ripperdocs, and the new-game editor also work.")
       ImGui.TextWrapped("Set or change these under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor input.")
-      if state.discoveryNoticeIgnored then
-        ImGui.TextDisabled("The character-customization reminder is currently ignored.")
-        if ImGui.Button("Show Reminder Again##restoreDiscoveryReminder", 0, 0) then
-          restoreDiscoveryNotice()
-        end
-      end
       drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editorInputCount)
       drawBindingHelp("Toggle Character Preset Manager (CET)",
