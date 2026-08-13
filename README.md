@@ -351,10 +351,10 @@ that both mods provide the same feature set.
   it remains visible instead of repeating the layout work every frame.
 - Reuses its constant text and window flags and skips manager drawing entirely
   while CET or the manager window is closed.
-- Keeps a compact notification toggle beneath Debug and Help without an
-  additional text box. Select **Ignore Notification** to suppress future
-  popups or **Enable Notification** to restore them; the choice persists across
-  restarts.
+- Keeps a compact notification toggle beside Debug and Help without an
+  additional text box. All three controls share one right-aligned row. Select
+  **Ignore Notification** to suppress future popups or **Enable Notification**
+  to restore them; the choice persists across restarts.
 - Covers vanilla creation, mirrors, ripperdocs, and the full appearance editor
   launched by Character Preset Manager.
 - Keeps the full-editor button and assigned input usable after leaving any

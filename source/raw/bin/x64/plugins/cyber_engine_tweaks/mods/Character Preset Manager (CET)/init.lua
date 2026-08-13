@@ -2780,14 +2780,11 @@ local function defaultWindowPosition()
   return math.max(20, displayWidth - 440), displayWidth
 end
 
-local function drawDiscoveryNotificationToggle(rightEdge)
-  ImGui.Spacing()
-  local buttonWidth = 132
+local function drawDiscoveryNotificationToggle()
   local label = state.discoveryNoticeIgnored
     and "Enable Notification##discoveryReminder"
     or "Ignore Notification##discoveryReminder"
-  ImGui.SetCursorPosX(rightEdge - buttonWidth)
-  if ImGui.Button(label, buttonWidth, 28) then
+  if ImGui.Button(label, 132, 0) then
     if state.discoveryNoticeIgnored then
       restoreDiscoveryNotice()
     else
@@ -2905,10 +2902,10 @@ local function draw()
     local buttonGrowth = math.min(extraHeight * 0.02, 6)
     local actionButtonHeight = 32 + buttonGrowth
 
-    local narrowTopRow = ImGui.GetWindowWidth() < 460
+    local narrowTopRow = ImGui.GetWindowWidth() < 620
     local topRowStartX = ImGui.GetCursorPosX()
     local topRowWidth = ImGui.GetContentRegionAvail()
-    local topControlsWidth = 134
+    local topControlsWidth = 256
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
     if state.inCustomization then
@@ -2920,16 +2917,17 @@ local function draw()
     end
     ImGui.SameLine()
     ImGui.SetCursorPosX(topRowStartX + topRowWidth - topControlsWidth)
-    if ImGui.Button("Debug##debug", 68, 0) then
+    drawDiscoveryNotificationToggle()
+    ImGui.SameLine()
+    if ImGui.Button("Debug##debug", 58, 0) then
       state.debugOpen = not state.debugOpen
       if state.debugOpen then readDiagnosticLog() end
     end
     ImGui.SameLine()
-    if ImGui.Button("Help##help", 58, 0) then
+    if ImGui.Button("Help##help", 50, 0) then
       state.helpOpen = not state.helpOpen
       if state.helpOpen then state.bindingCache = {} end
     end
-    drawDiscoveryNotificationToggle(topRowStartX + topRowWidth)
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
     end

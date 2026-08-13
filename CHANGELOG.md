@@ -2,13 +2,17 @@
 
 ## 2.0.8
 
+- Places the notification toggle, Debug, and Help side by side in one
+  right-aligned top row, with Help kept at the far-right edge.
+- Uses the compact editor-status label until the window is wide enough to show
+  the longer status without overlapping the three controls.
 - Caches the popup's constant text and window flags and avoids dispatching the
   manager draw function while CET or its window is closed.
 - Caches the popup viewport, dimensions, centered text measurements, and screen
   position once per appearance instead of recalculating them every frame.
 - Clears the cached popup layout only when a customization screen opens or
   closes, CET acknowledges it, the preference changes, or rendering fails.
-- Keeps the notification control permanently visible beneath Debug and Help,
+- Keeps the notification control permanently visible beside Debug and Help,
   switching between **Ignore Notification** and **Enable Notification**.
 - Persists the chosen notification state across restarts while drawing directly
   from cached state without repeated file checks or polling.
