@@ -2,6 +2,18 @@
 
 ## 2.0.8
 
+- Makes the per-frame update return immediately while the UI and all background
+  actions are inactive, and throttles status expiration while the window is
+  visible.
+- Replaces repeated customization-state polling with the editor's existing
+  open/close events, retaining fallback refreshes at startup and when CET opens.
+- Lazily caches preset and folder display lists until data changes, eliminating
+  per-frame rescanning, regrouping, and sorting in the CET window.
+- Parses Debug log colors only when the log is read, caches CET binding results
+  and display geometry, caches the clothing check once per editor opening, and
+  removes unchanged per-frame queries.
+- Reuses the saved preset lookup across automatic-load passes, combines editor
+  option passes, and reduces each load pass to one customization-system query.
 - Adds a contextual in-game notice whenever a character-customization screen
   opens, telling players to use the Cyber Engine Tweaks overlay to save or load
   the current appearance.

@@ -14,9 +14,9 @@ local activitySequence = 0
 local AUTO_LOAD_INTERVAL = 0.40
 local AUTO_LOAD_MAX_PASSES = 400
 local STALL_CONFIRMATION_PASSES = 3
-local EDITOR_STATE_REFRESH_INTERVAL = 0.25
 local EDITOR_OPEN_TIMEOUT = 5.0
 local STATUS_CLEAR_DELAY = 8.0
+local STATUS_UPDATE_INTERVAL = 0.25
 local DISCOVERY_NOTICE_DELAY = 1.0
 local MAX_TREE_DEPTH = 12
 local MAX_PRESET_BYTES = 1048576
@@ -34,7 +34,6 @@ local state = {
   windowOpen = true,
   ready = false,
   inCustomization = false,
-  editorStateRefreshTimer = 0,
   selected = nil,
   newName = "",
   renameName = "",
@@ -77,6 +76,9 @@ local state = {
   previousUnresolvedSignature = nil,
   unresolvedRepeatCount = 0,
   loadSatisfied = {},
+  loadValues = nil,
+  loadSavedCounts = nil,
+  loadValueCount = 0,
   pendingOverwriteName = nil,
   pendingOverwriteFingerprint = nil,
   pendingDeleteName = nil,
@@ -84,6 +86,8 @@ local state = {
   helpOpen = false,
   debugOpen = false,
   debugLogText = "",
+  debugLogLines = {},
+  bindingCache = {},
   autoLoad = false,
   autoLoadTimer = 0,
   autoLoadPasses = 0,
@@ -106,7 +110,17 @@ local state = {
   initialWindowPlacementPending = true,
   discoveryNoticePending = false,
   discoveryNoticeTimer = 0,
-  discoveryNoticeFailures = 0,
+  discoveryNoticeAttempts = 0,
+  viewCacheDirty = true,
+  cachedPresetNames = {},
+  cachedFolderNames = {},
+  cachedPresetsByFolder = {},
+  windowPositionCached = false,
+  cachedWindowX = nil,
+  cachedDisplayWidth = nil,
+  clothingCheckDirty = true,
+  cachedClothingLabels = nil,
+  statusUpdateTimer = 0,
   statusTimers = {},
   statusSnapshots = {},
 }
@@ -168,6 +182,9 @@ local function resetLoadState()
   state.previousUnresolvedSignature = nil
   state.unresolvedRepeatCount = 0
   state.loadSatisfied = {}
+  state.loadValues = nil
+  state.loadSavedCounts = nil
+  state.loadValueCount = 0
   state.autoLoad = false
   state.autoLoadTimer = 0
   state.autoLoadPasses = 0
@@ -571,7 +588,7 @@ local function openFullAppearanceEditor()
     setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
     return false
   end
-  if isCustomizationActive() then
+  if state.inCustomization or isCustomizationActive() then
     setEditorOpenStatus("A customization screen is already open.", true)
     return false
   end
@@ -599,39 +616,30 @@ local function openFullAppearanceEditor()
   return true
 end
 
-isCustomizationActive = function()
-  local system = customizationSystem()
-  if not system then return false end
-  local ok, options = pcall(
-    system.GetUnitedOptions,
-    system,
-    true,
-    true,
-    true,
-    ToCName({}),
-    ToCName({}),
-    ToCName({})
-  )
-  return ok and type(options) == "table" and next(options) ~= nil
-end
-
+local emptyCustomizationName
 local function getOptions()
   local system = customizationSystem()
   if not system then return nil, nil, "Character customization system is unavailable" end
-  local ok, options = pcall(
-    system.GetUnitedOptions,
-    system,
-    true,
-    true,
-    true,
-    ToCName({}),
-    ToCName({}),
-    ToCName({})
-  )
-  if not ok or type(options) ~= "table" then
+  local ok, options = pcall(function()
+    if not emptyCustomizationName then emptyCustomizationName = ToCName({}) end
+    return system:GetUnitedOptions(
+      true,
+      true,
+      true,
+      emptyCustomizationName,
+      emptyCustomizationName,
+      emptyCustomizationName
+    )
+  end)
+  if not ok or type(options) ~= "table" or next(options) == nil then
     return nil, nil, "Customization options haven't loaded yet"
   end
   return system, options
+end
+
+isCustomizationActive = function()
+  local _, options = getOptions()
+  return options ~= nil
 end
 
 local function legacyOptionKey(option)
@@ -697,11 +705,18 @@ assert(optionIndexIsValid(0)
   and not optionIndexIsValid(4294967296),
   MOD_NAME .. " option-index validation contract failed")
 
+local discoveryNoticeDefinitions
+local discoveryNoticeBlackboard
+
 local function showDiscoveryNotice()
   local called, shown, showError = pcall(function()
-    local definitions = GetAllBlackboardDefs().UI_Notifications
-    local blackboard = Game.GetBlackboardSystem():Get(definitions)
+    local definitions = discoveryNoticeDefinitions
+      or GetAllBlackboardDefs().UI_Notifications
+    local blackboard = discoveryNoticeBlackboard
+      or Game.GetBlackboardSystem():Get(definitions)
     if not definitions or not blackboard then return false, "waiting" end
+    discoveryNoticeDefinitions = definitions
+    discoveryNoticeBlackboard = blackboard
     local message = SimpleScreenMessage.new()
     message.isShown = true
     message.duration = 8.0
@@ -711,7 +726,11 @@ local function showDiscoveryNotice()
     blackboard:SetVariant(definitions.OnscreenMessage, ToVariant(message), true)
     return true
   end)
-  if not called then return false, tostring(shown) end
+  if not called then
+    discoveryNoticeDefinitions = nil
+    discoveryNoticeBlackboard = nil
+    return false, tostring(shown)
+  end
   if not shown then return false, tostring(showError or "waiting") end
   return true
 end
@@ -746,20 +765,6 @@ local function unresolvedSignature(unresolved)
   return table.concat(keys, "\30")
 end
 
-local function sortedPresetNames()
-  local names = {}
-  for name in pairs(state.presets) do table.insert(names, name) end
-  table.sort(names, function(a, b) return a:lower() < b:lower() end)
-  return names
-end
-
-local function sortedFolderNames()
-  local names = {}
-  for name in pairs(state.folders) do table.insert(names, name) end
-  table.sort(names, function(a, b) return a:lower() < b:lower() end)
-  return names
-end
-
 local function parentFolder(name)
   return name:match("^(.*)/[^/]+$") or ""
 end
@@ -768,13 +773,53 @@ local function baseName(name)
   return name:match("([^/]+)$") or name
 end
 
-local function presetsInFolder(folder)
-  local names = {}
+local function invalidateViewCache()
+  state.viewCacheDirty = true
+end
+
+local function rebuildViewCache()
+  local presetNames = {}
+  local folderNames = {}
+  local presetsByFolder = {}
   for name in pairs(state.presets) do
-    if parentFolder(name) == folder then table.insert(names, name) end
+    table.insert(presetNames, name)
+    local folder = parentFolder(name)
+    presetsByFolder[folder] = presetsByFolder[folder] or {}
+    table.insert(presetsByFolder[folder], name)
   end
-  table.sort(names, function(a, b) return baseName(a):lower() < baseName(b):lower() end)
-  return names
+  for name in pairs(state.folders) do table.insert(folderNames, name) end
+  table.sort(presetNames, function(a, b) return a:lower() < b:lower() end)
+  table.sort(folderNames, function(a, b) return a:lower() < b:lower() end)
+  for _, names in pairs(presetsByFolder) do
+    table.sort(names, function(a, b)
+      return baseName(a):lower() < baseName(b):lower()
+    end)
+  end
+  state.cachedPresetNames = presetNames
+  state.cachedFolderNames = folderNames
+  state.cachedPresetsByFolder = presetsByFolder
+  state.viewCacheDirty = false
+end
+
+local function ensureViewCache()
+  if state.viewCacheDirty then rebuildViewCache() end
+end
+
+local EMPTY_LIST = {}
+
+local function sortedPresetNames()
+  ensureViewCache()
+  return state.cachedPresetNames
+end
+
+local function sortedFolderNames()
+  ensureViewCache()
+  return state.cachedFolderNames
+end
+
+local function presetsInFolder(folder)
+  ensureViewCache()
+  return state.cachedPresetsByFolder[folder] or EMPTY_LIST
 end
 
 local function joinFolder(folder, name)
@@ -1376,6 +1421,8 @@ local function refreshPresets(scanReason)
   state.folders = folders
   state.manualFolders = manualFolders
   state.ignoredPhysicalFolders = ignoredPhysicalFolders
+  invalidateViewCache()
+  resetLoadState()
   for folder in pairs(state.expandedLoadFolders) do
     if not folders[folder] then state.expandedLoadFolders[folder] = nil end
   end
@@ -1400,8 +1447,10 @@ local function savePreset(confirmOverwrite)
   auditSection("CREATE PRESET")
   log(("[PRESET] Create requested: enteredName='%s' overwriteConfirmed=%s")
     :format(tostring(state.newName), tostring(confirmOverwrite == true)), "info")
-  if not isCustomizationActive() then
+  local _, options, optionsError = getOptions()
+  if not options then
     setStatus("create", "Open the character creator, a mirror, or a ripperdoc.", true)
+    log("[create] " .. tostring(optionsError), "warn")
     return
   end
   local leafName, nameError = validatedPresetName(state.newName)
@@ -1441,9 +1490,6 @@ local function savePreset(confirmOverwrite)
   end
   state.pendingOverwriteName = nil
   state.pendingOverwriteFingerprint = nil
-
-  local _, options, err = getOptions()
-  if not options then setStatus("create", err, true); return end
 
   local entries = {}
   local savedOccurrences = {}
@@ -1535,6 +1581,7 @@ local function savePreset(confirmOverwrite)
     return
   end
   state.selected = name
+  invalidateViewCache()
   state.renameName = ""
   state.newName = ""
   resetLoadState()
@@ -1555,14 +1602,20 @@ local function loadPreset()
     setStatus("load", "Select a preset.", true)
     return
   end
-  if not isCustomizationActive() then
+  local system, options, optionsError = getOptions()
+  if not options then
     setStatus("load", "Open a customization screen before loading a preset.", true)
+    log("[load] " .. tostring(optionsError), "warn")
     return
   end
 
   local preset = state.presets[state.selected]
+  local values, savedCounts, valueCount
   if state.loadPresetName == state.selected then
     state.loadPass = state.loadPass + 1
+    values = state.loadValues
+    savedCounts = state.loadSavedCounts
+    valueCount = state.loadValueCount
   else
     auditSection("LOAD PRESET")
     log(("[PRESET] Load requested: name='%s'"):format(tostring(state.selected)), "load")
@@ -1571,24 +1624,23 @@ local function loadPreset()
     state.previousUnresolvedSignature = nil
     state.unresolvedRepeatCount = 0
     state.loadSatisfied = {}
+    values, savedCounts, valueCount = {}, {}, 0
+    for _, entry in ipairs(preset.entries or {}) do
+      local label = tostring(entry.key or "")
+      if label ~= "" then
+        savedCounts[label] = (savedCounts[label] or 0) + 1
+        local savedKey = label .. "\31" .. tostring(savedCounts[label])
+        values[savedKey] = tonumber(entry.index) or 0
+        valueCount = valueCount + 1
+      end
+    end
+    state.loadValues = values
+    state.loadSavedCounts = savedCounts
+    state.loadValueCount = valueCount
   end
   state.loadStalled = false
-  local values, occurrences = {}, {}
-  local valueCount = 0
-  for _, entry in ipairs(preset.entries or {}) do
-    local label = tostring(entry.key or "")
-    if label ~= "" then
-      occurrences[label] = (occurrences[label] or 0) + 1
-      local savedKey = label .. "\31" .. tostring(occurrences[label])
-      values[savedKey] = tonumber(entry.index) or 0
-      valueCount = valueCount + 1
-    end
-  end
-  local savedCounts = occurrences
   if valueCount == 0 then setStatus("load", "The preset contains no saved options.", true); return end
 
-  local system, options, err = getOptions()
-  if not options then setStatus("load", err, true); return end
   if state.loadPass == 1 then
     log(("Preset='%s' | saved=%d options | editor exposes=%d options | format=%s")
       :format(state.selected, valueCount, #options, tostring(preset.format or 1)),
@@ -1643,26 +1695,20 @@ local function loadPreset()
     return
   end
 
-  local activeCounts = {}
-  for _, option in ipairs(options) do
-    local label = legacyOptionKey(option)
-    if label and option.isEditable and option.isActive then
-      activeCounts[label] = (activeCounts[label] or 0) + 1
-    end
-  end
-
   local applied, missing, ambiguous, invalid = 0, 0, 0, 0
   local unresolved = {}
   local seen = {}
   local exposed = {}
   local activeKeySet = {}
-  occurrences = {}
+  local activeCounts = {}
+  local occurrences = {}
   for _, option in ipairs(options) do
     local label = legacyOptionKey(option)
     local key = nil
     local occurrence = nil
     if label and option.isEditable and option.isActive then
       occurrences[label] = (occurrences[label] or 0) + 1
+      activeCounts[label] = occurrences[label]
       occurrence = occurrences[label]
       key = label .. "\31" .. tostring(occurrence)
     end
@@ -1871,6 +1917,7 @@ local function deletePreset()
     return
   end
   state.selected = nil
+  invalidateViewCache()
   state.renameName = ""
   resetLoadState()
   state.renameStatus = ""
@@ -1935,6 +1982,7 @@ local function renamePreset()
     return
   end
   state.selected = newName
+  invalidateViewCache()
   state.renameName = ""
   cancelConfirmations()
   resetLoadState()
@@ -1969,6 +2017,7 @@ local function movePresetToSelectedFolder()
       "The preset could not be moved because the virtual-folder catalog could not be saved.", true; return
   end
   state.selected = newName
+  invalidateViewCache()
   cancelConfirmations()
   resetLoadState()
   state.folderStatus, state.folderStatusError =
@@ -2017,6 +2066,7 @@ local function duplicatePreset()
     return
   end
   state.selected = destination
+  invalidateViewCache()
   state.renameName = ""
   cancelConfirmations()
   resetLoadState()
@@ -2043,6 +2093,7 @@ local function createFolder()
     state.folderStatus, state.folderStatusError = "The virtual folder could not be saved.", true; return
   end
   state.selectedFolder = name
+  invalidateViewCache()
   state.folderName = ""
   cancelConfirmations()
   state.folderStatus, state.folderStatusError = "Created virtual folder \"" .. name .. "\".", false
@@ -2109,6 +2160,7 @@ local function renameFolder()
   state.folders = newFolders
   state.manualFolders = newManualFolders
   state.ignoredPhysicalFolders = newIgnored
+  invalidateViewCache()
   state.selectedFolder = destination
   state.selected = selectedPreset
   state.folderRenameName = ""
@@ -2192,6 +2244,7 @@ local function duplicateFolder()
   state.presets = newPresets
   state.folders = newFolders
   state.manualFolders = newManualFolders
+  invalidateViewCache()
   state.selectedFolder = destination
   cancelConfirmations()
   state.folderStatus, state.folderStatusError =
@@ -2303,6 +2356,7 @@ local function deleteFolder()
   state.folders = newFolders
   state.manualFolders = newManualFolders
   state.ignoredPhysicalFolders = newIgnored
+  invalidateViewCache()
   state.selectedFolder = ""
   if state.selected and isInFolderTree(parentFolder(state.selected), folder) then
     state.selected = nil
@@ -2317,7 +2371,8 @@ local function deleteFolder()
 end
 
 local function refreshEditorState()
-  state.inCustomization = isCustomizationActive()
+  state.inCustomization = state.activeBodyMorphMenu ~= nil
+    or isCustomizationActive()
 end
 
 
@@ -2427,7 +2482,12 @@ local function drawSectionStatus(section, childId, isSuccess, height)
     and not state.autoLoad
     and not state.loadNeedsContinue
     and text:find("Open the character creator", 1, true) == 1
-  local clothingLabels = checkClothing and equippedClothingLabels() or {}
+  if checkClothing and state.clothingCheckDirty then
+    state.cachedClothingLabels = equippedClothingLabels()
+    state.clothingCheckDirty = false
+  end
+  local clothingLabels = {}
+  if checkClothing then clothingLabels = state.cachedClothingLabels end
   local clothingCheckUnavailable = checkClothing and clothingLabels == nil
   clothingLabels = clothingLabels or {}
   local clothingWarning = #clothingLabels > 0
@@ -2506,17 +2566,47 @@ local function isFolderSuccess(text)
     or text:find("^Deleted virtual folder ") ~= nil
 end
 
+local function setDebugLogText(text)
+  state.debugLogText = tostring(text or "")
+  local lines = {}
+  for line in (state.debugLogText .. "\n"):gmatch("(.-)\n") do
+    local lowerLine = line:lower()
+    local kind = "disabled"
+    if line == "" then
+      kind = "blank"
+    elseif lowerLine:find("[load error]", 1, true)
+        or lowerLine:find("[error]", 1, true) then
+      kind = "error"
+    elseif lowerLine:find("[load warning]", 1, true)
+        or lowerLine:find("[warn]", 1, true) then
+      kind = "warn"
+    elseif lowerLine:find("[complete]", 1, true) then
+      kind = "complete"
+    elseif lowerLine:find("[load]", 1, true) then
+      kind = "load"
+    elseif lowerLine:find("[info]", 1, true) then
+      kind = "info"
+    elseif lowerLine:find("error", 1, true)
+        or lowerLine:find("could not", 1, true)
+        or lowerLine:find("not available", 1, true) then
+      kind = "error"
+    end
+    table.insert(lines, { text = line, kind = kind })
+  end
+  state.debugLogLines = lines
+end
+
 local function readDiagnosticLog()
   local file = io.open(LOG_FILE, "rb")
   if not file then
-    state.debugLogText = "No activity log yet -- nothing has happened this session."
+    setDebugLogText("No activity log yet -- nothing has happened this session.")
     return
   end
   local limit = 65536
   local sizeOk, size = pcall(file.seek, file, "end")
   if not sizeOk or not size then
     file:close()
-    state.debugLogText = "The activity log could not be measured."
+    setDebugLogText("The activity log could not be measured.")
     return
   end
   local truncated = size > limit
@@ -2526,14 +2616,15 @@ local function readDiagnosticLog()
   if seekOk and seekResult ~= nil then ok, contents = pcall(file.read, file, "*a") end
   file:close()
   if not ok or type(contents) ~= "string" then
-    state.debugLogText = "The activity log could not be read."
+    setDebugLogText("The activity log could not be read.")
     return
   end
   if truncated then
     contents = "[Showing the newest 64 KB of Character Preset Manager (CET) Activity.log]\n\n" ..
       contents
   end
-  state.debugLogText = contents ~= "" and contents or "Character Preset Manager (CET) Activity.log is empty."
+  setDebugLogText(contents ~= "" and contents
+    or "Character Preset Manager (CET) Activity.log is empty.")
 end
 
 local function drawDebugPanel(height)
@@ -2564,26 +2655,20 @@ local function drawDebugPanel(height)
   ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "Red = error")
   ImGui.Spacing()
   ImGui.BeginChild("##debugLog", 0, height or 200, true)
-  for line in ((state.debugLogText or "") .. "\n"):gmatch("(.-)\n") do
-    local lowerLine = line:lower()
-    if line == "" then
+  for _, entry in ipairs(state.debugLogLines) do
+    local line = entry.text
+    if entry.kind == "blank" then
       ImGui.Spacing()
-    elseif lowerLine:find("[load error]", 1, true)
-        or lowerLine:find("[error]", 1, true) then
+    elseif entry.kind == "error" then
       coloredWrapped(1.0, 0.4, 0.4, 1.0, line)
-    elseif lowerLine:find("[load warning]", 1, true)
-        or lowerLine:find("[warn]", 1, true) then
+    elseif entry.kind == "warn" then
       coloredWrapped(1.0, 0.8, 0.2, 1.0, line)
-    elseif lowerLine:find("[complete]", 1, true) then
+    elseif entry.kind == "complete" then
       coloredWrapped(0.3, 1.0, 0.4, 1.0, line)
-    elseif lowerLine:find("[load]", 1, true) then
+    elseif entry.kind == "load" then
       coloredWrapped(1.0, 1.0, 1.0, 1.0, line)
-    elseif lowerLine:find("[info]", 1, true) then
+    elseif entry.kind == "info" then
       coloredWrapped(1.0, 1.0, 1.0, 1.0, line)
-    elseif lowerLine:find("error", 1, true)
-        or lowerLine:find("could not", 1, true)
-        or lowerLine:find("not available", 1, true) then
-      coloredWrapped(1.0, 0.4, 0.4, 1.0, line)
     else
       ImGui.TextDisabled(line)
     end
@@ -2626,7 +2711,13 @@ end
 
 local function drawBindingHelp(label, slug, receivedCount)
   ImGui.TextWrapped(label)
-  local status, assignedKey = readCETBinding(slug)
+  local binding = state.bindingCache[slug]
+  if not binding then
+    local status, assignedKey = readCETBinding(slug)
+    binding = { status = status, assignedKey = assignedKey }
+    state.bindingCache[slug] = binding
+  end
+  local status, assignedKey = binding.status, binding.assignedKey
   if status == "bound" and assignedKey then
     coloredWrapped(0.3, 1.0, 0.4, 1.0, "Assigned key: " .. assignedKey)
   elseif status == "bound" then
@@ -2691,13 +2782,14 @@ end
 
 local function draw()
   if not state.overlayOpen or not state.windowOpen then return end
-  if state.editorStateRefreshTimer >= EDITOR_STATE_REFRESH_INTERVAL then
-    refreshEditorState()
-    state.editorStateRefreshTimer = 0
-  end
 
   pushTheme()
-  local initialX, displayWidth = defaultWindowPosition()
+  if not state.windowPositionCached then
+    state.cachedWindowX, state.cachedDisplayWidth = defaultWindowPosition()
+    state.windowPositionCached = true
+  end
+  local initialX = state.cachedWindowX
+  local displayWidth = state.cachedDisplayWidth
   if initialX then
     local positionCondition = state.initialWindowPlacementPending
       and ImGuiCond.Always or ImGuiCond.FirstUseEver
@@ -2753,6 +2845,7 @@ local function draw()
     ImGui.SameLine()
     if ImGui.Button("Help##help", 58, 0) then
       state.helpOpen = not state.helpOpen
+      if state.helpOpen then state.bindingCache = {} end
     end
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
@@ -3081,9 +3174,12 @@ registerForEvent("onInit", function()
     function(menu)
       temporarilyDisableWardrobe()
       state.activeBodyMorphMenu = menu
+      state.inCustomization = true
+      state.clothingCheckDirty = true
+      state.cachedClothingLabels = nil
       state.discoveryNoticePending = true
       state.discoveryNoticeTimer = 0
-      state.discoveryNoticeFailures = 0
+      state.discoveryNoticeAttempts = 0
       log("[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
     end
   )
@@ -3094,10 +3190,13 @@ registerForEvent("onInit", function()
     function(menu)
       if state.activeBodyMorphMenu == menu then
         state.activeBodyMorphMenu = nil
+        state.inCustomization = false
+        state.clothingCheckDirty = true
+        state.cachedClothingLabels = nil
+        state.discoveryNoticePending = false
+        state.discoveryNoticeTimer = 0
+        state.discoveryNoticeAttempts = 0
       end
-      state.discoveryNoticePending = false
-      state.discoveryNoticeTimer = 0
-      state.discoveryNoticeFailures = 0
       state.editorOpenedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
     end
@@ -3220,7 +3319,6 @@ registerForEvent("onInit", function()
     :format(presetCount, PRESET_DIR), "info")
   state.ready = true
   refreshEditorState()
-  state.editorStateRefreshTimer = 0
   setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.")
 end)
 
@@ -3233,7 +3331,8 @@ registerForEvent("onShutdown", function()
   state.ready = false
   state.inCustomization = false
   state.newGameCharacterCreator = false
-  state.editorStateRefreshTimer = 0
+  state.clothingCheckDirty = true
+  state.cachedClothingLabels = nil
   cancelConfirmations()
   resetLoadState()
   state.activeBodyMorphMenu = nil
@@ -3244,24 +3343,43 @@ registerForEvent("onShutdown", function()
   state.editorHooksAvailable = false
   state.discoveryNoticePending = false
   state.discoveryNoticeTimer = 0
-  state.discoveryNoticeFailures = 0
+  state.discoveryNoticeAttempts = 0
+  discoveryNoticeDefinitions = nil
+  discoveryNoticeBlackboard = nil
 end)
 
 registerForEvent("onUpdate", function(delta)
-  updateStatusTimers(delta)
+  local elapsed = tonumber(delta) or 0
+  local updateStatuses = state.overlayOpen and state.windowOpen
+  if not updateStatuses then state.statusUpdateTimer = 0 end
+  if not updateStatuses
+      and not state.discoveryNoticePending
+      and not state.editorOpenPending
+      and not state.autoLoad then
+    return
+  end
+  if updateStatuses then
+    state.statusUpdateTimer = state.statusUpdateTimer + elapsed
+    if state.statusUpdateTimer >= STATUS_UPDATE_INTERVAL then
+      updateStatusTimers(state.statusUpdateTimer)
+      state.statusUpdateTimer = 0
+    end
+  end
   if state.discoveryNoticePending then
-    state.discoveryNoticeTimer = state.discoveryNoticeTimer + (tonumber(delta) or 0)
+    state.discoveryNoticeTimer = state.discoveryNoticeTimer + elapsed
     if state.discoveryNoticeTimer >= DISCOVERY_NOTICE_DELAY then
       state.discoveryNoticeTimer = 0
       local shown, noticeError = showDiscoveryNotice()
       if shown then
         state.discoveryNoticePending = false
         log("[UI] Character-customization CET menu discovery notice shown.", "info")
-      elseif noticeError ~= "waiting" then
-        state.discoveryNoticeFailures = state.discoveryNoticeFailures + 1
-        log(("[UI] CET menu discovery notice attempt %d failed: %s")
-          :format(state.discoveryNoticeFailures, tostring(noticeError)), "warn")
-        if state.discoveryNoticeFailures >= 3 then
+      else
+        state.discoveryNoticeAttempts = state.discoveryNoticeAttempts + 1
+        if noticeError ~= "waiting" then
+          log(("[UI] CET menu discovery notice attempt %d failed: %s")
+            :format(state.discoveryNoticeAttempts, tostring(noticeError)), "warn")
+        end
+        if state.discoveryNoticeAttempts >= 3 then
           state.discoveryNoticePending = false
           log("[UI] CET menu discovery notice is unavailable in this game session after 3 attempts.", "warn")
         end
@@ -3269,16 +3387,13 @@ registerForEvent("onUpdate", function(delta)
     end
   end
   if state.editorOpenPending then
-    state.editorOpenTimer = state.editorOpenTimer + (tonumber(delta) or 0)
+    state.editorOpenTimer = state.editorOpenTimer + elapsed
     if state.editorOpenTimer >= EDITOR_OPEN_TIMEOUT then
       state.editorOpenPending = false
       state.editorOpenTimer = 0
       restoreTemporarilyDisabledWardrobe()
       setEditorOpenStatus("The editor did not open. Return to normal gameplay and retry.", true)
     end
-  end
-  if state.overlayOpen then
-    state.editorStateRefreshTimer = state.editorStateRefreshTimer + (tonumber(delta) or 0)
   end
   if not state.autoLoad then return end
 
@@ -3289,11 +3404,11 @@ registerForEvent("onUpdate", function(delta)
     return
   end
 
-  state.autoLoadTimer = state.autoLoadTimer + (tonumber(delta) or 0)
+  state.autoLoadTimer = state.autoLoadTimer + elapsed
   if state.autoLoadTimer < AUTO_LOAD_INTERVAL then return end
   state.autoLoadTimer = 0
 
-  if not state.selected or not isCustomizationActive() then
+  if not state.selected then
     state.autoLoad = false
     state.autoLoadTimer = 0
     state.autoLoadPasses = 0
@@ -3323,13 +3438,18 @@ registerForEvent("onOverlayOpen", function()
   log("[UI] CET overlay opened; showing Character Preset Manager and rescanning preset files.", "info")
   state.overlayOpen = true
   state.windowOpen = true
+  state.bindingCache = {}
+  state.windowPositionCached = false
+  state.cachedWindowX = nil
+  state.cachedDisplayWidth = nil
+  state.statusUpdateTimer = 0
   refreshPresets("external")
   refreshEditorState()
-  state.editorStateRefreshTimer = 0
 end)
 registerForEvent("onOverlayClose", function()
   log("[UI] CET overlay closed.", "info")
   state.overlayOpen = false
+  state.statusUpdateTimer = 0
   cancelConfirmations()
 end)
 registerForEvent("onDraw", draw)

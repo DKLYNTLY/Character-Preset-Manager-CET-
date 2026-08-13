@@ -337,6 +337,12 @@ that both mods provide the same feature set.
 
 ## Version 2.0.8 highlights
 
+- Keeps the frame update dormant while the window and background actions are
+  inactive, and uses character-editor open/close events instead of polling the
+  full customization system four times per second.
+- Caches unchanged preset/folder lists, Debug log formatting, CET bindings, and
+  window geometry, plus the clothing check for each editor opening; automatic
+  loading also reuses saved lookup data and performs one editor query per pass.
 - Shows an in-game notice whenever a character-customization screen opens so
   modpack users know to open the CET overlay to save or load that appearance.
 - Covers vanilla creation, mirrors, ripperdocs, and the full appearance editor
