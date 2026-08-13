@@ -343,8 +343,8 @@ that both mods provide the same feature set.
 - Caches unchanged preset/folder lists, Debug log formatting, CET bindings, and
   window geometry, plus the clothing check for each editor opening; automatic
   loading also reuses saved lookup data and performs one editor query per pass.
-- Shows a small gold-and-white CET HUD notice for eight seconds whenever a
-  character-customization screen opens so
+- Shows a small gold-and-white CET HUD notice whenever a character-customization
+  screen opens and keeps it visible until CET is opened, so
   modpack users know to press their assigned CET Overlay key and open Character
   Preset Manager.
 - Shows a compact reminder inside the manager with a persistent

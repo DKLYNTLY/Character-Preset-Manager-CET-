@@ -18,7 +18,6 @@ local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_OPEN_TIMEOUT = 5.0
 local STATUS_CLEAR_DELAY = 8.0
 local STATUS_UPDATE_INTERVAL = 0.25
-local DISCOVERY_NOTICE_DURATION = 8.0
 local MAX_TREE_DEPTH = 12
 local MAX_PRESET_BYTES = 1048576
 local MAX_PRESET_ENTRIES = 4096
@@ -110,7 +109,6 @@ local state = {
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
   discoveryNoticePending = false,
-  discoveryNoticeTimer = 0,
   discoveryNoticeIgnored = false,
   viewCacheDirty = true,
   cachedPresetNames = {},
@@ -709,7 +707,6 @@ assert(optionIndexIsValid(0)
 local function ignoreDiscoveryNotice()
   state.discoveryNoticeIgnored = true
   state.discoveryNoticePending = false
-  state.discoveryNoticeTimer = 0
   local file = io.open(DISCOVERY_NOTICE_STATUS_FILE, "w")
   if not file then
     log("[UI] Discovery reminder ignored for this session; preference file could not be created.", "warn")
@@ -2783,14 +2780,19 @@ local function drawDiscoveryReminder()
   ImGui.Spacing()
   ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.96)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.70)
-  ImGui.BeginChild("##discoveryReminder", 0, 72, true)
+  ImGui.BeginChild("##discoveryReminder", 0, 64, true)
   local startX = ImGui.GetCursorPosX()
+  local startY = ImGui.GetCursorPosY()
   local availableWidth = ImGui.GetContentRegionAvail()
-  ImGui.SetCursorPosX(startX + availableWidth - 116)
-  if ImGui.Button("Ignore Notification##discoveryReminder", 116, 0) then
+  local buttonWidth = 132
+  ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
+    "Press your CET Overlay key")
+  ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
+    "Then open Character Preset Manager.")
+  ImGui.SetCursorPos(startX + availableWidth - buttonWidth, startY + 8)
+  if ImGui.Button("Ignore Notification##discoveryReminder", buttonWidth, 28) then
     ignoreDiscoveryNotice()
   end
-  ImGui.TextWrapped("Press your assigned CET Overlay key, then open Character Preset Manager.")
   ImGui.EndChild()
   ImGui.PopStyleColor(2)
 end
@@ -3255,8 +3257,6 @@ registerForEvent("onInit", function()
       state.clothingCheckDirty = true
       state.cachedClothingLabels = nil
       state.discoveryNoticePending = not state.discoveryNoticeIgnored
-      state.discoveryNoticeTimer = state.discoveryNoticePending
-        and DISCOVERY_NOTICE_DURATION or 0
       log(state.discoveryNoticeIgnored
         and "[UI] Character customization opened; discovery reminder is ignored."
         or "[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
@@ -3273,7 +3273,6 @@ registerForEvent("onInit", function()
         state.clothingCheckDirty = true
         state.cachedClothingLabels = nil
         state.discoveryNoticePending = false
-        state.discoveryNoticeTimer = 0
       end
       state.editorOpenedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
@@ -3420,7 +3419,6 @@ registerForEvent("onShutdown", function()
   state.editorOpenedByLauncher = false
   state.editorHooksAvailable = false
   state.discoveryNoticePending = false
-  state.discoveryNoticeTimer = 0
 end)
 
 registerForEvent("onUpdate", function(delta)
@@ -3428,7 +3426,6 @@ registerForEvent("onUpdate", function(delta)
   local updateStatuses = state.overlayOpen and state.windowOpen
   if not updateStatuses then state.statusUpdateTimer = 0 end
   if not updateStatuses
-      and not state.discoveryNoticePending
       and not state.editorOpenPending
       and not state.autoLoad then
     return
@@ -3438,14 +3435,6 @@ registerForEvent("onUpdate", function(delta)
     if state.statusUpdateTimer >= STATUS_UPDATE_INTERVAL then
       updateStatusTimers(state.statusUpdateTimer)
       state.statusUpdateTimer = 0
-    end
-  end
-  if state.discoveryNoticePending then
-    state.discoveryNoticeTimer = math.max(0, state.discoveryNoticeTimer - elapsed)
-    if state.discoveryNoticeTimer <= 0 then
-      state.discoveryNoticeTimer = 0
-      state.discoveryNoticePending = false
-      log("[UI] Character-customization CET discovery notification finished.", "info")
     end
   end
   if state.editorOpenPending then
@@ -3498,6 +3487,10 @@ end)
 
 registerForEvent("onOverlayOpen", function()
   log("[UI] CET overlay opened; showing Character Preset Manager and rescanning preset files.", "info")
+  if state.discoveryNoticePending then
+    state.discoveryNoticePending = false
+    log("[UI] Character-customization CET discovery notification acknowledged.", "info")
+  end
   state.overlayOpen = true
   state.windowOpen = true
   state.bindingCache = {}

@@ -2,10 +2,15 @@
 
 ## 2.0.8
 
+- Keeps the gameplay notification visible until the player opens CET instead of
+  hiding it after a timer expires.
+- Rebuilds the in-manager reminder as a clean two-column bar with two short text
+  lines on the left and **Ignore Notification** on the right, preventing clipped
+  text at the default window width.
 - Replaces the unreliable game-blackboard reminder with a small borderless CET
   HUD notification modeled on the proven ImGui approach used by Save Guardian.
-- Draws the notification only for eight seconds after a customization screen
-  opens and otherwise returns immediately without performing layout work.
+- Draws the notification only after a customization screen opens and otherwise
+  returns immediately without performing layout work.
 - Removes the title from the in-manager reminder and places a compact
   **Ignore Notification** button above its message.
 - Shortens the character-customization reminder to tell players to press their
