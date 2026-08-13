@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.0.8
+
+- Centralizes every saved and imported option-index check so save and load
+  validation cannot silently diverge again.
+- Adds startup regression assertions for indexes `65,535`, `65,536`, the native
+  unsigned 32-bit no-selection value, and both sides of the supported range.
+- Replaces the generic create failure with separate messages for oversized
+  keys, excessive active-option counts, and invalid native indexes.
+- Logs the exact option identity, value, and violated limit for failed snapshots
+  and provides equivalent detailed diagnostics for rejected imported lines.
+
 ## 2.0.7
 
 - Restores preset saving for CCXL and other custom options that expose the

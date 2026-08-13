@@ -8,7 +8,7 @@
   <a href="CHANGELOG.md">View the complete changelog</a>
 </p>
 
-**Current version: 2.0.7**
+**Current version: 2.0.8**
 
 ## AI disclosure
 
@@ -297,11 +297,11 @@ release. The screenshots showcase Character Preset Manager itself.
 <details>
 <summary><strong>Show upgrade instructions</strong></summary>
 
-Do not install version 2.0.7 directly over a 1.0.x installation.
+Do not install version 2.0.8 directly over a 1.0.x installation.
 
 1. Back up your `.preset` files somewhere outside the mod folder.
 2. Delete `mods/Preset Manager (CET)`.
-3. Install version 2.0.7 normally.
+3. Install version 2.0.8 normally.
 4. Move your presets into
    `mods/Character Preset Manager (CET)/Character Presets`.
 5. Launch the game and open CET.
@@ -334,6 +334,15 @@ This comparison explains differences between the approaches. It does not claim
 that both mods provide the same feature set.
 
 </details>
+
+## Version 2.0.8 highlights
+
+- Prevents save and load validation from drifting apart by routing every preset
+  option index through one native unsigned 32-bit contract.
+- Verifies the previously failing `65,536` boundary and the game's unsigned
+  no-selection value when the mod starts.
+- Replaces the generic safe-limit failure with the exact option, value, and
+  violated limit in Debug and a cause-specific message in the Create panel.
 
 ## Version 2.0.7 highlights
 

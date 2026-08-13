@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "2.0.7"
+local VERSION = "2.0.8"
 local PRESET_DIR = "Character Presets"
 local CATALOG_FILE = "Character Preset Manager (CET) Folders.txt"
 local LEGACY_FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
@@ -673,15 +673,25 @@ local function optionAuditIdentity(option, key, occurrence)
       tostring(occurrence or 1))
 end
 
-local function optionIndexIsValid(index)
-  if type(index) ~= "number"
-      or index ~= math.floor(index)
-      or index < 0
-      or index > MAX_OPTION_INDEX then
-    return false
-  end
-  return true
+local function optionIndexValidationError(index)
+  if type(index) ~= "number" then return "not numeric" end
+  if index ~= math.floor(index) then return "not an integer" end
+  if index < 0 then return "below zero" end
+  if index > MAX_OPTION_INDEX then return "above the native Uint32 maximum" end
+  return nil
 end
+
+local function optionIndexIsValid(index)
+  return optionIndexValidationError(index) == nil
+end
+
+assert(optionIndexIsValid(0)
+  and optionIndexIsValid(65535)
+  and optionIndexIsValid(65536)
+  and optionIndexIsValid(4294967295)
+  and not optionIndexIsValid(-1)
+  and not optionIndexIsValid(4294967296),
+  MOD_NAME .. " option-index validation contract failed")
 
 local function occurrenceKeyParts(value)
   local raw = tostring(value or "")
@@ -905,15 +915,14 @@ local function readPresetFile(path)
     local key, index = line:match("^%s*(.-):(-?%d+)%s*$")
     local numericIndex = tonumber(index)
     if key and key ~= "" then
+      local indexError = optionIndexValidationError(numericIndex)
       if #key > MAX_PRESET_KEY_BYTES
-          or not numericIndex
-          or numericIndex < 0
-          or numericIndex > MAX_OPTION_INDEX
-          or numericIndex ~= math.floor(numericIndex)
+          or indexError
           or #entries >= MAX_PRESET_ENTRIES then
         file:close()
-        log(("[FILES] Preset rejected because line %d exceeds safe option limits: file='%s'.")
-          :format(lineNumber, path), "warn")
+        log(("[FILES] Preset rejected at line %d: file='%s' keyBytes=%d index='%s' indexError='%s' entriesBefore=%d.")
+          :format(lineNumber, path, #key, tostring(index),
+            tostring(indexError or "none"), #entries), "warn")
         return nil
       end
       table.insert(entries, { key = key, index = numericIndex })
@@ -1419,13 +1428,39 @@ local function savePreset(confirmOverwrite)
     local key = legacyOptionKey(option)
     if key and option.isEditable and option.isActive then
       local currentIndex = tonumber(option.currIndex)
-      if #key > MAX_PRESET_KEY_BYTES
-          or #entries >= MAX_PRESET_ENTRIES
-          or not optionIndexIsValid(currentIndex) then
-        log(("[SNAPSHOT] Rejected %s | index=%s keyBytes=%d savedEntries=%d")
-          :format(optionAuditIdentity(option, key, (savedOccurrences[key] or 0) + 1),
-            tostring(currentIndex), #key, #entries), "error")
-        setStatus("create", "The current customization data exceeds the safe preset limits.", true)
+      local identity = optionAuditIdentity(
+        option,
+        key,
+        (savedOccurrences[key] or 0) + 1
+      )
+      if #key > MAX_PRESET_KEY_BYTES then
+        log(("[SNAPSHOT] Rejected %s | keyBytes=%d maximum=%d")
+          :format(identity, #key, MAX_PRESET_KEY_BYTES), "error")
+        setStatus("create",
+          ("A customization option name exceeds the %d-byte preset limit. See Debug for the exact option.")
+            :format(MAX_PRESET_KEY_BYTES),
+          true
+        )
+        return
+      end
+      if #entries >= MAX_PRESET_ENTRIES then
+        log(("[SNAPSHOT] Rejected %s | savedEntries=%d maximum=%d")
+          :format(identity, #entries, MAX_PRESET_ENTRIES), "error")
+        setStatus("create",
+          ("The editor exposes more than %d active options. See Debug for details.")
+            :format(MAX_PRESET_ENTRIES),
+          true
+        )
+        return
+      end
+      local indexError = optionIndexValidationError(currentIndex)
+      if indexError then
+        log(("[SNAPSHOT] Rejected %s | index=%s reason='%s' nativeMaximum=%d")
+          :format(identity, tostring(currentIndex), indexError, MAX_OPTION_INDEX), "error")
+        setStatus("create",
+          "A customization option returned an unsupported index. See Debug for the exact option and value.",
+          true
+        )
         return
       end
       savedOccurrences[key] = (savedOccurrences[key] or 0) + 1
