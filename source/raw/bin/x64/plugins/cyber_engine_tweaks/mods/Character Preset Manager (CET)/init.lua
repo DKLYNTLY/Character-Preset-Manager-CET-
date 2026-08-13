@@ -597,6 +597,7 @@ local function openFullAppearanceEditor()
   end
 
   state.editorOpenTimer = 0
+  state.editorOpenPending = true
   temporarilyDisableWardrobe()
   local ok, openError = pcall(
     state.inGameMenuController.SpawnMenuInstanceEvent,
@@ -610,7 +611,6 @@ local function openFullAppearanceEditor()
       tostring(openError), true)
     return false
   end
-  state.editorOpenPending = true
   setEditorOpenStatus("Opening the full appearance editor...", false)
   return true
 end
@@ -2789,7 +2789,8 @@ local function drawDiscoveryReminder()
     "Press your CET Overlay key")
   ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
     "Then open Character Preset Manager.")
-  ImGui.SetCursorPos(startX + availableWidth - buttonWidth, startY + 8)
+  ImGui.SetCursorPosX(startX + availableWidth - buttonWidth)
+  ImGui.SetCursorPosY(startY + 8)
   if ImGui.Button("Ignore Notification##discoveryReminder", buttonWidth, 28) then
     ignoreDiscoveryNotice()
   end
@@ -3506,7 +3507,15 @@ registerForEvent("onOverlayClose", function()
   cancelConfirmations()
 end)
 registerForEvent("onDraw", function()
-  drawDiscoveryHudNotice()
+  if state.discoveryNoticePending and not state.discoveryNoticeIgnored
+      and not state.overlayOpen then
+    local noticeOk, noticeError = pcall(drawDiscoveryHudNotice)
+    if not noticeOk then
+      state.discoveryNoticePending = false
+      log("[UI] Discovery notification rendering disabled after an error: " ..
+        tostring(noticeError), "error")
+    end
+  end
   draw()
 end)
 registerHotkey("vanilla_character_presets_toggle", "Toggle Character Preset Manager (CET)", function()

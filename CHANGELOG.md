@@ -2,6 +2,10 @@
 
 ## 2.0.8
 
+- Arms the full-editor launch before dispatching the pause-menu event, removing
+  a race if the game processes that event immediately.
+- Isolates the optional HUD notification from the main manager draw so a future
+  CET/ImGui incompatibility cannot prevent the manager window from rendering.
 - Fixes the full-editor button and assigned editor binding becoming permanently
   disabled after a customization screen closed with a different CET controller
   wrapper than the one received when it opened.
