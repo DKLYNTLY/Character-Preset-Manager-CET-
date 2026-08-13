@@ -337,6 +337,10 @@ that both mods provide the same feature set.
 
 ## Version 2.0.8 highlights
 
+- Shows an in-game notice whenever a character-customization screen opens so
+  modpack users know to open the CET overlay to save or load that appearance.
+- Covers vanilla creation, mirrors, ripperdocs, and the full appearance editor
+  launched by Character Preset Manager.
 - Prevents save and load validation from drifting apart by routing every preset
   option index through one native unsigned 32-bit contract.
 - Verifies the previously failing `65,536` boundary and the game's unsigned

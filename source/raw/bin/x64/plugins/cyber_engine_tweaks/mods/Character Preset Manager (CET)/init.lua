@@ -17,6 +17,7 @@ local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_STATE_REFRESH_INTERVAL = 0.25
 local EDITOR_OPEN_TIMEOUT = 5.0
 local STATUS_CLEAR_DELAY = 8.0
+local DISCOVERY_NOTICE_DELAY = 1.0
 local MAX_TREE_DEPTH = 12
 local MAX_PRESET_BYTES = 1048576
 local MAX_PRESET_ENTRIES = 4096
@@ -103,6 +104,9 @@ local state = {
   newGameCharacterCreator = false,
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
+  discoveryNoticePending = false,
+  discoveryNoticeTimer = 0,
+  discoveryNoticeFailures = 0,
   statusTimers = {},
   statusSnapshots = {},
 }
@@ -692,6 +696,25 @@ assert(optionIndexIsValid(0)
   and not optionIndexIsValid(-1)
   and not optionIndexIsValid(4294967296),
   MOD_NAME .. " option-index validation contract failed")
+
+local function showDiscoveryNotice()
+  local called, shown, showError = pcall(function()
+    local definitions = GetAllBlackboardDefs().UI_Notifications
+    local blackboard = Game.GetBlackboardSystem():Get(definitions)
+    if not definitions or not blackboard then return false, "waiting" end
+    local message = SimpleScreenMessage.new()
+    message.isShown = true
+    message.duration = 8.0
+    message.message = "CHARACTER PRESET MANAGER: OPEN THE CYBER ENGINE TWEAKS (CET) OVERLAY TO SAVE OR LOAD THIS APPEARANCE."
+    message.isInstant = true
+    message.type = SimpleMessageType.Neutral
+    blackboard:SetVariant(definitions.OnscreenMessage, ToVariant(message), true)
+    return true
+  end)
+  if not called then return false, tostring(shown) end
+  if not shown then return false, tostring(showError or "waiting") end
+  return true
+end
 
 local function occurrenceKeyParts(value)
   local raw = tostring(value or "")
@@ -3051,7 +3074,6 @@ registerForEvent("onInit", function()
     log(("[UI] Window position status '%s' found; CET's saved position will be preserved.")
       :format(WINDOW_POSITION_STATUS_FILE), "info")
   end
-
   local observeInitOk, observeInitError = pcall(
     Observe,
     "characterCreationBodyMorphMenu",
@@ -3059,6 +3081,10 @@ registerForEvent("onInit", function()
     function(menu)
       temporarilyDisableWardrobe()
       state.activeBodyMorphMenu = menu
+      state.discoveryNoticePending = true
+      state.discoveryNoticeTimer = 0
+      state.discoveryNoticeFailures = 0
+      log("[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
     end
   )
   local observeExitOk, observeExitError = pcall(
@@ -3069,6 +3095,9 @@ registerForEvent("onInit", function()
       if state.activeBodyMorphMenu == menu then
         state.activeBodyMorphMenu = nil
       end
+      state.discoveryNoticePending = false
+      state.discoveryNoticeTimer = 0
+      state.discoveryNoticeFailures = 0
       state.editorOpenedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
     end
@@ -3213,10 +3242,32 @@ registerForEvent("onShutdown", function()
   state.editorOpenTimer = 0
   state.editorOpenedByLauncher = false
   state.editorHooksAvailable = false
+  state.discoveryNoticePending = false
+  state.discoveryNoticeTimer = 0
+  state.discoveryNoticeFailures = 0
 end)
 
 registerForEvent("onUpdate", function(delta)
   updateStatusTimers(delta)
+  if state.discoveryNoticePending then
+    state.discoveryNoticeTimer = state.discoveryNoticeTimer + (tonumber(delta) or 0)
+    if state.discoveryNoticeTimer >= DISCOVERY_NOTICE_DELAY then
+      state.discoveryNoticeTimer = 0
+      local shown, noticeError = showDiscoveryNotice()
+      if shown then
+        state.discoveryNoticePending = false
+        log("[UI] Character-customization CET menu discovery notice shown.", "info")
+      elseif noticeError ~= "waiting" then
+        state.discoveryNoticeFailures = state.discoveryNoticeFailures + 1
+        log(("[UI] CET menu discovery notice attempt %d failed: %s")
+          :format(state.discoveryNoticeFailures, tostring(noticeError)), "warn")
+        if state.discoveryNoticeFailures >= 3 then
+          state.discoveryNoticePending = false
+          log("[UI] CET menu discovery notice is unavailable in this game session after 3 attempts.", "warn")
+        end
+      end
+    end
+  end
   if state.editorOpenPending then
     state.editorOpenTimer = state.editorOpenTimer + (tonumber(delta) or 0)
     if state.editorOpenTimer >= EDITOR_OPEN_TIMEOUT then

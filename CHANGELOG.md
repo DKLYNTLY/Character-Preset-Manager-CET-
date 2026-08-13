@@ -2,6 +2,12 @@
 
 ## 2.0.8
 
+- Adds a contextual in-game notice whenever a character-customization screen
+  opens, telling players to use the Cyber Engine Tweaks overlay to save or load
+  the current appearance.
+- Covers vanilla creation, mirrors, ripperdocs, and the full appearance editor
+  launched by Character Preset Manager, with delayed retries while its UI is
+  still initializing.
 - Centralizes every saved and imported option-index check so save and load
   validation cannot silently diverge again.
 - Adds startup regression assertions for indexes `65,535`, `65,536`, the native
