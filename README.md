@@ -352,6 +352,8 @@ that both mods provide the same feature set.
   restored from Help.
 - Covers vanilla creation, mirrors, ripperdocs, and the full appearance editor
   launched by Character Preset Manager.
+- Keeps the full-editor button and assigned input usable after leaving any
+  customization screen by clearing stale editor-controller state on close.
 - Prevents save and load validation from drifting apart by routing every preset
   option index through one native unsigned 32-bit contract.
 - Verifies the previously failing `65,536` boundary and the game's unsigned

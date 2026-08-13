@@ -2,6 +2,11 @@
 
 ## 2.0.8
 
+- Fixes the full-editor button and assigned editor binding becoming permanently
+  disabled after a customization screen closed with a different CET controller
+  wrapper than the one received when it opened.
+- Restores the proven live customization check before launching the full editor
+  and clears the observed controller unconditionally when its screen closes.
 - Keeps the gameplay notification visible until the player opens CET instead of
   hiding it after a timer expires.
 - Rebuilds the in-manager reminder as a clean two-column bar with two short text

@@ -587,7 +587,7 @@ local function openFullAppearanceEditor()
     setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
     return false
   end
-  if state.inCustomization or isCustomizationActive() then
+  if isCustomizationActive() then
     setEditorOpenStatus("A customization screen is already open.", true)
     return false
   end
@@ -2366,8 +2366,8 @@ local function deleteFolder()
 end
 
 local function refreshEditorState()
-  state.inCustomization = state.activeBodyMorphMenu ~= nil
-    or isCustomizationActive()
+  state.inCustomization = isCustomizationActive()
+  if not state.inCustomization then state.activeBodyMorphMenu = nil end
 end
 
 
@@ -3266,14 +3266,12 @@ registerForEvent("onInit", function()
     Observe,
     "characterCreationBodyMorphMenu",
     "OnUninitialize",
-    function(menu)
-      if state.activeBodyMorphMenu == menu then
-        state.activeBodyMorphMenu = nil
-        state.inCustomization = false
-        state.clothingCheckDirty = true
-        state.cachedClothingLabels = nil
-        state.discoveryNoticePending = false
-      end
+    function()
+      state.activeBodyMorphMenu = nil
+      state.inCustomization = false
+      state.clothingCheckDirty = true
+      state.cachedClothingLabels = nil
+      state.discoveryNoticePending = false
       state.editorOpenedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
     end
