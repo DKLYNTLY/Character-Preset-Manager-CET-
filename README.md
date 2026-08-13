@@ -347,8 +347,8 @@ that both mods provide the same feature set.
   screen opens and keeps it visible until CET is opened, so
   modpack users know to press their assigned CET Overlay key and open Character
   Preset Manager.
-- Shows a compact reminder inside the manager with a persistent
-  **Ignore Notification** button above the message; ignored reminders can be
+- Places a compact persistent **Ignore Notification** button beneath Debug and
+  Help without an additional notification text box; ignored reminders can be
   restored from Help.
 - Covers vanilla creation, mirrors, ripperdocs, and the full appearance editor
   launched by Character Preset Manager.

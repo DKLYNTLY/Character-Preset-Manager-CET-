@@ -2,6 +2,8 @@
 
 ## 2.0.8
 
+- Removes the in-manager notification text box and places only the compact
+  **Ignore Notification** button beneath Debug and Help at the top-right.
 - Arms the full-editor launch before dispatching the pause-menu event, removing
   a race if the game processes that event immediately.
 - Isolates the optional HUD notification from the main manager draw so a future
@@ -13,19 +15,12 @@
   and clears the observed controller unconditionally when its screen closes.
 - Keeps the gameplay notification visible until the player opens CET instead of
   hiding it after a timer expires.
-- Rebuilds the in-manager reminder as a clean two-column bar with two short text
-  lines on the left and **Ignore Notification** on the right, preventing clipped
-  text at the default window width.
 - Replaces the unreliable game-blackboard reminder with a small borderless CET
   HUD notification modeled on the proven ImGui approach used by Save Guardian.
 - Draws the notification only after a customization screen opens and otherwise
   returns immediately without performing layout work.
-- Removes the title from the in-manager reminder and places a compact
-  **Ignore Notification** button above its message.
 - Shortens the character-customization reminder to tell players to press their
   assigned CET Overlay key and then open Character Preset Manager.
-- Adds a compact reminder inside the manager using its existing gold, white,
-  dark theme and CET font, with a small persistent **Ignore** button.
 - Adds **Show Reminder Again** under Help so an ignored reminder can be restored.
 - Makes the per-frame update return immediately while the UI and all background
   actions are inactive, and throttles status expiration while the window is

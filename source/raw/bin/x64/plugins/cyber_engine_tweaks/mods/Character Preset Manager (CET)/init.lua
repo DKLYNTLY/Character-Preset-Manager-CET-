@@ -2775,27 +2775,14 @@ local function defaultWindowPosition()
   return math.max(20, displayWidth - 440), displayWidth
 end
 
-local function drawDiscoveryReminder()
+local function drawDiscoveryIgnoreButton(rightEdge)
   if state.discoveryNoticeIgnored or not state.inCustomization then return end
   ImGui.Spacing()
-  ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.96)
-  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.70)
-  ImGui.BeginChild("##discoveryReminder", 0, 64, true)
-  local startX = ImGui.GetCursorPosX()
-  local startY = ImGui.GetCursorPosY()
-  local availableWidth = ImGui.GetContentRegionAvail()
   local buttonWidth = 132
-  ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
-    "Press your CET Overlay key")
-  ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-    "Then open Character Preset Manager.")
-  ImGui.SetCursorPosX(startX + availableWidth - buttonWidth)
-  ImGui.SetCursorPosY(startY + 8)
+  ImGui.SetCursorPosX(rightEdge - buttonWidth)
   if ImGui.Button("Ignore Notification##discoveryReminder", buttonWidth, 28) then
     ignoreDiscoveryNotice()
   end
-  ImGui.EndChild()
-  ImGui.PopStyleColor(2)
 end
 
 local function discoveryViewport()
@@ -2916,7 +2903,7 @@ local function draw()
       state.helpOpen = not state.helpOpen
       if state.helpOpen then state.bindingCache = {} end
     end
-    drawDiscoveryReminder()
+    drawDiscoveryIgnoreButton(topRowStartX + topRowWidth)
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
     end
