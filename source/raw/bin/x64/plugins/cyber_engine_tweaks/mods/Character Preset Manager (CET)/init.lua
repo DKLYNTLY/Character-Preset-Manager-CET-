@@ -8,6 +8,7 @@ local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
 local LOG_FILE = "Character Preset Manager (CET) Activity.log"
 local LOG_ARCHIVE_PREFIX = "Character Preset Manager (CET) Activity "
 local WINDOW_POSITION_STATUS_FILE = "Window Position Status.txt"
+local DISCOVERY_NOTICE_STATUS_FILE = "Discovery Notice Ignored.txt"
 local LOG_ARCHIVE_LIMIT = 10
 local activitySequence = 0
 
@@ -111,6 +112,7 @@ local state = {
   discoveryNoticePending = false,
   discoveryNoticeTimer = 0,
   discoveryNoticeAttempts = 0,
+  discoveryNoticeIgnored = false,
   viewCacheDirty = true,
   cachedPresetNames = {},
   cachedFolderNames = {},
@@ -719,8 +721,8 @@ local function showDiscoveryNotice()
     discoveryNoticeBlackboard = blackboard
     local message = SimpleScreenMessage.new()
     message.isShown = true
-    message.duration = 8.0
-    message.message = "CHARACTER PRESET MANAGER: OPEN THE CYBER ENGINE TWEAKS (CET) OVERLAY TO SAVE OR LOAD THIS APPEARANCE."
+    message.duration = 6.0
+    message.message = "PRESS YOUR ASSIGNED CET OVERLAY KEY, THEN OPEN CHARACTER PRESET MANAGER."
     message.isInstant = true
     message.type = SimpleMessageType.Neutral
     blackboard:SetVariant(definitions.OnscreenMessage, ToVariant(message), true)
@@ -732,6 +734,34 @@ local function showDiscoveryNotice()
     return false, tostring(shown)
   end
   if not shown then return false, tostring(showError or "waiting") end
+  return true
+end
+
+local function ignoreDiscoveryNotice()
+  state.discoveryNoticeIgnored = true
+  state.discoveryNoticePending = false
+  state.discoveryNoticeTimer = 0
+  state.discoveryNoticeAttempts = 0
+  local file = io.open(DISCOVERY_NOTICE_STATUS_FILE, "w")
+  if not file then
+    log("[UI] Discovery reminder ignored for this session; preference file could not be created.", "warn")
+    return
+  end
+  local wrote = file:write("Character Preset Manager customization reminder ignored.\n")
+  file:close()
+  log(wrote and "[UI] Discovery reminder disabled by the user."
+    or "[UI] Discovery reminder ignored for this session; preference could not be saved.",
+    wrote and "info" or "warn")
+end
+
+local function restoreDiscoveryNotice()
+  local removed, removeError = os.remove(DISCOVERY_NOTICE_STATUS_FILE)
+  if not removed and fileExists(DISCOVERY_NOTICE_STATUS_FILE) then
+    log("[UI] Could not restore the discovery reminder: " .. tostring(removeError), "warn")
+    return false
+  end
+  state.discoveryNoticeIgnored = false
+  log("[UI] Discovery reminder restored by the user.", "info")
   return true
 end
 
@@ -2780,6 +2810,26 @@ local function defaultWindowPosition()
   return math.max(20, displayWidth - 440), displayWidth
 end
 
+local function drawDiscoveryReminder()
+  if state.discoveryNoticeIgnored or not state.inCustomization then return end
+  ImGui.Spacing()
+  ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.96)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.70)
+  ImGui.BeginChild("##discoveryReminder", 0, 62, true)
+  local startX = ImGui.GetCursorPosX()
+  local availableWidth = ImGui.GetContentRegionAvail()
+  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "CHARACTER PRESET MANAGER")
+  ImGui.SameLine()
+  ImGui.SetCursorPosX(startX + availableWidth - 56)
+  if ImGui.Button("Ignore##discoveryReminder", 56, 0) then
+    ignoreDiscoveryNotice()
+  end
+  ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
+    "Press your assigned CET Overlay key, then open this manager.")
+  ImGui.EndChild()
+  ImGui.PopStyleColor(2)
+end
+
 local function draw()
   if not state.overlayOpen or not state.windowOpen then return end
 
@@ -2847,6 +2897,7 @@ local function draw()
       state.helpOpen = not state.helpOpen
       if state.helpOpen then state.bindingCache = {} end
     end
+    drawDiscoveryReminder()
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
     end
@@ -2879,6 +2930,12 @@ local function draw()
       helpHeading("Open the Editor")
       ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. Mirrors, ripperdocs, and the new-game editor also work.")
       ImGui.TextWrapped("Set or change these under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor input.")
+      if state.discoveryNoticeIgnored then
+        ImGui.TextDisabled("The character-customization reminder is currently ignored.")
+        if ImGui.Button("Show Reminder Again##restoreDiscoveryReminder", 0, 0) then
+          restoreDiscoveryNotice()
+        end
+      end
       drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editorInputCount)
       drawBindingHelp("Toggle Character Preset Manager (CET)",
@@ -3159,6 +3216,10 @@ registerForEvent("onInit", function()
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
   removeLegacyFolderSlots()
+  state.discoveryNoticeIgnored = fileExists(DISCOVERY_NOTICE_STATUS_FILE)
+  log(state.discoveryNoticeIgnored
+    and "[UI] Character-customization discovery reminder is disabled by user preference."
+    or "[UI] Character-customization discovery reminder is enabled.", "info")
   state.initialWindowPlacementPending = not fileExists(WINDOW_POSITION_STATUS_FILE)
   if state.initialWindowPlacementPending then
     log(("[UI] Window position status '%s' not found; right-side default will be applied once.")
@@ -3177,10 +3238,12 @@ registerForEvent("onInit", function()
       state.inCustomization = true
       state.clothingCheckDirty = true
       state.cachedClothingLabels = nil
-      state.discoveryNoticePending = true
+      state.discoveryNoticePending = not state.discoveryNoticeIgnored
       state.discoveryNoticeTimer = 0
       state.discoveryNoticeAttempts = 0
-      log("[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
+      log(state.discoveryNoticeIgnored
+        and "[UI] Character customization opened; discovery reminder is ignored."
+        or "[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
     end
   )
   local observeExitOk, observeExitError = pcall(

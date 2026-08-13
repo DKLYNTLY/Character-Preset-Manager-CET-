@@ -344,7 +344,10 @@ that both mods provide the same feature set.
   window geometry, plus the clothing check for each editor opening; automatic
   loading also reuses saved lookup data and performs one editor query per pass.
 - Shows an in-game notice whenever a character-customization screen opens so
-  modpack users know to open the CET overlay to save or load that appearance.
+  modpack users know to press their assigned CET Overlay key and open Character
+  Preset Manager.
+- Shows a compact gold-and-white reminder inside the manager with a persistent
+  **Ignore** button; ignored reminders can be restored from Help.
 - Covers vanilla creation, mirrors, ripperdocs, and the full appearance editor
   launched by Character Preset Manager.
 - Prevents save and load validation from drifting apart by routing every preset

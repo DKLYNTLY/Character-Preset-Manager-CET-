@@ -2,6 +2,11 @@
 
 ## 2.0.8
 
+- Shortens the character-customization reminder to tell players to press their
+  assigned CET Overlay key and then open Character Preset Manager.
+- Adds a compact reminder inside the manager using its existing gold, white,
+  dark theme and CET font, with a small persistent **Ignore** button.
+- Adds **Show Reminder Again** under Help so an ignored reminder can be restored.
 - Makes the per-frame update return immediately while the UI and all background
   actions are inactive, and throttles status expiration while the window is
   visible.
