@@ -9,6 +9,8 @@ local LOG_FILE = "Character Preset Manager (CET) Activity.log"
 local LOG_ARCHIVE_PREFIX = "Character Preset Manager (CET) Activity "
 local WINDOW_POSITION_STATUS_FILE = "Window Position Status.txt"
 local DISCOVERY_NOTICE_STATUS_FILE = "Discovery Notice Ignored.txt"
+local DISCOVERY_NOTICE_TITLE = "CHARACTER PRESET MANAGER IS READY"
+local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open the manager window."
 local LOG_ARCHIVE_LIMIT = 10
 local activitySequence = 0
 
@@ -2816,32 +2818,28 @@ local function drawDiscoveryHudNotice()
   if not layout then
     local viewportX, viewportY, viewportWidth = discoveryViewport()
     local width = math.min(520, math.max(360, viewportWidth - 48))
-    local title = "CHARACTER PRESET MANAGER IS READY"
-    local message = "Press your assigned CET Overlay key to open the manager window."
-    local titleWidth = ImGui.CalcTextSize(title) * 1.12
-    local messageWidth = ImGui.CalcTextSize(message)
+    local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE) * 1.12
+    local messageWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_MESSAGE)
     layout = {
       width = width,
       height = 76,
       x = viewportX + math.max(24, (viewportWidth - width) * 0.5),
       y = viewportY + 72,
-      title = title,
-      message = message,
       titleX = math.max(14, (width - titleWidth) * 0.5),
       messageX = math.max(14, (width - messageWidth) * 0.5),
+      flags = bit32.bor(
+        ImGuiWindowFlags.NoTitleBar,
+        ImGuiWindowFlags.NoResize,
+        ImGuiWindowFlags.NoScrollbar,
+        ImGuiWindowFlags.NoScrollWithMouse,
+        ImGuiWindowFlags.NoCollapse,
+        ImGuiWindowFlags.NoSavedSettings,
+        ImGuiWindowFlags.NoMove,
+        ImGuiWindowFlags.NoInputs
+      ),
     }
     state.discoveryNoticeLayout = layout
   end
-  local flags = bit32.bor(
-    ImGuiWindowFlags.NoTitleBar,
-    ImGuiWindowFlags.NoResize,
-    ImGuiWindowFlags.NoScrollbar,
-    ImGuiWindowFlags.NoScrollWithMouse,
-    ImGuiWindowFlags.NoCollapse,
-    ImGuiWindowFlags.NoSavedSettings,
-    ImGuiWindowFlags.NoMove,
-    ImGuiWindowFlags.NoInputs
-  )
   ImGui.SetNextWindowPos(layout.x, layout.y, ImGuiCond.Always)
   ImGui.SetNextWindowSize(layout.width, layout.height, ImGuiCond.Always)
   ImGui.PushStyleColor(ImGuiCol.WindowBg, 0.055, 0.059, 0.078, 0.94)
@@ -2849,15 +2847,15 @@ local function drawDiscoveryHudNotice()
   ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 9.0)
-  if ImGui.Begin("##CharacterPresetManagerDiscovery", true, flags) then
+  if ImGui.Begin("##CharacterPresetManagerDiscovery", true, layout.flags) then
     ImGui.SetWindowFontScale(1.12)
     ImGui.SetCursorPosX(layout.titleX)
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
-      layout.title)
+      DISCOVERY_NOTICE_TITLE)
     ImGui.SetWindowFontScale(1.0)
     ImGui.SetCursorPosX(layout.messageX)
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      layout.message)
+      DISCOVERY_NOTICE_MESSAGE)
   end
   ImGui.End()
   ImGui.PopStyleVar(3)
@@ -3530,7 +3528,7 @@ registerForEvent("onDraw", function()
         tostring(noticeError), "error")
     end
   end
-  draw()
+  if state.overlayOpen and state.windowOpen then draw() end
 end)
 registerHotkey("vanilla_character_presets_toggle", "Toggle Character Preset Manager (CET)", function()
   state.windowHotkeyCount = state.windowHotkeyCount + 1

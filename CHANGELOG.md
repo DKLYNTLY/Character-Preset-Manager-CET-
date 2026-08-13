@@ -2,6 +2,8 @@
 
 ## 2.0.8
 
+- Caches the popup's constant text and window flags and avoids dispatching the
+  manager draw function while CET or its window is closed.
 - Caches the popup viewport, dimensions, centered text measurements, and screen
   position once per appearance instead of recalculating them every frame.
 - Clears the cached popup layout only when a customization screen opens or

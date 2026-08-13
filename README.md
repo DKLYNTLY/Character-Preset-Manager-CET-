@@ -349,6 +349,8 @@ that both mods provide the same feature set.
   Preset Manager.
 - Measures and positions each popup once, then reuses that cached layout while
   it remains visible instead of repeating the layout work every frame.
+- Reuses its constant text and window flags and skips manager drawing entirely
+  while CET or the manager window is closed.
 - Keeps a compact notification toggle beneath Debug and Help without an
   additional text box. Select **Ignore Notification** to suppress future
   popups or **Enable Notification** to restore them; the choice persists across
