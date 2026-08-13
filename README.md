@@ -347,6 +347,8 @@ that both mods provide the same feature set.
   screen opens and keeps it visible until CET is opened, so
   modpack users know to press their assigned CET Overlay key and open Character
   Preset Manager.
+- Measures and positions each popup once, then reuses that cached layout while
+  it remains visible instead of repeating the layout work every frame.
 - Keeps a compact notification toggle beneath Debug and Help without an
   additional text box. Select **Ignore Notification** to suppress future
   popups or **Enable Notification** to restore them; the choice persists across

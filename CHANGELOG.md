@@ -2,6 +2,10 @@
 
 ## 2.0.8
 
+- Caches the popup viewport, dimensions, centered text measurements, and screen
+  position once per appearance instead of recalculating them every frame.
+- Clears the cached popup layout only when a customization screen opens or
+  closes, CET acknowledges it, the preference changes, or rendering fails.
 - Keeps the notification control permanently visible beneath Debug and Help,
   switching between **Ignore Notification** and **Enable Notification**.
 - Persists the chosen notification state across restarts while drawing directly

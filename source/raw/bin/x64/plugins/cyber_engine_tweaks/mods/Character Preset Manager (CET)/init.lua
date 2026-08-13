@@ -110,6 +110,7 @@ local state = {
   initialWindowPlacementPending = true,
   discoveryNoticePending = false,
   discoveryNoticeIgnored = false,
+  discoveryNoticeLayout = nil,
   viewCacheDirty = true,
   cachedPresetNames = {},
   cachedFolderNames = {},
@@ -707,6 +708,7 @@ assert(optionIndexIsValid(0)
 local function ignoreDiscoveryNotice()
   state.discoveryNoticeIgnored = true
   state.discoveryNoticePending = false
+  state.discoveryNoticeLayout = nil
   local file = io.open(DISCOVERY_NOTICE_STATUS_FILE, "w")
   if not file then
     log("[UI] Discovery reminder ignored for this session; preference file could not be created.", "warn")
@@ -726,6 +728,7 @@ local function restoreDiscoveryNotice()
     return false
   end
   state.discoveryNoticeIgnored = false
+  state.discoveryNoticeLayout = nil
   log("[UI] Discovery reminder restored by the user.", "info")
   return true
 end
@@ -2809,11 +2812,26 @@ end
 local function drawDiscoveryHudNotice()
   if not state.discoveryNoticePending or state.discoveryNoticeIgnored
       or state.overlayOpen then return end
-  local viewportX, viewportY, viewportWidth = discoveryViewport()
-  local width = math.min(520, math.max(360, viewportWidth - 48))
-  local height = 76
-  local x = viewportX + math.max(24, (viewportWidth - width) * 0.5)
-  local y = viewportY + 72
+  local layout = state.discoveryNoticeLayout
+  if not layout then
+    local viewportX, viewportY, viewportWidth = discoveryViewport()
+    local width = math.min(520, math.max(360, viewportWidth - 48))
+    local title = "CHARACTER PRESET MANAGER IS READY"
+    local message = "Press your assigned CET Overlay key to open the manager window."
+    local titleWidth = ImGui.CalcTextSize(title) * 1.12
+    local messageWidth = ImGui.CalcTextSize(message)
+    layout = {
+      width = width,
+      height = 76,
+      x = viewportX + math.max(24, (viewportWidth - width) * 0.5),
+      y = viewportY + 72,
+      title = title,
+      message = message,
+      titleX = math.max(14, (width - titleWidth) * 0.5),
+      messageX = math.max(14, (width - messageWidth) * 0.5),
+    }
+    state.discoveryNoticeLayout = layout
+  end
   local flags = bit32.bor(
     ImGuiWindowFlags.NoTitleBar,
     ImGuiWindowFlags.NoResize,
@@ -2824,26 +2842,22 @@ local function drawDiscoveryHudNotice()
     ImGuiWindowFlags.NoMove,
     ImGuiWindowFlags.NoInputs
   )
-  ImGui.SetNextWindowPos(x, y, ImGuiCond.Always)
-  ImGui.SetNextWindowSize(width, height, ImGuiCond.Always)
+  ImGui.SetNextWindowPos(layout.x, layout.y, ImGuiCond.Always)
+  ImGui.SetNextWindowSize(layout.width, layout.height, ImGuiCond.Always)
   ImGui.PushStyleColor(ImGuiCol.WindowBg, 0.055, 0.059, 0.078, 0.94)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.85)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
   ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 9.0)
   if ImGui.Begin("##CharacterPresetManagerDiscovery", true, flags) then
-    local title = "CHARACTER PRESET MANAGER IS READY"
-    local message = "Press your assigned CET Overlay key to open the manager window."
     ImGui.SetWindowFontScale(1.12)
-    local titleWidth = ImGui.CalcTextSize(title)
-    ImGui.SetCursorPosX(math.max(14, (width - titleWidth) * 0.5))
+    ImGui.SetCursorPosX(layout.titleX)
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
-      title)
+      layout.title)
     ImGui.SetWindowFontScale(1.0)
-    local messageWidth = ImGui.CalcTextSize(message)
-    ImGui.SetCursorPosX(math.max(14, (width - messageWidth) * 0.5))
+    ImGui.SetCursorPosX(layout.messageX)
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      message)
+      layout.message)
   end
   ImGui.End()
   ImGui.PopStyleVar(3)
@@ -3253,6 +3267,7 @@ registerForEvent("onInit", function()
       state.clothingCheckDirty = true
       state.cachedClothingLabels = nil
       state.discoveryNoticePending = not state.discoveryNoticeIgnored
+      state.discoveryNoticeLayout = nil
       log(state.discoveryNoticeIgnored
         and "[UI] Character customization opened; discovery reminder is ignored."
         or "[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
@@ -3268,6 +3283,7 @@ registerForEvent("onInit", function()
       state.clothingCheckDirty = true
       state.cachedClothingLabels = nil
       state.discoveryNoticePending = false
+      state.discoveryNoticeLayout = nil
       state.editorOpenedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
     end
@@ -3413,6 +3429,7 @@ registerForEvent("onShutdown", function()
   state.editorOpenedByLauncher = false
   state.editorHooksAvailable = false
   state.discoveryNoticePending = false
+  state.discoveryNoticeLayout = nil
 end)
 
 registerForEvent("onUpdate", function(delta)
@@ -3483,6 +3500,7 @@ registerForEvent("onOverlayOpen", function()
   log("[UI] CET overlay opened; showing Character Preset Manager and rescanning preset files.", "info")
   if state.discoveryNoticePending then
     state.discoveryNoticePending = false
+    state.discoveryNoticeLayout = nil
     log("[UI] Character-customization CET discovery notification acknowledged.", "info")
   end
   state.overlayOpen = true
@@ -3507,6 +3525,7 @@ registerForEvent("onDraw", function()
     local noticeOk, noticeError = pcall(drawDiscoveryHudNotice)
     if not noticeOk then
       state.discoveryNoticePending = false
+      state.discoveryNoticeLayout = nil
       log("[UI] Discovery notification rendering disabled after an error: " ..
         tostring(noticeError), "error")
     end
