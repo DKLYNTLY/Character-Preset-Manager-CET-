@@ -42,7 +42,6 @@ local FOLDER_BUNDLE_EXTENSION = ".cpmfolder"
 local log
 local readConfig
 local writeConfig
-local cloneMap
 
 local state = {
   overlayOpen = false,
@@ -232,6 +231,12 @@ local function resetLoadState()
   state.autoLoadTimer = 0
   state.autoLoadPasses = 0
   state.resetBeforeLoad = false
+end
+
+local function cloneMap(source)
+  local copy = {}
+  for key, value in pairs(source or {}) do copy[key] = value end
+  return copy
 end
 
 local function safeDirectoryEntries(path, depth)
@@ -1610,6 +1615,7 @@ local function exportSelectedFolderBundle()
       ("The folder exceeds the %d-preset bundle limit."):format(MAX_FOLDER_BUNDLE_PRESETS), true; return
   end
   local lines = { "CPMFOLDER\t1", "ROOT\t" .. catalogEncode(baseName(folder)) }
+  local totalBytes = #lines[1] + #lines[2] + 2
   local folders = {}
   for candidate in pairs(state.folders) do
     if candidate ~= folder and isInFolderTree(candidate, folder) then
@@ -1622,9 +1628,14 @@ local function exportSelectedFolderBundle()
       state.folderStatus, state.folderStatusError =
         "The folder contains an unsafe nested path and cannot be exported.", true; return
     end
-    table.insert(lines, "F\t" .. catalogEncode(relativeFolder))
+    local line = "F\t" .. catalogEncode(relativeFolder)
+    totalBytes = totalBytes + #line + 1
+    if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
+      state.folderStatus, state.folderStatusError =
+        "The folder bundle would exceed the 32 MB safety limit.", true; return
+    end
+    table.insert(lines, line)
   end
-  local totalBytes = 0
   for _, name in ipairs(names) do
     local relativeName = name:sub(#folder + 2)
     local contents = readBoundedFile(presetPath(name), MAX_PRESET_BYTES)
@@ -1632,12 +1643,14 @@ local function exportSelectedFolderBundle()
       state.folderStatus, state.folderStatusError =
         "A preset could not be read safely for export: " .. name, true; return
     end
-    local line = "P\t" .. catalogEncode(relativeName) .. "\t" .. hexEncode(contents)
-    totalBytes = totalBytes + #line + 1
-    if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
+    local prefix = "P\t" .. catalogEncode(relativeName) .. "\t"
+    local projectedBytes = totalBytes + #prefix + (#contents * 2) + 1
+    if projectedBytes > MAX_FOLDER_BUNDLE_BYTES then
       state.folderStatus, state.folderStatusError =
         "The folder bundle would exceed the 32 MB safety limit.", true; return
     end
+    local line = prefix .. hexEncode(contents)
+    totalBytes = projectedBytes
     table.insert(lines, line)
   end
   local filename = uniqueFolderBundleFilename(folder)
@@ -1661,7 +1674,7 @@ local function readFolderBundle(filename)
   if not contents then return nil, "Bundle could not be read: " .. tostring(readError) end
   local bundle = { folders = {}, folderNames = {}, presets = {}, presetNames = {} }
   local lineNumber = 0
-  for line in (contents .. "\n"):gmatch("(.-)\n") do
+  for line in contents:gmatch("[^\n]+") do
     line = line:gsub("\r$", "")
     if line ~= "" then
       lineNumber = lineNumber + 1
@@ -1704,6 +1717,8 @@ local function readFolderBundle(filename)
     end
   end
   if not bundle.root or #bundle.presets == 0 then return nil, "Bundle is empty or incomplete." end
+  bundle.folderNames = nil
+  bundle.presetNames = nil
   return bundle
 end
 
@@ -1754,6 +1769,7 @@ local function importFolderBundle(filename)
     end
     table.insert(createdFiles, path)
     local preset = readPresetFile(path)
+    item.contents = nil
     if not preset then
       removeFileList(createdFiles)
       return nil, "An imported preset failed verification."
@@ -2871,12 +2887,6 @@ local function trashPreset()
     setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the inventory could not be updated.",
       false, "warning")
   end
-end
-
-cloneMap = function(source)
-  local copy = {}
-  for key, value in pairs(source or {}) do copy[key] = value end
-  return copy
 end
 
 local function restoreTrashPreset(filename)

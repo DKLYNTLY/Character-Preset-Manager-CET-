@@ -25,6 +25,8 @@ grouped into collapsible histories so the page remains easy to scan.
   are removed only when folder Trash leaves them empty.
 - Adds bounded, single-file `.cpmfolder` export and import for sharing complete
   virtual folder trees without requiring undocumented directory-creation calls.
+- Reduces peak memory use while exporting and importing folder bundles without
+  changing the bundle format or its safety checks.
 
 </details>
 
