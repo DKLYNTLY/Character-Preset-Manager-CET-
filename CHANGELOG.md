@@ -2,6 +2,9 @@
 
 ## 3.0.0
 
+- Reorganizes the README into collapsible topic groups, merges related setup and
+  usage guidance, and moves older duplicated highlights to the complete
+  changelog.
 - Clarifies that AI assistance was limited to visual UI planning and iteration.
 - Expands the credits with the author's personal reasons for creating the mod,
   its direct inspirations, Cyber Engine Tweaks contributors, CD Projekt Red, and
