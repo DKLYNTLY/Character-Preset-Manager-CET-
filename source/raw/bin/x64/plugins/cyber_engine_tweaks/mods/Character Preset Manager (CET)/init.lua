@@ -3590,12 +3590,16 @@ end
 local function compactSubsectionButton(closedLabel, openLabel, key)
   ImGui.Spacing()
   local open = state.openSubsections[key] == true
+  local closedWidth = ImGui.CalcTextSize(closedLabel)
+  local openWidth = ImGui.CalcTextSize(openLabel)
+  local availableWidth = ImGui.GetContentRegionAvail()
+  local width = math.min(math.max(closedWidth, openWidth) + 20, availableWidth)
   ImGui.PushStyleColor(ImGuiCol.Button, 0.10, 0.11, 0.14, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.18, 0.15, 0.10, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.23, 0.17, 0.09, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.28, 0.38, 0.50, 0.78)
+  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.24, 0.32, 0.42, 0.95)
   ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0.0)
-  if ImGui.SmallButton((open and openLabel or closedLabel) ..
-      "##CPMSubsection:" .. key) then
+  if ImGui.Button((open and openLabel or closedLabel) ..
+      "##CPMSubsection:" .. key, width, 26) then
     open = not open
     state.openSubsections[key] = open
   end
@@ -4402,10 +4406,11 @@ local function draw()
           local folderKind = state.manualFolders[folder]
             and " (imported)" or ""
           ImGui.SetNextItemOpen(expanded or queryActive, ImGuiCond.Always)
+          local treeFlags = 8 + 2048 + (expanded and 1 or 0)
           local nodeOpen = ImGui.TreeNodeEx(
             string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
               (" (%d)"):format(subtreeCount) .. folderKind .. "##loadFolder:" .. folder,
-            8 + 2048)
+            treeFlags)
           if not queryActive then
             state.expandedLoadFolders[folder] = nodeOpen
           end
@@ -4486,9 +4491,9 @@ local function draw()
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
     ImGui.TextWrapped("Save location: " .. breadcrumb(state.selectedFolder))
-    ImGui.Indent(8)
     if compactSubsectionButton("Choose Save Destination", "Hide Save Destinations",
         "saveDestination") then
+      ImGui.Indent(8)
       ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)
       if ImGui.Selectable("All Presets##saveDestinationRoot", state.selectedFolder == "")
           and state.selectedFolder ~= "" then
@@ -4509,8 +4514,8 @@ local function draw()
         end
       end
       ImGui.EndChild()
+      ImGui.Unindent(8)
     end
-    ImGui.Unindent(8)
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
     local previousNewName = state.newName
@@ -4664,12 +4669,12 @@ local function draw()
         end
       end
 
-      ImGui.Indent(8)
       if compactSubsectionButton("More Trash Options", "Hide More Trash Options",
           "bulkTrash") then
+        ImGui.Indent(8)
         drawBulkTrashOptions(actionButtonHeight, statusHeight)
+        ImGui.Unindent(8)
       end
-      ImGui.Unindent(8)
 
       ImGui.Spacing()
       ImGui.Separator()

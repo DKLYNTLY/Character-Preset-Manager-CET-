@@ -38,6 +38,10 @@ grouped into collapsible histories so the page remains easy to scan.
   removes the redundant `(folder)` label from ordinary folder rows.
 - Restyles Save Destination and More Trash Options as content-sized, borderless
   buttons so they no longer resemble main section tabs or truncate their text.
+- Aligns those secondary controls with their section text, gives them consistent
+  padding, and uses the preset-list blue for active and hover feedback.
+- Keeps expanded folder rows highlighted with the same blue used by selected
+  presets.
 - Forces the intended window dimensions before its first visible session frame
   to prevent a noticeable small-to-normal layout shift while leaving later
   resizing enabled.
