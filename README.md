@@ -21,20 +21,29 @@
 <details open>
 <summary><strong>✨ Features at a glance</strong></summary>
 
-- Save and load complete appearances, including exposed CC and CCXL options.
-- Open the full vanilla appearance editor during normal gameplay.
-- Use the full character-creator option set through ordinary apartment mirrors.
-- Load presets with one click while the mod safely waits for editor rebuilds.
-- Clear exposed cosmetic choices that are not included in the incoming preset.
-- Search presets and folders, refresh imported files, and review compatibility
-  before loading.
-- Create unlimited nested virtual folders and detect manually created folders.
-- Rename or duplicate presets and complete virtual folder trees.
-- Add optional notes and tags to backward-compatible preset metadata.
-- Move presets, folder groups, or multi-selections to recoverable Trash.
-- Import supported ACU-format presets without running ACU itself.
-- Share appearances as individual `.preset` files.
-- Review actions, warnings, and errors through the in-game activity log.
+- **Complete appearance presets** — Save and load full appearances, including
+  exposed CC and CCXL options.
+- **Full editor anywhere** — Open the vanilla appearance editor during normal
+  gameplay.
+- **Full apartment mirrors** — Use the complete character-creator option set
+  through ordinary apartment mirrors.
+- **One-click loading** — Select a preset once while the mod safely waits for
+  editor rebuilds.
+- **Cosmetic cleanup** — Clear exposed cosmetic choices that are absent from the
+  incoming preset.
+- **Search and compatibility summary** — Find presets, refresh imported files,
+  and review the current editor match before loading.
+- **Unlimited folder organization** — Create nested virtual folders and detect
+  manually created directories.
+- **Preset and folder duplication** — Copy one preset or a complete virtual
+  folder tree.
+- **Optional preset details** — Add notes and tags through backward-compatible
+  metadata.
+- **Recoverable Trash** — Move presets, folder groups, or multi-selections to
+  Trash with confirmation.
+- **ACU preset import** — Import supported ACU-format presets without running ACU.
+- **Easy sharing** — Share appearances as individual `.preset` files.
+- **Activity log** — Review actions, warnings, and errors inside CET.
 
 </details>
 
@@ -147,18 +156,21 @@ required.
 
 ### Organizing presets
 
-- Use `▶` and `▼` under **Load** to close or open folder rows.
-- Presets without a folder appear below the folder list.
-- Select a destination under **Folders** before saving or moving a preset.
-- Create a folder while another folder is selected to nest it.
-- Select **All Presets** first to create a root folder or move a preset to root.
-- Copies are placed beside the original and use names such as `Copy` and
-  `Copy 2`.
-- Copying a virtual folder includes its presets and nested virtual folders.
-- Removing a folder keeps every preset and moves its organization to the parent.
-- Renaming a preset also renames its physical shareable `.preset` file.
-- **Manage** remains compact until a preset is selected, then provides Rename,
-  Duplicate, notes, and tags.
+- **Folder controls** — Use `▶` and `▼` under **Load** to close or open rows.
+- **Root presets** — Presets without a folder appear below the folder list.
+- **Save and move destinations** — Select a folder or **All Presets** before
+  saving or moving a preset.
+- **Nested folders** — Create a folder while another folder is selected.
+- **Automatic copy names** — Copies sit beside the original and use names such
+  as `Copy` and `Copy 2`.
+- **Complete folder copies** — Duplicating a virtual folder includes its presets
+  and nested folders.
+- **Safe folder removal** — Removing a folder keeps every preset and moves its
+  organization to the parent.
+- **Shareable renames** — Renaming a preset also renames its physical `.preset`
+  file.
+- **Preset details** — Manage remains compact until a preset is selected, then
+  provides Rename, Duplicate, notes, and tags.
 
 ### Virtual and imported folders
 
@@ -221,7 +233,9 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 
 ### ✅ CC and CCXL character-option mods
 
-**Supported.** Custom options are saved when they appear in Cyberpunk's normal
+**Status: Supported**
+
+Custom options are saved when they appear in Cyberpunk's normal
 customization system. Repeated and linked options, including heterochromia, are
 supported.
 
@@ -230,8 +244,10 @@ changes, fix the appearance and save the preset again.
 
 ### ✅ Custom character creators and customization fixes
 
-**Supported when they use the vanilla customization system.** Character Preset
-Manager does not modify meshes, rigs, archives, or another mod's assets.
+**Status: Supported when using the vanilla customization system**
+
+Character Preset Manager does not modify meshes, rigs, archives, or another
+mod's assets.
 
 One compatible example is
 [EKT Custom Character Creator - FEMV ONLY](https://www.nexusmods.com/cyberpunk2077/mods/12807).
@@ -240,16 +256,20 @@ order for reliable preset results.
 
 ### ❌ Appearance Change Unlocker (ACU)
 
-**Hard incompatible.** Remove ACU and fully restart Cyberpunk before using this
-mod. Automatic checks were removed because they could continue reporting ACU
-after it had been uninstalled.
+**Status: Hard incompatible**
 
-Supported ACU-format `.preset` files can still be imported after ACU itself has
-been removed. Copy them into the preset folder and select **Refresh** under Load.
+Remove ACU and fully restart Cyberpunk before using this mod. Automatic checks
+were removed because they could continue reporting ACU after it had been
+uninstalled.
+
+**ACU preset files — Import supported.** Supported `.preset` files can still be
+imported after ACU itself has been removed. Copy them into the preset folder and
+select **Refresh** under Load.
 
 ### ❌ Character Customization Anywhere
 
-**Hard incompatible.**
+**Status: Hard incompatible**
+
 [Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
 changes the same mirrors and character customization screens. Remove it and
 fully restart Cyberpunk. Character Preset Manager does not check for it
@@ -257,11 +277,15 @@ automatically.
 
 ### ✅ Photo Mode and Appearance Menu Mod
 
-**Compatible, with a usage limitation.** Both may remain installed, but Character
-Preset Manager cannot save or load from inside their interfaces. Use the Full
-Appearance Editor, a mirror, a ripperdoc, or the new-game editor instead.
+**Status: Compatible with a usage limitation**
+
+Both may remain installed, but Character Preset Manager cannot save or load from
+inside their interfaces. Use the Full Appearance Editor, a mirror, a ripperdoc,
+or the new-game editor instead.
 
 ### ⚠️ Loading screen after customization
+
+**Status: Cyberpunk game issue**
 
 Cyberpunk may sometimes remain on a loading screen after any character editor
 closes. This can happen without Character Preset Manager, especially while

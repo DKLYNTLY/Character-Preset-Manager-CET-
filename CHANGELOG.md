@@ -1,7 +1,19 @@
 # Changelog
 
+The newest release is separated into clear categories. Older releases are
+grouped into collapsible histories so the page remains easy to scan.
+
+<details open>
+<summary><strong>Latest release — 3.0.0</strong></summary>
+
 ## 3.0.0
 
+*Workflow, safety, and interface update.*
+
+### Presentation and workflow
+
+- Restyles the changelog with clear release categories and collapsible 2.0.x and
+  1.0.x histories.
 - Reorganizes the README into collapsible topic groups, merges related setup and
   usage guidance, and moves older duplicated highlights to the complete
   changelog.
@@ -24,6 +36,9 @@
 - Hides the inactive single-preset Trash button until a preset is selected.
 - Replaces bracketed folder markers with clearer disclosure arrows and removes
   the redundant `(folder)` label from ordinary folder rows.
+
+### Safety, recovery, and performance
+
 - Adds a bounded atomic transaction journal for preset Trash, restore, bulk
   Trash, folder restore, and physical preset-file rename operations.
 - Automatically rolls back unfinished file operations at startup while retaining
@@ -43,6 +58,8 @@
   instead of reporting an unconditional success.
 - Stores structured status kinds for consistent success, warning, and error
   presentation without changing the existing player-facing workflows.
+
+### Features and interface
 
 - Adds case-insensitive preset and folder search above the Load list.
 - Adds a direct Refresh action that rescans external preset files and recoverable
@@ -92,7 +109,12 @@
 - Disables the root Move action when no preset is selected or the selected preset
   is already in All Presets.
 
-## 2.0.8
+</details>
+
+<details>
+<summary><strong>2.0.x release history</strong></summary>
+
+### 2.0.8
 
 - Draws the reminder heading at CET's native font size so its gold color stays
   crisp instead of becoming blurred by fractional font scaling.
@@ -158,7 +180,7 @@
 - Logs the exact option identity, value, and violated limit for failed snapshots
   and provides equivalent detailed diagnostics for rejected imported lines.
 
-## 2.0.7
+### 2.0.7
 
 - Restores preset saving for CCXL and other custom options that expose the
   game's unsigned 32-bit no-selection index instead of rejecting the entire
@@ -169,7 +191,7 @@
 - Logs the exact option, index, key size, and saved-entry count if customization
   data still cannot be represented safely.
 
-## 2.0.6
+### 2.0.6
 
 - Shows the assigned editor input and window-toggle hotkey directly in Help by
   using CET's supported binding API, with an honest session-detection fallback
@@ -210,7 +232,7 @@
 - Validates final truncated names, handles case-insensitive folder collisions,
   removes duplicate file helpers, and replaces unsupported punctuation.
 
-## 2.0.5
+### 2.0.5
 
 - Removes unreliable automatic checks for Appearance Change Unlocker and Character
   Customization Anywhere.
@@ -242,14 +264,14 @@
 - Suppresses the clothing warning in the genuine new-game character creator.
 - Leaves equipment management manual to avoid interfering with equipment mods.
 
-## 2.0.4
+### 2.0.4
 
 - Temporarily disables an active wardrobe outfit before the character editor
   initializes and restores it when the editor closes.
 - Prevents wardrobe outfits from leaving the customization confirmation screen
   stuck in an endless loading state.
 
-## 2.0.3
+### 2.0.3
 
 - Groups presets in the Load list beneath collapsible `Name (folder)` rows.
 - Lists presets stored in the root preset directory below all folder groups.
@@ -260,13 +282,13 @@
 - Keeps Appearance Editor expanded by default and replaces the small collapse
   arrows with clearer `[+]` and `[-]` markers.
 
-## 2.0.2
+### 2.0.2
 
 - Removes nonfunctional explanatory and decorative comments from the shipped
   Lua source without changing runtime behavior.
 - Reduces the packaged preset-folder placeholder to one plain instruction.
 
-## 2.0.1
+### 2.0.1
 
 - Removes automatic ACU DLL detection and all related control blocking after
   runtime symbol checks falsely identified ACU on systems where it was no
@@ -274,7 +296,7 @@
 - Keeps the ACU incompatibility warning in the in-game Help panel and README;
   users remain responsible for not running both mods together.
 
-## 2.0.0
+### 2.0.0
 
 - Renames the mod everywhere to **Character Preset Manager (CET)** so its
   purpose is clear and the full name is discoverable in Nexus Mods searches.
@@ -305,7 +327,12 @@
   later launches stop forcing a position and preserve CET's saved user-selected
   placement across restarts.
 
-## 1.0.18
+</details>
+
+<details>
+<summary><strong>1.0.x release history</strong></summary>
+
+### 1.0.18
 
 - Makes every preset and inventory update crash-safe by writing, flushing, and
   closing a temporary file before atomically replacing the destination, with a
@@ -325,7 +352,7 @@
   asynchronous option-rebuild handling; its larger state-machine refactor is
   deferred to a dedicated compatibility-tested release.
 
-## 1.0.17
+### 1.0.17
 
 - Fixes deleted folders returning as empty slot directories that deployment or
   archive tools could discard; recycling now restores a non-empty marker first.
@@ -366,7 +393,7 @@
 - Allows Vortex's harmless `__folder_managed_by_vortex` bookkeeping marker when
   determining whether a folder is empty enough to delete safely.
 
-## 1.0.16
+### 1.0.16
 
 - Orders the main CET workflow as Load, Create, Folders, then Manage.
 - Scans `character-presets` recursively so presets inside folders appear in CET.
@@ -380,7 +407,7 @@
 - Uses 16 recyclable bundled folder slots so creation works within CET's
   filesystem sandbox without executing external commands.
 
-## 1.0.15
+### 1.0.15
 
 - Adds an original CET-integrated **Open Full Appearance Editor** control.
 - Adds an optional CET hotkey for opening the same editor without the overlay.
@@ -422,7 +449,7 @@
 - Adds missing-save, duplicate-request, active-editor, timeout, and ACU safety
   checks with activity-log diagnostics.
 
-## 1.0.14
+### 1.0.14
 
 - Removes the companion folder previously installed under
   `AppearanceChangeUnlocker` and the cross-mod preset bridge.
@@ -477,7 +504,7 @@
 - Renames Activity Log to Preset Manager Log and right-aligns its Refresh and
   Copy buttons to match the Debug and Help controls.
 
-## 1.0.13
+### 1.0.13
 
 - Uses in-field Name and New name hints that disappear when typing.
 - Makes Delete Preset full-width while retaining its red styling and two-step
@@ -495,7 +522,7 @@
 - Adds extra text padding to the top controls so labels remain readable with
   larger CET font and interface scaling.
 
-## 1.0.12
+### 1.0.12
 
 - Refreshes the window colors and layout for clearer visual hierarchy.
 - Keeps a separate status panel under Load, Create, and Manage so feedback
@@ -523,7 +550,8 @@
   compatibility, recovery, sharing, and diagnostics.
 - Preserves the filename validation, session-log rotation, customization-list
   refresh, and confirmation-state cleanup introduced previously.
-## 1.0.11
+
+### 1.0.11
 
 - Rebuilds the visible Character Creator option list after a preset finishes
   loading, so selector and slider positions can be recreated from the applied
@@ -538,7 +566,7 @@
 - Starts a fresh `Preset Manager (CET).log` every game session and keeps the
   immediately previous session as `Preset Manager (CET).previous.log`.
 
-## 1.0.10
+### 1.0.10
 
 - Detects the native redscript bindings registered by ACU's `acu_rs.dll`.
 - Disables Preset Manager for the entire game session when the incompatible ACU
@@ -546,7 +574,7 @@
 - Shows a clear warning to disable or uninstall ACU and fully restart the game;
   there is no in-menu bypass because a loaded DLL cannot be unloaded safely.
 
-## 1.0.9
+### 1.0.9
 
 - Prevents multiple unavailable ACU preset entries from claiming the same CCXL
   replacement selector and switching the hair color back and forth until the
@@ -561,7 +589,7 @@
 - Clarifies that the full Appearance Change Unlocker mod is incompatible, while
   ACU-format preset files remain readable through the included companion bridge.
 
-## 1.0.8
+### 1.0.8
 
 - Applies parent options such as hairstyle before their dependent color choices.
 - Maps a saved CCXL color value to a replacement color option when the selected
@@ -575,7 +603,7 @@
 - Updates recovery guidance for presets that no longer match the current CCXL
   customization setup.
 
-## 1.0.7
+### 1.0.7
 
 - Uses staged cleanup instead of resetting every dependent option in one frame;
   in-game logs showed that rapid bulk changes could stack hair and cosmetic
@@ -599,7 +627,7 @@
   occurrence counts match; otherwise skips the group safely.
 - Reports hidden, locked, unavailable, and ambiguous options as unresolved.
 
-## 1.0.6
+### 1.0.6
 
 - Makes preset loading one click by continuing dependent-option passes
   automatically at a conservative interval.
@@ -623,13 +651,13 @@
 - Keeps Preset Manager limited to saving and loading the options exposed by the
   active vanilla editor.
 
-## 1.0.5
+### 1.0.5
 
 - Darkens button and preset-list hover/active colors so white text remains
   easier to read when highlighted.
 - Keeps all preset saving, loading, matching, and continuation behavior unchanged.
 
-## 1.0.3
+### 1.0.3
 
 - Renames the mod, installed folder, and archive to **Preset Manager (CET)**.
 - Fixes the load button not changing to **Continue Loading Preset** after an
@@ -641,16 +669,16 @@
   absent from the loaded preset, without counting inactive alternatives.
 - Keeps the original preset matching and inactive-option retry behavior.
 
-## 1.0.2
+### 1.0.2
 
 - Internal development build; not released.
 
-## 1.0.1
+### 1.0.1
 
 - Ensures mod managers create the `character-presets` folder during installation.
 - Fixes new presets failing to save on fresh installs where empty folders were omitted.
 
-## 1.0.0
+### 1.0.0
 
 - Initial public release.
 - Creates and loads standalone character preset files.
@@ -660,3 +688,5 @@
 - Stores shareable presets in the mod's `character-presets` folder.
 - Uses Cyber Engine Tweaks directly with no additional runtime dependency.
 - Writes detailed diagnostics to the mod log.
+
+</details>
