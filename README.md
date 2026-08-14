@@ -29,6 +29,8 @@ were written and tested by the author.
 - **Search, refresh, and compatibility summary:** Find presets quickly, rescan
   imported files without closing CET, and review the current editor match before
   loading.
+- **Persistent mod configuration:** Change reminder and preset-sorting options
+  under Settings or edit the bounded text config directly.
 - **Cosmetic cleanup:** Clears exposed cosmetics that are not included in the
   incoming preset.
 - **Unlimited virtual preset folders:** Create, rename, copy, nest, and organize
@@ -81,8 +83,8 @@ installed CET version cannot return a key name.
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc customization
    screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
-3. Under **Folders**, select where you want the preset organized, or select
-   **All Presets**.
+3. Under **Save Preset**, select **Change Save Destination** and choose where the
+   preset should be organized, or select **All Presets**.
 4. Confirm the displayed save location and enter a name under **Save Preset**.
 5. Select **Save New Preset**.
 
@@ -99,6 +101,9 @@ you want to replace it.
 The selected-preset summary shows its option count, source, metadata, and a
 compatibility check for the currently open editor. Select **Cancel Loading** to
 stop an automatic load before it completes.
+
+Preset sorting is available under **Settings** without adding controls to the
+Load list. Choose alphabetical name order or newest modified metadata first.
 
 Cyberpunk may rebuild the editor several times while loading. Character Preset
 Manager waits for each rebuild and continues automatically.
@@ -253,6 +258,29 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
   is limited to 1 MB, 8,192 lines, 4,096 valid options, 256 bytes per option key,
   and option indexes within the game's unsigned 32-bit range.
 
+## Configuration
+
+The Settings panel and this human-editable file use the same values. It is
+created automatically on first launch and is not packaged over an existing
+player preference during upgrades:
+
+```text
+Character Preset Manager (CET) Config.txt
+```
+
+Supported values:
+
+```text
+discoveryReminder=true
+presetSort=name
+```
+
+`presetSort` accepts `name` or `modified`. Select **Reload Config from Disk**
+after editing the file while the game is running. Existing `Discovery Notice
+Ignored.txt` preferences migrate automatically. CET's own Settings tab does not
+discover individual mod options, so no additional settings-menu dependency is
+required.
+
 ## Activity log
 
 Select **Debug** in the mod window to view or copy the activity log.
@@ -360,12 +388,16 @@ that both mods provide the same feature set.
   time, notes, tags, and current-editor compatibility summary.
 - Shows the active save destination, renames Create to Save Preset, and disables
   unavailable Save, Load, Add Folder, and Move actions with a reason.
+- Adds a collapsed inline save-destination list plus name or last-modified sorting
+  under Settings.
 - Adds Cancel Loading and keeps apartment mirrors exposing the full creator
   options.
 - Moves preset deletion into recoverable Trash and makes folder removal keep
   every preset instead of deleting folder contents.
 - Automatically disables the customization discovery reminder after a
   successful save or load and moves its preference into Settings.
+- Stores reminder and sort preferences in a human-editable config with live
+  reload and automatic migration from the previous marker file.
 - Moves editor hook counters behind Advanced diagnostics and adds a Help action
   for copying the preset-folder path.
 - Saves optional notes and tags in backward-compatible format-5 preset metadata

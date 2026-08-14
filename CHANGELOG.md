@@ -11,7 +11,13 @@
   time, notes, tags, and current-editor compatibility summary.
 - Adds Cancel Loading while automatic staged loading is active.
 - Shows the active save destination at all times, renames Create to Save Preset,
-  and provides a direct return-to-root destination action.
+  and adds a compact inline destination list that remains collapsed until used.
+- Adds name or last-modified preset sorting under Settings without adding another
+  permanent control to the Load list.
+- Replaces the legacy notification marker with a bounded, human-editable config
+  shared by the Settings buttons, sort preference, and manual file editing.
+- Adds a Reload Config from Disk action and automatically migrates the previous
+  ignored-reminder preference.
 - Disables unavailable Save, Load, Add Folder, and Move actions and explains the
   missing prerequisite instead of requiring an error-producing click.
 - Moves preset deletion into a recoverable hidden Trash directory with individual
@@ -30,6 +36,8 @@
   diagnostics while retaining them in copied logs.
 - Adds a Help action that copies the preset-folder path to the clipboard.
 - Keeps full apartment mirror expansion unchanged.
+- Disables the root Move action when no preset is selected or the selected preset
+  is already in All Presets.
 
 ## 2.0.8
 

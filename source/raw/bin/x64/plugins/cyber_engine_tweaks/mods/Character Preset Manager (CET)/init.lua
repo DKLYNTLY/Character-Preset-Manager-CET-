@@ -12,6 +12,7 @@ local LOG_FILE = "Character Preset Manager (CET) Activity.log"
 local LOG_ARCHIVE_PREFIX = "Character Preset Manager (CET) Activity "
 local WINDOW_POSITION_STATUS_FILE = "Window Position Status.txt"
 local DISCOVERY_NOTICE_STATUS_FILE = "Discovery Notice Ignored.txt"
+local CONFIG_FILE = "Character Preset Manager (CET) Config.txt"
 local DISCOVERY_NOTICE_TITLE = "OPEN CHARACTER PRESET MANAGER"
 local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open its window."
 local LOG_ARCHIVE_LIMIT = 10
@@ -33,6 +34,8 @@ local FILE_COPY_CHUNK_SIZE = 65536
 local MAX_CATALOG_BYTES = 8388608
 local MAX_CATALOG_LINES = 32768
 local log
+local readConfig
+local writeConfig
 
 local state = {
   overlayOpen = false,
@@ -91,6 +94,8 @@ local state = {
   debugOpen = false,
   advancedDiagnosticsOpen = false,
   settingsOpen = false,
+  settingsStatus = "",
+  saveDestinationOpen = false,
   debugLogText = "",
   debugLogLines = {},
   bindingCache = {},
@@ -100,6 +105,7 @@ local state = {
   preflight = nil,
   trash = {},
   pendingEmptyTrash = false,
+  sortMode = "name",
   resetBeforeLoad = false,
   activeBodyMorphMenu = nil,
   inGameMenuController = nil,
@@ -717,28 +723,21 @@ local function ignoreDiscoveryNotice()
   state.discoveryNoticeIgnored = true
   state.discoveryNoticePending = false
   state.discoveryNoticeLayout = nil
-  local file = io.open(DISCOVERY_NOTICE_STATUS_FILE, "w")
-  if not file then
-    log("[UI] Discovery reminder ignored for this session; preference file could not be created.", "warn")
-    return
-  end
-  local wrote = file:write("Character Preset Manager customization reminder ignored.\n")
-  file:close()
-  log(wrote and "[UI] Discovery reminder disabled by the user."
-    or "[UI] Discovery reminder ignored for this session; preference could not be saved.",
-    wrote and "info" or "warn")
+  local saved = writeConfig and writeConfig()
+  log(saved and "[UI] Discovery reminder disabled by the user."
+    or "[UI] Discovery reminder disabled for this session; config could not be saved.",
+    saved and "info" or "warn")
+  return saved == true
 end
 
 local function restoreDiscoveryNotice()
-  local removed, removeError = os.remove(DISCOVERY_NOTICE_STATUS_FILE)
-  if not removed and fileExists(DISCOVERY_NOTICE_STATUS_FILE) then
-    log("[UI] Could not restore the discovery reminder: " .. tostring(removeError), "warn")
-    return false
-  end
   state.discoveryNoticeIgnored = false
   state.discoveryNoticeLayout = nil
-  log("[UI] Discovery reminder restored by the user.", "info")
-  return true
+  local saved = writeConfig and writeConfig()
+  log(saved and "[UI] Discovery reminder restored by the user."
+    or "[UI] Discovery reminder restored for this session; config could not be saved.",
+    saved and "info" or "warn")
+  return saved == true
 end
 
 local function occurrenceKeyParts(value)
@@ -816,12 +815,18 @@ local function rebuildViewCache()
     end
   end
   for name in pairs(state.folders) do table.insert(folderNames, name) end
-  table.sort(presetNames, function(a, b) return a:lower() < b:lower() end)
+  local function presetLess(a, b)
+    if state.sortMode == "modified" then
+      local aModified = tostring((state.presets[a] or {}).modified or "")
+      local bModified = tostring((state.presets[b] or {}).modified or "")
+      if aModified ~= bModified then return aModified > bModified end
+    end
+    return baseName(a):lower() < baseName(b):lower()
+  end
+  table.sort(presetNames, presetLess)
   table.sort(folderNames, function(a, b) return a:lower() < b:lower() end)
   for _, names in pairs(presetsByFolder) do
-    table.sort(names, function(a, b)
-      return baseName(a):lower() < baseName(b):lower()
-    end)
+    table.sort(names, presetLess)
   end
   state.cachedPresetNames = presetNames
   state.cachedFolderNames = folderNames
@@ -1124,6 +1129,54 @@ local function atomicReplace(path, writeTemporary, description)
   end
   os.remove(backup)
   return true
+end
+
+writeConfig = function()
+  local result = atomicReplace(CONFIG_FILE, function(temporary)
+    local file = io.open(temporary, "wb")
+    if not file then return false end
+    local wrote, writeResult = pcall(function()
+      return file:write(
+        "discoveryReminder=" .. tostring(not state.discoveryNoticeIgnored) .. "\n" ..
+        "presetSort=" .. (state.sortMode == "modified" and "modified" or "name") .. "\n"
+      ) ~= nil and file:flush() ~= nil
+    end)
+    local closeOk, closeResult = pcall(file.close, file)
+    return wrote and writeResult == true and closeOk and closeResult ~= nil
+  end, "config")
+  if result and fileExists(DISCOVERY_NOTICE_STATUS_FILE) then
+    os.remove(DISCOVERY_NOTICE_STATUS_FILE)
+  end
+  return result
+end
+
+readConfig = function()
+  local config = {
+    discoveryReminder = not fileExists(DISCOVERY_NOTICE_STATUS_FILE),
+    presetSort = "name",
+  }
+  local file = io.open(CONFIG_FILE, "rb")
+  if not file then return config, false end
+  local sizeOk, size = pcall(file.seek, file, "end")
+  local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
+  if not sizeOk or not size or size > 4096
+      or not rewindOk or rewindResult == nil then
+    file:close()
+    log("[CONFIG] Config is unreadable or exceeds 4 KB; defaults were used.", "warn")
+    return config, false
+  end
+  for line in file:lines() do
+    local key, value = line:match("^%s*([%a]+)%s*=%s*([%a]+)%s*$")
+    if key == "discoveryReminder" and (value == "true" or value == "false") then
+      config.discoveryReminder = value == "true"
+    elseif key == "presetSort" and (value == "name" or value == "modified") then
+      config.presetSort = value
+    elseif line:match("%S") and not line:match("^%s*#") then
+      log("[CONFIG] Ignored unsupported config line: " .. tostring(line), "warn")
+    end
+  end
+  file:close()
+  return config, true
 end
 
 local function writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders)
@@ -3209,15 +3262,39 @@ local function draw()
     end
     if state.settingsOpen then
       ImGui.Spacing()
-      ImGui.BeginChild("##settings", 0, 92, true)
+      ImGui.BeginChild("##settings", 0, 210, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
+      ImGui.TextDisabled(CONFIG_FILE)
       ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
       local reminderLabel = state.discoveryNoticeIgnored
         and "Enable Customization Reminder" or "Disable Customization Reminder"
       if fullWidthButton(reminderLabel .. "##discoveryPreference", 28) then
-        if state.discoveryNoticeIgnored then restoreDiscoveryNotice()
-        else ignoreDiscoveryNotice() end
+        local saved
+        if state.discoveryNoticeIgnored then saved = restoreDiscoveryNotice()
+        else saved = ignoreDiscoveryNotice() end
+        state.settingsStatus = saved and "Config saved." or "Config could not be saved."
       end
+      local sortLabel = state.sortMode == "modified"
+        and "Preset Sort: Last Modified" or "Preset Sort: Name"
+      if fullWidthButton(sortLabel .. "##presetSort", 28) then
+        state.sortMode = state.sortMode == "modified" and "name" or "modified"
+        invalidateViewCache()
+        state.settingsStatus = writeConfig() and "Config saved." or "Config could not be saved."
+      end
+      if fullWidthButton("Reload Config from Disk##reloadConfig", 28) then
+        local config, loaded = readConfig()
+        if loaded then
+          state.discoveryNoticeIgnored = not config.discoveryReminder
+          if state.discoveryNoticeIgnored then state.discoveryNoticePending = false end
+          state.discoveryNoticeLayout = nil
+          state.sortMode = config.presetSort == "modified" and "modified" or "name"
+          invalidateViewCache()
+          state.settingsStatus = "Config reloaded."
+        else
+          state.settingsStatus = "Config could not be reloaded."
+        end
+      end
+      if state.settingsStatus ~= "" then ImGui.TextDisabled(state.settingsStatus) end
       ImGui.EndChild()
     end
     if state.debugOpen then
@@ -3266,7 +3343,7 @@ local function draw()
         "Options not saved in the preset may be removed.")
 
       helpHeading("Save a Preset")
-      ImGui.TextWrapped("1. Select a folder under Folders, or select All Presets.")
+      ImGui.TextWrapped("1. Select Change Save Destination and choose a folder or All Presets.")
       ImGui.TextWrapped("2. Enter a name under Save Preset.")
       ImGui.TextWrapped("3. Select Save New Preset. Confirm only if replacing an existing preset.")
 
@@ -3292,6 +3369,9 @@ local function draw()
         ImGui.SetClipboardText(
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       end
+
+      helpHeading("Settings and Config")
+      ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The same values can be edited in Character Preset Manager (CET) Config.txt, then applied with Reload Config from Disk.")
 
       helpHeading("Debug")
       ImGui.TextWrapped("Open Debug to view or copy the activity log. Green means complete, yellow means notice, and red means error.")
@@ -3483,10 +3563,28 @@ local function draw()
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
     ImGui.TextWrapped("Save location: " .. breadcrumb(state.selectedFolder))
-    ImGui.TextDisabled("Choose a different destination under Folders.")
-    if state.selectedFolder ~= "" and fullWidthButton("Save to All Presets Instead##saveRoot", 26) then
-      state.selectedFolder = ""
-      cancelConfirmations()
+    if fullWidthButton((state.saveDestinationOpen and "Close Destination List"
+        or "Change Save Destination") .. "##saveDestination", 26) then
+      state.saveDestinationOpen = not state.saveDestinationOpen
+    end
+    if state.saveDestinationOpen then
+      ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)
+      if ImGui.Selectable("All Presets##saveDestinationRoot", state.selectedFolder == "") then
+        state.selectedFolder = ""
+        state.saveDestinationOpen = false
+        cancelConfirmations()
+      end
+      for _, folder in ipairs(sortedFolderNames()) do
+        local label = string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
+          (state.manualFolders[folder] and " (imported)" or "")
+        if ImGui.Selectable(label .. "##saveDestination:" .. folder,
+            state.selectedFolder == folder) then
+          state.selectedFolder = folder
+          state.saveDestinationOpen = false
+          cancelConfirmations()
+        end
+      end
+      ImGui.EndChild()
     end
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
@@ -3574,8 +3672,15 @@ local function draw()
       if fullWidthButton("Remove Folder (Keep Presets)##removeFolder", actionButtonHeight) then
         removeFolderKeepPresets()
       end
-    elseif state.selected then
+    else
+      local rootMoveUnavailable = not state.selected or parentFolder(state.selected) == ""
+      if rootMoveUnavailable then ImGui.BeginDisabled() end
       if fullWidthButton("Move Selected Preset to Root", actionButtonHeight) then movePresetToSelectedFolder() end
+      if rootMoveUnavailable then ImGui.EndDisabled() end
+      if rootMoveUnavailable then ImGui.TextDisabled(not state.selected
+        and "Select a preset under Load before moving it."
+        or "The selected preset is already in All Presets.")
+      end
     end
     if state.folderStatus ~= "" then
       if state.lastLoggedFolderStatus ~= state.folderStatus then
@@ -3679,10 +3784,17 @@ registerForEvent("onInit", function()
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
   removeLegacyFolderSlots()
-  state.discoveryNoticeIgnored = fileExists(DISCOVERY_NOTICE_STATUS_FILE)
+  local config, configLoaded = readConfig()
+  state.discoveryNoticeIgnored = not config.discoveryReminder
+  state.sortMode = config.presetSort == "modified" and "modified" or "name"
+  if not configLoaded or fileExists(DISCOVERY_NOTICE_STATUS_FILE) then
+    writeConfig()
+  end
   log(state.discoveryNoticeIgnored
     and "[UI] Character-customization discovery reminder is disabled by user preference."
     or "[UI] Character-customization discovery reminder is enabled.", "info")
+  log(("[CONFIG] Loaded '%s': discoveryReminder=%s presetSort=%s.")
+    :format(CONFIG_FILE, tostring(not state.discoveryNoticeIgnored), state.sortMode), "info")
   state.initialWindowPlacementPending = not fileExists(WINDOW_POSITION_STATUS_FILE)
   if state.initialWindowPlacementPending then
     log(("[UI] Window position status '%s' not found; right-side default will be applied once.")
