@@ -499,12 +499,13 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete version history.
 
 - **Character Preset Manager (CET):** Created and maintained by **dklyntly**.
 - **[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850):**
-  Created by **PotatoOfDoom**. Its preset management and expanded apartment
-  mirror concepts were major inspirations for this project, and Character Preset
-  Manager supports importing compatible ACU preset files.
+  Created by **PotatoOfDoom**. ACU gave me the original idea for this project.
+  I liked what it was trying to do, but I was disappointed by the bugs and errors
+  I experienced, so I decided to make my own version. Character Preset Manager
+  also supports importing compatible ACU preset files.
 - **[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930):**
-  Created by **keanuWheeze**. Its ability to access character customization during
-  normal gameplay helped inspire this mod's full appearance editor access.
+  Created by **keanuWheeze**. Its idea of opening character customization during
+  normal gameplay inspired me to include the Full Appearance Editor.
 - **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):**
   Created by **yamashi** and maintained with its contributors. CET provides the
   scripting and interface framework used by this mod.

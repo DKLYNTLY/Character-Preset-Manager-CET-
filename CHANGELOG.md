@@ -3,8 +3,9 @@
 ## 3.0.0
 
 - Clarifies that AI assistance was limited to visual UI planning and iteration.
-- Expands the credits with the author, directly inspiring customization mods,
-  Cyber Engine Tweaks contributors, CD Projekt Red, and the modding community.
+- Expands the credits with the author's personal reasons for creating the mod,
+  its direct inspirations, Cyber Engine Tweaks contributors, CD Projekt Red, and
+  the modding community.
 - Adds the official Character Preset Manager Discord community link.
 - Lists EKT Custom Character Creator - FEMV ONLY as an example of a compatible
   custom character creator.
