@@ -193,6 +193,11 @@ the preset again.
 **Supported when they use the vanilla customization system.** Character Preset
 Manager does not modify meshes, rigs, archives, or another mod's assets.
 
+A compatible example is
+[EKT Custom Character Creator - FEMV ONLY](https://www.nexusmods.com/cyberpunk2077/mods/12807).
+For the most reliable preset results, keep the same EKT version, body and eye
+variants, other character-option mods, and load order when saving and loading.
+
 ### ❌ Appearance Change Unlocker (ACU)
 
 **Hard incompatible.** Do not run ACU and Character Preset Manager together.
