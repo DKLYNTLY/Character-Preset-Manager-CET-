@@ -34,8 +34,12 @@ grouped into collapsible histories so the page remains easy to scan.
 - Simplifies Manage to a short selection prompt when no preset is selected and
   places Rename and Duplicate together as equal-width actions.
 - Hides the inactive single-preset Trash button until a preset is selected.
-- Replaces bracketed folder markers with clearer disclosure arrows and removes
+- Replaces unsupported folder-arrow glyphs with clear Open/Close text and removes
   the redundant `(folder)` label from ordinary folder rows.
+- Restyles Save Destination and More Trash Options as smaller, subdued buttons
+  so they no longer resemble main section tabs.
+- Applies the intended opening window size on the first session frame to prevent
+  a noticeable wide-to-normal layout shift while leaving later resizing enabled.
 
 ### Safety, recovery, and performance
 

@@ -64,6 +64,10 @@ local state = {
     manage = false,
     trash = false,
   },
+  openSubsections = {
+    saveDestination = false,
+    bulkTrash = false,
+  },
   selectedFolder = "",
   folderName = "",
   folderRenameName = "",
@@ -3582,13 +3586,19 @@ local function fullWidthButton(label, height)
   return ImGui.Button(label, width, height or 32)
 end
 
-local function collapsibleSubsectionHeader(label, key)
+local function compactSubsectionButton(closedLabel, openLabel, key, width)
   ImGui.Spacing()
-  ImGui.PushStyleColor(ImGuiCol.Header, 0.086, 0.094, 0.118, 0.85)
-  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.15, 0.12, 0.07, 0.95)
-  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.20, 0.15, 0.07, 1.0)
-  local open = ImGui.CollapsingHeader(label .. "##CPMSubsection:" .. key)
-  ImGui.PopStyleColor(3)
+  local open = state.openSubsections[key] == true
+  ImGui.PushStyleColor(ImGuiCol.Button, 0.12, 0.13, 0.16, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.20, 0.17, 0.11, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.25, 0.19, 0.10, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.65, 0.48, 0.16, 0.65)
+  if ImGui.Button((open and openLabel or closedLabel) .. "##CPMSubsection:" .. key,
+      math.min(width, ImGui.GetContentRegionAvail()), 28) then
+    open = not open
+    state.openSubsections[key] = open
+  end
+  ImGui.PopStyleColor(4)
   if open then ImGui.Spacing() end
   return open
 end
@@ -4108,7 +4118,7 @@ local function draw()
       and ImGuiCond.Always or ImGuiCond.FirstUseEver
     ImGui.SetNextWindowPos(initialX, 40, positionCondition)
   end
-  ImGui.SetNextWindowSize(420, 700, ImGuiCond.FirstUseEver)
+  ImGui.SetNextWindowSize(420, 700, ImGuiCond.Once)
   local visible = ImGui.Begin("Character Preset Manager (CET)##CPM2")
   if state.initialWindowPlacementPending and initialX then
     state.initialWindowPlacementPending = false
@@ -4256,7 +4266,7 @@ local function draw()
       ImGui.TextWrapped("3. Select Save New Preset. Confirm only if replacing an existing preset.")
 
       helpHeading("Folders")
-      ImGui.TextWrapped("Use ▶ and ▼ under Load to open or close a folder.")
+      ImGui.TextWrapped("Folder rows say Open or Close under Load.")
       ImGui.TextWrapped("To move a preset, select the preset, select a folder, then select Move Selected Preset Here. Select All Presets to move it out of a folder.")
       ImGui.TextWrapped("Adding a folder creates it inside the selected folder. Select All Presets first to add a root folder.")
       ImGui.TextWrapped("Folders created in CET are virtual and have no packaged slot limit. Renaming them or moving presets between them does not rename directories in File Explorer.")
@@ -4388,9 +4398,11 @@ local function draw()
           local folderKind = state.manualFolders[folder]
             and " (imported)" or ""
           local showingContents = expanded or queryActive
+          local folderAction = queryActive and "Results"
+            or (showingContents and "Close" or "Open")
           if ImGui.Selectable(
               string.rep("  ", folderDepth(folder)) ..
-                (showingContents and "▼ " or "▶ ") .. baseName(folder) ..
+                folderAction .. ": " .. baseName(folder) ..
                 (" (%d)"):format(subtreeCount) .. folderKind .. "##loadFolder:" .. folder,
               false) then
             expanded = not expanded
@@ -4473,7 +4485,9 @@ local function draw()
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
     ImGui.TextWrapped("Save location: " .. breadcrumb(state.selectedFolder))
-    if collapsibleSubsectionHeader("Choose Save Destination", "saveDestination") then
+    ImGui.Indent(8)
+    if compactSubsectionButton("Choose Save Destination...", "Hide Save Destinations",
+        "saveDestination", 210) then
       ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)
       if ImGui.Selectable("All Presets##saveDestinationRoot", state.selectedFolder == "")
           and state.selectedFolder ~= "" then
@@ -4495,6 +4509,7 @@ local function draw()
       end
       ImGui.EndChild()
     end
+    ImGui.Unindent(8)
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
     local previousNewName = state.newName
@@ -4648,9 +4663,12 @@ local function draw()
         end
       end
 
-      if collapsibleSubsectionHeader("More Trash Options", "bulkTrash") then
+      ImGui.Indent(8)
+      if compactSubsectionButton("More Trash Options...", "Hide More Trash Options",
+          "bulkTrash", 190) then
         drawBulkTrashOptions(actionButtonHeight, statusHeight)
       end
+      ImGui.Unindent(8)
 
       ImGui.Spacing()
       ImGui.Separator()

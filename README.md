@@ -156,7 +156,8 @@ required.
 
 ### Organizing presets
 
-- **Folder controls** — Use `▶` and `▼` under **Load** to close or open rows.
+- **Folder controls** — Folder rows use clear **Open** and **Close** text that
+  works with every CET font.
 - **Root presets** — Presets without a folder appear below the folder list.
 - **Save and move destinations** — Select a folder or **All Presets** before
   saving or moving a preset.
@@ -365,15 +366,17 @@ screenshots demonstrate Character Preset Manager itself.
 <details>
 <summary><strong>🆕 Version 3.0.0 highlights</strong></summary>
 
-- Adds search, Refresh, folder counts, compact folder paths, and disclosure-arrow
+- Adds search, Refresh, folder counts, compact folder paths, and clear Open/Close
   folder controls.
 - Shows each selected preset's folder, option count, source, format, modification
   time, notes, tags, and compatibility summary.
-- Fixes the save-destination chooser and keeps its current location visible.
-- Disables unavailable actions with a short reason and standardizes button sizes.
+- Fixes the save-destination chooser, keeps its current location visible, and
+  presents it as a smaller nested control.
+- Disables unavailable actions with a short reason, standardizes primary button
+  sizes, and prevents the first-frame width shift when the window opens.
 - Adds Cancel Loading while automatic loading is active.
 - Groups deletion, bulk actions, restoration, and permanent cleanup under
-  **Trash & Recovery**.
+  **Trash & Recovery**, with multi-item actions behind a smaller nested control.
 - Adds safe transaction recovery, complete folder-tree Trash records, and
   one-action folder restoration.
 - Adds optional format-5 notes and tags and renames the physical file with its
