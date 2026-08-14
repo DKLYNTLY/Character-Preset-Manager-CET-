@@ -4601,45 +4601,50 @@ local function draw()
     end
 
     if collapsibleSectionHeader("MANAGE", "manage") then
-    ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      "Manage the selected preset")
-    ImGui.Spacing()
-    ImGui.PushItemWidth(-1)
-    state.renameName = ImGui.InputTextWithHint("##renamePreset", "New Name", state.renameName, 65)
-    ImGui.PopItemWidth()
-    ImGui.Spacing()
-    local renameUnavailable = not state.selected or sanitizeName(state.renameName) == ""
-    if renameUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Rename Selected", actionButtonHeight) then renamePreset() end
-    if renameUnavailable then ImGui.EndDisabled() end
-    if not state.selected then ImGui.BeginDisabled() end
-    if fullWidthButton("Duplicate Selected Preset", actionButtonHeight) then duplicatePreset() end
-    if not state.selected then ImGui.EndDisabled() end
-    ImGui.Spacing()
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Optional preset details")
-    ImGui.PushItemWidth(-1)
-    state.presetTags = ImGui.InputTextWithHint("##presetTags", "Tags", state.presetTags, 129)
-    state.presetNotes = ImGui.InputTextWithHint("##presetNotes", "Notes", state.presetNotes, 513)
-    ImGui.PopItemWidth()
-    if not state.selected then ImGui.BeginDisabled() end
-    if fullWidthButton("Save Preset Details", actionButtonHeight) then savePresetMetadata() end
-    if not state.selected then ImGui.EndDisabled() end
-    drawSectionStatus("rename", "##renameStatus", isRenameSuccess, statusHeight)
+      if not state.selected or not state.presets[state.selected] then
+        ImGui.TextDisabled("Select a preset under Load to rename, duplicate, or edit its details.")
+      else
+        ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
+          "Selected preset")
+        ImGui.TextWrapped(breadcrumb(state.selected))
+        ImGui.Spacing()
+        ImGui.PushItemWidth(-1)
+        state.renameName = ImGui.InputTextWithHint(
+          "##renamePreset", "New preset name", state.renameName, 65)
+        ImGui.PopItemWidth()
+        local renameUnavailable = sanitizeName(state.renameName) == ""
+        local manageButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+        if renameUnavailable then ImGui.BeginDisabled() end
+        if ImGui.Button("Rename Preset##renameSelected",
+            manageButtonWidth, actionButtonHeight) then renamePreset() end
+        if renameUnavailable then ImGui.EndDisabled() end
+        ImGui.SameLine()
+        if ImGui.Button("Duplicate Preset##duplicateSelected",
+            manageButtonWidth, actionButtonHeight) then duplicatePreset() end
+        ImGui.Spacing()
+        ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Optional details")
+        ImGui.PushItemWidth(-1)
+        state.presetTags = ImGui.InputTextWithHint("##presetTags", "Tags", state.presetTags, 129)
+        state.presetNotes = ImGui.InputTextWithHint("##presetNotes", "Notes", state.presetNotes, 513)
+        ImGui.PopItemWidth()
+        if fullWidthButton("Save Preset Details", actionButtonHeight) then
+          savePresetMetadata()
+        end
+        drawSectionStatus("rename", "##renameStatus", isRenameSuccess, statusHeight)
+      end
     end
 
     if collapsibleSectionHeader("TRASH & RECOVERY", "trash") then
       ImGui.TextWrapped("Move selected presets to recoverable Trash or restore items removed earlier.")
-      if not state.selected then ImGui.BeginDisabled() end
-      local deleteLabel = state.selected
-        and state.pendingDeleteName == state.selected
-        and "Confirm Move to Trash##danger"
-        or "Move Selected Preset to Trash##danger"
-      if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
-        trashPreset()
-      end
-      if not state.selected then ImGui.EndDisabled() end
       if not state.selected then
-        ImGui.TextDisabled("Select a preset under Load to enable this action.")
+        ImGui.TextDisabled("Select a preset under Load to move one preset to Trash.")
+      else
+        local deleteLabel = state.pendingDeleteName == state.selected
+          and "Confirm Move to Trash##danger"
+          or "Move Selected Preset to Trash##danger"
+        if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
+          trashPreset()
+        end
       end
 
       if collapsibleSubsectionHeader("More Trash Options", "bulkTrash") then

@@ -16,6 +16,9 @@
   Disabled state instead of describing the opposite action.
 - Combines preset deletion, bulk Trash tools, restoration, and permanent cleanup
   under Trash & Recovery, with multi-item tools inside More Trash Options.
+- Simplifies Manage to a short selection prompt when no preset is selected and
+  places Rename and Duplicate together as equal-width actions.
+- Hides the inactive single-preset Trash button until a preset is selected.
 - Adds a bounded atomic transaction journal for preset Trash, restore, bulk
   Trash, folder restore, and physical preset-file rename operations.
 - Automatically rolls back unfinished file operations at startup while retaining

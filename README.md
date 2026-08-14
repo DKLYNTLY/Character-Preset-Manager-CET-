@@ -145,7 +145,9 @@ Fix the appearance and save the preset again.
   identity, and empty nested folders together, or restore presets individually.
 - Trash, restore, bulk file moves, and physical preset renames use a bounded
   recovery journal. An interrupted operation is safely resolved at startup.
-- **Manage** can save optional notes and tags inside new format-5 preset files.
+- **Manage** stays compact until a preset is selected, then groups Rename and
+  Duplicate on one row and can save optional notes and tags inside new format-5
+  preset files.
 - Renaming a preset also renames its physical shareable `.preset` file.
 
 ### Virtual folders
