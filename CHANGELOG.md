@@ -2,6 +2,11 @@
 
 ## 3.0.1
 
+- Rewords the project disclosure to accurately describe development as
+  AI-assisted rather than AI-generated.
+- Expands the credits with the author, directly inspiring customization mods,
+  Cyber Engine Tweaks contributors, CD Projekt Red, and the modding community.
+- Adds the official Character Preset Manager Discord community link.
 - Adds a bounded atomic transaction journal for preset Trash, restore, bulk
   Trash, folder restore, and physical preset-file rename operations.
 - Automatically rolls back unfinished file operations at startup while retaining

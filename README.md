@@ -12,9 +12,11 @@
 
 ## AI disclosure
 
-The CET interface used AI-generated visual work for its layout, styling, and
-presentation. All Lua code, preset saving and loading logic, and mod features
-were written and tested by the author.
+Character Preset Manager was developed with AI assistance, including iterative
+help with interface design, styling, code review, debugging, and documentation.
+The author directed the development, substantially revised the assisted work,
+made the final design and feature decisions, and tested the mod. It is more
+accurately described as AI-assisted than AI-generated.
 
 ## Features
 
@@ -486,8 +488,26 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete version history.
 
 - [Download Character Preset Manager on Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886)
 - [GitHub source code](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-)
+- [Discord community and support](https://discord.com/invite/mUGHmQxHG8)
 - [Complete changelog](CHANGELOG.md)
 
 ## Credits
 
-Character Preset Manager (CET) by dklyntly.
+- **Character Preset Manager (CET):** Created and maintained by **dklyntly**.
+- **[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850):**
+  Created by **PotatoOfDoom**. Its preset management and expanded apartment
+  mirror concepts were major inspirations for this project, and Character Preset
+  Manager supports importing compatible ACU preset files.
+- **[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930):**
+  Created by **keanuWheeze**. Its ability to access character customization during
+  normal gameplay helped inspire this mod's full appearance editor access.
+- **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):**
+  Created by **yamashi** and maintained with its contributors. CET provides the
+  scripting and interface framework used by this mod.
+- **CD Projekt Red:** For Cyberpunk 2077 and its character customization system.
+- **Cyberpunk 2077 modding community:** For testing, technical research,
+  compatibility knowledge, and feedback that helped shape the project.
+
+The credited inspiration mods are not bundled dependencies. ACU and Character
+Customization Anywhere modify the same customization systems and should not be
+installed alongside Character Preset Manager; see Compatibility above.
