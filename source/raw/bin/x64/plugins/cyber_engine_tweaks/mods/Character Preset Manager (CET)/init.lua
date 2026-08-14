@@ -2973,8 +2973,8 @@ local function drawDebugPanel(height)
   ImGui.Spacing()
   local logRowStartX = ImGui.GetCursorPosX()
   local logRowWidth = ImGui.GetContentRegionAvail()
-  local logButtonsWidth = 128
-  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Character Preset Manager Log")
+  local logButtonsWidth = 188
+  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Activity Log")
   ImGui.SameLine()
   ImGui.SetCursorPosX(logRowStartX + logRowWidth - logButtonsWidth)
   if ImGui.Button("Refresh##debugRefresh", 68, 0) then readDiagnosticLog() end
@@ -2982,6 +2982,8 @@ local function drawDebugPanel(height)
   if ImGui.Button("Copy##debugCopy", 52, 0) then
     ImGui.SetClipboardText(state.debugLogText or "")
   end
+  ImGui.SameLine()
+  if ImGui.Button("Close##debugClose", 52, 0) then state.debugOpen = false end
   if ImGui.CollapsingHeader("Advanced diagnostics##advancedDiagnostics") then
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
       :format(state.editorInputCount, state.editorControllerCaptureCount,
@@ -3235,7 +3237,7 @@ local function draw()
     local narrowTopRow = ImGui.GetWindowWidth() < 620
     local topRowStartX = ImGui.GetCursorPosX()
     local topRowWidth = ImGui.GetContentRegionAvail()
-    local topControlsWidth = 198
+    local topControlsWidth = 132
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
     if state.inCustomization then
@@ -3251,13 +3253,9 @@ local function draw()
       state.settingsOpen = not state.settingsOpen
     end
     ImGui.SameLine()
-    if ImGui.Button("Debug##debug", 58, 0) then
-      state.debugOpen = not state.debugOpen
-      if state.debugOpen then readDiagnosticLog() end
-    end
-    ImGui.SameLine()
     if ImGui.Button("Help##help", 50, 0) then
       state.helpOpen = not state.helpOpen
+      if state.helpOpen then state.debugOpen = false end
       if state.helpOpen then state.bindingCache = {} end
     end
     if state.settingsOpen then
@@ -3373,8 +3371,13 @@ local function draw()
       helpHeading("Settings and Config")
       ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The same values can be edited in Character Preset Manager (CET) Config.txt, then applied with Reload Config from Disk.")
 
-      helpHeading("Debug")
-      ImGui.TextWrapped("Open Debug to view or copy the activity log. Green means complete, yellow means notice, and red means error.")
+      helpHeading("Debug and Diagnostics")
+      ImGui.TextWrapped("The activity log records preset actions, warnings, errors, and advanced editor diagnostics.")
+      if fullWidthButton("Open Debug Log##openDebugFromHelp", 28) then
+        readDiagnosticLog()
+        state.debugOpen = true
+        state.helpOpen = false
+      end
 
       ImGui.EndChild()
       ImGui.PopStyleColor(4)

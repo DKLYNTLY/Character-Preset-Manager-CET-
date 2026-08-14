@@ -46,7 +46,7 @@ were written and tested by the author.
 - **Recoverable Trash:** Removed presets remain restorable until Trash is emptied
   permanently.
 - **Activity log:** View preset actions, results, notices, and errors through
-  **Debug** or the log file.
+  **Help > Debug and Diagnostics** or the log file.
 - **Clean interface:** Collapsible sections and folder rows keep the CET window
   organized.
 
@@ -283,7 +283,8 @@ required.
 
 ## Activity log
 
-Select **Debug** in the mod window to view or copy the activity log.
+Open **Help > Debug and Diagnostics**, then select **Open Debug Log** to view or
+copy the activity log.
 
 Log location:
 
@@ -400,6 +401,8 @@ that both mods provide the same feature set.
   reload and automatic migration from the previous marker file.
 - Moves editor hook counters behind Advanced diagnostics and adds a Help action
   for copying the preset-folder path.
+- Moves the Debug entry point into its own Help section and gives the activity
+  log a dedicated Close button, leaving only Settings and Help on the top row.
 - Saves optional notes and tags in backward-compatible format-5 preset metadata
   and renames the physical shareable file when a preset is renamed.
 

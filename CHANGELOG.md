@@ -34,6 +34,9 @@
 - Removes the discovery preference from the permanent top control row.
 - Moves editor input, controller, redirect, and puppet counters behind Advanced
   diagnostics while retaining them in copied logs.
+- Moves the Debug entry point into a dedicated Help section, removes its
+  low-frequency button from the top row, and adds a Close button to the activity
+  log view.
 - Adds a Help action that copies the preset-folder path to the clipboard.
 - Keeps full apartment mirror expansion unchanged.
 - Disables the root Move action when no preset is selected or the selected preset
