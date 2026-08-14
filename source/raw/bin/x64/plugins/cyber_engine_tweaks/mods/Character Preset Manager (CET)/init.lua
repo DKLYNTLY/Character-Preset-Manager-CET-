@@ -99,6 +99,7 @@ local state = {
   pendingOverwriteFingerprint = nil,
   pendingDeleteName = nil,
   pendingDeleteFingerprint = nil,
+  pendingRemoveFolder = nil,
   helpOpen = false,
   debugOpen = false,
   advancedDiagnosticsOpen = false,
@@ -205,6 +206,7 @@ local function cancelConfirmations()
   state.pendingOverwriteFingerprint = nil
   state.pendingDeleteName = nil
   state.pendingDeleteFingerprint = nil
+  state.pendingRemoveFolder = nil
   state.pendingEmptyTrash = false
   state.pendingBulkAction = nil
   state.pendingBulkFingerprint = nil
@@ -469,6 +471,7 @@ local function statusShouldRemain(section, text)
       and state.pendingDeleteName == state.selected
   end
   if section == "bulk" then return state.pendingBulkAction ~= nil end
+  if section == "folder" then return state.pendingRemoveFolder ~= nil end
   return false
 end
 
@@ -3025,7 +3028,7 @@ end
 local function requestBulkTrash(names, folder)
   if #names == 0 then
     setStatus("bulk", folder
-      and "The selected folder contains no presets. Use Remove Folder (Keep Presets)."
+      and "The selected folder contains no presets. Use Remove Virtual Folder."
       or "Select at least one preset for the bulk action.", true)
     return
   end
@@ -3439,12 +3442,20 @@ local function duplicateFolder()
     :format(source, destination, #createdFiles), "complete")
 end
 
-local function removeFolderKeepPresets()
+local function removeVirtualFolder()
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
     state.folderStatus, state.folderStatusError = "Select a folder to remove.", true; return
   end
   local destinationParent = parentFolder(folder)
+  if state.pendingRemoveFolder ~= folder then
+    state.pendingRemoveFolder = folder
+    state.folderStatus = ("Remove virtual folder \"%s\"? Its presets and nested folders will move to %s. No preset files will be deleted. Select Confirm Remove Virtual Folder.")
+      :format(folder, destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\""))
+    state.folderStatusError = false
+    return
+  end
+  state.pendingRemoveFolder = nil
   local newPresets, newFolders = {}, {}
   local newManualFolders = {}
   local newIgnored = cloneMap(state.ignoredPhysicalFolders)
@@ -3497,7 +3508,7 @@ local function removeFolderKeepPresets()
   cancelConfirmations()
   resetLoadState()
   state.folderStatus, state.folderStatusError =
-    "Removed folder \"" .. folder .. "\" and kept all presets.", false
+    "Removed virtual folder \"" .. folder .. "\" and kept all preset files.", false
 end
 
 local function refreshEditorState()
@@ -3726,7 +3737,7 @@ local function isFolderSuccess(text)
   return text:find("^Created virtual folder ") ~= nil
     or text:find("^Renamed virtual folder ") ~= nil
     or text:find("^Duplicated virtual folder ") ~= nil
-    or text:find("^Removed folder ") ~= nil
+    or text:find("^Removed virtual folder ") ~= nil
     or text:find("^Moved ") ~= nil
 end
 
@@ -4040,7 +4051,7 @@ local function drawBulkTrashOptions(actionButtonHeight, statusHeight)
   if folderBulkUnavailable then
     ImGui.TextDisabled(state.selectedFolder == ""
       and "Select a folder under Folders to enable folder Trash."
-      or "This folder has no presets; use Remove Folder (Keep Presets).")
+      or "This folder has no presets; use Remove Virtual Folder.")
   end
 
   ImGui.Spacing()
@@ -4280,7 +4291,7 @@ local function draw()
       helpHeading("Rename, Copy, or Trash")
       ImGui.TextWrapped("Select a preset or folder before using its rename or copy action. Trash actions are grouped under Trash & Recovery.")
       ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
-      ImGui.TextWrapped("Removing a folder keeps its presets and moves their organization to the parent folder. Moving a preset to Trash keeps it recoverable until Trash is emptied permanently.")
+      ImGui.TextWrapped("Remove Virtual Folder deletes only its organization entry after confirmation. Its presets and nested folders move to the parent, and no preset files are deleted. Moving a preset to Trash keeps it recoverable until Trash is emptied permanently.")
 
       helpHeading("Trash and Recovery")
       ImGui.TextWrapped("Move one selected preset to Trash, or open More Trash Options to move a selected folder or several presets. These actions require confirmation. Manual directories remain in place. Restore Folder recovers the complete logical tree, including empty nested folders.")
@@ -4596,8 +4607,11 @@ local function draw()
         and "Select a preset under Load before moving it."
         or "The selected preset is already in this destination.")
       end
-      if fullWidthButton("Remove Folder (Keep Presets)##removeFolder", actionButtonHeight) then
-        removeFolderKeepPresets()
+      local removeFolderLabel = state.pendingRemoveFolder == state.selectedFolder
+        and "Confirm Remove Virtual Folder"
+        or "Remove Virtual Folder"
+      if fullWidthButton(removeFolderLabel .. "##removeFolder", actionButtonHeight) then
+        removeVirtualFolder()
       end
     else
       local rootMoveUnavailable = not state.selected or parentFolder(state.selected) == ""

@@ -166,8 +166,9 @@ required.
   as `Copy` and `Copy 2`.
 - **Complete folder copies** — Duplicating a virtual folder includes its presets
   and nested folders.
-- **Safe folder removal** — Removing a folder keeps every preset and moves its
-  organization to the parent.
+- **Remove Virtual Folder** — After confirmation, removes only the organization
+  entry, moves its presets and nested folders to the parent, and deletes no
+  preset files.
 - **Shareable renames** — Renaming a preset also renames its physical `.preset`
   file.
 - **Preset details** — Manage remains compact until a preset is selected, then
