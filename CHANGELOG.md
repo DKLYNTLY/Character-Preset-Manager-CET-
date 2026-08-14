@@ -14,9 +14,17 @@ grouped into collapsible histories so the page remains easy to scan.
   `sa/Femme Fatale V2`, instead of converting it to breadcrumb arrows.
 - Allows CET's saved window dimensions to persist between game sessions while
   retaining the 420 by 700 default for a first-time window.
-- Renames the safe folder-organization action to Remove Virtual Folder and adds
-  a confirmation that names the destination and states that preset files are
-  not deleted.
+- Renames the safe folder-organization action to Remove Folder, Keep Presets and
+  adds a confirmation that names the destination and states that preset files
+  are not deleted.
+- Relocates recognized presets out of an imported physical folder through the
+  recovery journal, then removes its directory only when no unknown content
+  remains.
+- Places recoverable folder-and-preset Trash directly in Folders and keeps
+  filtered multi-preset deletion under More Trash Options. Imported directories
+  are removed only when folder Trash leaves them empty.
+- Adds bounded, single-file `.cpmfolder` export and import for sharing complete
+  virtual folder trees without requiring undocumented directory-creation calls.
 
 </details>
 
@@ -115,7 +123,7 @@ grouped into collapsible histories so the page remains easy to scan.
   confirmation before any bulk file move.
 - Keeps manual directories intact during folder bulk Trash and reconstructs
   original logical folder paths as presets are restored.
-- Replaces the normal Delete Folder & Presets action with Remove Virtual Folder, which
+- Replaces the normal Delete Folder & Presets action with Remove Folder, Keep Presets, which
   keeps every preset and remaps its organization to the parent folder.
 - Adds backward-compatible format-5 metadata for source, created and modified
   times, optional notes, and optional tags.

@@ -36,9 +36,13 @@ local MAX_CATALOG_BYTES = 8388608
 local MAX_CATALOG_LINES = 32768
 local MAX_TRANSACTION_BYTES = 1048576
 local MAX_TRANSACTION_LINES = 8192
+local MAX_FOLDER_BUNDLE_BYTES = 33554432
+local MAX_FOLDER_BUNDLE_PRESETS = 512
+local FOLDER_BUNDLE_EXTENSION = ".cpmfolder"
 local log
 local readConfig
 local writeConfig
+local cloneMap
 
 local state = {
   overlayOpen = false,
@@ -255,6 +259,32 @@ local function safeDirectoryEntries(path, depth)
   end
   table.sort(validated, function(a, b) return a.name:lower() < b.name:lower() end)
   return validated
+end
+
+local function directoryTreeContainsFiles(path, depth)
+  local entries = safeDirectoryEntries(path, depth)
+  if not entries then return nil end
+  for _, entry in ipairs(entries) do
+    if entry.type == "directory" then
+      local containsFiles = directoryTreeContainsFiles(path .. "/" .. entry.name, depth + 1)
+      if containsFiles == nil or containsFiles then return containsFiles end
+    else
+      return true
+    end
+  end
+  return false
+end
+
+local function removeEmptyDirectoryTree(path, depth)
+  local entries = safeDirectoryEntries(path, depth)
+  if not entries then return false end
+  for _, entry in ipairs(entries) do
+    if entry.type ~= "directory"
+        or not removeEmptyDirectoryTree(path .. "/" .. entry.name, depth + 1) then
+      return false
+    end
+  end
+  return os.remove(path) ~= nil
 end
 
 local function removeLegacyFolderSlots()
@@ -1514,6 +1544,276 @@ local function uniqueFolderCopyName(sourceName)
   return nil
 end
 
+local function validBundlePath(value)
+  if not validRelativePath(value) then return false end
+  for part in value:gmatch("[^/]+") do
+    local validated = validatedPresetName(part)
+    if validated ~= part then return false end
+  end
+  return true
+end
+
+local function hexEncode(value)
+  return (value:gsub(".", function(character)
+    return ("%02X"):format(character:byte())
+  end))
+end
+
+local function hexDecode(value)
+  if #value % 2 ~= 0 or not value:match("^%x+$") then return nil end
+  return (value:gsub("(%x%x)", function(pair)
+    return string.char(tonumber(pair, 16))
+  end))
+end
+
+local function folderBundleFiles()
+  local entries = safeDirectoryEntries(".", 0)
+  if not entries then return {} end
+  local bundles = {}
+  for _, entry in ipairs(entries) do
+    if entry.type == "file"
+        and entry.name:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION then
+      table.insert(bundles, entry.name)
+    end
+  end
+  return bundles
+end
+
+local function uniqueFolderBundleFilename(folder)
+  local stem = "Character Preset Manager Folder - " .. baseName(folder)
+  for index = 1, 999 do
+    local suffix = index == 1 and "" or (" Copy %d"):format(index)
+    local filename = stem .. suffix .. FOLDER_BUNDLE_EXTENSION
+    if not fileExists(filename) and not fileExists(filename .. ".tmp")
+        and not fileExists(filename .. ".bak") then return filename end
+  end
+  return nil
+end
+
+local function exportSelectedFolderBundle()
+  auditSection("EXPORT FOLDER BUNDLE")
+  local folder = state.selectedFolder
+  if folder == "" or not state.folders[folder] then
+    state.folderStatus, state.folderStatusError = "Select a folder to export.", true; return
+  end
+  local names = {}
+  for name in pairs(state.presets) do
+    if isInFolderTree(parentFolder(name), folder) then table.insert(names, name) end
+  end
+  table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  if #names == 0 then
+    state.folderStatus, state.folderStatusError =
+      "The selected folder contains no presets to share.", true; return
+  end
+  if #names > MAX_FOLDER_BUNDLE_PRESETS then
+    state.folderStatus, state.folderStatusError =
+      ("The folder exceeds the %d-preset bundle limit."):format(MAX_FOLDER_BUNDLE_PRESETS), true; return
+  end
+  local lines = { "CPMFOLDER\t1", "ROOT\t" .. catalogEncode(baseName(folder)) }
+  local folders = {}
+  for candidate in pairs(state.folders) do
+    if candidate ~= folder and isInFolderTree(candidate, folder) then
+      table.insert(folders, candidate:sub(#folder + 2))
+    end
+  end
+  table.sort(folders, function(a, b) return a:lower() < b:lower() end)
+  for _, relativeFolder in ipairs(folders) do
+    if not validBundlePath(relativeFolder) then
+      state.folderStatus, state.folderStatusError =
+        "The folder contains an unsafe nested path and cannot be exported.", true; return
+    end
+    table.insert(lines, "F\t" .. catalogEncode(relativeFolder))
+  end
+  local totalBytes = 0
+  for _, name in ipairs(names) do
+    local relativeName = name:sub(#folder + 2)
+    local contents = readBoundedFile(presetPath(name), MAX_PRESET_BYTES)
+    if not contents or not validBundlePath(relativeName) then
+      state.folderStatus, state.folderStatusError =
+        "A preset could not be read safely for export: " .. name, true; return
+    end
+    local line = "P\t" .. catalogEncode(relativeName) .. "\t" .. hexEncode(contents)
+    totalBytes = totalBytes + #line + 1
+    if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
+      state.folderStatus, state.folderStatusError =
+        "The folder bundle would exceed the 32 MB safety limit.", true; return
+    end
+    table.insert(lines, line)
+  end
+  local filename = uniqueFolderBundleFilename(folder)
+  if not filename then
+    state.folderStatus, state.folderStatusError =
+      "A unique folder-bundle filename could not be allocated.", true; return
+  end
+  local wrote = writeLinesIfChanged(filename, lines, "folder bundle", MAX_FOLDER_BUNDLE_BYTES)
+  if not wrote then
+    state.folderStatus, state.folderStatusError = "The folder bundle could not be written.", true; return
+  end
+  state.folderStatus, state.folderStatusError =
+    ("Exported %d preset%s to %s. Share this one file.")
+      :format(#names, #names == 1 and "" or "s", filename), false
+  log(("[FOLDER BUNDLE] Exported folder='%s' presets=%d file='%s'.")
+    :format(folder, #names, filename), "complete")
+end
+
+local function readFolderBundle(filename)
+  local contents, readError = readBoundedFile(filename, MAX_FOLDER_BUNDLE_BYTES)
+  if not contents then return nil, "Bundle could not be read: " .. tostring(readError) end
+  local bundle = { folders = {}, folderNames = {}, presets = {}, presetNames = {} }
+  local lineNumber = 0
+  for line in (contents .. "\n"):gmatch("(.-)\n") do
+    line = line:gsub("\r$", "")
+    if line ~= "" then
+      lineNumber = lineNumber + 1
+      if lineNumber == 1 then
+        if line ~= "CPMFOLDER\t1" then return nil, "Bundle header is invalid." end
+      else
+        local root = line:match("^ROOT\t([^\t]+)$")
+        local folder = line:match("^F\t([^\t]+)$")
+        local name, encoded = line:match("^P\t([^\t]+)\t([%x]+)$")
+        if root then
+          root = catalogDecode(root)
+          if bundle.root or not validBundlePath(root) or parentFolder(root) ~= "" then
+            return nil, "Bundle root is invalid."
+          end
+          bundle.root = root
+        elseif folder then
+          folder = catalogDecode(folder)
+          if not validBundlePath(folder) then return nil, "Bundle folder path is invalid." end
+          if bundle.folderNames[folder:lower()] then
+            return nil, "Bundle contains duplicate folder paths."
+          end
+          bundle.folderNames[folder:lower()] = true
+          bundle.folders[folder] = true
+        elseif name then
+          name = catalogDecode(name)
+          local raw = hexDecode(encoded)
+          if not raw or not validBundlePath(name) or #raw > MAX_PRESET_BYTES
+              or #bundle.presets >= MAX_FOLDER_BUNDLE_PRESETS then
+            return nil, "Bundle preset entry is invalid."
+          end
+          if bundle.presetNames[name:lower()] then
+            return nil, "Bundle contains duplicate preset paths."
+          end
+          bundle.presetNames[name:lower()] = true
+          table.insert(bundle.presets, { name = name, contents = raw })
+        else
+          return nil, ("Bundle line %d is invalid."):format(lineNumber)
+        end
+      end
+    end
+  end
+  if not bundle.root or #bundle.presets == 0 then return nil, "Bundle is empty or incomplete." end
+  return bundle
+end
+
+local function writeRawPreset(path, contents)
+  return atomicReplace(path, function(temporary)
+    local file = io.open(temporary, "wb")
+    if not file then return false end
+    local wrote, writeResult = pcall(function()
+      return file:write(contents) ~= nil and file:flush() ~= nil
+    end)
+    local closeOk, closeResult = pcall(file.close, file)
+    return wrote and writeResult == true and closeOk and closeResult ~= nil
+  end, "imported folder preset")
+end
+
+local function importFolderBundle(filename)
+  local bundle, bundleError = readFolderBundle(filename)
+  if not bundle then return nil, bundleError end
+  local root = bundle.root
+  if folderNameExists(root) then root = uniqueFolderCopyName(root) end
+  if not root then return nil, "A unique imported folder name could not be allocated." end
+  local newPresets = cloneMap(state.presets)
+  local newFolders = cloneMap(state.folders)
+  local newManualFolders = cloneMap(state.manualFolders)
+  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  addFolderAncestors(newFolders, root)
+  for folder in pairs(bundle.folders) do
+    addFolderAncestors(newFolders, joinFolder(root, folder))
+  end
+  local reservedStorage = storageFilenamesInUse()
+  if not reservedStorage then return nil, "Preset storage could not be inspected safely." end
+  local createdFiles = {}
+  for _, item in ipairs(bundle.presets) do
+    local logicalName = joinFolder(root, item.name)
+    if findPresetCollision(logicalName) then
+      removeFileList(createdFiles)
+      return nil, "An imported preset name would collide with an existing preset."
+    end
+    local storage = uniqueStorageName(baseName(logicalName), reservedStorage)
+    if not storage then
+      removeFileList(createdFiles)
+      return nil, "A safe imported preset filename could not be allocated."
+    end
+    local path = PRESET_DIR .. "/" .. storage .. ".preset"
+    if not writeRawPreset(path, item.contents) then
+      removeFileList(createdFiles)
+      return nil, "An imported preset file could not be written."
+    end
+    table.insert(createdFiles, path)
+    local preset = readPresetFile(path)
+    if not preset then
+      removeFileList(createdFiles)
+      return nil, "An imported preset failed verification."
+    end
+    preset.storage = storage
+    newPresets[logicalName] = preset
+  end
+  if not writeCatalog(newPresets, newFolders, newManualFolders, newIgnored) then
+    removeFileList(createdFiles)
+    return nil, "The imported folder was rolled back because the catalog could not be saved."
+  end
+  state.presets, state.folders = newPresets, newFolders
+  state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
+  state.selectedFolder = root
+  invalidateViewCache()
+  resetLoadState()
+  cancelConfirmations()
+  local inventorySaved = writeInventory(newPresets, newFolders)
+  local archiveName = filename .. ".imported"
+  for index = 2, 999 do
+    if not fileExists(archiveName) then break end
+    archiveName = filename .. (".imported %d"):format(index)
+  end
+  local archived = not fileExists(archiveName) and os.rename(filename, archiveName) ~= nil
+  log(("[FOLDER BUNDLE] Imported file='%s' root='%s' presets=%d archived=%s inventory=%s.")
+    :format(filename, root, #bundle.presets, tostring(archived), tostring(inventorySaved)),
+    inventorySaved and archived and "complete" or "warn")
+  return root, (inventorySaved and "" or " Inventory refresh failed.") ..
+    (archived and "" or " Rename or remove the bundle before importing again.")
+end
+
+local function importAvailableFolderBundles()
+  auditSection("IMPORT FOLDER BUNDLES")
+  local files = folderBundleFiles()
+  if #files == 0 then
+    state.folderStatus, state.folderStatusError =
+      "Place a .cpmfolder file beside init.lua, then select Import Folder Bundles.", true; return
+  end
+  local imported, failures, warnings = 0, {}, {}
+  for _, filename in ipairs(files) do
+    local root, result = importFolderBundle(filename)
+    if root then
+      imported = imported + 1
+      if result ~= "" then table.insert(warnings, filename .. ":" .. result) end
+    else
+      table.insert(failures, filename .. ": " .. tostring(result))
+    end
+  end
+  if #failures > 0 then
+    state.folderStatus = ("Imported %d bundle%s. Failed: %s")
+      :format(imported, imported == 1 and "" or "s", table.concat(failures, " | "))
+    state.folderStatusError = true
+  else
+    state.folderStatus = ("Imported %d folder bundle%s.%s")
+      :format(imported, imported == 1 and "" or "s",
+        #warnings > 0 and (" " .. table.concat(warnings, " | ")) or "")
+    state.folderStatusError = false
+  end
+end
+
 local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
     recoveryManualFolders)
   local currentPresets = state.presets or {}
@@ -2573,7 +2873,7 @@ local function trashPreset()
   end
 end
 
-local function cloneMap(source)
+cloneMap = function(source)
   local copy = {}
   for key, value in pairs(source or {}) do copy[key] = value end
   return copy
@@ -2874,6 +3174,7 @@ local function bulkTrashFingerprint(names, folder)
 end
 
 local function moveBulkPresetsToTrash(names, folder)
+  local physicalFolderWasImported = folder and state.manualFolders[folder] == true
   local reserved, plans = {}, {}
   for _, name in ipairs(names) do
     local preset = state.presets[name]
@@ -3014,10 +3315,18 @@ local function moveBulkPresetsToTrash(names, folder)
   resetLoadState()
   cancelConfirmations()
   local inventorySaved = writeInventory(newPresets, newFolders)
+  local physicalFolderRemoved = false
+  if physicalFolderWasImported
+      and directoryTreeContainsFiles(folderPath(folder), 0) == false then
+    physicalFolderRemoved = removeEmptyDirectoryTree(folderPath(folder), 0)
+  end
   setStatus("bulk", (folder
-    and ("Moved folder \"%s\" and %d preset%s to recoverable Trash; removed %d nested folder entr%s. Restoring presets rebuilds their folder paths.")
+    and ("Moved folder \"%s\" and %d preset%s to recoverable Trash; removed %d nested folder entr%s. Restoring presets rebuilds their folder paths.%s")
       :format(folder, #names, #names == 1 and "" or "s", nestedFolderCount,
-        nestedFolderCount == 1 and "y" or "ies")
+        nestedFolderCount == 1 and "y" or "ies",
+        physicalFolderWasImported and (physicalFolderRemoved
+          and " Its empty physical directory was removed."
+          or " Its physical directory was kept because other content remains or it could not be removed safely.") or "")
     or ("Moved %d preset%s to recoverable Trash.")
       :format(#names, #names == 1 and "" or "s")) ..
     (inventorySaved and "" or " The inventory could not be updated."), false,
@@ -3028,7 +3337,7 @@ end
 local function requestBulkTrash(names, folder)
   if #names == 0 then
     setStatus("bulk", folder
-      and "The selected folder contains no presets. Use Remove Virtual Folder."
+      and "The selected folder contains no presets. Use Remove Folder, Keep Presets."
       or "Select at least one preset for the bulk action.", true)
     return
   end
@@ -3040,7 +3349,7 @@ local function requestBulkTrash(names, folder)
     state.pendingBulkAction = action
     state.pendingBulkFingerprint = fingerprint
     setStatus("bulk", folder
-      and ("Move folder \"%s\" and %d preset%s to recoverable Trash? Select Confirm Folder Trash.")
+      and ("Move folder \"%s\" and %d preset%s to recoverable Trash? Select Confirm Move Folder & Presets to Trash.")
         :format(folder, #names, #names == 1 and "" or "s")
       or ("Move %d selected preset%s to recoverable Trash? Select Confirm Bulk Trash.")
         :format(#names, #names == 1 and "" or "s"))
@@ -3443,14 +3752,16 @@ local function duplicateFolder()
 end
 
 local function removeVirtualFolder()
+  auditSection("REMOVE VIRTUAL FOLDER")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
     state.folderStatus, state.folderStatusError = "Select a folder to remove.", true; return
   end
   local destinationParent = parentFolder(folder)
+  local wasManualFolder = state.manualFolders[folder] == true
   if state.pendingRemoveFolder ~= folder then
     state.pendingRemoveFolder = folder
-    state.folderStatus = ("Remove virtual folder \"%s\"? Its presets and nested folders will move to %s. No preset files will be deleted. Select Confirm Remove Virtual Folder.")
+    state.folderStatus = ("Remove folder \"%s\" and keep its presets? Its presets and nested folders will move to %s. No preset files will be deleted. Select Confirm Remove Folder, Keep Presets.")
       :format(folder, destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\""))
     state.folderStatusError = false
     return
@@ -3493,9 +3804,84 @@ local function removeVirtualFolder()
       newIgnored[candidate] = true
     end
   end
-  if not persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored) then
+  local relocationPlans = {}
+  if wasManualFolder then
+    local reservedStorage = storageFilenamesInUse()
+    if not reservedStorage then
+      state.folderStatus, state.folderStatusError =
+        "The imported folder could not be inspected safely.", true; return
+    end
+    for logicalName, preset in pairs(state.presets) do
+      local storageFolder = parentFolder(preset.storage or "")
+      if storageFolder ~= "" and isInFolderTree(storageFolder, folder) then
+        local destinationStorage = uniqueStorageName(baseName(preset.storage), reservedStorage)
+        if not destinationStorage then
+          state.folderStatus, state.folderStatusError =
+            "A safe destination filename could not be allocated for an imported preset.", true; return
+        end
+        table.insert(relocationPlans, {
+          storage = preset.storage,
+          destinationStorage = destinationStorage,
+          name = logicalName,
+          preset = preset,
+        })
+      end
+    end
+  end
+  table.sort(relocationPlans, function(a, b)
+    return a.storage:lower() < b.storage:lower()
+  end)
+  if #relocationPlans > 0
+      and not writeTransaction("prepared", "rename", relocationPlans) then
     state.folderStatus, state.folderStatusError =
-      "The folder could not be removed because the catalog could not be saved.", true; return
+      "The imported-folder recovery journal could not be created.", true; return
+  end
+  local movedPlans = {}
+  for _, plan in ipairs(relocationPlans) do
+    local sourcePath = PRESET_DIR .. "/" .. plan.storage .. ".preset"
+    local destinationPath = PRESET_DIR .. "/" .. plan.destinationStorage .. ".preset"
+    if not fileExists(sourcePath) or fileExists(destinationPath)
+        or not os.rename(sourcePath, destinationPath) then
+      local rolledBack = true
+      for index = #movedPlans, 1, -1 do
+        local moved = movedPlans[index]
+        local movedPath = PRESET_DIR .. "/" .. moved.destinationStorage .. ".preset"
+        local originalPath = PRESET_DIR .. "/" .. moved.storage .. ".preset"
+        if not os.rename(movedPath, originalPath) then rolledBack = false end
+      end
+      if rolledBack then os.remove(TRANSACTION_FILE) end
+      state.folderStatus, state.folderStatusError = rolledBack
+        and "The imported folder was unchanged because a preset file could not be relocated."
+        or "Preset relocation failed and could not be fully rolled back; startup recovery will retry it.", true
+      return
+    end
+    table.insert(movedPlans, plan)
+  end
+  for _, plan in ipairs(relocationPlans) do
+    plan.preset.storage = plan.destinationStorage
+  end
+  local persisted = persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored)
+  local transactionCompleted = persisted and (#relocationPlans == 0
+    or completeTransaction("rename", relocationPlans))
+  if not transactionCompleted then
+    for _, plan in ipairs(relocationPlans) do plan.preset.storage = plan.storage end
+    local rolledBack = true
+    for index = #relocationPlans, 1, -1 do
+      local plan = relocationPlans[index]
+      local destinationPath = PRESET_DIR .. "/" .. plan.destinationStorage .. ".preset"
+      local sourcePath = PRESET_DIR .. "/" .. plan.storage .. ".preset"
+      if fileExists(destinationPath) and not os.rename(destinationPath, sourcePath) then
+        rolledBack = false
+      end
+    end
+    persistVirtualState(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders)
+    if rolledBack then os.remove(TRANSACTION_FILE) end
+    state.folderStatus, state.folderStatusError =
+      rolledBack
+        and "The folder removal was rolled back because its catalog or recovery journal could not be finalized."
+        or "Folder removal could not be finalized or rolled back; startup recovery will retry it.", true
+    return
   end
   local selectedPreset = state.selected
   if selectedPreset and isInFolderTree(parentFolder(selectedPreset), folder) then
@@ -3507,8 +3893,19 @@ local function removeVirtualFolder()
   invalidateViewCache()
   cancelConfirmations()
   resetLoadState()
+  local physicalFolderRemoved = false
+  if wasManualFolder
+      and directoryTreeContainsFiles(folderPath(folder), 0) == false then
+    physicalFolderRemoved = removeEmptyDirectoryTree(folderPath(folder), 0)
+  end
   state.folderStatus, state.folderStatusError =
-    "Removed virtual folder \"" .. folder .. "\" and kept all preset files.", false
+    "Removed folder \"" .. folder .. "\", kept all presets, and moved them to " ..
+      (destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\"")) ..
+      (wasManualFolder
+        and (physicalFolderRemoved
+          and ". Its empty physical directory was also removed."
+          or ". Its physical directory was kept because other content remains or it could not be removed safely.")
+        or "."), false
 end
 
 local function refreshEditorState()
@@ -3737,7 +4134,9 @@ local function isFolderSuccess(text)
   return text:find("^Created virtual folder ") ~= nil
     or text:find("^Renamed virtual folder ") ~= nil
     or text:find("^Duplicated virtual folder ") ~= nil
-    or text:find("^Removed virtual folder ") ~= nil
+    or text:find("^Removed folder ") ~= nil
+    or text:find("^Exported ") ~= nil
+    or text:find("^Imported ") ~= nil
     or text:find("^Moved ") ~= nil
 end
 
@@ -4027,36 +4426,6 @@ local function drawDiscoveryHudNotice()
 end
 
 local function drawBulkTrashOptions(actionButtonHeight, statusHeight)
-  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Move selected folder to Trash")
-  ImGui.TextWrapped("Folder: " .. breadcrumb(state.selectedFolder))
-  local folderBulkNames = state.selectedFolder ~= ""
-    and bulkPresetNamesInFolder(state.selectedFolder) or {}
-  local nestedFolderCount = state.selectedFolder ~= ""
-    and state.cachedBulkNestedFolderCount or 0
-  ImGui.TextDisabled(("%d preset%s and %d nested folder%s affected. Manual directories stay in place.")
-    :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s",
-      nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
-  local folderBulkUnavailable = state.selectedFolder == "" or #folderBulkNames == 0
-  if folderBulkUnavailable then ImGui.BeginDisabled() end
-  local folderAction = "folder:" .. tostring(state.selectedFolder)
-  local folderTrashLabel = state.pendingBulkAction == folderAction
-    and "Confirm Folder Trash"
-    or ("Move Folder and %d Preset%s to Trash")
-      :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s")
-  if dangerButton(folderTrashLabel .. "##bulkFolderTrash",
-      ImGui.GetContentRegionAvail(), actionButtonHeight) then
-    requestBulkTrash(folderBulkNames, state.selectedFolder)
-  end
-  if folderBulkUnavailable then ImGui.EndDisabled() end
-  if folderBulkUnavailable then
-    ImGui.TextDisabled(state.selectedFolder == ""
-      and "Select a folder under Folders to enable folder Trash."
-      or "This folder has no presets; use Remove Virtual Folder.")
-  end
-
-  ImGui.Spacing()
-  ImGui.Separator()
-  ImGui.Spacing()
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
   ImGui.PushItemWidth(-1)
   local previousSearchText = state.searchText
@@ -4291,13 +4660,14 @@ local function draw()
       helpHeading("Rename, Copy, or Trash")
       ImGui.TextWrapped("Select a preset or folder before using its rename or copy action. Trash actions are grouped under Trash & Recovery.")
       ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
-      ImGui.TextWrapped("Remove Virtual Folder deletes only its organization entry after confirmation. Its presets and nested folders move to the parent, and no preset files are deleted. Moving a preset to Trash keeps it recoverable until Trash is emptied permanently.")
+      ImGui.TextWrapped("Remove Folder, Keep Presets moves its presets and nested folders to the parent after confirmation. An imported disk directory is removed only when nothing else remains inside it.")
+      ImGui.TextWrapped("Export Folder for Sharing creates one .cpmfolder bundle beside init.lua. To import one, place it there, select All Presets under Folders, and select Import Folder Bundles.")
 
       helpHeading("Trash and Recovery")
-      ImGui.TextWrapped("Move one selected preset to Trash, or open More Trash Options to move a selected folder or several presets. These actions require confirmation. Manual directories remain in place. Restore Folder recovers the complete logical tree, including empty nested folders.")
+      ImGui.TextWrapped("Move one selected preset to Trash, move a selected folder and its presets from Folders, or open More Trash Options for several presets. These actions require confirmation. Restore Folder recovers the complete logical tree, including empty nested folders.")
 
       helpHeading("Import and Share")
-      ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy a .preset file to share it.")
+      ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy one .preset file to share one appearance, or use Export Folder for Sharing to create one portable .cpmfolder bundle.")
       ImGui.TextWrapped("Virtual folder assignments are local and are not embedded in shared preset files. New imports follow the manual directory where they are placed.")
       ImGui.TextWrapped("Select Refresh under Load after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
       pathCallout("##presetFolderPath", "Preset Folder",
@@ -4607,12 +4977,32 @@ local function draw()
         and "Select a preset under Load before moving it."
         or "The selected preset is already in this destination.")
       end
+      if fullWidthButton("Export Folder for Sharing", actionButtonHeight) then
+        exportSelectedFolderBundle()
+      end
       local removeFolderLabel = state.pendingRemoveFolder == state.selectedFolder
-        and "Confirm Remove Virtual Folder"
-        or "Remove Virtual Folder"
+        and "Confirm Remove Folder, Keep Presets"
+        or "Remove Folder, Keep Presets"
       if fullWidthButton(removeFolderLabel .. "##removeFolder", actionButtonHeight) then
         removeVirtualFolder()
       end
+      local folderBulkNames = bulkPresetNamesInFolder(state.selectedFolder)
+      local nestedFolderCount = state.cachedBulkNestedFolderCount or 0
+      local folderAction = "folder:" .. state.selectedFolder
+      local folderTrashUnavailable = #folderBulkNames == 0
+      if folderTrashUnavailable then ImGui.BeginDisabled() end
+      local folderTrashLabel = state.pendingBulkAction == folderAction
+        and "Confirm Move Folder & Presets to Trash"
+        or ("Move Folder & %d Preset%s to Trash")
+          :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s")
+      if dangerButton(folderTrashLabel .. "##folderTrash",
+          ImGui.GetContentRegionAvail(), actionButtonHeight) then
+        requestBulkTrash(folderBulkNames, state.selectedFolder)
+      end
+      if folderTrashUnavailable then ImGui.EndDisabled() end
+      ImGui.TextDisabled(("Folder Trash includes %d nested folder%s and remains recoverable.")
+        :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
+      drawSectionStatus("bulk", "##folderBulkStatus", isBulkSuccess, statusHeight)
     else
       local rootMoveUnavailable = not state.selected or parentFolder(state.selected) == ""
       if rootMoveUnavailable then ImGui.BeginDisabled() end
@@ -4622,6 +5012,10 @@ local function draw()
         and "Select a preset under Load before moving it."
         or "The selected preset is already in All Presets.")
       end
+      if fullWidthButton("Import Folder Bundles", actionButtonHeight) then
+        importAvailableFolderBundles()
+      end
+      ImGui.TextDisabled("Place .cpmfolder files beside init.lua before importing.")
     end
     if state.folderStatus ~= "" then
       if state.lastLoggedFolderStatus ~= state.folderStatus then

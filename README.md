@@ -42,7 +42,8 @@
 - **Recoverable Trash** — Move presets, folder groups, or multi-selections to
   Trash with confirmation.
 - **ACU preset import** — Import supported ACU-format presets without running ACU.
-- **Easy sharing** — Share appearances as individual `.preset` files.
+- **Easy sharing** — Share one appearance as a `.preset` file or a complete
+  virtual folder tree as one `.cpmfolder` bundle.
 - **Activity log** — Review actions, warnings, and errors inside CET.
 
 </details>
@@ -166,9 +167,12 @@ required.
   as `Copy` and `Copy 2`.
 - **Complete folder copies** — Duplicating a virtual folder includes its presets
   and nested folders.
-- **Remove Virtual Folder** — After confirmation, removes only the organization
-  entry, moves its presets and nested folders to the parent, and deletes no
-  preset files.
+- **Remove Folder, Keep Presets** — After confirmation, moves its presets and
+  nested folders to the parent. Imported preset files are relocated safely, and
+  the physical directory is removed only if nothing else remains inside it.
+- **Folder sharing** — Export a virtual folder and all of its nested presets as
+  one `.cpmfolder` bundle. Another player can place it beside `init.lua` and
+  import it under **Folders → All Presets → Import Folder Bundles**.
 - **Shareable renames** — Renaming a preset also renames its physical `.preset`
   file.
 - **Preset details** — Manage remains compact until a preset is selected, then
@@ -200,10 +204,12 @@ physical locations.
 ### Trash and recovery
 
 - Moving a selected preset to Trash keeps it recoverable.
-- **More Trash Options** can move a selected folder or a filtered
-  multi-selection to Trash after confirmation.
+- A selected folder and all of its presets can be moved to Trash directly under
+  **Folders**. **More Trash Options** handles filtered multi-selection.
 - **Select All Visible** and **Clear Selection** help manage filtered results.
-- Folder Trash removes the virtual tree but leaves manual directories in place.
+- Folder Trash removes the logical tree and keeps all presets recoverable.
+  An imported physical directory is removed when it becomes empty; unknown
+  content keeps the directory in place and is never deleted.
 - **Restore Folder** rebuilds presets, imported identity, and empty nested
   folders together. Individual presets may also be restored separately.
 - Only **Empty Trash Permanently** destroys trashed preset files.
