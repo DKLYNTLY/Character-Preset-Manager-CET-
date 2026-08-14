@@ -36,6 +36,10 @@ grouped into collapsible histories so the page remains easy to scan.
 - Fixes CET rejecting the mod at startup after folder sharing pushed the main
   Lua chunk past LuaJIT's 200-local limit. Bundle helpers are now scoped and UI
   status checks are consolidated without removing any features.
+- Wraps long muted folder guidance and selected-preset details so narrow CET
+  windows show the complete text instead of clipping it.
+- Keeps the customization reminder enabled on a clean install; the existing
+  successful-save/load auto-disable behavior and Settings control remain intact.
 
 </details>
 

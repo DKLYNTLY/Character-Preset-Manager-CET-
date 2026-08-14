@@ -4246,7 +4246,8 @@ local function drawDebugPanel(height)
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
       :format(state.editorInputCount, state.editorControllerCaptureCount,
         state.editorPauseRedirectCount, state.editorPuppetReadyCount))
-    ImGui.TextDisabled("After one successful input launch, all four values should be at least 1.")
+    coloredWrapped(0.64, 0.67, 0.73, 1.0,
+      "After one successful input launch, all four values should be at least 1.")
   end
   ImGui.TextColored(0.3, 1.0, 0.4, 1.0, "Green = complete")
   ImGui.SameLine()
@@ -4333,7 +4334,8 @@ local function drawBindingHelp(label, slug, receivedCount)
       ("CET input detected %d time%s this session.")
         :format(receivedCount, receivedCount == 1 and "" or "s"))
   else
-    ImGui.TextDisabled("Assigned key unavailable; view it in CET Bindings.")
+      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+        "Assigned key unavailable; view it in CET Bindings.")
   end
 end
 
@@ -4621,7 +4623,9 @@ local function draw()
           state.settingsStatus = "Config could not be reloaded."
         end
       end
-      if state.settingsStatus ~= "" then ImGui.TextDisabled(state.settingsStatus) end
+      if state.settingsStatus ~= "" then
+        coloredWrapped(0.64, 0.67, 0.73, 1.0, state.settingsStatus)
+      end
       ImGui.EndChild()
     end
     if state.debugOpen then
@@ -4705,7 +4709,8 @@ local function draw()
       ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
       ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. Every bundle found there is processed.")
       ImGui.TextWrapped("After a successful import, the bundle is renamed with .imported so it cannot import twice accidentally. Existing folder names receive a safe Copy name; failed bundles remain unchanged.")
-      ImGui.TextDisabled("Older bundles placed beside init.lua are also accepted.")
+      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+        "Older bundles placed beside init.lua are also accepted.")
 
       helpHeading("Settings and Config")
       ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder disables itself after the first successful save or fully completed load and can be enabled again here.")
@@ -4842,10 +4847,12 @@ local function draw()
     if state.selected and state.presets[state.selected] then
       local preset = state.presets[state.selected]
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, baseName(state.selected))
-      ImGui.TextDisabled(("Folder: %s  |  Options: %d  |  Format: %s")
+      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+        ("Folder: %s  |  Options: %d  |  Format: %s")
         :format(breadcrumb(parentFolder(state.selected)), #(preset.entries or {}),
           tostring(preset.format or 4)))
-      ImGui.TextDisabled(("Source: %s  |  Modified: %s")
+      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+        ("Source: %s  |  Modified: %s")
         :format(tostring(preset.source or "Legacy or ACU-compatible"),
           tostring(preset.modified or "Unknown")))
       if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
@@ -4959,7 +4966,8 @@ local function draw()
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Select how new or moved presets are organized")
     ImGui.TextWrapped("Selected destination: " .. breadcrumb(state.selectedFolder))
-    ImGui.TextDisabled("Virtual folders have no packaged slot limit. Imported folders come from File Explorer.")
+    coloredWrapped(0.64, 0.67, 0.73, 1.0,
+      "Virtual folders have no packaged slot limit. Imported folders come from File Explorer.")
     ImGui.Spacing()
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
     if ImGui.Selectable("All Presets (root)##rootFolder", state.selectedFolder == "")
@@ -5031,8 +5039,9 @@ local function draw()
         requestBulkTrash(folderBulkNames, state.selectedFolder)
       end
       if folderTrashUnavailable then ImGui.EndDisabled() end
-      ImGui.TextDisabled(("Folder Trash includes %d nested folder%s and remains recoverable.")
-        :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
+      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+        ("Folder Trash includes %d nested folder%s and remains recoverable.")
+          :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
       drawSectionStatus("bulk", "##folderBulkStatus", statusSuccess.bulk, statusHeight)
     else
       local rootMoveUnavailable = not state.selected or parentFolder(state.selected) == ""
@@ -5046,7 +5055,8 @@ local function draw()
       if fullWidthButton("Import Folder Bundles", actionButtonHeight) then
         importAvailableFolderBundles()
       end
-      ImGui.TextDisabled("Place .cpmfolder files in Character Presets. Every bundle found there will be processed.")
+      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+        "Place .cpmfolder files in Character Presets. Every bundle found there will be processed.")
     end
     if state.folderStatus ~= "" then
       if state.lastLoggedFolderStatus ~= state.folderStatus then
@@ -5060,7 +5070,8 @@ local function draw()
 
     if collapsibleSectionHeader("MANAGE", "manage") then
       if not state.selected or not state.presets[state.selected] then
-        ImGui.TextDisabled("Select a preset under Load to rename, duplicate, or edit its details.")
+        coloredWrapped(0.64, 0.67, 0.73, 1.0,
+          "Select a preset under Load to rename, duplicate, or edit its details.")
       else
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")

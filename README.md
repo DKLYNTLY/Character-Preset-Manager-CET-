@@ -127,8 +127,9 @@ changed. Fix the appearance and save the preset again.
 Settings includes:
 
 - **Customization Reminder: Enabled/Disabled:** Shows the current state. Select
-  it to switch the reminder on or off. It disables itself after the first
-  successful preset save or fully completed load, and can be enabled again here.
+  it to switch the reminder on or off. It starts enabled on a clean install,
+  disables itself after the first successful preset save or fully completed
+  load, and can be enabled again here.
 - **Preset Sort:** Sort alphabetically by name or by newest modified metadata.
 - **Reload Config from Disk:** Applies manual config edits without restarting.
 
