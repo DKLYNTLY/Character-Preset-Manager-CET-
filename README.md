@@ -10,7 +10,7 @@
   <a href="CHANGELOG.md">Complete changelog</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.0</strong></p>
+<p align="center"><strong>Current version: 3.0.1</strong></p>
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -78,11 +78,11 @@ it falls back to detecting whether the input was used during the current session
 
 ### Upgrading from version 1.0.x
 
-Do not install version 3.0.0 directly over a 1.0.x installation.
+Do not install version 3.0.1 directly over a 1.0.x installation.
 
 1. Back up your `.preset` files outside the mod folder.
 2. Delete `mods/Preset Manager (CET)`.
-3. Install version 3.0.0 normally.
+3. Install version 3.0.1 normally.
 4. Move your presets into
    `mods/Character Preset Manager (CET)/Character Presets`.
 5. Launch the game and open CET.

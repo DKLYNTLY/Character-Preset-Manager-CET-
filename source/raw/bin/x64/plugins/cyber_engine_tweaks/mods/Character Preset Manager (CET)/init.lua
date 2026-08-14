@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "3.0.0"
+local VERSION = "3.0.1"
 local PRESET_DIR = "Character Presets"
 local TRASH_DIR_NAME = ".Character Preset Manager Trash"
 local TRASH_DIR = PRESET_DIR .. "/" .. TRASH_DIR_NAME
@@ -135,7 +135,6 @@ local state = {
   newGameCharacterCreator = false,
   wardrobeTemporarilyDisabled = false,
   initialWindowPlacementPending = true,
-  initialWindowSizePending = true,
   discoveryNoticePending = false,
   discoveryNoticeIgnored = false,
   discoveryNoticeLayout = nil,
@@ -4124,10 +4123,8 @@ local function draw()
       and ImGuiCond.Always or ImGuiCond.FirstUseEver
     ImGui.SetNextWindowPos(initialX, 40, positionCondition)
   end
-  ImGui.SetNextWindowSize(420, 700,
-    state.initialWindowSizePending and ImGuiCond.Always or ImGuiCond.FirstUseEver)
+  ImGui.SetNextWindowSize(420, 700, ImGuiCond.FirstUseEver)
   local visible = ImGui.Begin("Character Preset Manager (CET)##CPM2")
-  state.initialWindowSizePending = false
   if state.initialWindowPlacementPending and initialX then
     state.initialWindowPlacementPending = false
     log(("[UI] Initial window position forced to the right: displayWidth=%s x=%s y=40.")
@@ -4628,7 +4625,7 @@ local function draw()
       else
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")
-        ImGui.TextWrapped(breadcrumb(state.selected))
+        ImGui.TextWrapped(state.selected)
         ImGui.Spacing()
         ImGui.PushItemWidth(-1)
         state.renameName = ImGui.InputTextWithHint(

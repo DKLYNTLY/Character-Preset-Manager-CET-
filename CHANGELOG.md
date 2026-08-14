@@ -4,7 +4,21 @@ The newest release is separated into clear categories. Older releases are
 grouped into collapsible histories so the page remains easy to scan.
 
 <details open>
-<summary><strong>Latest release — 3.0.0</strong></summary>
+<summary><strong>Latest release — 3.0.1</strong></summary>
+
+## 3.0.1
+
+*Interface persistence and path-display correction.*
+
+- Displays a selected preset's complete slash-qualified path, such as
+  `sa/Femme Fatale V2`, instead of converting it to breadcrumb arrows.
+- Allows CET's saved window dimensions to persist between game sessions while
+  retaining the 420 by 700 default for a first-time window.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.0</strong></summary>
 
 ## 3.0.0
 
