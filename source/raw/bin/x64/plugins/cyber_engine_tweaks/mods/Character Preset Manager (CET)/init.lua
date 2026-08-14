@@ -59,6 +59,7 @@ local state = {
     create = true,
     folders = false,
     manage = false,
+    bulk = false,
     trash = false,
   },
   selectedFolder = "",
@@ -75,6 +76,8 @@ local state = {
   renameStatusError = false,
   deleteStatus = "",
   deleteStatusError = false,
+  bulkStatus = "",
+  bulkStatusError = false,
   loadPresetName = nil,
   loadPass = 0,
   loadRemaining = 0,
@@ -105,6 +108,9 @@ local state = {
   preflight = nil,
   trash = {},
   pendingEmptyTrash = false,
+  bulkSelected = {},
+  pendingBulkAction = nil,
+  pendingBulkFingerprint = nil,
   sortMode = "name",
   resetBeforeLoad = false,
   activeBodyMorphMenu = nil,
@@ -141,7 +147,7 @@ local state = {
   statusSnapshots = {},
 }
 
-local STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete" }
+local STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete", "bulk" }
 
 local function fileExists(path)
   local file = io.open(path, "rb")
@@ -183,6 +189,8 @@ local function cancelConfirmations()
   state.pendingDeleteName = nil
   state.pendingDeleteFingerprint = nil
   state.pendingEmptyTrash = false
+  state.pendingBulkAction = nil
+  state.pendingBulkFingerprint = nil
 end
 
 local function resetLoadState()
@@ -426,6 +434,7 @@ local function statusShouldRemain(section, text)
     return state.pendingEmptyTrash == true or state.pendingDeleteName ~= nil
       and state.pendingDeleteName == state.selected
   end
+  if section == "bulk" then return state.pendingBulkAction ~= nil end
   return false
 end
 
@@ -1562,6 +1571,9 @@ local function refreshPresets(scanReason)
     resetLoadState()
     cancelConfirmations()
   end
+  for name in pairs(state.bulkSelected) do
+    if not presets[name] then state.bulkSelected[name] = nil end
+  end
   local count = 0
   for _ in pairs(presets) do count = count + 1 end
   log(("[FILES] Scanned '%s': %d readable preset file%s found (reason=%s).")
@@ -2098,12 +2110,13 @@ local function refreshTrash()
   writeTrashCatalog(trash)
 end
 
-local function uniqueTrashFilename(name)
+local function uniqueTrashFilename(name, reserved)
   local leaf = sanitizeName(baseName(name))
   for index = 1, 9999 do
     local suffix = index == 1 and "" or (" %d"):format(index)
     local candidate = leaf:sub(1, 64 - #suffix) .. suffix .. ".preset"
-    if not state.trash[candidate] and not fileExists(TRASH_DIR .. "/" .. candidate) then
+    if not state.trash[candidate] and not (reserved or {})[candidate]
+        and not fileExists(TRASH_DIR .. "/" .. candidate) then
       return candidate
     end
   end
@@ -2271,6 +2284,184 @@ local function emptyTrash()
   else
     setStatus("delete", "Trash emptied permanently.")
   end
+end
+
+local function bulkPresetNamesInFolder(folder)
+  local names = {}
+  for name in pairs(state.presets) do
+    if isInFolderTree(parentFolder(name), folder) then table.insert(names, name) end
+  end
+  table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  return names
+end
+
+local function selectedBulkPresetNames()
+  local names = {}
+  for name in pairs(state.bulkSelected) do
+    if state.presets[name] then table.insert(names, name) end
+  end
+  table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  return names
+end
+
+local function bulkTrashFingerprint(names, folder)
+  local parts = { "folder:" .. tostring(folder or "") }
+  for _, name in ipairs(names) do
+    local preset = state.presets[name]
+    if not preset then return nil, "A selected preset is no longer available." end
+    local fingerprint = fileFingerprint(presetPath(name))
+    if not fingerprint then
+      return nil, ("The preset \"%s\" could not be verified safely."):format(name)
+    end
+    table.insert(parts, "preset:" .. name .. ":" .. fingerprint)
+  end
+  if folder then
+    for candidate in pairs(state.folders) do
+      if isInFolderTree(candidate, folder) then table.insert(parts, "folder:" .. candidate) end
+    end
+  end
+  table.sort(parts)
+  return table.concat(parts, "\30")
+end
+
+local function moveBulkPresetsToTrash(names, folder)
+  local reserved, plans = {}, {}
+  for _, name in ipairs(names) do
+    local preset = state.presets[name]
+    local trashFilename = uniqueTrashFilename(name, reserved)
+    if not preset or not trashFilename then
+      setStatus("bulk", "A safe Trash filename could not be allocated.", true)
+      return false
+    end
+    reserved[trashFilename] = true
+    table.insert(plans, {
+      name = name,
+      preset = preset,
+      source = presetPath(name),
+      destination = TRASH_DIR .. "/" .. trashFilename,
+      trashFilename = trashFilename,
+    })
+  end
+
+  local moved = {}
+  for _, plan in ipairs(plans) do
+    local movedFile, moveError = os.rename(plan.source, plan.destination)
+    if not movedFile then
+      local rollbackFailed = false
+      for index = #moved, 1, -1 do
+        local item = moved[index]
+        if not os.rename(item.destination, item.source) then rollbackFailed = true end
+      end
+      if rollbackFailed then
+        refreshPresets("bulk-recovery")
+        refreshTrash()
+      end
+      setStatus("bulk", rollbackFailed
+        and "Bulk Trash failed, and at least one moved preset could not be restored. Refresh completed; review Trash."
+        or ("Bulk Trash stopped at \"%s\": %s"):format(plan.name, tostring(moveError)), true)
+      return false
+    end
+    table.insert(moved, plan)
+  end
+
+  local newPresets = cloneMap(state.presets)
+  local newTrash = cloneMap(state.trash)
+  local newFolders = cloneMap(state.folders)
+  local newManualFolders = cloneMap(state.manualFolders)
+  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  local nestedFolderCount = 0
+  if folder then
+    for candidate in pairs(state.folders) do
+      if candidate ~= folder and isInFolderTree(candidate, folder) then
+        nestedFolderCount = nestedFolderCount + 1
+      end
+    end
+  end
+  for _, plan in ipairs(plans) do
+    newPresets[plan.name] = nil
+    newTrash[plan.trashFilename] = { original = plan.name, preset = plan.preset }
+  end
+  if folder then
+    newFolders, newManualFolders = {}, {}
+    for candidate in pairs(state.folders) do
+      if not isInFolderTree(candidate, folder) then
+        newFolders[candidate] = true
+        if state.manualFolders[candidate] then newManualFolders[candidate] = true end
+      elseif state.manualFolders[candidate] then
+        newIgnored[candidate] = true
+      end
+    end
+  end
+
+  local catalogsSaved = writeCatalog(newPresets, newFolders, newManualFolders, newIgnored)
+    and writeTrashCatalog(newTrash)
+  if not catalogsSaved then
+    local rollbackFailed = false
+    for index = #moved, 1, -1 do
+      local plan = moved[index]
+      if not os.rename(plan.destination, plan.source) then rollbackFailed = true end
+    end
+    if rollbackFailed then
+      refreshPresets("bulk-recovery")
+      refreshTrash()
+    else
+      writeCatalog(state.presets, state.folders, state.manualFolders,
+        state.ignoredPhysicalFolders)
+      writeTrashCatalog(state.trash)
+    end
+    setStatus("bulk", rollbackFailed
+      and "Bulk Trash cataloging failed, and at least one preset could not be moved back. Refresh completed; review Trash."
+      or "Bulk Trash was rolled back because a catalog could not be saved.", true)
+    return false
+  end
+
+  state.presets, state.trash = newPresets, newTrash
+  state.folders, state.manualFolders = newFolders, newManualFolders
+  state.ignoredPhysicalFolders = newIgnored
+  if state.selected and not newPresets[state.selected] then
+    state.selected = nil
+    state.presetNotes, state.presetTags = "", ""
+  end
+  if folder then
+    local destination = parentFolder(folder)
+    state.selectedFolder = newFolders[destination] and destination or ""
+  end
+  for _, name in ipairs(names) do state.bulkSelected[name] = nil end
+  invalidateViewCache()
+  resetLoadState()
+  cancelConfirmations()
+  writeInventory(newPresets, newFolders)
+  setStatus("bulk", folder
+    and ("Moved folder \"%s\" and %d preset%s to recoverable Trash; removed %d nested folder entr%s. Restoring presets rebuilds their folder paths.")
+      :format(folder, #names, #names == 1 and "" or "s", nestedFolderCount,
+        nestedFolderCount == 1 and "y" or "ies")
+    or ("Moved %d preset%s to recoverable Trash.")
+      :format(#names, #names == 1 and "" or "s"))
+  return true
+end
+
+local function requestBulkTrash(names, folder)
+  if #names == 0 then
+    setStatus("bulk", folder
+      and "The selected folder contains no presets. Use Remove Folder (Keep Presets)."
+      or "Select at least one preset for the bulk action.", true)
+    return
+  end
+  local fingerprint, fingerprintError = bulkTrashFingerprint(names, folder)
+  if not fingerprint then setStatus("bulk", fingerprintError, true); return end
+  local action = folder and ("folder:" .. folder) or "presets"
+  if state.pendingBulkAction ~= action
+      or state.pendingBulkFingerprint ~= fingerprint then
+    state.pendingBulkAction = action
+    state.pendingBulkFingerprint = fingerprint
+    setStatus("bulk", folder
+      and ("Move folder \"%s\" and %d preset%s to recoverable Trash? Select Confirm Folder Trash.")
+        :format(folder, #names, #names == 1 and "" or "s")
+      or ("Move %d selected preset%s to recoverable Trash? Select Confirm Bulk Trash.")
+        :format(#names, #names == 1 and "" or "s"))
+    return
+  end
+  moveBulkPresetsToTrash(names, folder)
 end
 
 local function remapFolderTreePath(path, source, destination)
@@ -2840,6 +3031,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
       and (state.pendingEmptyTrash == true
         or (state.pendingDeleteName ~= nil
           and state.pendingDeleteName == state.selected)))
+    or (section == "bulk" and state.pendingBulkAction ~= nil)
   local customColors = false
   ImGui.Spacing()
   if isError or destructiveWarning then
@@ -2899,6 +3091,7 @@ local function isDeleteSuccess(text)
   return text:find("^Moved ") ~= nil or text:find("^Restored ") ~= nil
     or text == "Trash emptied permanently."
 end
+local function isBulkSuccess(text) return text:find("^Moved ") ~= nil end
 local function isEditorSuccess(text) return text == "Full editor opened." end
 local function isFolderSuccess(text)
   return text:find("^Created virtual folder ") ~= nil
@@ -3357,6 +3550,9 @@ local function draw()
       ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
       ImGui.TextWrapped("Removing a folder keeps its presets and moves their organization to the parent folder. Moving a preset to Trash keeps it recoverable until Trash is emptied permanently.")
 
+      helpHeading("Bulk Actions")
+      ImGui.TextWrapped("Open Bulk Actions to move every preset in the selected folder to Trash or select several presets with the shared search filter. Both actions require confirmation. Manual directories remain in place, and restoring presets rebuilds their original logical folder paths.")
+
       helpHeading("Import and Share")
       ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy a .preset file to share it.")
       ImGui.TextWrapped("Virtual folder assignments are local and are not embedded in shared preset files. New imports follow the manual directory where they are placed.")
@@ -3693,6 +3889,102 @@ local function draw()
       end
     end
     drawSectionStatus("folder", "##folderStatus", isFolderSuccess, statusHeight)
+    end
+
+    if collapsibleSectionHeader("BULK ACTIONS", "bulk") then
+      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Selected folder")
+      ImGui.TextWrapped("Folder: " .. breadcrumb(state.selectedFolder))
+      local folderBulkNames = state.selectedFolder ~= ""
+        and bulkPresetNamesInFolder(state.selectedFolder) or {}
+      local nestedFolderCount = 0
+      if state.selectedFolder ~= "" then
+        for candidate in pairs(state.folders) do
+          if candidate ~= state.selectedFolder
+              and isInFolderTree(candidate, state.selectedFolder) then
+            nestedFolderCount = nestedFolderCount + 1
+          end
+        end
+      end
+      ImGui.TextDisabled(("%d preset%s and %d nested folder%s affected. Manual directories stay in place.")
+        :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s",
+          nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
+      local folderBulkUnavailable = state.selectedFolder == "" or #folderBulkNames == 0
+      if folderBulkUnavailable then ImGui.BeginDisabled() end
+      local folderAction = "folder:" .. tostring(state.selectedFolder)
+      local folderTrashLabel = state.pendingBulkAction == folderAction
+        and "Confirm Folder Trash"
+        or ("Move Folder and %d Preset%s to Trash")
+          :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s")
+      if dangerButton(folderTrashLabel .. "##bulkFolderTrash",
+          ImGui.GetContentRegionAvail(), actionButtonHeight) then
+        requestBulkTrash(folderBulkNames, state.selectedFolder)
+      end
+      if folderBulkUnavailable then ImGui.EndDisabled() end
+      if folderBulkUnavailable then
+        ImGui.TextDisabled(state.selectedFolder == ""
+          and "Select a folder under Folders to enable folder Trash."
+          or "This folder has no presets; use Remove Folder (Keep Presets).")
+      end
+
+      ImGui.Spacing()
+      ImGui.Separator()
+      ImGui.Spacing()
+      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
+      ImGui.PushItemWidth(-1)
+      state.searchText = ImGui.InputTextWithHint("##bulkPresetSearch",
+        "Search presets or folders", state.searchText, 65)
+      ImGui.PopItemWidth()
+      local visibleNames = {}
+      for _, name in ipairs(sortedPresetNames()) do
+        if textMatches(name, state.searchText) then table.insert(visibleNames, name) end
+      end
+      local selectedBulkNames = selectedBulkPresetNames()
+      local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+      if ImGui.Button("Select All Visible##bulkSelectAll", bulkButtonWidth, 28) then
+        for _, name in ipairs(visibleNames) do state.bulkSelected[name] = true end
+        cancelConfirmations()
+        state.bulkStatus = ""
+        state.bulkStatusError = false
+      end
+      ImGui.SameLine()
+      if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
+      if ImGui.Button("Clear Selection##bulkClear", bulkButtonWidth, 28) then
+        state.bulkSelected = {}
+        cancelConfirmations()
+        state.bulkStatus = ""
+        state.bulkStatusError = false
+      end
+      if #selectedBulkNames == 0 then ImGui.EndDisabled() end
+      ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
+      if #visibleNames == 0 then
+        ImGui.TextDisabled("No presets match the current search.")
+      else
+        for _, name in ipairs(visibleNames) do
+          local selectedForBulk = state.bulkSelected[name] == true
+          if ImGui.Selectable((selectedForBulk and "[x] " or "[ ] ") ..
+              breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
+            state.bulkSelected[name] = selectedForBulk and nil or true
+            cancelConfirmations()
+            state.bulkStatus = ""
+            state.bulkStatusError = false
+          end
+        end
+      end
+      ImGui.EndChild()
+      selectedBulkNames = selectedBulkPresetNames()
+      ImGui.TextDisabled(("%d preset%s selected.")
+        :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
+      if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
+      local bulkTrashLabel = state.pendingBulkAction == "presets"
+        and "Confirm Bulk Trash"
+        or ("Move %d Preset%s to Trash")
+          :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s")
+      if dangerButton(bulkTrashLabel .. "##bulkPresetTrash",
+          ImGui.GetContentRegionAvail(), actionButtonHeight) then
+        requestBulkTrash(selectedBulkNames)
+      end
+      if #selectedBulkNames == 0 then ImGui.EndDisabled() end
+      drawSectionStatus("bulk", "##bulkStatus", isBulkSuccess, statusHeight)
     end
 
     if collapsibleSectionHeader("MANAGE", "manage") then

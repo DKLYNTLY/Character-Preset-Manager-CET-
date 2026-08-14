@@ -45,6 +45,8 @@ were written and tested by the author.
   `.preset` file.
 - **Recoverable Trash:** Removed presets remain restorable until Trash is emptied
   permanently.
+- **Safe bulk actions:** Move every preset in a selected folder or any filtered
+  multi-selection to recoverable Trash with confirmation.
 - **Activity log:** View preset actions, results, notices, and errors through
   **Help > Debug and Diagnostics** or the log file.
 - **Clean interface:** Collapsible sections and folder rows keep the CET window
@@ -131,6 +133,12 @@ Fix the appearance and save the preset again.
   parent folder.
 - Moving a preset to **Trash** keeps it recoverable. Only **Empty Trash
   Permanently** destroys trashed preset files.
+- **Bulk Actions** can move every preset in the selected folder to Trash, remove
+  its virtual folder tree, or build a checkbox-style multi-selection using the
+  same search filter as Load. Select All Visible and Clear Selection are
+  included.
+- Bulk folder Trash leaves manually created directories in place. Restoring a
+  preset reconstructs its original logical folder path.
 - **Manage** can save optional notes and tags inside new format-5 preset files.
 - Renaming a preset also renames its physical shareable `.preset` file.
 
@@ -395,6 +403,9 @@ that both mods provide the same feature set.
   options.
 - Moves preset deletion into recoverable Trash and makes folder removal keep
   every preset instead of deleting folder contents.
+- Adds a collapsed Bulk Actions section for confirmed selected-folder Trash and
+  filtered multi-preset Trash, while keeping permanent destruction exclusively
+  under Empty Trash Permanently.
 - Automatically disables the customization discovery reminder after a
   successful save or load and moves its preference into Settings.
 - Stores reminder and sort preferences in a human-editable config with live

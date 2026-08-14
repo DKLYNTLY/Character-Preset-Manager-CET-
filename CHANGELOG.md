@@ -22,6 +22,13 @@
   missing prerequisite instead of requiring an error-producing click.
 - Moves preset deletion into a recoverable hidden Trash directory with individual
   restore actions and a separately confirmed permanent Empty Trash action.
+- Adds a collapsed Bulk Actions section that can move every preset in the
+  selected folder to recoverable Trash and remove its virtual folder tree.
+- Adds filtered checkbox-style multi-selection, Select All Visible, Clear
+  Selection, affected preset and nested-folder counts, and fingerprinted
+  confirmation before any bulk file move.
+- Keeps manual directories intact during folder bulk Trash and reconstructs
+  original logical folder paths as presets are restored.
 - Replaces the normal Delete Folder & Presets action with Remove Folder, which
   keeps every preset and remaps its organization to the parent folder.
 - Adds backward-compatible format-5 metadata for source, created and modified
