@@ -9,6 +9,11 @@
 - Adds the official Character Preset Manager Discord community link.
 - Lists EKT Custom Character Creator - FEMV ONLY as an example of a compatible
   custom character creator.
+- Fixes save-destination selection by keeping the chooser open, immediately
+  updating the displayed location, and showing confirmation after a change.
+- Standardizes button heights and paired-button widths throughout the interface.
+- Combines preset deletion, bulk Trash tools, restoration, and permanent cleanup
+  under Trash & Recovery, with multi-item tools inside More Trash Options.
 - Adds a bounded atomic transaction journal for preset Trash, restore, bulk
   Trash, folder restore, and physical preset-file rename operations.
 - Automatically rolls back unfinished file operations at startup while retaining
@@ -38,7 +43,8 @@
   time, notes, tags, and current-editor compatibility summary.
 - Adds Cancel Loading while automatic staged loading is active.
 - Shows the active save destination at all times, renames Create to Save Preset,
-  and adds a compact inline destination list that remains collapsed until used.
+  and adds a compact inline destination chooser that remains open while folders
+  are selected and provides visible confirmation.
 - Adds name or last-modified preset sorting under Settings without adding another
   permanent control to the Load list.
 - Replaces the legacy notification marker with a bounded, human-editable config
@@ -49,7 +55,7 @@
   missing prerequisite instead of requiring an error-producing click.
 - Moves preset deletion into a recoverable hidden Trash directory with individual
   restore actions and a separately confirmed permanent Empty Trash action.
-- Adds a collapsed Bulk Actions section that can move every preset in the
+- Adds collapsed multi-item Trash controls that can move every preset in the
   selected folder to recoverable Trash and remove its virtual folder tree.
 - Adds filtered checkbox-style multi-selection, Select All Visible, Clear
   Selection, affected preset and nested-folder counts, and fingerprinted

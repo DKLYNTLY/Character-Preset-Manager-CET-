@@ -86,7 +86,7 @@ installed CET version cannot return a key name.
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc customization
    screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
-3. Under **Save Preset**, select **Change Save Destination** and choose where the
+3. Under **Save Preset**, open **Choose Save Destination** and select where the
    preset should be organized, or select **All Presets**.
 4. Confirm the displayed save location and enter a name under **Save Preset**.
 5. Select **Save New Preset**.
@@ -134,10 +134,10 @@ Fix the appearance and save the preset again.
   parent folder.
 - Moving a preset to **Trash** keeps it recoverable. Only **Empty Trash
   Permanently** destroys trashed preset files.
-- **Bulk Actions** can move every preset in the selected folder to Trash, remove
-  its virtual folder tree, or build a checkbox-style multi-selection using the
-  same search filter as Load. Select All Visible and Clear Selection are
-  included.
+- Under **Trash & Recovery**, open **More Trash Options** to move every preset in
+  the selected folder to Trash, remove its virtual folder tree, or build a
+  checkbox-style multi-selection using the same search filter as Load. Select
+  All Visible and Clear Selection are included.
 - Bulk folder Trash leaves manually created directories in place and records the
   complete logical tree. Use **Restore Folder** to recover its presets, imported
   identity, and empty nested folders together, or restore presets individually.
@@ -406,15 +406,15 @@ that both mods provide the same feature set.
   time, notes, tags, and current-editor compatibility summary.
 - Shows the active save destination, renames Create to Save Preset, and disables
   unavailable Save, Load, Add Folder, and Move actions with a reason.
-- Adds a collapsed inline save-destination list plus name or last-modified sorting
-  under Settings.
+- Adds a collapsed inline save-destination list with visible selection feedback,
+  plus name or last-modified sorting under Settings.
 - Adds Cancel Loading and keeps apartment mirrors exposing the full creator
   options.
 - Moves preset deletion into recoverable Trash and makes folder removal keep
   every preset instead of deleting folder contents.
-- Adds a collapsed Bulk Actions section for confirmed selected-folder Trash and
-  filtered multi-preset Trash, while keeping permanent destruction exclusively
-  under Empty Trash Permanently.
+- Groups single-preset deletion, recovery, and a collapsed **More Trash Options**
+  panel under **Trash & Recovery**, while keeping permanent destruction
+  exclusively under Empty Trash Permanently.
 - Adds startup-safe transaction recovery, complete folder-tree Trash records,
   and one-action folder restore including empty nested folders.
 - Caches filtered preset views and bulk summaries and skips catalog replacements

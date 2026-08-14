@@ -62,7 +62,6 @@ local state = {
     create = true,
     folders = false,
     manage = false,
-    bulk = false,
     trash = false,
   },
   selectedFolder = "",
@@ -101,7 +100,6 @@ local state = {
   advancedDiagnosticsOpen = false,
   settingsOpen = false,
   settingsStatus = "",
-  saveDestinationOpen = false,
   debugLogText = "",
   debugLogLines = {},
   bindingCache = {},
@@ -3584,6 +3582,17 @@ local function fullWidthButton(label, height)
   return ImGui.Button(label, width, height or 32)
 end
 
+local function collapsibleSubsectionHeader(label, key)
+  ImGui.Spacing()
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.086, 0.094, 0.118, 0.85)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.15, 0.12, 0.07, 0.95)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.20, 0.15, 0.07, 1.0)
+  local open = ImGui.CollapsingHeader(label .. "##CPMSubsection:" .. key)
+  ImGui.PopStyleColor(3)
+  if open then ImGui.Spacing() end
+  return open
+end
+
 local function dangerButton(label, width, height)
   ImGui.PushStyleColor(ImGuiCol.Button,        0.62, 0.16, 0.13, 0.92)
   ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.78, 0.20, 0.16, 1.0)
@@ -3771,17 +3780,19 @@ local function drawDebugPanel(height)
   ImGui.Spacing()
   local logRowStartX = ImGui.GetCursorPosX()
   local logRowWidth = ImGui.GetContentRegionAvail()
-  local logButtonsWidth = 188
+  local logButtonWidth = 68
+  local logButtonHeight = 32
+  local logButtonsWidth = logButtonWidth * 3 + 16
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Activity Log")
   ImGui.SameLine()
   ImGui.SetCursorPosX(logRowStartX + logRowWidth - logButtonsWidth)
-  if ImGui.Button("Refresh##debugRefresh", 68, 0) then readDiagnosticLog() end
+  if ImGui.Button("Refresh##debugRefresh", logButtonWidth, logButtonHeight) then readDiagnosticLog() end
   ImGui.SameLine()
-  if ImGui.Button("Copy##debugCopy", 52, 0) then
+  if ImGui.Button("Copy##debugCopy", logButtonWidth, logButtonHeight) then
     ImGui.SetClipboardText(state.debugLogText or "")
   end
   ImGui.SameLine()
-  if ImGui.Button("Close##debugClose", 52, 0) then state.debugOpen = false end
+  if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then state.debugOpen = false end
   if ImGui.CollapsingHeader("Advanced diagnostics##advancedDiagnostics") then
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
       :format(state.editorInputCount, state.editorControllerCaptureCount,
@@ -3989,6 +4000,99 @@ local function drawDiscoveryHudNotice()
   ImGui.PopStyleColor(2)
 end
 
+local function drawBulkTrashOptions(actionButtonHeight, statusHeight)
+  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Move selected folder to Trash")
+  ImGui.TextWrapped("Folder: " .. breadcrumb(state.selectedFolder))
+  local folderBulkNames = state.selectedFolder ~= ""
+    and bulkPresetNamesInFolder(state.selectedFolder) or {}
+  local nestedFolderCount = state.selectedFolder ~= ""
+    and state.cachedBulkNestedFolderCount or 0
+  ImGui.TextDisabled(("%d preset%s and %d nested folder%s affected. Manual directories stay in place.")
+    :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s",
+      nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
+  local folderBulkUnavailable = state.selectedFolder == "" or #folderBulkNames == 0
+  if folderBulkUnavailable then ImGui.BeginDisabled() end
+  local folderAction = "folder:" .. tostring(state.selectedFolder)
+  local folderTrashLabel = state.pendingBulkAction == folderAction
+    and "Confirm Folder Trash"
+    or ("Move Folder and %d Preset%s to Trash")
+      :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s")
+  if dangerButton(folderTrashLabel .. "##bulkFolderTrash",
+      ImGui.GetContentRegionAvail(), actionButtonHeight) then
+    requestBulkTrash(folderBulkNames, state.selectedFolder)
+  end
+  if folderBulkUnavailable then ImGui.EndDisabled() end
+  if folderBulkUnavailable then
+    ImGui.TextDisabled(state.selectedFolder == ""
+      and "Select a folder under Folders to enable folder Trash."
+      or "This folder has no presets; use Remove Folder (Keep Presets).")
+  end
+
+  ImGui.Spacing()
+  ImGui.Separator()
+  ImGui.Spacing()
+  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
+  ImGui.PushItemWidth(-1)
+  local previousSearchText = state.searchText
+  state.searchText = ImGui.InputTextWithHint("##bulkPresetSearch",
+    "Search presets or folders", state.searchText, 65)
+  if state.searchText ~= previousSearchText then invalidateFilteredViewCache() end
+  ImGui.PopItemWidth()
+  local visibleNames = filteredPresetNames()
+  local selectedBulkNames = selectedBulkPresetNames()
+  local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+  if ImGui.Button("Select All Visible##bulkSelectAll",
+      bulkButtonWidth, actionButtonHeight) then
+    for _, name in ipairs(visibleNames) do state.bulkSelected[name] = true end
+    invalidateBulkSelectionCache()
+    cancelConfirmations()
+    state.bulkStatus = ""
+    state.bulkStatusError = false
+  end
+  ImGui.SameLine()
+  if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
+  if ImGui.Button("Clear Selection##bulkClear",
+      bulkButtonWidth, actionButtonHeight) then
+    state.bulkSelected = {}
+    invalidateBulkSelectionCache()
+    cancelConfirmations()
+    state.bulkStatus = ""
+    state.bulkStatusError = false
+  end
+  if #selectedBulkNames == 0 then ImGui.EndDisabled() end
+  ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
+  if #visibleNames == 0 then
+    ImGui.TextDisabled("No presets match the current search.")
+  else
+    for _, name in ipairs(visibleNames) do
+      local selectedForBulk = state.bulkSelected[name] == true
+      if ImGui.Selectable((selectedForBulk and "[x] " or "[ ] ") ..
+          breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
+        state.bulkSelected[name] = selectedForBulk and nil or true
+        invalidateBulkSelectionCache()
+        cancelConfirmations()
+        state.bulkStatus = ""
+        state.bulkStatusError = false
+      end
+    end
+  end
+  ImGui.EndChild()
+  selectedBulkNames = selectedBulkPresetNames()
+  ImGui.TextDisabled(("%d preset%s selected.")
+    :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
+  if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
+  local bulkTrashLabel = state.pendingBulkAction == "presets"
+    and "Confirm Bulk Trash"
+    or ("Move %d Preset%s to Trash")
+      :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s")
+  if dangerButton(bulkTrashLabel .. "##bulkPresetTrash",
+      ImGui.GetContentRegionAvail(), actionButtonHeight) then
+    requestBulkTrash(selectedBulkNames)
+  end
+  if #selectedBulkNames == 0 then ImGui.EndDisabled() end
+  drawSectionStatus("bulk", "##bulkStatus", isBulkSuccess, statusHeight)
+end
+
 local function draw()
   if not state.overlayOpen or not state.windowOpen then return end
 
@@ -4029,13 +4133,13 @@ local function draw()
     local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local presetListHeight = ImGui.GetFontSize() * 6 + math.min(extraHeight * 0.16, 48)
     local statusHeight = 64 + math.min(extraHeight * 0.10, 28)
-    local buttonGrowth = math.min(extraHeight * 0.02, 6)
-    local actionButtonHeight = 32 + buttonGrowth
+    local actionButtonHeight = 32
 
     local narrowTopRow = ImGui.GetWindowWidth() < 620
     local topRowStartX = ImGui.GetCursorPosX()
     local topRowWidth = ImGui.GetContentRegionAvail()
-    local topControlsWidth = 132
+    local topButtonWidth = 72
+    local topControlsWidth = topButtonWidth * 2 + 8
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
     if state.inCustomization then
@@ -4047,24 +4151,24 @@ local function draw()
     end
     ImGui.SameLine()
     ImGui.SetCursorPosX(topRowStartX + topRowWidth - topControlsWidth)
-    if ImGui.Button("Settings##settings", 74, 0) then
+    if ImGui.Button("Settings##settings", topButtonWidth, actionButtonHeight) then
       state.settingsOpen = not state.settingsOpen
     end
     ImGui.SameLine()
-    if ImGui.Button("Help##help", 50, 0) then
+    if ImGui.Button("Help##help", topButtonWidth, actionButtonHeight) then
       state.helpOpen = not state.helpOpen
       if state.helpOpen then state.debugOpen = false end
       if state.helpOpen then state.bindingCache = {} end
     end
     if state.settingsOpen then
       ImGui.Spacing()
-      ImGui.BeginChild("##settings", 0, 210, true)
+      ImGui.BeginChild("##settings", 0, 226, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
       ImGui.TextDisabled(CONFIG_FILE)
       ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
       local reminderLabel = state.discoveryNoticeIgnored
         and "Enable Customization Reminder" or "Disable Customization Reminder"
-      if fullWidthButton(reminderLabel .. "##discoveryPreference", 28) then
+      if fullWidthButton(reminderLabel .. "##discoveryPreference", actionButtonHeight) then
         local saved
         if state.discoveryNoticeIgnored then saved = restoreDiscoveryNotice()
         else saved = ignoreDiscoveryNotice() end
@@ -4072,12 +4176,12 @@ local function draw()
       end
       local sortLabel = state.sortMode == "modified"
         and "Preset Sort: Last Modified" or "Preset Sort: Name"
-      if fullWidthButton(sortLabel .. "##presetSort", 28) then
+      if fullWidthButton(sortLabel .. "##presetSort", actionButtonHeight) then
         state.sortMode = state.sortMode == "modified" and "name" or "modified"
         invalidateViewCache()
         state.settingsStatus = writeConfig() and "Config saved." or "Config could not be saved."
       end
-      if fullWidthButton("Reload Config from Disk##reloadConfig", 28) then
+      if fullWidthButton("Reload Config from Disk##reloadConfig", actionButtonHeight) then
         local config, loaded = readConfig()
         if loaded then
           state.discoveryNoticeIgnored = not config.discoveryReminder
@@ -4139,7 +4243,7 @@ local function draw()
         "Options not saved in the preset may be removed.")
 
       helpHeading("Save a Preset")
-      ImGui.TextWrapped("1. Select Change Save Destination and choose a folder or All Presets.")
+      ImGui.TextWrapped("1. Open Choose Save Destination and select a folder or All Presets.")
       ImGui.TextWrapped("2. Enter a name under Save Preset.")
       ImGui.TextWrapped("3. Select Save New Preset. Confirm only if replacing an existing preset.")
 
@@ -4151,12 +4255,12 @@ local function draw()
       ImGui.TextWrapped("Manually created directories are discovered recursively and labeled Imported. Their preset files remain at their existing paths.")
 
       helpHeading("Rename, Copy, or Trash")
-      ImGui.TextWrapped("Select a preset or folder before using its rename, copy, or Trash action.")
+      ImGui.TextWrapped("Select a preset or folder before using its rename or copy action. Trash actions are grouped under Trash & Recovery.")
       ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
       ImGui.TextWrapped("Removing a folder keeps its presets and moves their organization to the parent folder. Moving a preset to Trash keeps it recoverable until Trash is emptied permanently.")
 
-      helpHeading("Bulk Actions")
-      ImGui.TextWrapped("Open Bulk Actions to move every preset in the selected folder to Trash or select several presets with the shared search filter. Both actions require confirmation. Manual directories remain in place. Restore Folder recovers the complete logical tree, including empty nested folders.")
+      helpHeading("Trash and Recovery")
+      ImGui.TextWrapped("Move one selected preset to Trash, or open More Trash Options to move a selected folder or several presets. These actions require confirmation. Manual directories remain in place. Restore Folder recovers the complete logical tree, including empty nested folders.")
 
       helpHeading("Import and Share")
       ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy a .preset file to share it.")
@@ -4164,7 +4268,7 @@ local function draw()
       ImGui.TextWrapped("Select Refresh under Load after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
-      if fullWidthButton("Copy Preset Folder Path##copyPresetPath", 28) then
+      if fullWidthButton("Copy Preset Folder Path##copyPresetPath", actionButtonHeight) then
         ImGui.SetClipboardText(
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       end
@@ -4174,7 +4278,7 @@ local function draw()
 
       helpHeading("Debug and Diagnostics")
       ImGui.TextWrapped("The activity log records preset actions, warnings, errors, and advanced editor diagnostics.")
-      if fullWidthButton("Open Debug Log##openDebugFromHelp", 28) then
+      if fullWidthButton("Open Debug Log##openDebugFromHelp", actionButtonHeight) then
         readDiagnosticLog()
         state.debugOpen = true
         state.helpOpen = false
@@ -4201,7 +4305,8 @@ local function draw()
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
-    ImGui.PushItemWidth(math.max(80, searchRowWidth - 142))
+    local searchButtonWidth = 64
+    ImGui.PushItemWidth(math.max(80, searchRowWidth - searchButtonWidth * 2 - 16))
     local previousSearchText = state.searchText
     state.searchText = ImGui.InputTextWithHint("##presetSearch", "Search presets or folders", state.searchText, 65)
     if state.searchText ~= previousSearchText then invalidateFilteredViewCache() end
@@ -4209,13 +4314,13 @@ local function draw()
     ImGui.SameLine()
     local clearSearchUnavailable = not tostring(state.searchText):match("%S")
     if clearSearchUnavailable then ImGui.BeginDisabled() end
-    if ImGui.Button("Clear##presetSearchClear", 48, 0) then
+    if ImGui.Button("Clear##presetSearchClear", searchButtonWidth, actionButtonHeight) then
       state.searchText = ""
       invalidateFilteredViewCache()
     end
     if clearSearchUnavailable then ImGui.EndDisabled() end
     ImGui.SameLine()
-    if ImGui.Button("Refresh##presetRefresh", 78, 0) then
+    if ImGui.Button("Refresh##presetRefresh", searchButtonWidth, actionButtonHeight) then
       local before = state.presets
       local after, refreshed = refreshPresets("external")
       refreshTrash()
@@ -4345,7 +4450,7 @@ local function draw()
     if state.autoLoad then ImGui.EndDisabled() end
     if loadUnavailable then ImGui.EndDisabled() end
     if state.autoLoad or state.loadNeedsContinue then
-      if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), 28) then
+      if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), actionButtonHeight) then
         cancelLoading()
       end
     elseif loadUnavailable then
@@ -4359,25 +4464,24 @@ local function draw()
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
     ImGui.TextWrapped("Save location: " .. breadcrumb(state.selectedFolder))
-    if fullWidthButton((state.saveDestinationOpen and "Close Destination List"
-        or "Change Save Destination") .. "##saveDestination", 26) then
-      state.saveDestinationOpen = not state.saveDestinationOpen
-    end
-    if state.saveDestinationOpen then
+    if collapsibleSubsectionHeader("Choose Save Destination", "saveDestination") then
       ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)
-      if ImGui.Selectable("All Presets##saveDestinationRoot", state.selectedFolder == "") then
+      if ImGui.Selectable("All Presets##saveDestinationRoot", state.selectedFolder == "")
+          and state.selectedFolder ~= "" then
         state.selectedFolder = ""
-        state.saveDestinationOpen = false
         cancelConfirmations()
+        setStatus("create", "Save destination changed to All Presets.")
+        log("[UI] Save destination changed to '<root>'.", "info")
       end
       for _, folder in ipairs(sortedFolderNames()) do
         local label = string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
           (state.manualFolders[folder] and " (imported)" or "")
         if ImGui.Selectable(label .. "##saveDestination:" .. folder,
-            state.selectedFolder == folder) then
+            state.selectedFolder == folder) and state.selectedFolder ~= folder then
           state.selectedFolder = folder
-          state.saveDestinationOpen = false
           cancelConfirmations()
+          setStatus("create", "Save destination changed to " .. breadcrumb(folder) .. ".")
+          log(("[UI] Save destination changed to '%s'."):format(folder), "info")
         end
       end
       ImGui.EndChild()
@@ -4488,97 +4592,6 @@ local function draw()
     drawSectionStatus("folder", "##folderStatus", isFolderSuccess, statusHeight)
     end
 
-    if collapsibleSectionHeader("BULK ACTIONS", "bulk") then
-      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Selected folder")
-      ImGui.TextWrapped("Folder: " .. breadcrumb(state.selectedFolder))
-      local folderBulkNames = state.selectedFolder ~= ""
-        and bulkPresetNamesInFolder(state.selectedFolder) or {}
-      local nestedFolderCount = state.selectedFolder ~= ""
-        and state.cachedBulkNestedFolderCount or 0
-      ImGui.TextDisabled(("%d preset%s and %d nested folder%s affected. Manual directories stay in place.")
-        :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s",
-          nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
-      local folderBulkUnavailable = state.selectedFolder == "" or #folderBulkNames == 0
-      if folderBulkUnavailable then ImGui.BeginDisabled() end
-      local folderAction = "folder:" .. tostring(state.selectedFolder)
-      local folderTrashLabel = state.pendingBulkAction == folderAction
-        and "Confirm Folder Trash"
-        or ("Move Folder and %d Preset%s to Trash")
-          :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s")
-      if dangerButton(folderTrashLabel .. "##bulkFolderTrash",
-          ImGui.GetContentRegionAvail(), actionButtonHeight) then
-        requestBulkTrash(folderBulkNames, state.selectedFolder)
-      end
-      if folderBulkUnavailable then ImGui.EndDisabled() end
-      if folderBulkUnavailable then
-        ImGui.TextDisabled(state.selectedFolder == ""
-          and "Select a folder under Folders to enable folder Trash."
-          or "This folder has no presets; use Remove Folder (Keep Presets).")
-      end
-
-      ImGui.Spacing()
-      ImGui.Separator()
-      ImGui.Spacing()
-      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
-      ImGui.PushItemWidth(-1)
-      local previousSearchText = state.searchText
-      state.searchText = ImGui.InputTextWithHint("##bulkPresetSearch",
-        "Search presets or folders", state.searchText, 65)
-      if state.searchText ~= previousSearchText then invalidateFilteredViewCache() end
-      ImGui.PopItemWidth()
-      local visibleNames = filteredPresetNames()
-      local selectedBulkNames = selectedBulkPresetNames()
-      local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
-      if ImGui.Button("Select All Visible##bulkSelectAll", bulkButtonWidth, 28) then
-        for _, name in ipairs(visibleNames) do state.bulkSelected[name] = true end
-        invalidateBulkSelectionCache()
-        cancelConfirmations()
-        state.bulkStatus = ""
-        state.bulkStatusError = false
-      end
-      ImGui.SameLine()
-      if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
-      if ImGui.Button("Clear Selection##bulkClear", bulkButtonWidth, 28) then
-        state.bulkSelected = {}
-        invalidateBulkSelectionCache()
-        cancelConfirmations()
-        state.bulkStatus = ""
-        state.bulkStatusError = false
-      end
-      if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-      ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
-      if #visibleNames == 0 then
-        ImGui.TextDisabled("No presets match the current search.")
-      else
-        for _, name in ipairs(visibleNames) do
-          local selectedForBulk = state.bulkSelected[name] == true
-          if ImGui.Selectable((selectedForBulk and "[x] " or "[ ] ") ..
-              breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
-            state.bulkSelected[name] = selectedForBulk and nil or true
-            invalidateBulkSelectionCache()
-            cancelConfirmations()
-            state.bulkStatus = ""
-            state.bulkStatusError = false
-          end
-        end
-      end
-      ImGui.EndChild()
-      selectedBulkNames = selectedBulkPresetNames()
-      ImGui.TextDisabled(("%d preset%s selected.")
-        :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
-      if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
-      local bulkTrashLabel = state.pendingBulkAction == "presets"
-        and "Confirm Bulk Trash"
-        or ("Move %d Preset%s to Trash")
-          :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s")
-      if dangerButton(bulkTrashLabel .. "##bulkPresetTrash",
-          ImGui.GetContentRegionAvail(), actionButtonHeight) then
-        requestBulkTrash(selectedBulkNames)
-      end
-      if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-      drawSectionStatus("bulk", "##bulkStatus", isBulkSuccess, statusHeight)
-    end
-
     if collapsibleSectionHeader("MANAGE", "manage") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Manage the selected preset")
@@ -4604,24 +4617,31 @@ local function draw()
     if fullWidthButton("Save Preset Details", actionButtonHeight) then savePresetMetadata() end
     if not state.selected then ImGui.EndDisabled() end
     drawSectionStatus("rename", "##renameStatus", isRenameSuccess, statusHeight)
-
-    ImGui.Spacing()
-    ImGui.Spacing()
-    ImGui.Separator()
-    ImGui.Spacing()
-    ImGui.TextWrapped("Trashed presets can be restored until Trash is emptied.")
-    ImGui.Spacing()
-    if not state.selected then ImGui.BeginDisabled() end
-    local deleteLabel = state.selected
-      and state.pendingDeleteName == state.selected
-      and "Confirm Move to Trash##danger"
-      or "Move Preset to Trash##danger"
-    if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then trashPreset() end
-    if not state.selected then ImGui.EndDisabled() end
-    drawSectionStatus("delete", "##deleteStatus", isDeleteSuccess, statusHeight)
     end
 
-    if collapsibleSectionHeader("TRASH", "trash") then
+    if collapsibleSectionHeader("TRASH & RECOVERY", "trash") then
+      ImGui.TextWrapped("Move selected presets to recoverable Trash or restore items removed earlier.")
+      if not state.selected then ImGui.BeginDisabled() end
+      local deleteLabel = state.selected
+        and state.pendingDeleteName == state.selected
+        and "Confirm Move to Trash##danger"
+        or "Move Selected Preset to Trash##danger"
+      if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
+        trashPreset()
+      end
+      if not state.selected then ImGui.EndDisabled() end
+      if not state.selected then
+        ImGui.TextDisabled("Select a preset under Load to enable this action.")
+      end
+
+      if collapsibleSubsectionHeader("More Trash Options", "bulkTrash") then
+        drawBulkTrashOptions(actionButtonHeight, statusHeight)
+      end
+
+      ImGui.Spacing()
+      ImGui.Separator()
+      ImGui.Spacing()
+      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Recover from Trash")
       local trashNames = {}
       for filename in pairs(state.trash) do table.insert(trashNames, filename) end
       table.sort(trashNames, function(a, b) return a:lower() < b:lower() end)
@@ -4646,7 +4666,7 @@ local function draw()
           for _ in pairs(group.folders or {}) do folderCount = folderCount + 1 end
           if fullWidthButton(("Restore Folder %s (%d presets, %d folders)")
               :format(breadcrumb(group.root), groupPresetCount, folderCount) ..
-              "##trashGroup:" .. groupId, 26) then
+              "##trashGroup:" .. groupId, actionButtonHeight) then
             restoreTrashGroup(groupId)
             trashChanged = true
             break
@@ -4657,7 +4677,7 @@ local function draw()
           for _, filename in ipairs(trashNames) do
             local item = state.trash[filename]
             if item and fullWidthButton("Restore " .. (item.original or filename) ..
-                "##trash:" .. filename, 26) then
+                "##trash:" .. filename, actionButtonHeight) then
               restoreTrashPreset(filename)
               trashChanged = true
               break
