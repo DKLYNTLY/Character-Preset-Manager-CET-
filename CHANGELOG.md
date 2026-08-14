@@ -2,8 +2,9 @@
 
 ## 3.0.0
 
-- Rewords the project disclosure to accurately describe development as
-  AI-assisted rather than AI-generated.
+- Clarifies that AI assistance was limited to visual UI planning and iteration,
+  while the mod's deterministic Lua functionality was manually tested and does
+  not use AI at runtime.
 - Expands the credits with the author, directly inspiring customization mods,
   Cyber Engine Tweaks contributors, CD Projekt Red, and the modding community.
 - Adds the official Character Preset Manager Discord community link.

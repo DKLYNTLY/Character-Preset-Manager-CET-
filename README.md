@@ -12,11 +12,11 @@
 
 ## AI disclosure
 
-Character Preset Manager was developed with AI assistance, including iterative
-help with interface design, styling, code review, debugging, and documentation.
-The author directed the development, substantially revised the assisted work,
-made the final design and feature decisions, and tested the mod. It is more
-accurately described as AI-assisted than AI-generated.
+AI assistance was limited to visual planning and iteration for the CET
+interface's layout, styling, and presentation. The author directed and
+substantially revised the final interface. Preset saving, loading, folders,
+recovery, and gameplay features are deterministic Lua functionality manually
+tested by the author. The mod does not use AI at runtime.
 
 ## Features
 
