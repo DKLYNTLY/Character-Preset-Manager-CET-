@@ -1549,6 +1549,11 @@ local function uniqueFolderCopyName(sourceName)
   return nil
 end
 
+local exportSelectedFolderBundle
+local importAvailableFolderBundles
+
+do
+
 local function validBundlePath(value)
   if not validRelativePath(value) then return false end
   for part in value:gmatch("[^/]+") do
@@ -1600,7 +1605,7 @@ local function uniqueFolderBundleFilename(folder)
   return nil
 end
 
-local function exportSelectedFolderBundle()
+exportSelectedFolderBundle = function()
   auditSection("EXPORT FOLDER BUNDLE")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
@@ -1806,7 +1811,7 @@ local function importFolderBundle(filename)
     (archived and "" or " Rename or remove the bundle before importing again.")
 end
 
-local function importAvailableFolderBundles()
+importAvailableFolderBundles = function()
   auditSection("IMPORT FOLDER BUNDLES")
   local files = folderBundleFiles()
   if #files == 0 then
@@ -1833,6 +1838,8 @@ local function importAvailableFolderBundles()
         #warnings > 0 and (" " .. table.concat(warnings, " | ")) or "")
     state.folderStatusError = false
   end
+end
+
 end
 
 local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
@@ -4130,22 +4137,24 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   if customColors then ImGui.PopStyleColor(2) end
 end
 
-local function isLoadSuccess(text)
+local statusSuccess = {}
+
+statusSuccess.load = function(text)
   return text:find("Preset fully applied", 1, true) ~= nil
     or text:find("Open the character creator", 1, true) == 1
 end
-local function isCreateSuccess(text) return text:find("^Saved ") ~= nil end
-local function isRenameSuccess(text)
+statusSuccess.create = function(text) return text:find("^Saved ") ~= nil end
+statusSuccess.rename = function(text)
   return text:find("^Renamed ") ~= nil or text:find("^Duplicated ") ~= nil
     or text:find("^Saved details ") ~= nil
 end
-local function isDeleteSuccess(text)
+statusSuccess.delete = function(text)
   return text:find("^Moved ") ~= nil or text:find("^Restored ") ~= nil
     or text == "Trash emptied permanently."
 end
-local function isBulkSuccess(text) return text:find("^Moved ") ~= nil end
-local function isEditorSuccess(text) return text == "Full editor opened." end
-local function isFolderSuccess(text)
+statusSuccess.bulk = function(text) return text:find("^Moved ") ~= nil end
+statusSuccess.editor = function(text) return text == "Full editor opened." end
+statusSuccess.folder = function(text)
   return text:find("^Created virtual folder ") ~= nil
     or text:find("^Renamed virtual folder ") ~= nil
     or text:find("^Duplicated virtual folder ") ~= nil
@@ -4500,7 +4509,7 @@ local function drawBulkTrashOptions(actionButtonHeight, statusHeight)
     requestBulkTrash(selectedBulkNames)
   end
   if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-  drawSectionStatus("bulk", "##bulkStatus", isBulkSuccess, statusHeight)
+  drawSectionStatus("bulk", "##bulkStatus", statusSuccess.bulk, statusHeight)
 end
 
 local function draw()
@@ -4724,7 +4733,7 @@ local function draw()
       openFullAppearanceEditor()
     end
     if editorUnavailable then ImGui.EndDisabled() end
-    drawSectionStatus("editor", "##editorStatus", isEditorSuccess, statusHeight)
+    drawSectionStatus("editor", "##editorStatus", statusSuccess.editor, statusHeight)
     end
 
     if collapsibleSectionHeader("LOAD", "load") then
@@ -4884,7 +4893,7 @@ local function draw()
       ImGui.TextDisabled(not state.selected and "Select a preset to enable loading."
         or "Open a customization screen to enable loading.")
     end
-    drawSectionStatus("load", "##loadStatus", isLoadSuccess, statusHeight)
+    drawSectionStatus("load", "##loadStatus", statusSuccess.load, statusHeight)
     end
 
     if collapsibleSectionHeader("SAVE PRESET", "create") then
@@ -4943,7 +4952,7 @@ local function draw()
         and "Open a customization screen to enable saving."
         or "Enter a valid preset name to enable saving.")
     end
-    drawSectionStatus("create", "##createStatus", isCreateSuccess, statusHeight)
+    drawSectionStatus("create", "##createStatus", statusSuccess.create, statusHeight)
     end
 
     if collapsibleSectionHeader("FOLDERS", "folders") then
@@ -5024,7 +5033,7 @@ local function draw()
       if folderTrashUnavailable then ImGui.EndDisabled() end
       ImGui.TextDisabled(("Folder Trash includes %d nested folder%s and remains recoverable.")
         :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
-      drawSectionStatus("bulk", "##folderBulkStatus", isBulkSuccess, statusHeight)
+      drawSectionStatus("bulk", "##folderBulkStatus", statusSuccess.bulk, statusHeight)
     else
       local rootMoveUnavailable = not state.selected or parentFolder(state.selected) == ""
       if rootMoveUnavailable then ImGui.BeginDisabled() end
@@ -5046,7 +5055,7 @@ local function draw()
         state.lastLoggedFolderStatus = state.folderStatus
       end
     end
-    drawSectionStatus("folder", "##folderStatus", isFolderSuccess, statusHeight)
+    drawSectionStatus("folder", "##folderStatus", statusSuccess.folder, statusHeight)
     end
 
     if collapsibleSectionHeader("MANAGE", "manage") then
@@ -5079,7 +5088,7 @@ local function draw()
         if fullWidthButton("Save Preset Details", actionButtonHeight) then
           savePresetMetadata()
         end
-        drawSectionStatus("rename", "##renameStatus", isRenameSuccess, statusHeight)
+        drawSectionStatus("rename", "##renameStatus", statusSuccess.rename, statusHeight)
       end
     end
 
@@ -5159,7 +5168,7 @@ local function draw()
           end
         end
       end
-      drawSectionStatus("delete", "##trashStatus", isDeleteSuccess, statusHeight)
+      drawSectionStatus("delete", "##trashStatus", statusSuccess.delete, statusHeight)
     end
 
   end

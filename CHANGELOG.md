@@ -33,6 +33,9 @@ grouped into collapsible histories so the page remains easy to scan.
 - Uses `Character Presets` as the preferred `.cpmfolder` export and import
   location, matching individual and supported ACU preset imports, while still
   accepting older bundles placed beside `init.lua`.
+- Fixes CET rejecting the mod at startup after folder sharing pushed the main
+  Lua chunk past LuaJIT's 200-local limit. Bundle helpers are now scoped and UI
+  status checks are consolidated without removing any features.
 
 </details>
 
