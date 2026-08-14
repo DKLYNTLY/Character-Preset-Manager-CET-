@@ -70,6 +70,7 @@ local state = {
   },
   openSubsections = {
     saveDestination = false,
+    presetDetails = false,
     bulkTrash = false,
   },
   selectedFolder = "",
@@ -4690,7 +4691,7 @@ draw = function()
         "vanilla_character_presets_toggle", state.windowHotkeyCount)
 
       helpHeading("Load a Preset")
-      ImGui.TextWrapped("1. Select a preset under Load.")
+      ImGui.TextWrapped("1. Select a preset under Load Preset.")
       ImGui.TextWrapped("2. Select Load Selected Preset once.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
         "3. Wait for Preset Fully Applied.")
@@ -4703,7 +4704,7 @@ draw = function()
       ImGui.TextWrapped("3. Select Save New Preset. Confirm only if replacing an existing preset.")
 
       helpHeading("Folders")
-      ImGui.TextWrapped("Select a folder row under Load to open or close it.")
+      ImGui.TextWrapped("Select a folder row under Load Preset to open or close it.")
       ImGui.TextWrapped("To move a preset, select the preset, select a folder, then select Move Selected Preset Here. Select All Presets to move it out of a folder.")
       ImGui.TextWrapped("Adding a folder creates it inside the selected folder. Select All Presets first to add a root folder.")
       ImGui.TextWrapped("Folders created in CET are virtual and have no packaged slot limit. Renaming them or moving presets between them does not rename directories in File Explorer.")
@@ -4714,14 +4715,14 @@ draw = function()
       ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
       ImGui.TextWrapped("Remove Folder, Keep Presets moves its presets and nested folders to the parent after confirmation. For an Imported folder, recognized preset files are relocated first. Unknown files and any directory containing them are never deleted.")
 
-      helpHeading("Trash and Recovery")
-      ImGui.TextWrapped("Use Folders to move the selected folder and its presets to Trash. Use Trash & Recovery for one selected preset, filtered multi-selection, restoration, and permanent cleanup. Trash actions require confirmation.")
+      helpHeading("Delete and Restore")
+      ImGui.TextWrapped("Use Folders to delete a selected folder safely by moving it and its presets to Trash. Use Delete & Restore for one selected preset, filtered multi-selection, restoration, and permanent cleanup. Trash actions require confirmation.")
       ImGui.TextWrapped("Restore Folder recovers its complete logical tree, including empty nested virtual folders. Restored files receive safe names in Character Presets; a conflict receives a Copy name instead of overwriting an existing preset.")
 
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Place .preset files in the preset folder or a directory inside it. Copy one .preset file to share one appearance. A shared .preset does not contain its virtual folder assignment.")
       ImGui.TextWrapped("New .preset imports follow the manual directory where they are placed.")
-      ImGui.TextWrapped("Select Refresh under Load after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
+      ImGui.TextWrapped("Select Refresh under Load Preset after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       if fullWidthButton("Copy Preset Folder Path##copyPresetPath", actionButtonHeight) then
@@ -4765,7 +4766,7 @@ draw = function()
     drawSectionStatus("editor", "##editorStatus", statusSuccess.editor, statusHeight)
     end
 
-    if collapsibleSectionHeader("LOAD", "load") then
+    if collapsibleSectionHeader("LOAD PRESET", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
@@ -5037,7 +5038,7 @@ draw = function()
       if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then movePresetToSelectedFolder() end
       if moveUnavailable then ImGui.EndDisabled() end
       if moveUnavailable then ImGui.TextDisabled(not state.selected
-        and "Select a preset under Load before moving it."
+        and "Select a preset under Load Preset before moving it."
         or "The selected preset is already in this destination.")
       end
       if fullWidthButton("Export Folder for Sharing", actionButtonHeight) then
@@ -5073,7 +5074,7 @@ draw = function()
       if fullWidthButton("Move Selected Preset to Root", actionButtonHeight) then movePresetToSelectedFolder() end
       if rootMoveUnavailable then ImGui.EndDisabled() end
       if rootMoveUnavailable then ImGui.TextDisabled(not state.selected
-        and "Select a preset under Load before moving it."
+        and "Select a preset under Load Preset before moving it."
         or "The selected preset is already in All Presets.")
       end
       if fullWidthButton("Import Folder Bundles", actionButtonHeight) then
@@ -5092,10 +5093,10 @@ draw = function()
     drawSectionStatus("folder", "##folderStatus", statusSuccess.folder, statusHeight)
     end
 
-    if collapsibleSectionHeader("MANAGE", "manage") then
+    if collapsibleSectionHeader("RENAME & COPY", "manage") then
       if not state.selected or not state.presets[state.selected] then
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
-          "Select a preset under Load to rename, duplicate, or edit its details.")
+          "Select a preset under Load Preset to rename, duplicate, or edit its details.")
       else
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")
@@ -5114,23 +5115,26 @@ draw = function()
         ImGui.SameLine()
         if ImGui.Button("Duplicate Preset##duplicateSelected",
             manageButtonWidth, actionButtonHeight) then duplicatePreset() end
-        ImGui.Spacing()
-        ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Optional details")
-        ImGui.PushItemWidth(-1)
-        state.presetTags = ImGui.InputTextWithHint("##presetTags", "Tags", state.presetTags, 129)
-        state.presetNotes = ImGui.InputTextWithHint("##presetNotes", "Notes", state.presetNotes, 513)
-        ImGui.PopItemWidth()
-        if fullWidthButton("Save Preset Details", actionButtonHeight) then
-          savePresetMetadata()
+        if compactSubsectionButton("Optional Preset Details", "Hide Preset Details",
+            "presetDetails") then
+          ImGui.Indent(8)
+          ImGui.PushItemWidth(-1)
+          state.presetTags = ImGui.InputTextWithHint("##presetTags", "Tags", state.presetTags, 129)
+          state.presetNotes = ImGui.InputTextWithHint("##presetNotes", "Notes", state.presetNotes, 513)
+          ImGui.PopItemWidth()
+          if fullWidthButton("Save Preset Details", actionButtonHeight) then
+            savePresetMetadata()
+          end
+          ImGui.Unindent(8)
         end
         drawSectionStatus("rename", "##renameStatus", statusSuccess.rename, statusHeight)
       end
     end
 
-    if collapsibleSectionHeader("TRASH & RECOVERY", "trash") then
-      ImGui.TextWrapped("Move selected presets to recoverable Trash or restore items removed earlier.")
+    if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
+      ImGui.TextWrapped("Delete presets safely by moving them to recoverable Trash, or restore them later.")
       if not state.selected then
-        ImGui.TextDisabled("Select a preset under Load to move one preset to Trash.")
+        ImGui.TextDisabled("Select a preset under Load Preset to move one preset to Trash.")
       else
         local deleteLabel = state.pendingDeleteName == state.selected
           and "Confirm Move to Trash##danger"

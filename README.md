@@ -110,7 +110,7 @@ that preset.
 ### Loading a preset
 
 1. Open a supported character customization screen.
-2. Select a preset under **Load**.
+2. Select a preset under **Load Preset**.
 3. Review its folder, option count, source, metadata, and compatibility summary.
 4. Select **Load Selected Preset** once.
 5. Wait for the green **Preset fully applied** message.
@@ -177,8 +177,9 @@ required.
   importing** below.
 - **Shareable renames** — Renaming a preset also renames its physical `.preset`
   file.
-- **Preset details** — Manage remains compact until a preset is selected, then
-  provides Rename, Duplicate, notes, and tags.
+- **Preset editing** — **Rename & Copy** remains compact until a preset is
+  selected. Rename and Duplicate stay visible, while the less-used tags and
+  notes remain behind **Optional Preset Details**.
 
 ### Virtual and imported folders
 
@@ -206,7 +207,7 @@ physical locations until an operation explicitly needs to relocate them.
 - Discovery stops when an entry cannot be verified or nesting exceeds 12 levels.
 - Linked folders and junctions are not supported.
 
-### Trash and recovery
+### Deleting and restoring presets
 
 - Moving a selected preset to Trash keeps it recoverable.
 - A selected folder and all of its presets can be moved to Trash directly under
@@ -235,7 +236,8 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 
 - **Share:** Upload the individual `.preset` file.
 - **Install:** Place a downloaded preset in this folder or a directory inside it.
-- **Refresh:** Select **Refresh** under Load after changing files outside CET.
+- **Refresh:** Select **Refresh** under **Load Preset** after changing files
+  outside CET.
 - **Virtual organization:** Folder assignments are local catalog data and are
   not embedded in an individual shared preset.
 - **Metadata:** Format-5 files may include source, created, modified, notes, and
@@ -324,7 +326,7 @@ uninstalled.
 
 **ACU preset files — Import supported.** Supported `.preset` files can still be
 imported after ACU itself has been removed. Copy them into the preset folder and
-select **Refresh** under Load.
+select **Refresh** under **Load Preset**.
 
 ### ❌ Character Customization Anywhere
 
@@ -394,7 +396,7 @@ saved options. Developer hook counters remain under **Advanced diagnostics**.
 ### Can I import ACU presets?
 
 Yes. Remove ACU, copy the `.preset` file into `Character Presets`, then select
-**Refresh** under Load.
+**Refresh** under **Load Preset**.
 
 ### Can ACU remain installed?
 
@@ -437,7 +439,7 @@ screenshots demonstrate Character Preset Manager itself.
 - Adds Cancel Loading while automatic loading is active.
 - Places selected-folder Trash directly under **Folders**, while single-preset
   Trash, filtered multi-selection, restoration, and permanent cleanup remain
-  under **Trash & Recovery**.
+  under **Delete & Restore**.
 - Adds safe transaction recovery, complete folder-tree Trash records, and
   one-action folder restoration.
 - Adds **Remove Folder, Keep Presets** with safe Imported-directory cleanup and

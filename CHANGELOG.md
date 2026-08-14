@@ -42,6 +42,9 @@ grouped into collapsible histories so the page remains easy to scan.
   Settings instead of disabling it automatically after a successful save or load.
 - Adds a centered grey notification note directing players to Settings when they
   want to turn the reminder off.
+- Renames the main actions to Load Preset, Rename & Copy, and Delete & Restore so
+  their purpose is clear before opening them, and hides tags and notes behind a
+  compact Optional Preset Details button.
 - Privately scopes the Trash/recovery and UI-rendering subsystems, reducing
   retained main-chunk locals from 196 to 166 and the peak active count to 187.
   Public entry points, file formats, controls, and runtime behavior are unchanged.
