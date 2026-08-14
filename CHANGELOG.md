@@ -34,12 +34,13 @@ grouped into collapsible histories so the page remains easy to scan.
 - Simplifies Manage to a short selection prompt when no preset is selected and
   places Rename and Duplicate together as equal-width actions.
 - Hides the inactive single-preset Trash button until a preset is selected.
-- Replaces unsupported folder-arrow glyphs with clear Open/Close text and removes
-  the redundant `(folder)` label from ordinary folder rows.
-- Restyles Save Destination and More Trash Options as smaller, subdued buttons
-  so they no longer resemble main section tabs.
-- Applies the intended opening window size on the first session frame to prevent
-  a noticeable wide-to-normal layout shift while leaving later resizing enabled.
+- Replaces text-based folder indicators with CET's native drawn tree arrow and
+  removes the redundant `(folder)` label from ordinary folder rows.
+- Restyles Save Destination and More Trash Options as content-sized, borderless
+  buttons so they no longer resemble main section tabs or truncate their text.
+- Forces the intended window dimensions before its first visible session frame
+  to prevent a noticeable small-to-normal layout shift while leaving later
+  resizing enabled.
 
 ### Safety, recovery, and performance
 

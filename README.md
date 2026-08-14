@@ -156,8 +156,8 @@ required.
 
 ### Organizing presets
 
-- **Folder controls** — Folder rows use clear **Open** and **Close** text that
-  works with every CET font.
+- **Folder controls** — Folder rows use CET's native drawn arrow, so the open
+  and closed indicator works with every font.
 - **Root presets** — Presets without a folder appear below the folder list.
 - **Save and move destinations** — Select a folder or **All Presets** before
   saving or moving a preset.
@@ -366,8 +366,8 @@ screenshots demonstrate Character Preset Manager itself.
 <details>
 <summary><strong>🆕 Version 3.0.0 highlights</strong></summary>
 
-- Adds search, Refresh, folder counts, compact folder paths, and clear Open/Close
-  folder controls.
+- Adds search, Refresh, folder counts, compact folder paths, and native folder
+  controls.
 - Shows each selected preset's folder, option count, source, format, modification
   time, notes, tags, and compatibility summary.
 - Fixes the save-destination chooser, keeps its current location visible, and
