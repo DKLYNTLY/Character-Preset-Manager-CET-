@@ -16,6 +16,7 @@ local DISCOVERY_NOTICE_STATUS_FILE = "Discovery Notice Ignored.txt"
 local CONFIG_FILE = "Character Preset Manager (CET) Config.txt"
 local DISCOVERY_NOTICE_TITLE = "OPEN CHARACTER PRESET MANAGER"
 local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open its window."
+local DISCOVERY_NOTICE_SETTINGS_MESSAGE = "Turn this message off in Settings."
 local LOG_ARCHIVE_LIMIT = 10
 local activitySequence = 0
 
@@ -2200,7 +2201,6 @@ local function savePreset(confirmOverwrite)
   resetLoadState()
   log(("Created preset '%s': format=5 orderedOptions=%d")
     :format(name, #entries), "info")
-  if not state.discoveryNoticeIgnored then ignoreDiscoveryNotice() end
   if writeInventory(state.presets, state.folders) then
     setStatus("create", ("Saved \"%s\" with %d options.")
       :format(name, #entries))
@@ -2474,7 +2474,6 @@ local function loadPreset()
     state.previousUnresolvedSignature = nil
     state.unresolvedRepeatCount = 0
     refreshCustomizationUi()
-    if not state.discoveryNoticeIgnored then ignoreDiscoveryNotice() end
     log(("SUMMARY | preset='%s' | applied=%d | skipped=0 | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=complete")
       :format(state.selected, applied, state.loadPass), "complete")
     setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
@@ -4429,15 +4428,17 @@ drawDiscoveryHudNotice = function()
     local viewportX, viewportY, viewportWidth = discoveryViewport()
     local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE)
     local messageWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_MESSAGE)
+    local settingsWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_SETTINGS_MESSAGE)
     local width = math.min(viewportWidth - 48,
-      math.max(340, math.max(titleWidth, messageWidth) + 32))
+      math.max(340, math.max(titleWidth, messageWidth, settingsWidth) + 32))
     layout = {
       width = width,
-      height = 64,
+      height = 82,
       x = viewportX + math.max(24, (viewportWidth - width) * 0.5),
       y = viewportY + 72,
       titleX = math.max(14, (width - titleWidth) * 0.5),
       messageX = math.max(14, (width - messageWidth) * 0.5),
+      settingsX = math.max(14, (width - settingsWidth) * 0.5),
       flags = bit32.bor(
         ImGuiWindowFlags.NoTitleBar,
         ImGuiWindowFlags.NoResize,
@@ -4465,6 +4466,9 @@ drawDiscoveryHudNotice = function()
     ImGui.SetCursorPosX(layout.messageX)
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       DISCOVERY_NOTICE_MESSAGE)
+    ImGui.SetCursorPosX(layout.settingsX)
+    ImGui.TextColored(0.64, 0.67, 0.73, 1.0,
+      DISCOVERY_NOTICE_SETTINGS_MESSAGE)
   end
   ImGui.End()
   ImGui.PopStyleVar(3)
@@ -4733,7 +4737,7 @@ draw = function()
         "Older bundles placed beside init.lua are also accepted.")
 
       helpHeading("Settings and Config")
-      ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder disables itself after the first successful save or fully completed load and can be enabled again here.")
+      ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder stays enabled until you turn it off here.")
       ImGui.TextWrapped("The same values can be edited in Character Preset Manager (CET) Config.txt, then applied with Reload Config from Disk.")
 
       helpHeading("Debug and Diagnostics")

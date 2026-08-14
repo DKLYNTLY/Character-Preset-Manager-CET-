@@ -127,9 +127,8 @@ changed. Fix the appearance and save the preset again.
 Settings includes:
 
 - **Customization Reminder: Enabled/Disabled:** Shows the current state. Select
-  it to switch the reminder on or off. It starts enabled on a clean install,
-  disables itself after the first successful preset save or fully completed
-  load, and can be enabled again here.
+  it to switch the reminder on or off. It starts enabled on a clean install and
+  stays enabled until you turn it off in Settings.
 - **Preset Sort:** Sort alphabetically by name or by newest modified metadata.
 - **Reload Config from Disk:** Applies manual config edits without restarting.
 
@@ -447,8 +446,7 @@ screenshots demonstrate Character Preset Manager itself.
   preset.
 - Moves reminder and sorting preferences into Settings and a human-editable
   config.
-- Automatically disables the discovery reminder after a successful save or
-  complete load.
+- Keeps the discovery reminder enabled until it is turned off in Settings.
 - Moves Debug into Help and developer counters under Advanced diagnostics.
 - Improves caching, validation, failure reporting, and safe catalog writes.
 
