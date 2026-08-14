@@ -15,7 +15,7 @@
 I used AI only to help plan and improve the CET menu's layout, style, and overall
 look. I made the final design choices and heavily changed the AI-assisted work
 to fit the mod. I manually tested the preset saving, loading, folders, recovery,
-and gameplay features. The mod does not use AI while you play.
+and gameplay features.
 
 ## Features
 
