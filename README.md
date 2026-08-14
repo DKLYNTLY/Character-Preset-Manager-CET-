@@ -10,7 +10,7 @@
   <a href="CHANGELOG.md">Complete changelog</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.1</strong></p>
+<p align="center"><strong>Current version: 3.0.2</strong></p>
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -128,7 +128,7 @@ Settings includes:
 The same options are stored in:
 
 ```text
-Character Preset Manager (CET) Config.txt
+Data/Config/Config.txt
 ```
 
 Supported values:
@@ -179,7 +179,7 @@ Folders created through CET are virtual. They organize presets without creating
 or renaming directories in File Explorer. Their organization is stored in:
 
 ```text
-Character Preset Manager (CET) Folders.txt
+Data/Catalog/Virtual Folders.txt
 ```
 
 There is no fixed virtual-folder limit.
@@ -272,11 +272,34 @@ may not exceed 32 MB.
    `Character Presets` folder is processed.
 
 A successful import recreates the complete folder tree as virtual folders and
-renames its source file from `.cpmfolder` to `.cpmfolder.imported` so it is not
-imported again accidentally. If that folder name already exists, the imported
-folder receives a safe `Copy` name. A failed bundle remains unchanged so the
-error can be corrected and the import tried again. Bundles are imported only
-from `Character Presets`.
+leaves its source `.cpmfolder` file untouched. Character Preset Manager records
+the bundle filename and content fingerprint in
+`Data/Catalog/Imported Bundles.txt`; an unchanged bundle is skipped on later
+imports, while a changed bundle using the same filename can be imported again.
+If that folder name already exists, the imported folder receives a safe `Copy`
+name. A failed bundle is not recorded, so the error can be corrected and the
+import tried again. Bundles are imported only from `Character Presets`.
+
+### Runtime data layout
+
+The install root contains only `init.lua`, `Character Presets`, and `Data` from
+this mod. Virtual folders never create physical directories. CPM-owned files
+are grouped under:
+
+```text
+Data/
+|-- Config/
+|-- Catalog/
+|-- Recovery/
+|   `-- Trash/
+`-- Logs/
+    `-- Archive/
+```
+
+Version 3.0.2 does not move loose files created by older releases. For the
+clean layout, remove the old mod installation before installing 3.0.2, while
+backing up and restoring only the presets or bundles you want to keep from
+`Character Presets`.
 
 </details>
 
@@ -374,7 +397,7 @@ Open **Help > Debug and Diagnostics**, then select **Open Debug Log** to view or
 copy the log.
 
 ```text
-bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Preset Manager (CET) Activity.log
+bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
 ```
 
 Each full game launch starts a new log. The previous log is archived with its
@@ -414,7 +437,14 @@ screenshots demonstrate Character Preset Manager itself.
 </details>
 
 <details>
-<summary><strong>🆕 Version 3.0.1 highlights</strong></summary>
+<summary><strong>🆕 Version 3.0.2 highlights</strong></summary>
+
+- Groups CPM-owned configuration, catalog, recovery, Trash, and log data under
+  `Data` so the mod root and `Character Presets` stay focused.
+- Keeps imported `.cpmfolder` files unchanged and skips exact previously
+  imported bundles through a filename-and-fingerprint registry.
+- Keeps virtual folders entirely catalog-based without creating physical
+  directories.
 
 - Displays complete slash-qualified preset paths and lets CET retain the chosen
   window size between game sessions.

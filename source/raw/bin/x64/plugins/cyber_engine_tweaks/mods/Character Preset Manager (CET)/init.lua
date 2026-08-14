@@ -1,17 +1,23 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "3.0.1"
+local VERSION = "3.0.2"
 local PRESET_DIR = "Character Presets"
-local TRASH_DIR_NAME = ".Character Preset Manager Trash"
-local TRASH_DIR = PRESET_DIR .. "/" .. TRASH_DIR_NAME
-local TRASH_CATALOG_FILE = "Character Preset Manager (CET) Trash.txt"
-local TRANSACTION_FILE = "Character Preset Manager (CET) Transaction.txt"
-local CATALOG_FILE = "Character Preset Manager (CET) Folders.txt"
-local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
-local LOG_FILE = "Character Preset Manager (CET) Activity.log"
-local LOG_ARCHIVE_PREFIX = "Character Preset Manager (CET) Activity "
-local WINDOW_POSITION_STATUS_FILE = "Window Position Status.txt"
-local CONFIG_FILE = "Character Preset Manager (CET) Config.txt"
+local DATA_DIR = "Data"
+local CONFIG_DIR = DATA_DIR .. "/Config"
+local CATALOG_DIR = DATA_DIR .. "/Catalog"
+local RECOVERY_DIR = DATA_DIR .. "/Recovery"
+local TRASH_DIR = RECOVERY_DIR .. "/Trash"
+local LOG_DIR = DATA_DIR .. "/Logs"
+local LOG_ARCHIVE_DIR = LOG_DIR .. "/Archive"
+local TRASH_CATALOG_FILE = RECOVERY_DIR .. "/Trash Catalog.txt"
+local TRANSACTION_FILE = RECOVERY_DIR .. "/Recovery Journal.txt"
+local CATALOG_FILE = CATALOG_DIR .. "/Virtual Folders.txt"
+local INVENTORY_FILE = CATALOG_DIR .. "/Preset Inventory.txt"
+local IMPORTED_BUNDLES_FILE = CATALOG_DIR .. "/Imported Bundles.txt"
+local LOG_FILE = LOG_DIR .. "/Activity.log"
+local LOG_ARCHIVE_PREFIX = "Activity "
+local WINDOW_POSITION_STATUS_FILE = CONFIG_DIR .. "/Window Position Status.txt"
+local CONFIG_FILE = CONFIG_DIR .. "/Config.txt"
 local DISCOVERY_NOTICE_TITLE = "OPEN CHARACTER PRESET MANAGER"
 local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open its window."
 local DISCOVERY_NOTICE_SETTINGS_MESSAGE = "Turn this message off in Settings."
@@ -177,12 +183,12 @@ local function fileExists(path)
   return true
 end
 
-local function fileFingerprint(path)
+local function fileFingerprint(path, maximumBytes)
   local file = io.open(path, "rb")
   if not file then return nil end
   local sizeOk, fileSize = pcall(file.seek, file, "end")
   local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
-  if not sizeOk or not fileSize or fileSize > MAX_PRESET_BYTES
+  if not sizeOk or not fileSize or fileSize > (maximumBytes or MAX_PRESET_BYTES)
       or not rewindOk or rewindResult == nil then
     file:close()
     return nil
@@ -317,7 +323,7 @@ local function writeLog(message, level)
 end
 
 local function pruneLogArchives()
-  local listOk, files = pcall(dir, ".")
+  local listOk, files = pcall(dir, LOG_ARCHIVE_DIR)
   if not listOk or type(files) ~= "table" then
     return 0, "dated activity-log archives could not be listed"
   end
@@ -336,7 +342,7 @@ local function pruneLogArchives()
   local deleted = 0
   while #archives > LOG_ARCHIVE_LIMIT do
     local oldest = table.remove(archives, 1)
-    local removed, removeError = os.remove(oldest)
+    local removed, removeError = os.remove(LOG_ARCHIVE_DIR .. "/" .. oldest)
     if not removed then
       return deleted, ("oldest activity-log archive could not be deleted: %s")
         :format(tostring(removeError))
@@ -357,7 +363,8 @@ local function archiveLogForNewSession()
     local dateOk, timestamp = pcall(os.date, "%Y-%m-%d_%H-%M-%S")
     if not dateOk or not timestamp then timestamp = "unknown-date" end
 
-    local archiveName = LOG_ARCHIVE_PREFIX .. tostring(timestamp) .. ".txt"
+    local archiveName = LOG_ARCHIVE_DIR .. "/" ..
+      LOG_ARCHIVE_PREFIX .. tostring(timestamp) .. ".txt"
     local suffix = 2
     while suffix <= 9999 do
       local existing = io.open(archiveName, "rb")
@@ -1551,6 +1558,44 @@ local function folderBundleFiles()
   return bundles
 end
 
+local function validBundleFilename(filename)
+  return type(filename) == "string" and filename ~= ""
+    and #filename <= 255 and not filename:find("/", 1, true)
+    and not filename:find("\\", 1, true) and not filename:find("%c")
+    and filename:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION
+end
+
+local function readImportedBundles()
+  local imported = {}
+  local contents, readError = readBoundedFile(IMPORTED_BUNDLES_FILE, MAX_CATALOG_BYTES)
+  if not contents then return imported, readError == "missing" end
+  local lineCount = 0
+  for line in (contents .. "\n"):gmatch("(.-)\n") do
+    if line ~= "" then
+      lineCount = lineCount + 1
+      if lineCount > MAX_CATALOG_LINES then return nil, false end
+      local encodedName, fingerprint = line:match("^B\t([^\t]+)\t(%d+:%d+)$")
+      local filename = encodedName and catalogDecode(encodedName) or nil
+      if not validBundleFilename(filename) then return nil, false end
+      imported[filename:lower()] = { filename = filename, fingerprint = fingerprint }
+    end
+  end
+  return imported, true
+end
+
+local function writeImportedBundles(imported)
+  local lines = {}
+  for _, item in pairs(imported or {}) do
+    if not validBundleFilename(item.filename)
+        or type(item.fingerprint) ~= "string"
+        or not item.fingerprint:match("^%d+:%d+$") then return false end
+    table.insert(lines, "B\t" .. catalogEncode(item.filename) .. "\t" .. item.fingerprint)
+  end
+  table.sort(lines, function(a, b) return a:lower() < b:lower() end)
+  return writeLinesIfChanged(
+    IMPORTED_BUNDLES_FILE, lines, "imported-bundle registry", MAX_CATALOG_BYTES) == true
+end
+
 local function uniqueFolderBundleFilename(folder)
   local stem = "Character Preset Manager Folder - " .. baseName(folder)
   for index = 1, 999 do
@@ -1701,7 +1746,7 @@ local function writeRawPreset(path, contents)
   end, "imported folder preset")
 end
 
-local function importFolderBundle(filename)
+local function importFolderBundle(filename, fingerprint, importedBundles)
   local bundle, bundleError = readFolderBundle(filename)
   if not bundle then return nil, bundleError end
   local root = bundle.root
@@ -1748,24 +1793,33 @@ local function importFolderBundle(filename)
     removeFileList(createdFiles)
     return nil, "The imported folder was rolled back because the catalog could not be saved."
   end
+  local inventorySaved = writeInventory(newPresets, newFolders)
+  if not inventorySaved then
+    writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders)
+    removeFileList(createdFiles)
+    return nil, "The imported folder was rolled back because the inventory could not be saved."
+  end
+  local leaf = filename:match("([^/]+)$")
+  local updatedImported = cloneMap(importedBundles)
+  updatedImported[leaf:lower()] = { filename = leaf, fingerprint = fingerprint }
+  if not writeImportedBundles(updatedImported) then
+    writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders)
+    writeInventory(state.presets, state.folders)
+    removeFileList(createdFiles)
+    return nil, "The imported folder was rolled back because its import record could not be saved."
+  end
   state.presets, state.folders = newPresets, newFolders
   state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
   state.selectedFolder = root
   invalidateViewCache()
   resetLoadState()
   cancelConfirmations()
-  local inventorySaved = writeInventory(newPresets, newFolders)
-  local archiveName = filename .. ".imported"
-  for index = 2, 999 do
-    if not fileExists(archiveName) then break end
-    archiveName = filename .. (".imported %d"):format(index)
-  end
-  local archived = not fileExists(archiveName) and os.rename(filename, archiveName) ~= nil
-  log(("[FOLDER BUNDLE] Imported file='%s' root='%s' presets=%d archived=%s inventory=%s.")
-    :format(filename, root, #bundle.presets, tostring(archived), tostring(inventorySaved)),
-    inventorySaved and archived and "complete" or "warn")
-  return root, (inventorySaved and "" or " Inventory refresh failed.") ..
-    (archived and "" or " Rename or remove the bundle before importing again.")
+  importedBundles[leaf:lower()] = updatedImported[leaf:lower()]
+  log(("[FOLDER BUNDLE] Imported file='%s' root='%s' presets=%d fingerprint='%s'.")
+    :format(filename, root, #bundle.presets, fingerprint), "complete")
+  return root, ""
 end
 
 importAvailableFolderBundles = function()
@@ -1775,23 +1829,40 @@ importAvailableFolderBundles = function()
     state.folderStatus, state.folderStatusError =
       "Place a .cpmfolder file in Character Presets, then select Import Folder Bundles.", true; return
   end
-  local imported, failures, warnings = 0, {}, {}
+  local importedBundles, registryOk = readImportedBundles()
+  if not registryOk then
+    state.folderStatus, state.folderStatusError =
+      "Imported Bundles.txt is unreadable or unsafe. No bundles were changed.", true; return
+  end
+  local imported, skipped, failures, warnings = 0, 0, {}, {}
   for _, filename in ipairs(files) do
-    local root, result = importFolderBundle(filename)
-    if root then
-      imported = imported + 1
-      if result ~= "" then table.insert(warnings, filename .. ":" .. result) end
+    local leaf = filename:match("([^/]+)$")
+    local fingerprint = fileFingerprint(filename, MAX_FOLDER_BUNDLE_BYTES)
+    if not fingerprint then
+      table.insert(failures, filename .. ": Bundle fingerprint could not be read safely.")
+    elseif importedBundles[leaf:lower()]
+        and importedBundles[leaf:lower()].fingerprint == fingerprint then
+      skipped = skipped + 1
+      log(("[FOLDER BUNDLE] Skipped previously imported file='%s' fingerprint='%s'.")
+        :format(filename, fingerprint), "info")
     else
-      table.insert(failures, filename .. ": " .. tostring(result))
+      local root, result = importFolderBundle(filename, fingerprint, importedBundles)
+      if root then
+        imported = imported + 1
+        if result ~= "" then table.insert(warnings, filename .. ":" .. result) end
+      else
+        table.insert(failures, filename .. ": " .. tostring(result))
+      end
     end
   end
   if #failures > 0 then
-    state.folderStatus = ("Imported %d bundle%s. Failed: %s")
-      :format(imported, imported == 1 and "" or "s", table.concat(failures, " | "))
+    state.folderStatus = ("Imported %d bundle%s; skipped %d already imported. Failed: %s")
+      :format(imported, imported == 1 and "" or "s", skipped, table.concat(failures, " | "))
     state.folderStatusError = true
   else
-    state.folderStatus = ("Imported %d folder bundle%s.%s")
+    state.folderStatus = ("Imported %d folder bundle%s; skipped %d already imported.%s")
       :format(imported, imported == 1 and "" or "s",
+        skipped,
         #warnings > 0 and (" " .. table.concat(warnings, " | ")) or "")
     state.folderStatusError = false
   end
@@ -1854,7 +1925,7 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
             :format(childRelative), "warn")
         end
       elseif entry.type == "directory"
-          and childRelative ~= TRASH_DIR_NAME
+          and childRelative ~= ".Character Preset Manager Trash"
           and not scan(childRelative, depth + 1) then
         return false
       end
@@ -4184,11 +4255,11 @@ local function readDiagnosticLog()
     return
   end
   if truncated then
-    contents = "[Showing the newest 64 KB of Character Preset Manager (CET) Activity.log]\n\n" ..
+    contents = "[Showing the newest 64 KB of Data/Logs/Activity.log]\n\n" ..
       contents
   end
   setDebugLogText(contents ~= "" and contents
-    or "Character Preset Manager (CET) Activity.log is empty.")
+    or "Data/Logs/Activity.log is empty.")
 end
 
 local function drawDebugPanel(height)
@@ -4679,11 +4750,11 @@ draw = function()
       helpHeading("Share or Import a Folder")
       ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
       ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. Every bundle found there is processed.")
-      ImGui.TextWrapped("After a successful import, the bundle is renamed with .imported so it cannot import twice accidentally. Existing folder names receive a safe Copy name; failed bundles remain unchanged.")
+      ImGui.TextWrapped("After a successful import, the bundle stays untouched and its filename plus fingerprint are recorded in Data/Catalog/Imported Bundles.txt. An unchanged bundle is skipped; a changed bundle with the same filename can be imported again. Existing folder names receive a safe Copy name.")
 
       helpHeading("Settings and Config")
       ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder stays enabled until you turn it off here.")
-      ImGui.TextWrapped("The same values can be edited in Character Preset Manager (CET) Config.txt, then applied with Reload Config from Disk.")
+      ImGui.TextWrapped("The same values can be edited in Data/Config/Config.txt, then applied with Reload Config from Disk.")
 
       helpHeading("Debug and Diagnostics")
       ImGui.TextWrapped("The activity log records preset actions, warnings, errors, and advanced editor diagnostics.")

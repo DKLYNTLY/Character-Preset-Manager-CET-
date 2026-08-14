@@ -4,7 +4,29 @@ The newest release is separated into clear categories. Older releases are
 grouped into collapsible histories so the page remains easy to scan.
 
 <details open>
-<summary><strong>Latest release — 3.0.1</strong></summary>
+<summary><strong>Latest release — 3.0.2</strong></summary>
+
+## 3.0.2
+
+*Clean runtime-data layout and non-destructive bundle tracking.*
+
+- Groups configuration, virtual-folder catalog, preset inventory, imported-
+  bundle registry, recovery data, Trash, and activity logs under `Data`.
+- Keeps `Character Presets` focused on presets, manually created folders, and
+  shareable `.cpmfolder` files; virtual folders remain catalog-only.
+- Leaves successfully imported `.cpmfolder` files untouched and records their
+  filenames plus content fingerprints in `Data/Catalog/Imported Bundles.txt`.
+- Skips a bundle only when both its filename and fingerprint match a successful
+  earlier import, allowing updated content under the same filename to import.
+- Writes the import record only after preset, catalog, and inventory writes
+  succeed; failed imports remain unrecorded and retryable.
+- Does not move or delete loose runtime files from older releases. A clean
+  replacement install is required to remove the previous root-level clutter.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.1</strong></summary>
 
 ## 3.0.1
 

@@ -1,0 +1,1 @@
+Recoverable preset files are stored here by Character Preset Manager.
