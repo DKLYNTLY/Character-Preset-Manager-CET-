@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "3.0.1"
+local VERSION = "3.0.0"
 local PRESET_DIR = "Character Presets"
 local TRASH_DIR_NAME = ".Character Preset Manager Trash"
 local TRASH_DIR = PRESET_DIR .. "/" .. TRASH_DIR_NAME

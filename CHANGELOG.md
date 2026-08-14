@@ -1,6 +1,6 @@
 # Changelog
 
-## 3.0.1
+## 3.0.0
 
 - Rewords the project disclosure to accurately describe development as
   AI-assisted rather than AI-generated.
@@ -16,7 +16,7 @@
 - Adds one-action folder-group restore from Trash while retaining individual
   preset restore actions.
 - Adds size, line-count, path, group, and filename validation to the Trash
-  catalog while continuing to migrate the original 3.0.0 catalog format.
+  catalog while continuing to migrate the earlier catalog format.
 - Caches normalized search results, matching folder trees, bulk folder counts,
   and multi-selection summaries until their inputs change.
 - Skips atomic folder-catalog, inventory, and Trash-catalog replacements when
@@ -26,8 +26,6 @@
   instead of reporting an unconditional success.
 - Stores structured status kinds for consistent success, warning, and error
   presentation without changing the existing player-facing workflows.
-
-## 3.0.0
 
 - Adds case-insensitive preset and folder search above the Load list.
 - Adds a direct Refresh action that rescans external preset files and recoverable
