@@ -4256,7 +4256,7 @@ local function draw()
       ImGui.TextWrapped("3. Select Save New Preset. Confirm only if replacing an existing preset.")
 
       helpHeading("Folders")
-      ImGui.TextWrapped("Use [+] and [-] under Load to open or close a folder.")
+      ImGui.TextWrapped("Use ▶ and ▼ under Load to open or close a folder.")
       ImGui.TextWrapped("To move a preset, select the preset, select a folder, then select Move Selected Preset Here. Select All Presets to move it out of a folder.")
       ImGui.TextWrapped("Adding a folder creates it inside the selected folder. Select All Presets first to add a root folder.")
       ImGui.TextWrapped("Folders created in CET are virtual and have no packaged slot limit. Renaming them or moving presets between them does not rename directories in File Explorer.")
@@ -4386,10 +4386,11 @@ local function draw()
         if subtreeCount > 0 and (folderMatches or #matchingPresets > 0 or descendantMatches) then
           local expanded = state.expandedLoadFolders[folder] == true
           local folderKind = state.manualFolders[folder]
-            and " (imported folder)" or " (folder)"
+            and " (imported)" or ""
+          local showingContents = expanded or queryActive
           if ImGui.Selectable(
               string.rep("  ", folderDepth(folder)) ..
-                (expanded and "[-] " or "[+] ") .. baseName(folder) ..
+                (showingContents and "▼ " or "▶ ") .. baseName(folder) ..
                 (" (%d)"):format(subtreeCount) .. folderKind .. "##loadFolder:" .. folder,
               false) then
             expanded = not expanded

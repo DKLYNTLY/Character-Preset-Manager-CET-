@@ -120,7 +120,7 @@ Fix the appearance and save the preset again.
 
 ## Folders and preset management
 
-- Use `[+]` and `[-]` under **Load** to expand or collapse preset folders.
+- Use `▶` and `▼` under **Load** to expand or collapse preset folders.
 - Presets not assigned to a folder appear below the folder list.
 - Select a folder under **Folders** before creating a preset to organize it
   there. Select **All Presets** to create it at the root.

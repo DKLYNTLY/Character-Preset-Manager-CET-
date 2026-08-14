@@ -19,6 +19,8 @@
 - Simplifies Manage to a short selection prompt when no preset is selected and
   places Rename and Duplicate together as equal-width actions.
 - Hides the inactive single-preset Trash button until a preset is selected.
+- Replaces bracketed folder markers with clearer disclosure arrows and removes
+  the redundant `(folder)` label from ordinary folder rows.
 - Adds a bounded atomic transaction journal for preset Trash, restore, bulk
   Trash, folder restore, and physical preset-file rename operations.
 - Automatically rolls back unfinished file operations at startup while retaining
