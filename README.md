@@ -63,8 +63,8 @@
 3. Launch the game and open the Cyber Engine Tweaks overlay.
 4. Select **Character Preset Manager (CET)**.
 
-The window starts near the right side of the screen. CET remembers where you
-move it.
+The window starts near the right side of the screen. CET remembers its position
+and size after you move or resize it.
 
 ### Optional hotkeys
 
@@ -127,7 +127,8 @@ changed. Fix the appearance and save the preset again.
 Settings includes:
 
 - **Customization Reminder: Enabled/Disabled:** Shows the current state. Select
-  it to switch the reminder on or off.
+  it to switch the reminder on or off. It disables itself after the first
+  successful preset save or fully completed load, and can be enabled again here.
 - **Preset Sort:** Sort alphabetically by name or by newest modified metadata.
 - **Reload Config from Disk:** Applies manual config edits without restarting.
 
@@ -168,11 +169,12 @@ required.
 - **Complete folder copies** — Duplicating a virtual folder includes its presets
   and nested folders.
 - **Remove Folder, Keep Presets** — After confirmation, moves its presets and
-  nested folders to the parent. Imported preset files are relocated safely, and
-  the physical directory is removed only if nothing else remains inside it.
+  nested folders to the parent. For an Imported folder, recognized `.preset`
+  files are safely relocated to the main preset folder first. Its physical
+  directory is removed only when no unknown files remain.
 - **Folder sharing** — Export a virtual folder and all of its nested presets as
-  one `.cpmfolder` bundle. Another player can place it beside `init.lua` and
-  import it under **Folders → All Presets → Import Folder Bundles**.
+  one `.cpmfolder` bundle. Complete import instructions are under **Sharing and
+  importing** below.
 - **Shareable renames** — Renaming a preset also renames its physical `.preset`
   file.
 - **Preset details** — Manage remains compact until a preset is selected, then
@@ -193,11 +195,14 @@ unchanged.
 
 Directories created manually inside `Character Presets` are discovered
 recursively and labeled **Imported**. Their files remain in their original
-physical locations.
+physical locations until an operation explicitly needs to relocate them.
 
 - Renaming an Imported folder changes only its displayed virtual name.
 - Moving its presets changes only their catalog assignments.
-- Removing it through CET preserves its presets, directory, and unrelated files.
+- **Remove Folder, Keep Presets** moves recognized `.preset` files out of the
+  selected Imported directory, keeps every preset, and removes only directories
+  that are empty afterward. Unknown files and any directory containing them are
+  always preserved.
 - Discovery stops when an entry cannot be verified or nesting exceeds 12 levels.
 - Linked folders and junctions are not supported.
 
@@ -210,13 +215,17 @@ physical locations.
 - Folder Trash removes the logical tree and keeps all presets recoverable.
   An imported physical directory is removed when it becomes empty; unknown
   content keeps the directory in place and is never deleted.
-- **Restore Folder** rebuilds presets, imported identity, and empty nested
-  folders together. Individual presets may also be restored separately.
+- **Restore Folder** rebuilds the complete logical folder tree, including empty
+  nested virtual folders, and restores every preset in that Trash group.
+  Restored files receive safe storage names in the main `Character Presets`
+  directory; their original folder paths are restored virtually. Name conflicts
+  receive a `Copy` name instead of overwriting an existing preset.
+- Individual presets may also be restored separately.
 - Only **Empty Trash Permanently** destroys trashed preset files.
 - Interrupted Trash, restore, bulk-move, and physical-rename operations are
   resolved through the recovery journal at startup.
 
-### Sharing and importing
+### Sharing individual presets
 
 Preset folder:
 
@@ -228,11 +237,54 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 - **Install:** Place a downloaded preset in this folder or a directory inside it.
 - **Refresh:** Select **Refresh** under Load after changing files outside CET.
 - **Virtual organization:** Folder assignments are local catalog data and are
-  not embedded in a shared preset.
+  not embedded in an individual shared preset.
 - **Metadata:** Format-5 files may include source, created, modified, notes, and
   tags while remaining backward compatible.
 - **Safety limits:** Imported presets are limited to 1 MB, 8,192 lines, 4,096
   valid options, 256 bytes per option key, and unsigned 32-bit option indexes.
+
+### Sharing and importing complete folders
+
+A `.cpmfolder` file contains one selected virtual folder, all nested virtual
+folders, and every preset inside that tree. Notes, tags, and other supported
+preset metadata travel with the preset files in the bundle.
+
+#### Export a folder
+
+1. Open **Folders** and select the folder you want to share.
+2. Select **Export Folder for Sharing**.
+3. Find the new `.cpmfolder` file in the same `Character Presets` folder used
+   for individual preset imports:
+
+   ```text
+   bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
+   ```
+
+4. Share that single `.cpmfolder` file.
+
+An empty folder cannot be exported. One bundle may contain up to 512 presets and
+may not exceed 32 MB.
+
+#### Import a folder
+
+1. Put each downloaded `.cpmfolder` file in `Character Presets`, just like an
+   individual `.preset` or supported ACU preset import:
+
+   ```text
+   bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
+   ```
+
+2. Open Character Preset Manager and expand **Folders**.
+3. Select **All Presets (root)**. The import button is shown only at the root.
+4. Select **Import Folder Bundles**. Every `.cpmfolder` file currently in the
+   `Character Presets` folder is processed.
+
+A successful import recreates the complete folder tree as virtual folders and
+renames its source file from `.cpmfolder` to `.cpmfolder.imported` so it is not
+imported again accidentally. If that folder name already exists, the imported
+folder receives a safe `Copy` name. A failed bundle remains unchanged so the
+error can be corrected and the import tried again. For backward compatibility,
+the importer also accepts older bundles placed beside `init.lua`.
 
 </details>
 
@@ -371,10 +423,11 @@ screenshots demonstrate Character Preset Manager itself.
 </details>
 
 <details>
-<summary><strong>🆕 Version 3.0.0 highlights</strong></summary>
+<summary><strong>🆕 Version 3.0.1 highlights</strong></summary>
 
-- Adds search, Refresh, folder counts, compact folder paths, and native folder
-  controls.
+- Displays complete slash-qualified preset paths and lets CET retain the chosen
+  window size between game sessions.
+- Adds search, Refresh, folder counts, and native folder controls.
 - Shows each selected preset's folder, option count, source, format, modification
   time, notes, tags, and compatibility summary.
 - Fixes the save-destination chooser, keeps its current location visible, and
@@ -382,10 +435,13 @@ screenshots demonstrate Character Preset Manager itself.
 - Disables unavailable actions with a short reason, standardizes primary button
   sizes, and prevents the first-frame width shift when the window opens.
 - Adds Cancel Loading while automatic loading is active.
-- Groups deletion, bulk actions, restoration, and permanent cleanup under
-  **Trash & Recovery**, with multi-item actions behind a smaller nested control.
+- Places selected-folder Trash directly under **Folders**, while single-preset
+  Trash, filtered multi-selection, restoration, and permanent cleanup remain
+  under **Trash & Recovery**.
 - Adds safe transaction recovery, complete folder-tree Trash records, and
   one-action folder restoration.
+- Adds **Remove Folder, Keep Presets** with safe Imported-directory cleanup and
+  complete `.cpmfolder` export/import for sharing virtual folder trees.
 - Adds optional format-5 notes and tags and renames the physical file with its
   preset.
 - Moves reminder and sorting preferences into Settings and a human-editable

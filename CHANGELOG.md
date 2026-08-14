@@ -27,6 +27,12 @@ grouped into collapsible histories so the page remains easy to scan.
   virtual folder trees without requiring undocumented directory-creation calls.
 - Reduces peak memory use while exporting and importing folder bundles without
   changing the bundle format or its safety checks.
+- Reconciles the README and in-game Help with the final folder, Imported-folder,
+  Trash, restore, and `.cpmfolder` workflows, including exact import steps and
+  the post-import `.imported` rename.
+- Uses `Character Presets` as the preferred `.cpmfolder` export and import
+  location, matching individual and supported ACU preset imports, while still
+  accepting older bundles placed beside `init.lua`.
 
 </details>
 

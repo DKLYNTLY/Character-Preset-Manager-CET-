@@ -1572,15 +1572,20 @@ local function hexDecode(value)
 end
 
 local function folderBundleFiles()
-  local entries = safeDirectoryEntries(".", 0)
-  if not entries then return {} end
   local bundles = {}
-  for _, entry in ipairs(entries) do
-    if entry.type == "file"
-        and entry.name:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION then
-      table.insert(bundles, entry.name)
+  local function collect(path, prefix)
+    local entries = safeDirectoryEntries(path, 0)
+    if not entries then return end
+    for _, entry in ipairs(entries) do
+      if entry.type == "file"
+          and entry.name:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION then
+        table.insert(bundles, prefix .. entry.name)
+      end
     end
   end
+  collect(PRESET_DIR, PRESET_DIR .. "/")
+  collect(".", "")
+  table.sort(bundles, function(a, b) return a:lower() < b:lower() end)
   return bundles
 end
 
@@ -1588,7 +1593,7 @@ local function uniqueFolderBundleFilename(folder)
   local stem = "Character Preset Manager Folder - " .. baseName(folder)
   for index = 1, 999 do
     local suffix = index == 1 and "" or (" Copy %d"):format(index)
-    local filename = stem .. suffix .. FOLDER_BUNDLE_EXTENSION
+    local filename = PRESET_DIR .. "/" .. stem .. suffix .. FOLDER_BUNDLE_EXTENSION
     if not fileExists(filename) and not fileExists(filename .. ".tmp")
         and not fileExists(filename .. ".bak") then return filename end
   end
@@ -1806,7 +1811,7 @@ local function importAvailableFolderBundles()
   local files = folderBundleFiles()
   if #files == 0 then
     state.folderStatus, state.folderStatusError =
-      "Place a .cpmfolder file beside init.lua, then select Import Folder Bundles.", true; return
+      "Place a .cpmfolder file in Character Presets, then select Import Folder Bundles.", true; return
   end
   local imported, failures, warnings = 0, {}, {}
   for _, filename in ipairs(files) do
@@ -4665,20 +4670,20 @@ local function draw()
       ImGui.TextWrapped("To move a preset, select the preset, select a folder, then select Move Selected Preset Here. Select All Presets to move it out of a folder.")
       ImGui.TextWrapped("Adding a folder creates it inside the selected folder. Select All Presets first to add a root folder.")
       ImGui.TextWrapped("Folders created in CET are virtual and have no packaged slot limit. Renaming them or moving presets between them does not rename directories in File Explorer.")
-      ImGui.TextWrapped("Manually created directories are discovered recursively and labeled Imported. Their preset files remain at their existing paths.")
+      ImGui.TextWrapped("Directories created manually inside Character Presets are discovered recursively and labeled Imported. Their preset files stay at those paths until an operation explicitly relocates them.")
 
-      helpHeading("Rename, Copy, or Trash")
-      ImGui.TextWrapped("Select a preset or folder before using its rename or copy action. Trash actions are grouped under Trash & Recovery.")
+      helpHeading("Rename, Copy, or Remove")
+      ImGui.TextWrapped("Select a preset or folder before using its rename or copy action. Renaming a preset also renames its shareable .preset file. Folder renames remain virtual.")
       ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
-      ImGui.TextWrapped("Remove Folder, Keep Presets moves its presets and nested folders to the parent after confirmation. An imported disk directory is removed only when nothing else remains inside it.")
-      ImGui.TextWrapped("Export Folder for Sharing creates one .cpmfolder bundle beside init.lua. To import one, place it there, select All Presets under Folders, and select Import Folder Bundles.")
+      ImGui.TextWrapped("Remove Folder, Keep Presets moves its presets and nested folders to the parent after confirmation. For an Imported folder, recognized preset files are relocated first. Unknown files and any directory containing them are never deleted.")
 
       helpHeading("Trash and Recovery")
-      ImGui.TextWrapped("Move one selected preset to Trash, move a selected folder and its presets from Folders, or open More Trash Options for several presets. These actions require confirmation. Restore Folder recovers the complete logical tree, including empty nested folders.")
+      ImGui.TextWrapped("Use Folders to move the selected folder and its presets to Trash. Use Trash & Recovery for one selected preset, filtered multi-selection, restoration, and permanent cleanup. Trash actions require confirmation.")
+      ImGui.TextWrapped("Restore Folder recovers its complete logical tree, including empty nested virtual folders. Restored files receive safe names in Character Presets; a conflict receives a Copy name instead of overwriting an existing preset.")
 
-      helpHeading("Import and Share")
-      ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy one .preset file to share one appearance, or use Export Folder for Sharing to create one portable .cpmfolder bundle.")
-      ImGui.TextWrapped("Virtual folder assignments are local and are not embedded in shared preset files. New imports follow the manual directory where they are placed.")
+      helpHeading("Share One Preset")
+      ImGui.TextWrapped("Place .preset files in the preset folder or a directory inside it. Copy one .preset file to share one appearance. A shared .preset does not contain its virtual folder assignment.")
+      ImGui.TextWrapped("New .preset imports follow the manual directory where they are placed.")
       ImGui.TextWrapped("Select Refresh under Load after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
@@ -4687,8 +4692,15 @@ local function draw()
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       end
 
+      helpHeading("Share or Import a Folder")
+      ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
+      ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. Every bundle found there is processed.")
+      ImGui.TextWrapped("After a successful import, the bundle is renamed with .imported so it cannot import twice accidentally. Existing folder names receive a safe Copy name; failed bundles remain unchanged.")
+      ImGui.TextDisabled("Older bundles placed beside init.lua are also accepted.")
+
       helpHeading("Settings and Config")
-      ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The same values can be edited in Character Preset Manager (CET) Config.txt, then applied with Reload Config from Disk.")
+      ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder disables itself after the first successful save or fully completed load and can be enabled again here.")
+      ImGui.TextWrapped("The same values can be edited in Character Preset Manager (CET) Config.txt, then applied with Reload Config from Disk.")
 
       helpHeading("Debug and Diagnostics")
       ImGui.TextWrapped("The activity log records preset actions, warnings, errors, and advanced editor diagnostics.")
@@ -5025,7 +5037,7 @@ local function draw()
       if fullWidthButton("Import Folder Bundles", actionButtonHeight) then
         importAvailableFolderBundles()
       end
-      ImGui.TextDisabled("Place .cpmfolder files beside init.lua before importing.")
+      ImGui.TextDisabled("Place .cpmfolder files in Character Presets. Every bundle found there will be processed.")
     end
     if state.folderStatus ~= "" then
       if state.lastLoggedFolderStatus ~= state.folderStatus then
