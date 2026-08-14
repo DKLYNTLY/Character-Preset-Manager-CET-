@@ -2527,6 +2527,20 @@ local function cancelLoading()
     or "Loading canceled.")
 end
 
+local writeTransaction
+local completeTransaction
+local recoverTransaction
+local refreshTrash
+local trashPreset
+local restoreTrashPreset
+local restoreTrashGroup
+local emptyTrash
+local bulkPresetNamesInFolder
+local selectedBulkPresetNames
+local requestBulkTrash
+
+do
+
 local function validTrashFilename(filename)
   return type(filename) == "string" and #filename > 7 and #filename <= 71
     and filename:find("/", 1, true) == nil and filename:find("\\", 1, true) == nil
@@ -2637,7 +2651,7 @@ local function readTrashCatalog()
   return originals, groups, true, legacy
 end
 
-local function writeTransaction(phase, operation, plans)
+writeTransaction = function(phase, operation, plans)
   local lines = { "V\t1", "H\t" .. phase .. "\t" .. operation }
   for _, plan in ipairs(plans or {}) do
     if operation == "rename" then
@@ -2719,12 +2733,12 @@ local function readTransaction()
   return transaction
 end
 
-local function completeTransaction(operation, plans)
+completeTransaction = function(operation, plans)
   if not writeTransaction("committed", operation, plans) then return false end
   return os.remove(TRANSACTION_FILE) ~= nil or not fileExists(TRANSACTION_FILE)
 end
 
-local function recoverTransaction()
+recoverTransaction = function()
   local transaction, transactionError = readTransaction()
   if not transaction then
     if transactionError ~= "missing" then
@@ -2770,7 +2784,7 @@ local function recoverTransaction()
     transaction.recoveryFolders, transaction.recoveryManualFolders
 end
 
-local function refreshTrash(recoveredOriginals)
+refreshTrash = function(recoveredOriginals)
   local originals, groups, catalogOk = readTrashCatalog()
   if not catalogOk then
     log("[TRASH] Trash catalog is unreadable, unsafe, or exceeds its limits; previous Trash state was retained.", "error")
@@ -2811,7 +2825,7 @@ local function uniqueTrashFilename(name, reserved)
   return nil
 end
 
-local function trashPreset()
+trashPreset = function()
   auditSection("TRASH PRESET")
   log(("[PRESET] Trash requested: selected='%s' confirmed=%s")
     :format(tostring(state.selected),
@@ -2901,7 +2915,7 @@ local function trashPreset()
   end
 end
 
-local function restoreTrashPreset(filename)
+restoreTrashPreset = function(filename)
   local item = state.trash[filename]
   if not item then setStatus("delete", "The Trash item is no longer available.", true); return end
   local logicalName = item.original
@@ -2984,7 +2998,7 @@ local function allocateRestoreLogicalName(original, reserved)
   return nil
 end
 
-local function restoreTrashGroup(groupId)
+restoreTrashGroup = function(groupId)
   local group = state.trashGroups[groupId]
   if not group then
     setStatus("delete", "The trashed folder group is no longer available.", true); return
@@ -3109,7 +3123,7 @@ local function restoreTrashGroup(groupId)
     inventorySaved and "success" or "warning")
 end
 
-local function emptyTrash()
+emptyTrash = function()
   local count = 0
   for _ in pairs(state.trash) do count = count + 1 end
   local groupCount = 0
@@ -3144,7 +3158,7 @@ local function emptyTrash()
   end
 end
 
-local function bulkPresetNamesInFolder(folder)
+bulkPresetNamesInFolder = function(folder)
   ensureViewCache()
   if state.cachedBulkFolder == folder then return state.cachedBulkFolderNames end
   local names = {}
@@ -3163,7 +3177,7 @@ local function bulkPresetNamesInFolder(folder)
   return names
 end
 
-local function selectedBulkPresetNames()
+selectedBulkPresetNames = function()
   if not state.bulkSelectionDirty then return state.cachedBulkSelectedNames end
   local names = {}
   for name in pairs(state.bulkSelected) do
@@ -3356,7 +3370,7 @@ local function moveBulkPresetsToTrash(names, folder)
   return true
 end
 
-local function requestBulkTrash(names, folder)
+requestBulkTrash = function(names, folder)
   if #names == 0 then
     setStatus("bulk", folder
       and "The selected folder contains no presets. Use Remove Folder, Keep Presets."
@@ -3378,6 +3392,8 @@ local function requestBulkTrash(names, folder)
     return
   end
   moveBulkPresetsToTrash(names, folder)
+end
+
 end
 
 local function remapFolderTreePath(path, source, destination)
@@ -3935,6 +3951,10 @@ local function refreshEditorState()
   if not state.inCustomization then state.activeBodyMorphMenu = nil end
 end
 
+local draw
+local drawDiscoveryHudNotice
+
+do
 
 local THEME_COLORS = {
   { ImGuiCol.WindowBg,          0.055, 0.059, 0.078, 0.98 },
@@ -4401,7 +4421,7 @@ local function discoveryViewport()
   return 0, 0, 1920, 1080
 end
 
-local function drawDiscoveryHudNotice()
+drawDiscoveryHudNotice = function()
   if not state.discoveryNoticePending or state.discoveryNoticeIgnored
       or state.overlayOpen then return end
   local layout = state.discoveryNoticeLayout
@@ -4514,7 +4534,7 @@ local function drawBulkTrashOptions(actionButtonHeight, statusHeight)
   drawSectionStatus("bulk", "##bulkStatus", statusSuccess.bulk, statusHeight)
 end
 
-local function draw()
+draw = function()
   if not state.overlayOpen or not state.windowOpen then return end
 
   pushTheme()
@@ -5185,6 +5205,8 @@ local function draw()
   end
   ImGui.End()
   popTheme()
+end
+
 end
 
 registerForEvent("onInit", function()

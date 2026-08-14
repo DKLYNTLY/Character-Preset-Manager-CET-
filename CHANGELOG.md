@@ -40,6 +40,9 @@ grouped into collapsible histories so the page remains easy to scan.
   windows show the complete text instead of clipping it.
 - Keeps the customization reminder enabled on a clean install; the existing
   successful-save/load auto-disable behavior and Settings control remain intact.
+- Privately scopes the Trash/recovery and UI-rendering subsystems, reducing
+  retained main-chunk locals from 196 to 166 and the peak active count to 187.
+  Public entry points, file formats, controls, and runtime behavior are unchanged.
 
 </details>
 
