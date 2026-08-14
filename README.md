@@ -37,11 +37,10 @@
   manually created directories.
 - **Preset and folder duplication** — Copy one preset or a complete virtual
   folder tree.
-- **Optional preset details** — Add notes and tags through backward-compatible
-  metadata.
+- **Optional preset details** — Add notes and tags through the current format-5
+  preset metadata.
 - **Recoverable Trash** — Move presets, folder groups, or multi-selections to
   Trash with confirmation.
-- **ACU preset import** — Import supported ACU-format presets without running ACU.
 - **Easy sharing** — Share one appearance as a `.preset` file or a complete
   virtual folder tree as one `.cpmfolder` bundle.
 - **Activity log** — Review actions, warnings, and errors inside CET.
@@ -77,18 +76,12 @@ and size after you move or resize it.
 The Help panel displays the assigned keys when CET can provide them. Otherwise,
 it falls back to detecting whether the input was used during the current session.
 
-### Upgrading from version 1.0.x
+### Current preset system
 
-Do not install version 3.0.1 directly over a 1.0.x installation.
-
-1. Back up your `.preset` files outside the mod folder.
-2. Delete `mods/Preset Manager (CET)`.
-3. Install version 3.0.1 normally.
-4. Move your presets into
-   `mods/Character Preset Manager (CET)/Character Presets`.
-5. Launch the game and open CET.
-
-Do not leave the old and new mod folders installed together.
+New presets use format 5. Existing older and compatible ACU-format `.preset`
+files remain readable so established preset libraries are not lost, but all new
+presets and shared folders use the current system. Do not leave an older mod
+folder installed beside this one.
 
 </details>
 
@@ -146,10 +139,9 @@ presetSort=name
 ```
 
 `presetSort` accepts `name` or `modified`. The config is created automatically
-and is not packaged over an existing preference. Earlier `Discovery Notice
-Ignored.txt` preferences migrate automatically. CET's own Settings tab does not
-discover individual mod settings, so no additional settings-menu dependency is
-required.
+and is not packaged over an existing preference. CET's own Settings tab does
+not discover individual mod settings, so no additional settings-menu dependency
+is required.
 
 </details>
 
@@ -190,9 +182,7 @@ or renaming directories in File Explorer. Their organization is stored in:
 Character Preset Manager (CET) Folders.txt
 ```
 
-There is no fixed virtual-folder limit. Untouched legacy folder-slot directories
-are removed during upgrade; a slot containing an unrecognized item is left
-unchanged.
+There is no fixed virtual-folder limit.
 
 Directories created manually inside `Character Presets` are discovered
 recursively and labeled **Imported**. Their files remain in their original
@@ -240,8 +230,8 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
   outside CET.
 - **Virtual organization:** Folder assignments are local catalog data and are
   not embedded in an individual shared preset.
-- **Metadata:** Format-5 files may include source, created, modified, notes, and
-  tags while remaining backward compatible.
+- **Format:** New presets use format 5, which stores source, created, modified,
+  notes, and tags. Existing older preset files remain readable.
 - **Safety limits:** Imported presets are limited to 1 MB, 8,192 lines, 4,096
   valid options, 256 bytes per option key, and unsigned 32-bit option indexes.
 
@@ -269,8 +259,8 @@ may not exceed 32 MB.
 
 #### Import a folder
 
-1. Put each downloaded `.cpmfolder` file in `Character Presets`, just like an
-   individual `.preset` or supported ACU preset import:
+1. Put each downloaded `.cpmfolder` file in `Character Presets`, beside current
+   format-5 `.preset` files:
 
    ```text
    bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
@@ -285,8 +275,8 @@ A successful import recreates the complete folder tree as virtual folders and
 renames its source file from `.cpmfolder` to `.cpmfolder.imported` so it is not
 imported again accidentally. If that folder name already exists, the imported
 folder receives a safe `Copy` name. A failed bundle remains unchanged so the
-error can be corrected and the import tried again. For backward compatibility,
-the importer also accepts older bundles placed beside `init.lua`.
+error can be corrected and the import tried again. Bundles are imported only
+from `Character Presets`.
 
 </details>
 
@@ -324,9 +314,9 @@ Remove ACU and fully restart Cyberpunk before using this mod. Automatic checks
 were removed because they could continue reporting ACU after it had been
 uninstalled.
 
-**ACU preset files — Import supported.** Supported `.preset` files can still be
-imported after ACU itself has been removed. Copy them into the preset folder and
-select **Refresh** under **Load Preset**.
+Compatible ACU preset files remain readable after ACU itself is removed. New
+presets should be created and shared with Character Preset Manager's current
+system.
 
 ### ❌ Character Customization Anywhere
 
@@ -369,7 +359,6 @@ does not mean the mod is broken and may be ignored.
 | Loading | Waits for editor rebuilds and continues automatically. | Uses its own loading implementation. |
 | Missing options | Stops instead of guessing when a safe match is unavailable. | Uses its own matching behavior. |
 | Troubleshooting | Includes an in-game Debug view and detailed activity logs. | Uses its own interface and diagnostics. |
-| ACU migration | Imports supported ACU presets after ACU is removed. | Not applicable. |
 
 This comparison explains the different approaches. Do not install or run both
 mods together.
@@ -393,10 +382,10 @@ date and time, and the 10 newest archives are kept. The log records startup,
 preset operations, loading results, failures, inactive options, and unavailable
 saved options. Developer hook counters remain under **Advanced diagnostics**.
 
-### Can I import ACU presets?
+### Can I import ACU or older presets?
 
-Yes. Remove ACU, copy the `.preset` file into `Character Presets`, then select
-**Refresh** under **Load Preset**.
+Yes. Compatible files remain readable to protect existing preset libraries. New
+presets use Character Preset Manager's current format-5 system.
 
 ### Can ACU remain installed?
 
@@ -473,7 +462,8 @@ gameplay features.
   Created by **PotatoOfDoom**. ACU gave me the original idea for this project. I
   liked what it was trying to do, but I was disappointed by the bugs and errors
   I experienced, so I decided to make my own version. Character Preset Manager
-  also supports importing compatible ACU preset files.
+  can read compatible ACU preset files so existing libraries are not lost, while
+  new presets use its own current format and workflow.
 - **[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930):**
   Created by **keanuWheeze**. Its idea of opening character customization during
   normal gameplay inspired me to include the Full Appearance Editor.

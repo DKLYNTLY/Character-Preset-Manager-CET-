@@ -30,9 +30,7 @@ grouped into collapsible histories so the page remains easy to scan.
 - Reconciles the README and in-game Help with the final folder, Imported-folder,
   Trash, restore, and `.cpmfolder` workflows, including exact import steps and
   the post-import `.imported` rename.
-- Uses `Character Presets` as the preferred `.cpmfolder` export and import
-  location, matching individual and supported ACU preset imports, while still
-  accepting older bundles placed beside `init.lua`.
+- Uses `Character Presets` as the only `.cpmfolder` export and import location.
 - Fixes CET rejecting the mod at startup after folder sharing pushed the main
   Lua chunk past LuaJIT's 200-local limit. Bundle helpers are now scoped and UI
   status checks are consolidated without removing any features.
@@ -45,9 +43,13 @@ grouped into collapsible histories so the page remains easy to scan.
 - Renames the main actions to Load Preset, Rename & Copy, and Delete & Restore so
   their purpose is clear before opening them, and hides tags and notes behind a
   compact Optional Preset Details button.
+- Removes obsolete folder-slot cleanup, old reminder-marker migration, the
+  retired Trash-catalog layout, and fallback bundle imports beside `init.lua`.
+  Older preset files remain readable so existing user libraries are not lost;
+  new presets and folder bundles use the current systems.
 - Privately scopes the Trash/recovery and UI-rendering subsystems, reducing
   retained main-chunk locals from 196 to 166 and the peak active count to 187.
-  Public entry points, file formats, controls, and runtime behavior are unchanged.
+  Public entry points and current controls are unchanged.
 
 </details>
 

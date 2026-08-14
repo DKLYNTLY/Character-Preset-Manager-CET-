@@ -7,12 +7,10 @@ local TRASH_DIR = PRESET_DIR .. "/" .. TRASH_DIR_NAME
 local TRASH_CATALOG_FILE = "Character Preset Manager (CET) Trash.txt"
 local TRANSACTION_FILE = "Character Preset Manager (CET) Transaction.txt"
 local CATALOG_FILE = "Character Preset Manager (CET) Folders.txt"
-local LEGACY_FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
 local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
 local LOG_FILE = "Character Preset Manager (CET) Activity.log"
 local LOG_ARCHIVE_PREFIX = "Character Preset Manager (CET) Activity "
 local WINDOW_POSITION_STATUS_FILE = "Window Position Status.txt"
-local DISCOVERY_NOTICE_STATUS_FILE = "Discovery Notice Ignored.txt"
 local CONFIG_FILE = "Character Preset Manager (CET) Config.txt"
 local DISCOVERY_NOTICE_TITLE = "OPEN CHARACTER PRESET MANAGER"
 local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open its window."
@@ -292,42 +290,6 @@ local function removeEmptyDirectoryTree(path, depth)
     end
   end
   return os.remove(path) ~= nil
-end
-
-local function removeLegacyFolderSlots()
-  local slots = safeDirectoryEntries(LEGACY_FOLDER_POOL, 0)
-  if not slots then return 0 end
-  local removedCount = 0
-  for _, slot in ipairs(slots) do
-    if slot.type == "directory" and slot.name:match("^Slot %d+$") then
-      local slotPath = LEGACY_FOLDER_POOL .. "/" .. slot.name
-      local contents = safeDirectoryEntries(slotPath, 0)
-      local removable = contents ~= nil and (#contents == 0
-        or (#contents == 1 and contents[1].type == "file"
-          and contents[1].name == ".Character Preset Manager Folder"))
-      local removedMarker = false
-      if removable and #contents == 1 then
-        removedMarker = os.remove(slotPath .. "/" .. contents[1].name) ~= nil
-        if not removedMarker then removable = false end
-      end
-      if removable and os.remove(slotPath) then
-        removedCount = removedCount + 1
-      elseif removedMarker then
-        local marker = io.open(slotPath .. "/.Character Preset Manager Folder", "wb")
-        if marker then
-          marker:write("Character Preset Manager recyclable folder slot. Do not remove.\n")
-          marker:close()
-        end
-      end
-    end
-  end
-  local remaining = safeDirectoryEntries(LEGACY_FOLDER_POOL, 0)
-  if remaining and #remaining == 0 then os.remove(LEGACY_FOLDER_POOL) end
-  if removedCount > 0 then
-    log(("[MIGRATION] Removed %d unused legacy folder slot%s.")
-      :format(removedCount, removedCount == 1 and "" or "s"), "info")
-  end
-  return removedCount
 end
 
 local function isNewGameCharacterCreator()
@@ -740,7 +702,7 @@ isCustomizationActive = function()
   return options ~= nil
 end
 
-local function legacyOptionKey(option)
+local function optionKey(option)
   if not option or not option.info then return nil end
   local ok, key = pcall(LocKeyToString, option.info.name)
   if not ok or not key or key == "" then return nil end
@@ -1333,15 +1295,12 @@ writeConfig = function()
     local closeOk, closeResult = pcall(file.close, file)
     return wrote and writeResult == true and closeOk and closeResult ~= nil
   end, "config")
-  if result and fileExists(DISCOVERY_NOTICE_STATUS_FILE) then
-    os.remove(DISCOVERY_NOTICE_STATUS_FILE)
-  end
   return result
 end
 
 readConfig = function()
   local config = {
-    discoveryReminder = not fileExists(DISCOVERY_NOTICE_STATUS_FILE),
+    discoveryReminder = true,
     presetSort = "name",
   }
   local file = io.open(CONFIG_FILE, "rb")
@@ -1580,18 +1539,14 @@ end
 
 local function folderBundleFiles()
   local bundles = {}
-  local function collect(path, prefix)
-    local entries = safeDirectoryEntries(path, 0)
-    if not entries then return end
-    for _, entry in ipairs(entries) do
-      if entry.type == "file"
-          and entry.name:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION then
-        table.insert(bundles, prefix .. entry.name)
-      end
+  local entries = safeDirectoryEntries(PRESET_DIR, 0)
+  if not entries then return bundles end
+  for _, entry in ipairs(entries) do
+    if entry.type == "file"
+        and entry.name:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION then
+      table.insert(bundles, PRESET_DIR .. "/" .. entry.name)
     end
   end
-  collect(PRESET_DIR, PRESET_DIR .. "/")
-  collect(".", "")
   table.sort(bundles, function(a, b) return a:lower() < b:lower() end)
   return bundles
 end
@@ -1899,7 +1854,6 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
             :format(childRelative), "warn")
         end
       elseif entry.type == "directory"
-          and childRelative ~= ".Character Preset Manager Folder Slots"
           and childRelative ~= TRASH_DIR_NAME
           and not scan(childRelative, depth + 1) then
         return false
@@ -2102,7 +2056,7 @@ local function savePreset(confirmOverwrite)
   local entries = {}
   local savedOccurrences = {}
   for _, option in ipairs(options) do
-    local key = legacyOptionKey(option)
+    local key = optionKey(option)
     if key and option.isEditable and option.isActive then
       local currentIndex = tonumber(option.currIndex)
       local identity = optionAuditIdentity(
@@ -2266,7 +2220,7 @@ local function loadPreset()
   if state.resetBeforeLoad then
     local activeOccurrences = {}
     for _, option in ipairs(options) do
-      local label = legacyOptionKey(option)
+      local label = optionKey(option)
       local current = tonumber(option.currIndex) or 0
       local occurrence = nil
       if label and option.isEditable and option.isActive then
@@ -2319,7 +2273,7 @@ local function loadPreset()
   local activeCounts = {}
   local occurrences = {}
   for _, option in ipairs(options) do
-    local label = legacyOptionKey(option)
+    local label = optionKey(option)
     local key = nil
     local occurrence = nil
     if label and option.isEditable and option.isActive then
@@ -2495,7 +2449,7 @@ refreshPreflight = function()
     if not optionIndexIsValid(tonumber(entry.index)) then invalid = invalid + 1 end
   end
   for _, option in ipairs(options) do
-    local key = legacyOptionKey(option)
+    local key = optionKey(option)
     if key and option.isEditable and option.isActive then
       exposedCounts[key] = (exposedCounts[key] or 0) + 1
     end
@@ -2595,32 +2549,32 @@ local function readTrashCatalog()
   local originals, groups = {}, {}
   local contents, readError = readBoundedFile(TRASH_CATALOG_FILE, MAX_CATALOG_BYTES)
   if not contents then
-    return originals, groups, readError == "missing", readError == "missing"
+    return originals, groups, readError == "missing"
   end
-  local lineCount, legacy = 0, false
+  local lineCount = 0
   for line in (contents .. "\n"):gmatch("(.-)\n") do
     if line ~= "" then
       lineCount = lineCount + 1
-      if lineCount > MAX_CATALOG_LINES then return nil, nil, false, false end
+      if lineCount > MAX_CATALOG_LINES then return nil, nil, false end
       local kind, first, second, third = line:match("^([PGFM])\t([^\t]+)\t([^\t]+)\t?(.*)$")
       if kind == "P" then
         local filename = catalogDecode(first)
         local original = catalogDecode(second)
         local group = third ~= "" and catalogDecode(third) or nil
         if not validTrashFilename(filename) or not validRelativePath(original)
-            or (group and #group > 256) then return nil, nil, false, false end
+            or (group and #group > 256) then return nil, nil, false end
         originals[filename] = { original = original, group = group }
       elseif kind == "G" then
         local groupId, root = catalogDecode(first), catalogDecode(second)
         if groupId == "" or #groupId > 256 or not validRelativePath(root) then
-          return nil, nil, false, false
+          return nil, nil, false
         end
         groups[groupId] = groups[groupId] or { root = root, folders = {}, manualFolders = {} }
         groups[groupId].root = root
       elseif kind == "F" or kind == "M" then
         local groupId, folder = catalogDecode(first), catalogDecode(second)
         if groupId == "" or #groupId > 256 or not validRelativePath(folder) then
-          return nil, nil, false, false
+          return nil, nil, false
         end
         groups[groupId] = groups[groupId] or {
           root = folder, folders = {}, manualFolders = {},
@@ -2631,24 +2585,16 @@ local function readTrashCatalog()
         else
           groups[groupId].folders[folder] = true
         end
-      else
-        local filename, original = line:match("^([^\t]+)\t([^\t]+)$")
-        filename, original = catalogDecode(filename), catalogDecode(original)
-        if not validTrashFilename(filename) or not validRelativePath(original) then
-          return nil, nil, false, false
-        end
-        originals[filename] = { original = original }
-        legacy = true
-      end
+      else return nil, nil, false end
     end
   end
   for groupId, group in pairs(groups) do
     if not group.root or group.root == "" then groups[groupId] = nil end
   end
   for _, item in pairs(originals) do
-    if item.group and not groups[item.group] then return nil, nil, false, false end
+    if item.group and not groups[item.group] then return nil, nil, false end
   end
-  return originals, groups, true, legacy
+  return originals, groups, true
 end
 
 writeTransaction = function(phase, operation, plans)
@@ -4722,7 +4668,7 @@ draw = function()
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Place .preset files in the preset folder or a directory inside it. Copy one .preset file to share one appearance. A shared .preset does not contain its virtual folder assignment.")
       ImGui.TextWrapped("New .preset imports follow the manual directory where they are placed.")
-      ImGui.TextWrapped("Select Refresh under Load Preset after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
+      ImGui.TextWrapped("Select Refresh under Load Preset after changing files outside the game. Only current format-5 Character Preset Manager .preset files are accepted.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       if fullWidthButton("Copy Preset Folder Path##copyPresetPath", actionButtonHeight) then
@@ -4734,8 +4680,6 @@ draw = function()
       ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
       ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. Every bundle found there is processed.")
       ImGui.TextWrapped("After a successful import, the bundle is renamed with .imported so it cannot import twice accidentally. Existing folder names receive a safe Copy name; failed bundles remain unchanged.")
-      coloredWrapped(0.64, 0.67, 0.73, 1.0,
-        "Older bundles placed beside init.lua are also accepted.")
 
       helpHeading("Settings and Config")
       ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder stays enabled until you turn it off here.")
@@ -4878,7 +4822,7 @@ draw = function()
           tostring(preset.format or 4)))
       coloredWrapped(0.64, 0.67, 0.73, 1.0,
         ("Source: %s  |  Modified: %s")
-        :format(tostring(preset.source or "Legacy or ACU-compatible"),
+          :format(tostring(preset.source or "Legacy or ACU-compatible"),
           tostring(preset.modified or "Unknown")))
       if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
       if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
@@ -5233,13 +5177,10 @@ registerForEvent("onInit", function()
     log(("Deleted %d oldest activity-log archive%s to keep the newest %d.")
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
-  removeLegacyFolderSlots()
   local config, configLoaded = readConfig()
   state.discoveryNoticeIgnored = not config.discoveryReminder
   state.sortMode = config.presetSort == "modified" and "modified" or "name"
-  if not configLoaded or fileExists(DISCOVERY_NOTICE_STATUS_FILE) then
-    writeConfig()
-  end
+  if not configLoaded then writeConfig() end
   log(state.discoveryNoticeIgnored
     and "[UI] Character-customization discovery reminder is disabled by user preference."
     or "[UI] Character-customization discovery reminder is enabled.", "info")
