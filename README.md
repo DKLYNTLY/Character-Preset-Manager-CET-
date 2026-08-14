@@ -107,6 +107,8 @@ stop an automatic load before it completes.
 
 Preset sorting is available under **Settings** without adding controls to the
 Load list. Choose alphabetical name order or newest modified metadata first.
+The customization-reminder button shows its current Enabled or Disabled state;
+select it to switch the setting.
 
 Cyberpunk may rebuild the editor several times while loading. Character Preset
 Manager waits for each rebuild and continues automatically.

@@ -12,6 +12,8 @@
 - Fixes save-destination selection by keeping the chooser open, immediately
   updating the displayed location, and showing confirmation after a change.
 - Standardizes button heights and paired-button widths throughout the interface.
+- Makes the customization-reminder button display its current Enabled or
+  Disabled state instead of describing the opposite action.
 - Combines preset deletion, bulk Trash tools, restoration, and permanent cleanup
   under Trash & Recovery, with multi-item tools inside More Trash Options.
 - Adds a bounded atomic transaction journal for preset Trash, restore, bulk

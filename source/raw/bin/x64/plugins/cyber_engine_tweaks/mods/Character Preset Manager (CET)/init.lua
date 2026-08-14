@@ -4166,13 +4166,21 @@ local function draw()
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
       ImGui.TextDisabled(CONFIG_FILE)
       ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
-      local reminderLabel = state.discoveryNoticeIgnored
-        and "Enable Customization Reminder" or "Disable Customization Reminder"
+      local reminderEnabled = not state.discoveryNoticeIgnored
+      local reminderLabel = reminderEnabled
+        and "Customization Reminder: Enabled"
+        or "Customization Reminder: Disabled"
       if fullWidthButton(reminderLabel .. "##discoveryPreference", actionButtonHeight) then
         local saved
-        if state.discoveryNoticeIgnored then saved = restoreDiscoveryNotice()
-        else saved = ignoreDiscoveryNotice() end
-        state.settingsStatus = saved and "Config saved." or "Config could not be saved."
+        if reminderEnabled then saved = ignoreDiscoveryNotice()
+        else saved = restoreDiscoveryNotice() end
+        local currentState = state.discoveryNoticeIgnored and "disabled" or "enabled"
+        if saved then
+          state.settingsStatus = "Customization reminder " .. currentState .. ". Config saved."
+        else
+          state.settingsStatus = "Customization reminder " .. currentState ..
+            " for this session; config could not be saved."
+        end
       end
       local sortLabel = state.sortMode == "modified"
         and "Preset Sort: Last Modified" or "Preset Sort: Name"
