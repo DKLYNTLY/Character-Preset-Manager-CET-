@@ -8,7 +8,7 @@
   <a href="CHANGELOG.md">View the complete changelog</a>
 </p>
 
-**Current version: 2.0.9**
+**Current version: 3.0.0**
 
 ## AI disclosure
 
@@ -351,11 +351,11 @@ release. The screenshots showcase Character Preset Manager itself.
 <details>
 <summary><strong>Show upgrade instructions</strong></summary>
 
-Do not install version 2.0.9 directly over a 1.0.x installation.
+Do not install version 3.0.0 directly over a 1.0.x installation.
 
 1. Back up your `.preset` files somewhere outside the mod folder.
 2. Delete `mods/Preset Manager (CET)`.
-3. Install version 2.0.9 normally.
+3. Install version 3.0.0 normally.
 4. Move your presets into
    `mods/Character Preset Manager (CET)/Character Presets`.
 5. Launch the game and open CET.
@@ -389,7 +389,7 @@ that both mods provide the same feature set.
 
 </details>
 
-## Version 2.0.9 highlights
+## Version 3.0.0 highlights
 
 - Adds preset and folder search, a direct Refresh action, folder counts, and
   compact nested folder labels.

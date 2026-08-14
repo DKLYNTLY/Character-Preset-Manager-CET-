@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.0.9
+## 3.0.0
 
 - Adds case-insensitive preset and folder search above the Load list.
 - Adds a direct Refresh action that rescans external preset files and recoverable
