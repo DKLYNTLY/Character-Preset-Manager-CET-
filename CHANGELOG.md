@@ -1,5 +1,27 @@
 # Changelog
 
+## 3.0.1
+
+- Adds a bounded atomic transaction journal for preset Trash, restore, bulk
+  Trash, folder restore, and physical preset-file rename operations.
+- Automatically rolls back unfinished file operations at startup while retaining
+  original logical preset paths.
+- Records complete virtual folder trees for folder Trash, including empty nested
+  folders and imported-folder identity.
+- Adds one-action folder-group restore from Trash while retaining individual
+  preset restore actions.
+- Adds size, line-count, path, group, and filename validation to the Trash
+  catalog while continuing to migrate the original 3.0.0 catalog format.
+- Caches normalized search results, matching folder trees, bulk folder counts,
+  and multi-selection summaries until their inputs change.
+- Skips atomic folder-catalog, inventory, and Trash-catalog replacements when
+  their serialized contents are already current.
+- Treats malformed user-edited modification timestamps as unknown for sorting.
+- Reports inventory failures after bulk Trash and folder restore as warnings
+  instead of reporting an unconditional success.
+- Stores structured status kinds for consistent success, warning, and error
+  presentation without changing the existing player-facing workflows.
+
 ## 3.0.0
 
 - Adds case-insensitive preset and folder search above the Load list.

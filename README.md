@@ -8,7 +8,7 @@
   <a href="CHANGELOG.md">View the complete changelog</a>
 </p>
 
-**Current version: 3.0.0**
+**Current version: 3.0.1**
 
 ## AI disclosure
 
@@ -43,8 +43,8 @@ were written and tested by the author.
   running ACU itself.
 - **Easy preset sharing:** Each appearance is stored as an individual shareable
   `.preset` file.
-- **Recoverable Trash:** Removed presets remain restorable until Trash is emptied
-  permanently.
+- **Recoverable Trash:** Removed presets and complete folder groups remain
+  restorable until Trash is emptied permanently.
 - **Safe bulk actions:** Move every preset in a selected folder or any filtered
   multi-selection to recoverable Trash with confirmation.
 - **Activity log:** View preset actions, results, notices, and errors through
@@ -137,8 +137,11 @@ Fix the appearance and save the preset again.
   its virtual folder tree, or build a checkbox-style multi-selection using the
   same search filter as Load. Select All Visible and Clear Selection are
   included.
-- Bulk folder Trash leaves manually created directories in place. Restoring a
-  preset reconstructs its original logical folder path.
+- Bulk folder Trash leaves manually created directories in place and records the
+  complete logical tree. Use **Restore Folder** to recover its presets, imported
+  identity, and empty nested folders together, or restore presets individually.
+- Trash, restore, bulk file moves, and physical preset renames use a bounded
+  recovery journal. An interrupted operation is safely resolved at startup.
 - **Manage** can save optional notes and tags inside new format-5 preset files.
 - Renaming a preset also renames its physical shareable `.preset` file.
 
@@ -351,11 +354,11 @@ release. The screenshots showcase Character Preset Manager itself.
 <details>
 <summary><strong>Show upgrade instructions</strong></summary>
 
-Do not install version 3.0.0 directly over a 1.0.x installation.
+Do not install version 3.0.1 directly over a 1.0.x installation.
 
 1. Back up your `.preset` files somewhere outside the mod folder.
 2. Delete `mods/Preset Manager (CET)`.
-3. Install version 3.0.0 normally.
+3. Install version 3.0.1 normally.
 4. Move your presets into
    `mods/Character Preset Manager (CET)/Character Presets`.
 5. Launch the game and open CET.
@@ -389,7 +392,7 @@ that both mods provide the same feature set.
 
 </details>
 
-## Version 3.0.0 highlights
+## Version 3.0.1 highlights
 
 - Adds preset and folder search, a direct Refresh action, folder counts, and
   compact nested folder labels.
@@ -406,6 +409,10 @@ that both mods provide the same feature set.
 - Adds a collapsed Bulk Actions section for confirmed selected-folder Trash and
   filtered multi-preset Trash, while keeping permanent destruction exclusively
   under Empty Trash Permanently.
+- Adds startup-safe transaction recovery, complete folder-tree Trash records,
+  and one-action folder restore including empty nested folders.
+- Caches filtered preset views and bulk summaries and skips catalog replacements
+  when their contents have not changed.
 - Automatically disables the customization discovery reminder after a
   successful save or load and moves its preference into Settings.
 - Stores reminder and sort preferences in a human-editable config with live

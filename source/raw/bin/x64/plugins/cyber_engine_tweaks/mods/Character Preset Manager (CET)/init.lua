@@ -1,10 +1,11 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "3.0.0"
+local VERSION = "3.0.1"
 local PRESET_DIR = "Character Presets"
 local TRASH_DIR_NAME = ".Character Preset Manager Trash"
 local TRASH_DIR = PRESET_DIR .. "/" .. TRASH_DIR_NAME
 local TRASH_CATALOG_FILE = "Character Preset Manager (CET) Trash.txt"
+local TRANSACTION_FILE = "Character Preset Manager (CET) Transaction.txt"
 local CATALOG_FILE = "Character Preset Manager (CET) Folders.txt"
 local LEGACY_FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
 local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
@@ -33,6 +34,8 @@ local MAX_OPTION_INDEX = 4294967295
 local FILE_COPY_CHUNK_SIZE = 65536
 local MAX_CATALOG_BYTES = 8388608
 local MAX_CATALOG_LINES = 32768
+local MAX_TRANSACTION_BYTES = 1048576
+local MAX_TRANSACTION_LINES = 8192
 local log
 local readConfig
 local writeConfig
@@ -107,6 +110,7 @@ local state = {
   autoLoadPasses = 0,
   preflight = nil,
   trash = {},
+  trashGroups = {},
   pendingEmptyTrash = false,
   bulkSelected = {},
   pendingBulkAction = nil,
@@ -137,6 +141,16 @@ local state = {
   cachedFolderNames = {},
   cachedPresetsByFolder = {},
   cachedFolderPresetCounts = {},
+  filteredViewDirty = true,
+  cachedSearchText = nil,
+  cachedFilteredPresetNames = {},
+  cachedMatchedFolders = {},
+  cachedMatchingPresetsByFolder = {},
+  cachedBulkFolder = nil,
+  cachedBulkFolderNames = {},
+  cachedBulkNestedFolderCount = 0,
+  bulkSelectionDirty = true,
+  cachedBulkSelectedNames = {},
   windowPositionCached = false,
   cachedWindowX = nil,
   cachedDisplayWidth = nil,
@@ -145,6 +159,7 @@ local state = {
   statusUpdateTimer = 0,
   statusTimers = {},
   statusSnapshots = {},
+  statusKinds = {},
 }
 
 local STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete", "bulk" }
@@ -396,12 +411,29 @@ local function auditSection(title)
   log(("---------------- %s ----------------"):format(tostring(title)), "info")
 end
 
-local function setStatus(section, message, isError)
+local function inferredStatusKind(section, message, isError)
+  if isError then return "error" end
+  if section == "load" and (message:find("Preset fully applied", 1, true)
+      or message:find("Open the character creator", 1, true) == 1) then return "success" end
+  if section == "create" and message:find("Saved ", 1, true) == 1 then return "success" end
+  if section == "rename" and (message:find("Renamed ", 1, true) == 1
+      or message:find("Duplicated ", 1, true) == 1
+      or message:find("Saved details ", 1, true) == 1) then return "success" end
+  if section == "delete" and (message:find("Moved ", 1, true) == 1
+      or message:find("Restored ", 1, true) == 1
+      or message == "Trash emptied permanently.") then return "success" end
+  if section == "bulk" and message:find("Moved ", 1, true) == 1 then return "success" end
+  if section == "editor" and message == "Full editor opened." then return "success" end
+  return "info"
+end
+
+local function setStatus(section, message, isError, kind)
   local loadStopped = section == "load"
     and message:find("Loading stopped", 1, true) == 1
   local effectiveError = isError == true or loadStopped
   state[section .. "Status"] = message
   state[section .. "StatusError"] = effectiveError
+  state.statusKinds[section] = kind or inferredStatusKind(section, message, effectiveError)
   state.statusSnapshots[section] = message
   state.statusTimers[section] = 0
   if section == "load" then
@@ -507,6 +539,7 @@ local refreshPreflight
 local function setEditorOpenStatus(message, isError)
   state.editorStatus = message
   state.editorStatusError = isError == true
+  state.statusKinds.editor = inferredStatusKind("editor", message, isError == true)
   log("[editor] " .. tostring(message), isError and "error" or "info")
 end
 
@@ -798,13 +831,37 @@ local function breadcrumb(name)
   return (name:gsub("/", " > "))
 end
 
+local function normalizeSearch(query)
+  return tostring(query or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+end
+
 local function textMatches(value, query)
-  query = tostring(query or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
   return query == "" or tostring(value or ""):lower():find(query, 1, true) ~= nil
+end
+
+local function validModifiedTimestamp(value)
+  local year, month, day, hour, minute, second = tostring(value or "")
+    :match("^(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):(%d%d)$")
+  year, month, day = tonumber(year), tonumber(month), tonumber(day)
+  hour, minute, second = tonumber(hour), tonumber(minute), tonumber(second)
+  return year ~= nil and year >= 2000 and month >= 1 and month <= 12
+    and day >= 1 and day <= 31 and hour >= 0 and hour <= 23
+    and minute >= 0 and minute <= 59 and second >= 0 and second <= 59
+end
+
+local function invalidateFilteredViewCache()
+  state.filteredViewDirty = true
+  state.cachedBulkFolder = nil
+end
+
+local function invalidateBulkSelectionCache()
+  state.bulkSelectionDirty = true
 end
 
 local function invalidateViewCache()
   state.viewCacheDirty = true
+  invalidateFilteredViewCache()
+  invalidateBulkSelectionCache()
 end
 
 local function rebuildViewCache()
@@ -826,8 +883,10 @@ local function rebuildViewCache()
   for name in pairs(state.folders) do table.insert(folderNames, name) end
   local function presetLess(a, b)
     if state.sortMode == "modified" then
-      local aModified = tostring((state.presets[a] or {}).modified or "")
-      local bModified = tostring((state.presets[b] or {}).modified or "")
+      local aValue = tostring((state.presets[a] or {}).modified or "")
+      local bValue = tostring((state.presets[b] or {}).modified or "")
+      local aModified = validModifiedTimestamp(aValue) and aValue or ""
+      local bModified = validModifiedTimestamp(bValue) and bValue or ""
       if aModified ~= bModified then return aModified > bModified end
     end
     return baseName(a):lower() < baseName(b):lower()
@@ -863,6 +922,50 @@ end
 local function presetsInFolder(folder)
   ensureViewCache()
   return state.cachedPresetsByFolder[folder] or EMPTY_LIST
+end
+
+local function rebuildFilteredViewCache()
+  ensureViewCache()
+  local query = normalizeSearch(state.searchText)
+  local visibleNames = {}
+  local matchedFolders = {}
+  local folderMatches = {}
+  local matchingByFolder = {}
+  for _, name in ipairs(state.cachedPresetNames) do
+    if textMatches(name, query) then
+      table.insert(visibleNames, name)
+      local directFolder = parentFolder(name)
+      matchingByFolder[directFolder] = matchingByFolder[directFolder] or {}
+      table.insert(matchingByFolder[directFolder], name)
+      local current = directFolder
+      while current ~= "" do
+        matchedFolders[current] = true
+        current = parentFolder(current)
+      end
+    end
+  end
+  for _, folder in ipairs(state.cachedFolderNames) do
+    if textMatches(folder, query) then folderMatches[folder] = true end
+  end
+  state.cachedSearchText = query
+  state.cachedQueryActive = query ~= ""
+  state.cachedFilteredPresetNames = visibleNames
+  state.cachedMatchedFolders = matchedFolders
+  state.cachedFolderMatches = folderMatches
+  state.cachedMatchingPresetsByFolder = matchingByFolder
+  state.filteredViewDirty = false
+end
+
+local function ensureFilteredViewCache()
+  local query = normalizeSearch(state.searchText)
+  if state.filteredViewDirty or state.cachedSearchText ~= query then
+    rebuildFilteredViewCache()
+  end
+end
+
+local function filteredPresetNames()
+  ensureFilteredViewCache()
+  return state.cachedFilteredPresetNames
 end
 
 local function joinFolder(folder, name)
@@ -1140,6 +1243,41 @@ local function atomicReplace(path, writeTemporary, description)
   return true
 end
 
+local function readBoundedFile(path, maximumBytes)
+  local file = io.open(path, "rb")
+  if not file then return nil, "missing" end
+  local sizeOk, size = pcall(file.seek, file, "end")
+  local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
+  if not sizeOk or not size or size > maximumBytes
+      or not rewindOk or rewindResult == nil then
+    file:close()
+    return nil, "size"
+  end
+  local readOk, contents = pcall(file.read, file, "*a")
+  local closeOk, closeResult = pcall(file.close, file)
+  if not readOk or type(contents) ~= "string" or not closeOk or closeResult == nil then
+    return nil, "read"
+  end
+  return contents
+end
+
+local function writeLinesIfChanged(path, lines, description, maximumBytes)
+  local contents = #lines > 0 and (table.concat(lines, "\n") .. "\n") or ""
+  if #contents > maximumBytes then return false, false end
+  local existing = readBoundedFile(path, maximumBytes)
+  if existing == contents then return true, false end
+  local result = atomicReplace(path, function(temporary)
+    local file = io.open(temporary, "wb")
+    if not file then return false end
+    local wrote, writeResult = pcall(function()
+      return file:write(contents) ~= nil and file:flush() ~= nil
+    end)
+    local closeOk, closeResult = pcall(file.close, file)
+    return wrote and writeResult == true and closeOk and closeResult ~= nil
+  end, description)
+  return result, result
+end
+
 writeConfig = function()
   local result = atomicReplace(CONFIG_FILE, function(temporary)
     local file = io.open(temporary, "wb")
@@ -1218,24 +1356,17 @@ local function writeCatalog(presets, folders, manualFolders, ignoredPhysicalFold
     log("[CATALOG] Virtual-folder catalog exceeds the safe size limit.", "error")
     return false
   end
-  local result = atomicReplace(CATALOG_FILE, function(temporary)
-    local file = io.open(temporary, "wb")
-    if not file then return false end
-    local wrote, writeResult = pcall(function()
-      for _, line in ipairs(lines) do
-        if not file:write(line .. "\n") then return false end
-      end
-      return file:flush() ~= nil
-    end)
-    local closeOk, closeResult = pcall(file.close, file)
-    return wrote and writeResult == true and closeOk and closeResult ~= nil
-  end, "virtual-folder catalog")
+  local result, changed = writeLinesIfChanged(
+    CATALOG_FILE, lines, "virtual-folder catalog", MAX_CATALOG_BYTES)
   log(("[CATALOG] Saved presets=%d folders=%d ignoredPhysicalFolders=%d success=%s.")
     :format(
       (function() local count = 0; for _ in pairs(presets or {}) do count = count + 1 end; return count end)(),
       (function() local count = 0; for _ in pairs(folders or {}) do count = count + 1 end; return count end)(),
       (function() local count = 0; for _ in pairs(ignoredPhysicalFolders or {}) do count = count + 1 end; return count end)(),
       tostring(result)), result and "info" or "error")
+  if result and not changed then
+    log("[CATALOG] Virtual-folder catalog was already current; write skipped.", "info")
+  end
   return result
 end
 
@@ -1286,21 +1417,14 @@ local function writeInventory(presets, folders)
   for name in pairs(presets or {}) do table.insert(lines, "P:" .. name) end
   for name in pairs(folders or {}) do table.insert(lines, "F:" .. name) end
   table.sort(lines, function(a, b) return a:lower() < b:lower() end)
-  local result = atomicReplace(INVENTORY_FILE, function(temporary)
-    local file = io.open(temporary, "w")
-    if not file then return false end
-    local wrote, writeResult = pcall(function()
-      for _, line in ipairs(lines) do
-        if not file:write(line .. "\n") then return false end
-      end
-      return file:flush() ~= nil
-    end)
-    local closed, closeResult = pcall(file.close, file)
-    return wrote and writeResult == true and closed and closeResult ~= nil
-  end, "inventory")
+  local result, changed = writeLinesIfChanged(
+    INVENTORY_FILE, lines, "inventory", MAX_CATALOG_BYTES)
   log(("[INVENTORY] Saved %d tracked path%s to '%s' success=%s.")
     :format(#lines, #lines == 1 and "" or "s", INVENTORY_FILE, tostring(result)),
     result and "info" or "error")
+  if result and not changed then
+    log("[INVENTORY] Inventory was already current; write skipped.", "info")
+  end
   return result
 end
 
@@ -1385,7 +1509,8 @@ local function uniqueFolderCopyName(sourceName)
   return nil
 end
 
-local function refreshPresets(scanReason)
+local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
+    recoveryManualFolders)
   local currentPresets = state.presets or {}
   local currentFolders = state.folders or {}
   local previousPresets = currentPresets
@@ -1402,6 +1527,16 @@ local function refreshPresets(scanReason)
   if catalogStatus == false then
     log("[CATALOG] Preset scan stopped because the existing virtual-folder catalog is invalid.", "error")
     return currentPresets, false
+  end
+  for storage, logicalName in pairs(recoveryAssignments or {}) do
+    assignments[storage] = logicalName
+    addFolderAncestors(catalogFolders, parentFolder(logicalName))
+  end
+  for folder in pairs(recoveryFolders or {}) do
+    addFolderAncestors(catalogFolders, folder)
+  end
+  for folder in pairs(recoveryManualFolders or {}) do
+    ignoredPhysicalFolders[folder] = nil
   end
   local scannedPresets = {}
   local physicalFolders = {}
@@ -1738,7 +1873,7 @@ local function savePreset(confirmOverwrite)
       :format(name, #entries))
   else
     setStatus("create", ("Saved \"%s\", but the inventory could not be updated.")
-      :format(name), true)
+      :format(name), false, "warning")
   end
 end
 
@@ -2059,55 +2194,275 @@ local function cancelLoading()
     or "Loading canceled.")
 end
 
-local function writeTrashCatalog(trash)
-  return atomicReplace(TRASH_CATALOG_FILE, function(temporary)
-    local file = io.open(temporary, "wb")
-    if not file then return false end
-    local names = {}
-    for filename in pairs(trash or {}) do table.insert(names, filename) end
-    table.sort(names, function(a, b) return a:lower() < b:lower() end)
-    local ok, result = pcall(function()
-      for _, filename in ipairs(names) do
-        local item = trash[filename]
-        if not file:write(catalogEncode(filename) .. "\t" ..
-            catalogEncode(item.original or baseName(filename)) .. "\n") then
-          return false
-        end
-      end
-      return file:flush() ~= nil
-    end)
-    local closeOk, closeResult = pcall(file.close, file)
-    return ok and result == true and closeOk and closeResult ~= nil
-  end, "trash catalog")
+local function validTrashFilename(filename)
+  return type(filename) == "string" and #filename > 7 and #filename <= 71
+    and filename:find("/", 1, true) == nil and filename:find("\\", 1, true) == nil
+    and filename:lower():sub(-7) == ".preset"
 end
 
-local function refreshTrash()
-  local originals = {}
-  local catalog = io.open(TRASH_CATALOG_FILE, "rb")
-  if catalog then
-    for line in catalog:lines() do
-      local filename, original = line:match("^([^\t]+)\t([^\t]+)$")
-      if filename and original then
-        originals[catalogDecode(filename)] = catalogDecode(original)
+local function trashCatalogLines(trash, groups)
+  local lines = {}
+  for filename, item in pairs(trash or {}) do
+    if not validTrashFilename(filename)
+        or not validRelativePath(item.original or "") then return nil end
+    table.insert(lines, "P\t" .. catalogEncode(filename) .. "\t" ..
+      catalogEncode(item.original) .. "\t" .. catalogEncode(item.group or ""))
+  end
+  for groupId, group in pairs(groups or {}) do
+    if type(groupId) ~= "string" or groupId == "" or #groupId > 256
+        or not validRelativePath(group.root or "") then return nil end
+    table.insert(lines, "G\t" .. catalogEncode(groupId) .. "\t" ..
+      catalogEncode(group.root))
+    for folder in pairs(group.folders or {}) do
+      if not validRelativePath(folder) then return nil end
+      table.insert(lines, "F\t" .. catalogEncode(groupId) .. "\t" ..
+        catalogEncode(folder))
+    end
+    for folder in pairs(group.manualFolders or {}) do
+      if not validRelativePath(folder) then return nil end
+      table.insert(lines, "M\t" .. catalogEncode(groupId) .. "\t" ..
+        catalogEncode(folder))
+    end
+  end
+  table.sort(lines, function(a, b) return a:lower() < b:lower() end)
+  if #lines > MAX_CATALOG_LINES then return nil end
+  return lines
+end
+
+local function writeTrashCatalog(trash, groups)
+  groups = groups or state.trashGroups
+  local lines = trashCatalogLines(trash, groups)
+  if not lines then
+    log("[TRASH] Trash catalog contains an unsafe or excessive entry.", "error")
+    return false
+  end
+  local result, changed = writeLinesIfChanged(
+    TRASH_CATALOG_FILE, lines, "trash catalog", MAX_CATALOG_BYTES)
+  if result and not changed then
+    log("[TRASH] Trash catalog was already current; write skipped.", "info")
+  end
+  return result
+end
+
+local function readTrashCatalog()
+  local originals, groups = {}, {}
+  local contents, readError = readBoundedFile(TRASH_CATALOG_FILE, MAX_CATALOG_BYTES)
+  if not contents then
+    return originals, groups, readError == "missing", readError == "missing"
+  end
+  local lineCount, legacy = 0, false
+  for line in (contents .. "\n"):gmatch("(.-)\n") do
+    if line ~= "" then
+      lineCount = lineCount + 1
+      if lineCount > MAX_CATALOG_LINES then return nil, nil, false, false end
+      local kind, first, second, third = line:match("^([PGFM])\t([^\t]+)\t([^\t]+)\t?(.*)$")
+      if kind == "P" then
+        local filename = catalogDecode(first)
+        local original = catalogDecode(second)
+        local group = third ~= "" and catalogDecode(third) or nil
+        if not validTrashFilename(filename) or not validRelativePath(original)
+            or (group and #group > 256) then return nil, nil, false, false end
+        originals[filename] = { original = original, group = group }
+      elseif kind == "G" then
+        local groupId, root = catalogDecode(first), catalogDecode(second)
+        if groupId == "" or #groupId > 256 or not validRelativePath(root) then
+          return nil, nil, false, false
+        end
+        groups[groupId] = groups[groupId] or { root = root, folders = {}, manualFolders = {} }
+        groups[groupId].root = root
+      elseif kind == "F" or kind == "M" then
+        local groupId, folder = catalogDecode(first), catalogDecode(second)
+        if groupId == "" or #groupId > 256 or not validRelativePath(folder) then
+          return nil, nil, false, false
+        end
+        groups[groupId] = groups[groupId] or {
+          root = folder, folders = {}, manualFolders = {},
+        }
+        groups[groupId].manualFolders = groups[groupId].manualFolders or {}
+        if kind == "M" then
+          groups[groupId].manualFolders[folder] = true
+        else
+          groups[groupId].folders[folder] = true
+        end
+      else
+        local filename, original = line:match("^([^\t]+)\t([^\t]+)$")
+        filename, original = catalogDecode(filename), catalogDecode(original)
+        if not validTrashFilename(filename) or not validRelativePath(original) then
+          return nil, nil, false, false
+        end
+        originals[filename] = { original = original }
+        legacy = true
       end
     end
-    catalog:close()
   end
+  for groupId, group in pairs(groups) do
+    if not group.root or group.root == "" then groups[groupId] = nil end
+  end
+  for _, item in pairs(originals) do
+    if item.group and not groups[item.group] then return nil, nil, false, false end
+  end
+  return originals, groups, true, legacy
+end
+
+local function writeTransaction(phase, operation, plans)
+  local lines = { "V\t1", "H\t" .. phase .. "\t" .. operation }
+  for _, plan in ipairs(plans or {}) do
+    if operation == "rename" then
+      if not validRelativePath(plan.storage or "")
+          or not validRelativePath(plan.destinationStorage or "")
+          or not validRelativePath(plan.name or "") then return false end
+      table.insert(lines, "R\t" .. catalogEncode(plan.storage) .. "\t" ..
+        catalogEncode(plan.destinationStorage) .. "\t" .. catalogEncode(plan.name))
+    else
+      if not validRelativePath(plan.storage or "")
+          or not validTrashFilename(plan.trashFilename)
+          or not validRelativePath(plan.recoveryName or plan.name or "") then return false end
+      table.insert(lines, "P\t" .. catalogEncode(plan.storage) .. "\t" ..
+        catalogEncode(plan.trashFilename) .. "\t" ..
+        catalogEncode(plan.recoveryName or plan.name))
+    end
+  end
+  for folder in pairs((plans or {}).recoveryFolders or {}) do
+    if not validRelativePath(folder) then return false end
+    table.insert(lines, "D\t" .. catalogEncode(folder) .. "\t" ..
+      ((plans.recoveryManualFolders or {})[folder] and "1" or "0"))
+  end
+  if #lines > MAX_TRANSACTION_LINES then return false end
+  local result = writeLinesIfChanged(
+    TRANSACTION_FILE, lines, "transaction journal", MAX_TRANSACTION_BYTES)
+  return result == true
+end
+
+local function readTransaction()
+  local contents, readError = readBoundedFile(TRANSACTION_FILE, MAX_TRANSACTION_BYTES)
+  if not contents then return nil, readError == "missing" and "missing" or "invalid" end
+  local transaction = { plans = {}, recoveryFolders = {}, recoveryManualFolders = {} }
+  local lineCount = 0
+  for line in (contents .. "\n"):gmatch("(.-)\n") do
+    if line ~= "" then
+      lineCount = lineCount + 1
+      if lineCount > MAX_TRANSACTION_LINES then return nil, "invalid" end
+      local phase, operation = line:match("^H\t([^\t]+)\t([^\t]+)$")
+      if phase then
+        transaction.phase, transaction.operation = phase, operation
+      else
+        local storage, filename, name = line:match("^P\t([^\t]+)\t([^\t]+)\t([^\t]+)$")
+        if storage then
+          storage, filename, name = catalogDecode(storage), catalogDecode(filename), catalogDecode(name)
+          if not validRelativePath(storage) or not validTrashFilename(filename)
+              or not validRelativePath(name) then return nil, "invalid" end
+          table.insert(transaction.plans, {
+            storage = storage, trashFilename = filename, name = name,
+          })
+        else
+          local oldStorage, newStorage, name = line:match("^R\t([^\t]+)\t([^\t]+)\t([^\t]+)$")
+          if oldStorage then
+            oldStorage, newStorage, name = catalogDecode(oldStorage),
+              catalogDecode(newStorage), catalogDecode(name)
+            if not validRelativePath(oldStorage) or not validRelativePath(newStorage)
+                or not validRelativePath(name) then return nil, "invalid" end
+            table.insert(transaction.plans, {
+              storage = oldStorage, destinationStorage = newStorage, name = name,
+            })
+          else
+            local folder, manual = line:match("^D\t([^\t]+)\t([01])$")
+            if folder then
+              folder = catalogDecode(folder)
+              if not validRelativePath(folder) then return nil, "invalid" end
+              transaction.recoveryFolders[folder] = true
+              if manual == "1" then transaction.recoveryManualFolders[folder] = true end
+            elseif line ~= "V\t1" then
+              return nil, "invalid"
+            end
+          end
+        end
+      end
+    end
+  end
+  if (transaction.phase ~= "prepared" and transaction.phase ~= "committed")
+      or (transaction.operation ~= "trash" and transaction.operation ~= "restore"
+        and transaction.operation ~= "rename")
+      or #transaction.plans == 0 then return nil, "invalid" end
+  return transaction
+end
+
+local function completeTransaction(operation, plans)
+  if not writeTransaction("committed", operation, plans) then return false end
+  return os.remove(TRANSACTION_FILE) ~= nil or not fileExists(TRANSACTION_FILE)
+end
+
+local function recoverTransaction()
+  local transaction, transactionError = readTransaction()
+  if not transaction then
+    if transactionError ~= "missing" then
+      log("[RECOVERY] Transaction journal is invalid; preset scanning was stopped.", "error")
+      return false, {}, {}, {}, {}
+    end
+    return true, {}, {}, {}, {}
+  end
+  if transaction.phase == "committed" then
+    local removed = os.remove(TRANSACTION_FILE) ~= nil or not fileExists(TRANSACTION_FILE)
+    log(removed and "[RECOVERY] Completed transaction journal cleanup."
+      or "[RECOVERY] The committed transaction is safe, but its journal could not be removed; cleanup will retry next startup.",
+      removed and "info" or "warn")
+    return true, {}, {}, {}, {}
+  end
+  local recoveredOriginals, recoveredAssignments, recovered = {}, {}, true
+  for _, plan in ipairs(transaction.plans) do
+    local mainPath = PRESET_DIR .. "/" .. plan.storage .. ".preset"
+    local trashPath = plan.trashFilename and (TRASH_DIR .. "/" .. plan.trashFilename) or nil
+    local renamedPath = plan.destinationStorage
+      and (PRESET_DIR .. "/" .. plan.destinationStorage .. ".preset") or nil
+    local rollbackSource = transaction.operation == "trash" and trashPath
+      or transaction.operation == "restore" and mainPath or renamedPath
+    local rollbackDestination = transaction.operation == "trash" and mainPath
+      or transaction.operation == "restore" and trashPath or mainPath
+    if fileExists(rollbackSource) and not fileExists(rollbackDestination) then
+      if not os.rename(rollbackSource, rollbackDestination) then recovered = false end
+    elseif not fileExists(rollbackSource) and not fileExists(rollbackDestination) then
+      recovered = false
+    end
+    if trashPath and fileExists(trashPath) then
+      recoveredOriginals[plan.trashFilename] = { original = plan.name }
+    end
+    if transaction.operation == "trash" or transaction.operation == "rename" then
+      recoveredAssignments[plan.storage] = plan.name
+    end
+  end
+  if recovered then os.remove(TRANSACTION_FILE) end
+  log("[RECOVERY] Unfinished " .. transaction.operation .. " transaction " ..
+    (recovered and "was rolled back." or "could not be fully rolled back; it will be retried."),
+    recovered and "warn" or "error")
+  return recovered, recoveredOriginals, recoveredAssignments,
+    transaction.recoveryFolders, transaction.recoveryManualFolders
+end
+
+local function refreshTrash(recoveredOriginals)
+  local originals, groups, catalogOk = readTrashCatalog()
+  if not catalogOk then
+    log("[TRASH] Trash catalog is unreadable, unsafe, or exceeds its limits; previous Trash state was retained.", "error")
+    return false
+  end
+  for filename, item in pairs(recoveredOriginals or {}) do originals[filename] = item end
   local trash = {}
   local entries = safeDirectoryEntries(TRASH_DIR, 0)
   for _, entry in ipairs(entries or {}) do
     if entry.type == "file" and entry.name:lower():sub(-7) == ".preset" then
       local preset = readPresetFile(TRASH_DIR .. "/" .. entry.name)
       if preset then
+        local catalogItem = originals[entry.name]
         trash[entry.name] = {
-          original = originals[entry.name] or entry.name:sub(1, -8),
+          original = catalogItem and catalogItem.original or entry.name:sub(1, -8),
+          group = catalogItem and catalogItem.group or nil,
           preset = preset,
         }
       end
     end
   end
   state.trash = trash
-  writeTrashCatalog(trash)
+  state.trashGroups = groups
+  if not writeTrashCatalog(trash, groups) then return false end
+  return true
 end
 
 local function uniqueTrashFilename(name, reserved)
@@ -2163,24 +2518,37 @@ local function trashPreset()
     return
   end
   local trashPath = TRASH_DIR .. "/" .. trashFilename
+  local plan = {
+    storage = preset.storage,
+    trashFilename = trashFilename,
+    name = old,
+  }
+  if not writeTransaction("prepared", "trash", { plan }) then
+    setStatus("delete", "The Trash recovery journal could not be created.", true)
+    return
+  end
   local moved, moveError = os.rename(oldPath, trashPath)
   if not moved then
+    os.remove(TRANSACTION_FILE)
     setStatus("delete", ("Could not move \"%s\" to Trash: %s")
       :format(old, tostring(moveError)), true)
     return
   end
   state.presets[old] = nil
   state.trash[trashFilename] = { original = old, preset = preset }
-  if not writeCatalog(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) or not writeTrashCatalog(state.trash) then
+  local catalogsSaved = writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) and writeTrashCatalog(state.trash)
+  local transactionCompleted = catalogsSaved and completeTransaction("trash", { plan })
+  if not transactionCompleted then
     state.presets[old] = preset
     state.trash[trashFilename] = nil
     local restored = os.rename(trashPath, oldPath) ~= nil
     writeCatalog(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders)
     writeTrashCatalog(state.trash)
+    if restored then os.remove(TRANSACTION_FILE) end
     setStatus("delete", restored
-      and "The Trash operation was rolled back because its catalog could not be updated."
+      and "The Trash operation was rolled back because its catalogs or recovery journal could not be finalized."
       or "The Trash operation failed, and the preset file could not be restored.", true)
     return
   end
@@ -2195,7 +2563,8 @@ local function trashPreset()
   if writeInventory(state.presets, state.folders) then
     setStatus("delete", "Moved \"" .. old .. "\" to Trash.")
   else
-    setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the inventory could not be updated.", true)
+    setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the inventory could not be updated.",
+      false, "warning")
   end
 end
 
@@ -2221,13 +2590,22 @@ local function restoreTrashPreset(filename)
   end
   local sourcePath = TRASH_DIR .. "/" .. filename
   local destinationPath = PRESET_DIR .. "/" .. storage .. ".preset"
+  local plan = {
+    storage = storage, trashFilename = filename, name = logicalName,
+    recoveryName = item.original,
+  }
+  if not writeTransaction("prepared", "restore", { plan }) then
+    setStatus("delete", "The restore recovery journal could not be created.", true); return
+  end
   local moved, moveError = os.rename(sourcePath, destinationPath)
   if not moved then
+    os.remove(TRANSACTION_FILE)
     setStatus("delete", "The preset could not be restored: " .. tostring(moveError), true); return
   end
   local preset = readPresetFile(destinationPath)
   if not preset then
     os.rename(destinationPath, sourcePath)
+    os.remove(TRANSACTION_FILE)
     setStatus("delete", "The restored preset could not be verified.", true); return
   end
   preset.storage = storage
@@ -2235,35 +2613,187 @@ local function restoreTrashPreset(filename)
   state.presets[logicalName] = preset
   addFolderAncestors(state.folders, parentFolder(logicalName))
   state.trash[filename] = nil
-  if not writeCatalog(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) or not writeTrashCatalog(state.trash) then
+  local catalogsSaved = writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) and writeTrashCatalog(state.trash)
+  local transactionCompleted = catalogsSaved and completeTransaction("restore", { plan })
+  if not transactionCompleted then
     state.presets[logicalName] = nil
     state.folders = previousFolders
     state.trash[filename] = item
-    os.rename(destinationPath, sourcePath)
+    local restored = os.rename(destinationPath, sourcePath) ~= nil
     writeCatalog(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders)
     writeTrashCatalog(state.trash)
-    setStatus("delete", "Restore was rolled back because a catalog could not be saved.", true)
+    if restored then os.remove(TRANSACTION_FILE) end
+    setStatus("delete", restored
+      and "Restore was rolled back because its catalogs or recovery journal could not be finalized."
+      or "Restore could not be finalized or rolled back; startup recovery will retry it.", true)
     return
   end
   state.selected = logicalName
   state.presetNotes = preset.notes or ""
   state.presetTags = preset.tags or ""
   invalidateViewCache()
-  writeInventory(state.presets, state.folders)
-  setStatus("delete", "Restored \"" .. logicalName .. "\" from Trash.")
+  local inventorySaved = writeInventory(state.presets, state.folders)
+  setStatus("delete", "Restored \"" .. logicalName .. "\" from Trash." ..
+    (inventorySaved and "" or " The inventory could not be updated."), false,
+    inventorySaved and "success" or "warning")
+end
+
+local function allocateRestoreLogicalName(original, reserved)
+  if not reserved[original:lower()] and not findPresetCollision(original) then
+    reserved[original:lower()] = true
+    return original
+  end
+  local folder, leaf = parentFolder(original), baseName(original)
+  for index = 1, 999 do
+    local suffix = index == 1 and " Copy" or (" Copy %d"):format(index)
+    local candidate = joinFolder(folder, leaf:sub(1, 64 - #suffix) .. suffix)
+    if not reserved[candidate:lower()] and not findPresetCollision(candidate) then
+      reserved[candidate:lower()] = true
+      return candidate
+    end
+  end
+  return nil
+end
+
+local function restoreTrashGroup(groupId)
+  local group = state.trashGroups[groupId]
+  if not group then
+    setStatus("delete", "The trashed folder group is no longer available.", true); return
+  end
+  local filenames = {}
+  for filename, item in pairs(state.trash) do
+    if item.group == groupId then table.insert(filenames, filename) end
+  end
+  table.sort(filenames, function(a, b) return a:lower() < b:lower() end)
+  local reservedLogical, reservedStorage = {}, storageFilenamesInUse()
+  if not reservedStorage then
+    setStatus("delete", "Storage filenames could not be checked safely.", true); return
+  end
+  for name in pairs(state.presets) do reservedLogical[name:lower()] = true end
+  local plans = {}
+  for _, filename in ipairs(filenames) do
+    local item = state.trash[filename]
+    local logicalName = allocateRestoreLogicalName(item.original, reservedLogical)
+    local storage = logicalName and uniqueStorageName(baseName(logicalName), reservedStorage)
+    if not logicalName or not storage then
+      setStatus("delete", "A safe name could not be allocated for every folder preset.", true); return
+    end
+    table.insert(plans, {
+      filename = filename,
+      trashFilename = filename,
+      name = logicalName,
+      recoveryName = item.original,
+      storage = storage,
+      item = item,
+      source = TRASH_DIR .. "/" .. filename,
+      destination = PRESET_DIR .. "/" .. storage .. ".preset",
+    })
+  end
+
+  if #plans > 0 and not writeTransaction("prepared", "restore", plans) then
+    setStatus("delete", "The folder restore recovery journal could not be created.", true); return
+  end
+  local moved = {}
+  for _, plan in ipairs(plans) do
+    if not os.rename(plan.source, plan.destination) then
+      local rollbackFailed = false
+      for index = #moved, 1, -1 do
+        local item = moved[index]
+        if not os.rename(item.destination, item.source) then rollbackFailed = true end
+      end
+      if not rollbackFailed then os.remove(TRANSACTION_FILE) end
+      setStatus("delete", rollbackFailed
+        and "Folder restore stopped and could not fully roll back; startup recovery will retry it."
+        or "Folder restore stopped before all preset files could be moved.", true)
+      return
+    end
+    local verified = readPresetFile(plan.destination)
+    if not verified or not presetsMatch(plan.item.preset, verified) then
+      table.insert(moved, plan)
+      local rollbackFailed = false
+      for index = #moved, 1, -1 do
+        local item = moved[index]
+        if not os.rename(item.destination, item.source) then rollbackFailed = true end
+      end
+      if not rollbackFailed then os.remove(TRANSACTION_FILE) end
+      setStatus("delete", rollbackFailed
+        and "Folder restore verification failed and could not fully roll back; startup recovery will retry it."
+        or "Folder restore verification failed; moved files were returned to Trash.", true)
+      return
+    end
+    plan.preset = verified
+    table.insert(moved, plan)
+  end
+
+  local newPresets, newFolders = cloneMap(state.presets), cloneMap(state.folders)
+  local newTrash, newGroups = cloneMap(state.trash), cloneMap(state.trashGroups)
+  local newManualFolders = cloneMap(state.manualFolders)
+  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  for folder in pairs(group.folders or {}) do addFolderAncestors(newFolders, folder) end
+  for folder in pairs(group.manualFolders or {}) do
+    newManualFolders[folder] = true
+    newIgnored[folder] = nil
+  end
+  addFolderAncestors(newFolders, group.root)
+  for _, plan in ipairs(plans) do
+    plan.preset.storage = plan.storage
+    newPresets[plan.name] = plan.preset
+    newTrash[plan.filename] = nil
+    addFolderAncestors(newFolders, parentFolder(plan.name))
+  end
+  newGroups[groupId] = nil
+  local catalogsSaved = writeCatalog(newPresets, newFolders, newManualFolders,
+      newIgnored) and writeTrashCatalog(newTrash, newGroups)
+  local transactionCompleted = #plans == 0 or
+    (catalogsSaved and completeTransaction("restore", plans))
+  if #plans == 0 then transactionCompleted = catalogsSaved end
+  if not transactionCompleted then
+    local rollbackFailed = false
+    for index = #moved, 1, -1 do
+      local plan = moved[index]
+      if not os.rename(plan.destination, plan.source) then rollbackFailed = true end
+    end
+    writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders)
+    writeTrashCatalog(state.trash, state.trashGroups)
+    if not rollbackFailed then os.remove(TRANSACTION_FILE) end
+    setStatus("delete", rollbackFailed
+      and "Folder restore could not be finalized or fully rolled back; startup recovery will retry it."
+      or "Folder restore was rolled back because its catalogs could not be finalized.", true)
+    return
+  end
+
+  state.presets, state.folders = newPresets, newFolders
+  state.trash, state.trashGroups = newTrash, newGroups
+  state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
+  if plans[1] then
+    state.selected = plans[1].name
+    state.presetNotes = plans[1].preset.notes or ""
+    state.presetTags = plans[1].preset.tags or ""
+  end
+  invalidateViewCache()
+  resetLoadState()
+  local inventorySaved = writeInventory(newPresets, newFolders)
+  setStatus("delete", ("Restored folder \"%s\" with %d preset%s, including empty virtual folders.")
+    :format(group.root, #plans, #plans == 1 and "" or "s") ..
+    (inventorySaved and "" or " The inventory could not be updated."), false,
+    inventorySaved and "success" or "warning")
 end
 
 local function emptyTrash()
   local count = 0
   for _ in pairs(state.trash) do count = count + 1 end
-  if count == 0 then setStatus("delete", "Trash is already empty."); return end
+  local groupCount = 0
+  for _ in pairs(state.trashGroups) do groupCount = groupCount + 1 end
+  if count == 0 and groupCount == 0 then setStatus("delete", "Trash is already empty."); return end
   if not state.pendingEmptyTrash then
     cancelConfirmations()
     state.pendingEmptyTrash = true
-    setStatus("delete", ("Permanently delete %d trashed preset%s? Select Empty Trash Permanently again.")
-      :format(count, count == 1 and "" or "s"))
+    setStatus("delete", ("Permanently delete %d trashed preset%s and %d folder recovery record%s? Select Empty Trash Permanently again.")
+      :format(count, count == 1 and "" or "s", groupCount,
+        groupCount == 1 and "" or "s"))
     return
   end
   state.pendingEmptyTrash = false
@@ -2275,7 +2805,8 @@ local function emptyTrash()
       failed = failed + 1
     end
   end
-  local catalogSaved = writeTrashCatalog(state.trash)
+  if failed == 0 then state.trashGroups = {} end
+  local catalogSaved = writeTrashCatalog(state.trash, state.trashGroups)
   if failed > 0 then
     setStatus("delete", ("Trash cleanup stopped with %d file%s remaining.")
       :format(failed, failed == 1 and "" or "s"), true)
@@ -2287,20 +2818,33 @@ local function emptyTrash()
 end
 
 local function bulkPresetNamesInFolder(folder)
+  ensureViewCache()
+  if state.cachedBulkFolder == folder then return state.cachedBulkFolderNames end
   local names = {}
-  for name in pairs(state.presets) do
+  for _, name in ipairs(state.cachedPresetNames) do
     if isInFolderTree(parentFolder(name), folder) then table.insert(names, name) end
   end
-  table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  local nestedFolderCount = 0
+  for candidate in pairs(state.folders) do
+    if candidate ~= folder and isInFolderTree(candidate, folder) then
+      nestedFolderCount = nestedFolderCount + 1
+    end
+  end
+  state.cachedBulkFolder = folder
+  state.cachedBulkFolderNames = names
+  state.cachedBulkNestedFolderCount = nestedFolderCount
   return names
 end
 
 local function selectedBulkPresetNames()
+  if not state.bulkSelectionDirty then return state.cachedBulkSelectedNames end
   local names = {}
   for name in pairs(state.bulkSelected) do
     if state.presets[name] then table.insert(names, name) end
   end
   table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  state.cachedBulkSelectedNames = names
+  state.bulkSelectionDirty = false
   return names
 end
 
@@ -2337,10 +2881,28 @@ local function moveBulkPresetsToTrash(names, folder)
     table.insert(plans, {
       name = name,
       preset = preset,
+      storage = preset.storage,
       source = presetPath(name),
       destination = TRASH_DIR .. "/" .. trashFilename,
       trashFilename = trashFilename,
     })
+  end
+
+  if folder then
+    plans.recoveryFolders, plans.recoveryManualFolders = {}, {}
+    for candidate in pairs(state.folders) do
+      if isInFolderTree(candidate, folder) then
+        plans.recoveryFolders[candidate] = true
+        if state.manualFolders[candidate] then
+          plans.recoveryManualFolders[candidate] = true
+        end
+      end
+    end
+  end
+
+  if not writeTransaction("prepared", "trash", plans) then
+    setStatus("bulk", "The Bulk Trash recovery journal could not be created.", true)
+    return false
   end
 
   local moved = {}
@@ -2355,6 +2917,8 @@ local function moveBulkPresetsToTrash(names, folder)
       if rollbackFailed then
         refreshPresets("bulk-recovery")
         refreshTrash()
+      else
+        os.remove(TRANSACTION_FILE)
       end
       setStatus("bulk", rollbackFailed
         and "Bulk Trash failed, and at least one moved preset could not be restored. Refresh completed; review Trash."
@@ -2366,20 +2930,31 @@ local function moveBulkPresetsToTrash(names, folder)
 
   local newPresets = cloneMap(state.presets)
   local newTrash = cloneMap(state.trash)
+  local newTrashGroups = cloneMap(state.trashGroups)
   local newFolders = cloneMap(state.folders)
   local newManualFolders = cloneMap(state.manualFolders)
   local newIgnored = cloneMap(state.ignoredPhysicalFolders)
   local nestedFolderCount = 0
+  local groupId = folder and plans[1].trashFilename or nil
+  if groupId then
+    newTrashGroups[groupId] = { root = folder, folders = {}, manualFolders = {} }
+  end
   if folder then
     for candidate in pairs(state.folders) do
-      if candidate ~= folder and isInFolderTree(candidate, folder) then
-        nestedFolderCount = nestedFolderCount + 1
+      if isInFolderTree(candidate, folder) then
+        newTrashGroups[groupId].folders[candidate] = true
+        if state.manualFolders[candidate] then
+          newTrashGroups[groupId].manualFolders[candidate] = true
+        end
+        if candidate ~= folder then nestedFolderCount = nestedFolderCount + 1 end
       end
     end
   end
   for _, plan in ipairs(plans) do
     newPresets[plan.name] = nil
-    newTrash[plan.trashFilename] = { original = plan.name, preset = plan.preset }
+    newTrash[plan.trashFilename] = {
+      original = plan.name, preset = plan.preset, group = groupId,
+    }
   end
   if folder then
     newFolders, newManualFolders = {}, {}
@@ -2394,8 +2969,9 @@ local function moveBulkPresetsToTrash(names, folder)
   end
 
   local catalogsSaved = writeCatalog(newPresets, newFolders, newManualFolders, newIgnored)
-    and writeTrashCatalog(newTrash)
-  if not catalogsSaved then
+    and writeTrashCatalog(newTrash, newTrashGroups)
+  local transactionCompleted = catalogsSaved and completeTransaction("trash", plans)
+  if not transactionCompleted then
     local rollbackFailed = false
     for index = #moved, 1, -1 do
       local plan = moved[index]
@@ -2407,15 +2983,17 @@ local function moveBulkPresetsToTrash(names, folder)
     else
       writeCatalog(state.presets, state.folders, state.manualFolders,
         state.ignoredPhysicalFolders)
-      writeTrashCatalog(state.trash)
+      writeTrashCatalog(state.trash, state.trashGroups)
+      os.remove(TRANSACTION_FILE)
     end
     setStatus("bulk", rollbackFailed
       and "Bulk Trash cataloging failed, and at least one preset could not be moved back. Refresh completed; review Trash."
-      or "Bulk Trash was rolled back because a catalog could not be saved.", true)
+      or "Bulk Trash was rolled back because its catalogs or recovery journal could not be finalized.", true)
     return false
   end
 
   state.presets, state.trash = newPresets, newTrash
+  state.trashGroups = newTrashGroups
   state.folders, state.manualFolders = newFolders, newManualFolders
   state.ignoredPhysicalFolders = newIgnored
   if state.selected and not newPresets[state.selected] then
@@ -2430,13 +3008,15 @@ local function moveBulkPresetsToTrash(names, folder)
   invalidateViewCache()
   resetLoadState()
   cancelConfirmations()
-  writeInventory(newPresets, newFolders)
-  setStatus("bulk", folder
+  local inventorySaved = writeInventory(newPresets, newFolders)
+  setStatus("bulk", (folder
     and ("Moved folder \"%s\" and %d preset%s to recoverable Trash; removed %d nested folder entr%s. Restoring presets rebuilds their folder paths.")
       :format(folder, #names, #names == 1 and "" or "s", nestedFolderCount,
         nestedFolderCount == 1 and "y" or "ies")
     or ("Moved %d preset%s to recoverable Trash.")
-      :format(#names, #names == 1 and "" or "s"))
+      :format(#names, #names == 1 and "" or "s")) ..
+    (inventorySaved and "" or " The inventory could not be updated."), false,
+    inventorySaved and "success" or "warning")
   return true
 end
 
@@ -2510,9 +3090,19 @@ local function renamePreset()
     setStatus("rename", "A shareable preset file with that name already exists.", true)
     return
   end
+  local renamePlan = {
+    storage = oldStorage,
+    destinationStorage = newStorage,
+    name = old,
+  }
   if physicalRenameNeeded then
+    if not writeTransaction("prepared", "rename", { renamePlan }) then
+      setStatus("rename", "The rename recovery journal could not be created.", true)
+      return
+    end
     local renamed, renameError = os.rename(oldPath, newPath)
     if not renamed then
+      os.remove(TRANSACTION_FILE)
       setStatus("rename", "The shareable preset file could not be renamed: " ..
         tostring(renameError), true)
       return
@@ -2521,8 +3111,11 @@ local function renamePreset()
   end
   state.presets[old] = nil
   state.presets[newName] = preset
-  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) then
+  local persisted = persistVirtualState(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders)
+  local transactionCompleted = persisted and (not physicalRenameNeeded
+    or completeTransaction("rename", { renamePlan }))
+  if not transactionCompleted then
     state.presets[newName] = nil
     state.presets[old] = preset
     if physicalRenameNeeded then
@@ -2536,8 +3129,14 @@ local function renamePreset()
           or "The display rename failed, the physical file could not be moved back, and the catalog could not be repaired.", true)
         return
       end
+      os.remove(TRANSACTION_FILE)
     end
-    setStatus("rename", "The preset could not be renamed because the virtual-folder catalog could not be saved.", true)
+    if persisted then
+      writeCatalog(state.presets, state.folders, state.manualFolders,
+        state.ignoredPhysicalFolders)
+      writeInventory(state.presets, state.folders)
+    end
+    setStatus("rename", "The preset could not be renamed because its catalog or recovery journal could not be finalized.", true)
     return
   end
   state.selected = newName
@@ -3003,7 +3602,8 @@ end
 local function drawSectionStatus(section, childId, isSuccess, height)
   local text = state[section .. "Status"]
   if not text or text == "" then return end
-  local isError = state[section .. "StatusError"]
+  local kind = state.statusKinds[section]
+  local isError = state[section .. "StatusError"] or kind == "error"
   local checkClothing = section == "load"
     and not isError
     and state.inCustomization
@@ -3026,7 +3626,9 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   elseif clothingCheckUnavailable then
     text = "Clothing could not be checked. You may ignore this notice and load normally. If the game hangs when customization closes, unequip all clothing and select No Outfit before trying again."
   end
-  local success = not isError and isSuccess and isSuccess(text)
+  local success = not isError and (kind == "success"
+    or (kind == nil and isSuccess and isSuccess(text)))
+  local warning = not isError and kind == "warning"
   local destructiveWarning = (section == "delete"
       and (state.pendingEmptyTrash == true
         or (state.pendingDeleteName ~= nil
@@ -3038,7 +3640,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
     customColors = true
-  elseif clothingWarning or clothingCheckUnavailable then
+  elseif warning or clothingWarning or clothingCheckUnavailable then
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.97, 0.72, 0.20, 0.90)
     customColors = true
@@ -3056,6 +3658,9 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   elseif destructiveWarning then
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "WARNING")
     coloredWrapped(1.0, 0.4, 0.4, 1.0, text)
+  elseif warning then
+    ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "WARNING")
+    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   elseif clothingWarning or clothingCheckUnavailable then
     ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "OPTIONAL CLOTHING NOTICE")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
@@ -3551,7 +4156,7 @@ local function draw()
       ImGui.TextWrapped("Removing a folder keeps its presets and moves their organization to the parent folder. Moving a preset to Trash keeps it recoverable until Trash is emptied permanently.")
 
       helpHeading("Bulk Actions")
-      ImGui.TextWrapped("Open Bulk Actions to move every preset in the selected folder to Trash or select several presets with the shared search filter. Both actions require confirmation. Manual directories remain in place, and restoring presets rebuilds their original logical folder paths.")
+      ImGui.TextWrapped("Open Bulk Actions to move every preset in the selected folder to Trash or select several presets with the shared search filter. Both actions require confirmation. Manual directories remain in place. Restore Folder recovers the complete logical tree, including empty nested folders.")
 
       helpHeading("Import and Share")
       ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy a .preset file to share it.")
@@ -3597,12 +4202,17 @@ local function draw()
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
     ImGui.PushItemWidth(math.max(80, searchRowWidth - 142))
+    local previousSearchText = state.searchText
     state.searchText = ImGui.InputTextWithHint("##presetSearch", "Search presets or folders", state.searchText, 65)
+    if state.searchText ~= previousSearchText then invalidateFilteredViewCache() end
     ImGui.PopItemWidth()
     ImGui.SameLine()
     local clearSearchUnavailable = not tostring(state.searchText):match("%S")
     if clearSearchUnavailable then ImGui.BeginDisabled() end
-    if ImGui.Button("Clear##presetSearchClear", 48, 0) then state.searchText = "" end
+    if ImGui.Button("Clear##presetSearchClear", 48, 0) then
+      state.searchText = ""
+      invalidateFilteredViewCache()
+    end
     if clearSearchUnavailable then ImGui.EndDisabled() end
     ImGui.SameLine()
     if ImGui.Button("Refresh##presetRefresh", 78, 0) then
@@ -3629,19 +4239,9 @@ local function draw()
     end
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
     local names = sortedPresetNames()
-    local queryActive = tostring(state.searchText):match("%S") ~= nil
-    local matchedFolders = {}
-    if queryActive then
-      for _, name in ipairs(names) do
-        if textMatches(name, state.searchText) then
-          local current = parentFolder(name)
-          while current ~= "" do
-            matchedFolders[current] = true
-            current = parentFolder(current)
-          end
-        end
-      end
-    end
+    ensureFilteredViewCache()
+    local queryActive = state.cachedQueryActive
+    local matchedFolders = state.cachedMatchedFolders
     if #names == 0 then
       ImGui.TextDisabled("No presets saved.")
     else
@@ -3667,11 +4267,8 @@ local function draw()
       for _, folder in ipairs(sortedFolderNames()) do
         local folderPresets = presetsInFolder(folder)
         local subtreeCount = state.cachedFolderPresetCounts[folder] or 0
-        local folderMatches = textMatches(folder, state.searchText)
-        local matchingPresets = {}
-        for _, name in ipairs(folderPresets) do
-          if textMatches(name, state.searchText) then table.insert(matchingPresets, name) end
-        end
+        local folderMatches = state.cachedFolderMatches[folder] == true
+        local matchingPresets = state.cachedMatchingPresetsByFolder[folder] or EMPTY_LIST
         local descendantMatches = matchedFolders[folder] == true
         if subtreeCount > 0 and (folderMatches or #matchingPresets > 0 or descendantMatches) then
           local expanded = state.expandedLoadFolders[folder] == true
@@ -3694,8 +4291,8 @@ local function draw()
           end
         end
       end
-      for _, name in ipairs(presetsInFolder("")) do
-        if textMatches(name, state.searchText) then drawPresetChoice(name, name) end
+      for _, name in ipairs(state.cachedMatchingPresetsByFolder[""] or EMPTY_LIST) do
+        drawPresetChoice(name, name)
       end
     end
     ImGui.EndChild()
@@ -3896,15 +4493,8 @@ local function draw()
       ImGui.TextWrapped("Folder: " .. breadcrumb(state.selectedFolder))
       local folderBulkNames = state.selectedFolder ~= ""
         and bulkPresetNamesInFolder(state.selectedFolder) or {}
-      local nestedFolderCount = 0
-      if state.selectedFolder ~= "" then
-        for candidate in pairs(state.folders) do
-          if candidate ~= state.selectedFolder
-              and isInFolderTree(candidate, state.selectedFolder) then
-            nestedFolderCount = nestedFolderCount + 1
-          end
-        end
-      end
+      local nestedFolderCount = state.selectedFolder ~= ""
+        and state.cachedBulkNestedFolderCount or 0
       ImGui.TextDisabled(("%d preset%s and %d nested folder%s affected. Manual directories stay in place.")
         :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s",
           nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
@@ -3931,17 +4521,17 @@ local function draw()
       ImGui.Spacing()
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
       ImGui.PushItemWidth(-1)
+      local previousSearchText = state.searchText
       state.searchText = ImGui.InputTextWithHint("##bulkPresetSearch",
         "Search presets or folders", state.searchText, 65)
+      if state.searchText ~= previousSearchText then invalidateFilteredViewCache() end
       ImGui.PopItemWidth()
-      local visibleNames = {}
-      for _, name in ipairs(sortedPresetNames()) do
-        if textMatches(name, state.searchText) then table.insert(visibleNames, name) end
-      end
+      local visibleNames = filteredPresetNames()
       local selectedBulkNames = selectedBulkPresetNames()
       local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
       if ImGui.Button("Select All Visible##bulkSelectAll", bulkButtonWidth, 28) then
         for _, name in ipairs(visibleNames) do state.bulkSelected[name] = true end
+        invalidateBulkSelectionCache()
         cancelConfirmations()
         state.bulkStatus = ""
         state.bulkStatusError = false
@@ -3950,6 +4540,7 @@ local function draw()
       if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
       if ImGui.Button("Clear Selection##bulkClear", bulkButtonWidth, 28) then
         state.bulkSelected = {}
+        invalidateBulkSelectionCache()
         cancelConfirmations()
         state.bulkStatus = ""
         state.bulkStatusError = false
@@ -3964,6 +4555,7 @@ local function draw()
           if ImGui.Selectable((selectedForBulk and "[x] " or "[ ] ") ..
               breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
             state.bulkSelected[name] = selectedForBulk and nil or true
+            invalidateBulkSelectionCache()
             cancelConfirmations()
             state.bulkStatus = ""
             state.bulkStatusError = false
@@ -4033,25 +4625,53 @@ local function draw()
       local trashNames = {}
       for filename in pairs(state.trash) do table.insert(trashNames, filename) end
       table.sort(trashNames, function(a, b) return a:lower() < b:lower() end)
-      if #trashNames == 0 then
+      local trashGroupIds = {}
+      for groupId in pairs(state.trashGroups) do table.insert(trashGroupIds, groupId) end
+      table.sort(trashGroupIds, function(a, b)
+        return state.trashGroups[a].root:lower() < state.trashGroups[b].root:lower()
+      end)
+      if #trashNames == 0 and #trashGroupIds == 0 then
         ImGui.TextDisabled("Trash is empty.")
       else
         ImGui.TextWrapped(("%d recoverable preset%s")
           :format(#trashNames, #trashNames == 1 and "" or "s"))
-        ImGui.BeginChild("##trashList", 0, ImGui.GetFontSize() * 4.5, true)
-        for _, filename in ipairs(trashNames) do
-          local item = state.trash[filename]
-          if fullWidthButton("Restore " .. (item.original or filename) ..
-              "##trash:" .. filename, 26) then
-            restoreTrashPreset(filename)
+        ImGui.BeginChild("##trashList", 0, ImGui.GetFontSize() * 6, true)
+        local trashChanged = false
+        for _, groupId in ipairs(trashGroupIds) do
+          local group = state.trashGroups[groupId]
+          local groupPresetCount, folderCount = 0, 0
+          for _, item in pairs(state.trash) do
+            if item.group == groupId then groupPresetCount = groupPresetCount + 1 end
+          end
+          for _ in pairs(group.folders or {}) do folderCount = folderCount + 1 end
+          if fullWidthButton(("Restore Folder %s (%d presets, %d folders)")
+              :format(breadcrumb(group.root), groupPresetCount, folderCount) ..
+              "##trashGroup:" .. groupId, 26) then
+            restoreTrashGroup(groupId)
+            trashChanged = true
+            break
+          end
+        end
+        if not trashChanged then
+          if #trashGroupIds > 0 and #trashNames > 0 then ImGui.Separator() end
+          for _, filename in ipairs(trashNames) do
+            local item = state.trash[filename]
+            if item and fullWidthButton("Restore " .. (item.original or filename) ..
+                "##trash:" .. filename, 26) then
+              restoreTrashPreset(filename)
+              trashChanged = true
+              break
+            end
           end
         end
         ImGui.EndChild()
-        local emptyLabel = state.pendingEmptyTrash
-          and "Confirm Empty Trash Permanently##emptyTrash"
-          or "Empty Trash Permanently##emptyTrash"
-        if dangerButton(emptyLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
-          emptyTrash()
+        if not trashChanged then
+          local emptyLabel = state.pendingEmptyTrash
+            and "Confirm Empty Trash Permanently##emptyTrash"
+            or "Empty Trash Permanently##emptyTrash"
+          if dangerButton(emptyLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
+            emptyTrash()
+          end
         end
       end
       drawSectionStatus("delete", "##trashStatus", isDeleteSuccess, statusHeight)
@@ -4241,15 +4861,24 @@ registerForEvent("onInit", function()
     log("[HOOK] Full-editor launch and mirror-unlock hooks registered.", "info")
   end
 
-  refreshPresets("startup")
-  refreshTrash()
+  local recovered, recoveredOriginals, recoveredAssignments,
+    recoveredFolders, recoveredManualFolders = recoverTransaction()
+  if recovered then
+    refreshPresets("startup", recoveredAssignments, recoveredFolders,
+      recoveredManualFolders)
+    refreshTrash(recoveredOriginals)
+  else
+    setStatus("load", "Preset recovery is incomplete. Restart CET after checking file permissions; no preset files were changed further.", true)
+  end
   local presetCount = 0
   for _ in pairs(state.presets) do presetCount = presetCount + 1 end
   log(("Preset files loaded: presets=%d directory='%s'")
     :format(presetCount, PRESET_DIR), "info")
   state.ready = true
   refreshEditorState()
-  setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.")
+  if recovered then
+    setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.")
+  end
 end)
 
 registerForEvent("onShutdown", function()
