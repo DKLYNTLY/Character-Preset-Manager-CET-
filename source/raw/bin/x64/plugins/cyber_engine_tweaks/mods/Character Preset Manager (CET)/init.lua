@@ -1,7 +1,10 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "2.0.8"
+local VERSION = "2.0.9"
 local PRESET_DIR = "Character Presets"
+local TRASH_DIR_NAME = ".Character Preset Manager Trash"
+local TRASH_DIR = PRESET_DIR .. "/" .. TRASH_DIR_NAME
+local TRASH_CATALOG_FILE = "Character Preset Manager (CET) Trash.txt"
 local CATALOG_FILE = "Character Preset Manager (CET) Folders.txt"
 local LEGACY_FOLDER_POOL = PRESET_DIR .. "/.Character Preset Manager Folder Slots"
 local INVENTORY_FILE = "Character Preset Manager (CET) Inventory.txt"
@@ -39,6 +42,9 @@ local state = {
   selected = nil,
   newName = "",
   renameName = "",
+  searchText = "",
+  presetNotes = "",
+  presetTags = "",
   presets = {},
   folders = {},
   manualFolders = {},
@@ -50,6 +56,7 @@ local state = {
     create = true,
     folders = false,
     manage = false,
+    trash = false,
   },
   selectedFolder = "",
   folderName = "",
@@ -57,11 +64,6 @@ local state = {
   folderStatus = "",
   folderStatusError = false,
   lastLoggedFolderStatus = nil,
-  pendingDeleteFolder = nil,
-  pendingDeleteFolderStage = 0,
-  pendingDeleteFolderPresetCount = 0,
-  pendingDeleteFolderHasContents = false,
-  pendingDeleteFolderFingerprint = nil,
   loadStatus = "Load a save and open the character editor.",
   loadStatusError = false,
   createStatus = "",
@@ -87,12 +89,17 @@ local state = {
   pendingDeleteFingerprint = nil,
   helpOpen = false,
   debugOpen = false,
+  advancedDiagnosticsOpen = false,
+  settingsOpen = false,
   debugLogText = "",
   debugLogLines = {},
   bindingCache = {},
   autoLoad = false,
   autoLoadTimer = 0,
   autoLoadPasses = 0,
+  preflight = nil,
+  trash = {},
+  pendingEmptyTrash = false,
   resetBeforeLoad = false,
   activeBodyMorphMenu = nil,
   inGameMenuController = nil,
@@ -117,6 +124,7 @@ local state = {
   cachedPresetNames = {},
   cachedFolderNames = {},
   cachedPresetsByFolder = {},
+  cachedFolderPresetCounts = {},
   windowPositionCached = false,
   cachedWindowX = nil,
   cachedDisplayWidth = nil,
@@ -168,11 +176,7 @@ local function cancelConfirmations()
   state.pendingOverwriteFingerprint = nil
   state.pendingDeleteName = nil
   state.pendingDeleteFingerprint = nil
-  state.pendingDeleteFolder = nil
-  state.pendingDeleteFolderStage = 0
-  state.pendingDeleteFolderPresetCount = 0
-  state.pendingDeleteFolderHasContents = false
-  state.pendingDeleteFolderFingerprint = nil
+  state.pendingEmptyTrash = false
 end
 
 local function resetLoadState()
@@ -413,13 +417,8 @@ local function statusShouldRemain(section, text)
   end
   if section == "editor" then return state.editorOpenPending end
   if section == "delete" then
-    return state.pendingDeleteName ~= nil
+    return state.pendingEmptyTrash == true or state.pendingDeleteName ~= nil
       and state.pendingDeleteName == state.selected
-  end
-  if section == "folder" then
-    return state.pendingDeleteFolder ~= nil
-      and state.pendingDeleteFolder == state.selectedFolder
-      and state.pendingDeleteFolderStage > 0
   end
   return false
 end
@@ -456,6 +455,12 @@ local function sanitizeName(value)
   return value:sub(1, 64)
 end
 
+local function sanitizeMetadata(value, maximum)
+  value = tostring(value or ""):gsub("[%c]", " ")
+  value = value:gsub("^%s+", ""):gsub("%s+$", "")
+  return value:sub(1, maximum)
+end
+
 local function validatedPresetName(value)
   local raw = tostring(value or "")
   local name = sanitizeName(raw)
@@ -482,6 +487,7 @@ local function customizationSystem()
 end
 
 local isCustomizationActive
+local refreshPreflight
 
 local function setEditorOpenStatus(message, isError)
   state.editorStatus = message
@@ -773,6 +779,22 @@ local function baseName(name)
   return name:match("([^/]+)$") or name
 end
 
+local function folderDepth(name)
+  local depth = 0
+  for _ in tostring(name or ""):gmatch("/") do depth = depth + 1 end
+  return depth
+end
+
+local function breadcrumb(name)
+  if not name or name == "" then return "All Presets" end
+  return (name:gsub("/", " > "))
+end
+
+local function textMatches(value, query)
+  query = tostring(query or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+  return query == "" or tostring(value or ""):lower():find(query, 1, true) ~= nil
+end
+
 local function invalidateViewCache()
   state.viewCacheDirty = true
 end
@@ -781,11 +803,17 @@ local function rebuildViewCache()
   local presetNames = {}
   local folderNames = {}
   local presetsByFolder = {}
+  local folderPresetCounts = {}
   for name in pairs(state.presets) do
     table.insert(presetNames, name)
     local folder = parentFolder(name)
     presetsByFolder[folder] = presetsByFolder[folder] or {}
     table.insert(presetsByFolder[folder], name)
+    local current = folder
+    while current ~= "" do
+      folderPresetCounts[current] = (folderPresetCounts[current] or 0) + 1
+      current = parentFolder(current)
+    end
   end
   for name in pairs(state.folders) do table.insert(folderNames, name) end
   table.sort(presetNames, function(a, b) return a:lower() < b:lower() end)
@@ -798,6 +826,7 @@ local function rebuildViewCache()
   state.cachedPresetNames = presetNames
   state.cachedFolderNames = folderNames
   state.cachedPresetsByFolder = presetsByFolder
+  state.cachedFolderPresetCounts = folderPresetCounts
   state.viewCacheDirty = false
 end
 
@@ -971,6 +1000,7 @@ local function readPresetFile(path)
   local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
   if not rewindOk or rewindResult == nil then file:close(); return nil end
   local entries = {}
+  local metadata = { format = 4, source = "Legacy or ACU-compatible" }
   local lineNumber, malformed = 0, 0
   for line in file:lines() do
     lineNumber = lineNumber + 1
@@ -979,6 +1009,20 @@ local function readPresetFile(path)
       log(("[FILES] Preset rejected because it exceeds %d lines: file='%s'.")
         :format(MAX_PRESET_LINES, path), "warn")
       return nil
+    end
+    local metadataKey, metadataValue = line:match("^# CPM\t([%a]+)\t(.*)$")
+    if metadataKey == "format" then
+      metadata.format = tonumber(metadataValue) or 4
+    elseif metadataKey == "source" then
+      metadata.source = catalogDecode(metadataValue)
+    elseif metadataKey == "created" then
+      metadata.created = catalogDecode(metadataValue)
+    elseif metadataKey == "modified" then
+      metadata.modified = catalogDecode(metadataValue)
+    elseif metadataKey == "notes" then
+      metadata.notes = sanitizeMetadata(catalogDecode(metadataValue), 512)
+    elseif metadataKey == "tags" then
+      metadata.tags = sanitizeMetadata(catalogDecode(metadataValue), 128)
     end
     local key, index = line:match("^%s*(.-):(-?%d+)%s*$")
     local numericIndex = tonumber(index)
@@ -994,7 +1038,7 @@ local function readPresetFile(path)
         return nil
       end
       table.insert(entries, { key = key, index = numericIndex })
-    elseif line:match("%S") then
+    elseif not metadataKey and line:match("%S") then
       malformed = malformed + 1
       if malformed <= 20 then
         log(("[FILES] Malformed preset line skipped: file='%s' line=%d content='%s'.")
@@ -1008,13 +1052,34 @@ local function readPresetFile(path)
       :format(path, malformed, malformed == 1 and "" or "s"), "warn")
   end
   if #entries == 0 then return nil end
-  return { format = 4, entries = entries }
+  return {
+    format = metadata.format,
+    source = metadata.source,
+    created = metadata.created,
+    modified = metadata.modified,
+    notes = metadata.notes or "",
+    tags = metadata.tags or "",
+    entries = entries,
+  }
 end
 
 local function writePresetContents(path, preset)
   local file = io.open(path, "w")
   if not file then return false end
   local wrote, writeResult = pcall(function()
+    local metadata = {
+      { "format", tostring(tonumber(preset.format) or 5) },
+      { "source", preset.source or MOD_NAME },
+      { "created", preset.created or "" },
+      { "modified", preset.modified or "" },
+      { "notes", sanitizeMetadata(preset.notes, 512) },
+      { "tags", sanitizeMetadata(preset.tags, 128) },
+    }
+    for _, item in ipairs(metadata) do
+      local result = file:write(("# CPM\t%s\t%s\n"):format(
+        item[1], item[1] == "format" and item[2] or catalogEncode(item[2])))
+      if not result then return false end
+    end
     for _, entry in ipairs(preset.entries or {}) do
       local result = file:write(("%s:%d\n"):format(
         tostring(entry.key),
@@ -1123,6 +1188,13 @@ presetsMatch = function(expected, actual)
   local expectedEntries = expected and expected.entries or {}
   local actualEntries = actual and actual.entries or {}
   if #expectedEntries ~= #actualEntries then return false end
+  if (tonumber(expected and expected.format) or 4) >= 5 then
+    for _, key in ipairs({ "format", "source", "created", "modified", "notes", "tags" }) do
+      if tostring(expected[key] or "") ~= tostring(actual and actual[key] or "") then
+        return false
+      end
+    end
+  end
   for index, entry in ipairs(expectedEntries) do
     local other = actualEntries[index]
     if not other
@@ -1296,6 +1368,7 @@ local function refreshPresets(scanReason)
         end
       elseif entry.type == "directory"
           and childRelative ~= ".Character Preset Manager Folder Slots"
+          and childRelative ~= TRASH_DIR_NAME
           and not scan(childRelative, depth + 1) then
         return false
       end
@@ -1555,7 +1628,12 @@ local function savePreset(confirmOverwrite)
     return
   end
   local newPreset = {
-    format = 4,
+    format = 5,
+    source = MOD_NAME,
+    created = previousPreset and previousPreset.created or logTimestamp(),
+    modified = logTimestamp(),
+    notes = previousPreset and previousPreset.notes or "",
+    tags = previousPreset and previousPreset.tags or "",
     entries = entries,
     storage = storage,
   }
@@ -1581,12 +1659,15 @@ local function savePreset(confirmOverwrite)
     return
   end
   state.selected = name
+  state.presetNotes = newPreset.notes or ""
+  state.presetTags = newPreset.tags or ""
   invalidateViewCache()
   state.renameName = ""
   state.newName = ""
   resetLoadState()
-  log(("Created preset '%s': format=4 orderedOptions=%d")
+  log(("Created preset '%s': format=5 orderedOptions=%d")
     :format(name, #entries), "info")
+  if not state.discoveryNoticeIgnored then ignoreDiscoveryNotice() end
   if writeInventory(state.presets, state.folders) then
     setStatus("create", ("Saved \"%s\" with %d options.")
       :format(name, #entries))
@@ -1608,6 +1689,7 @@ local function loadPreset()
     log("[load] " .. tostring(optionsError), "warn")
     return
   end
+  if state.loadPresetName ~= state.selected then refreshPreflight() end
 
   local preset = state.presets[state.selected]
   local values, savedCounts, valueCount
@@ -1859,6 +1941,7 @@ local function loadPreset()
     state.previousUnresolvedSignature = nil
     state.unresolvedRepeatCount = 0
     refreshCustomizationUi()
+    if not state.discoveryNoticeIgnored then ignoreDiscoveryNotice() end
     log(("SUMMARY | preset='%s' | applied=%d | skipped=0 | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=complete")
       :format(state.selected, applied, state.loadPass), "complete")
     setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
@@ -1866,9 +1949,117 @@ local function loadPreset()
   end
 end
 
-local function deletePreset()
-  auditSection("DELETE PRESET")
-  log(("[PRESET] Delete requested: selected='%s' confirmed=%s")
+refreshPreflight = function()
+  state.preflight = nil
+  local preset = state.selected and state.presets[state.selected]
+  if not preset then return end
+  local _, options = getOptions()
+  if not options then return end
+  local savedCounts, exposedCounts = {}, {}
+  local invalid = 0
+  for _, entry in ipairs(preset.entries or {}) do
+    savedCounts[entry.key] = (savedCounts[entry.key] or 0) + 1
+    if not optionIndexIsValid(tonumber(entry.index)) then invalid = invalid + 1 end
+  end
+  for _, option in ipairs(options) do
+    local key = legacyOptionKey(option)
+    if key and option.isEditable and option.isActive then
+      exposedCounts[key] = (exposedCounts[key] or 0) + 1
+    end
+  end
+  local available, unavailable, ambiguous = 0, 0, 0
+  for key, count in pairs(savedCounts) do
+    local exposed = exposedCounts[key] or 0
+    if exposed == count then
+      available = available + count
+    elseif exposed == 0 then
+      unavailable = unavailable + count
+    else
+      ambiguous = ambiguous + count
+    end
+  end
+  state.preflight = {
+    total = #(preset.entries or {}),
+    available = available,
+    unavailable = unavailable,
+    ambiguous = ambiguous,
+    invalid = invalid,
+  }
+end
+
+local function cancelLoading()
+  local name = state.loadPresetName or state.selected
+  resetLoadState()
+  setStatus("load", name and ("Loading canceled for \"" .. name .. "\".")
+    or "Loading canceled.")
+end
+
+local function writeTrashCatalog(trash)
+  return atomicReplace(TRASH_CATALOG_FILE, function(temporary)
+    local file = io.open(temporary, "wb")
+    if not file then return false end
+    local names = {}
+    for filename in pairs(trash or {}) do table.insert(names, filename) end
+    table.sort(names, function(a, b) return a:lower() < b:lower() end)
+    local ok, result = pcall(function()
+      for _, filename in ipairs(names) do
+        local item = trash[filename]
+        if not file:write(catalogEncode(filename) .. "\t" ..
+            catalogEncode(item.original or baseName(filename)) .. "\n") then
+          return false
+        end
+      end
+      return file:flush() ~= nil
+    end)
+    local closeOk, closeResult = pcall(file.close, file)
+    return ok and result == true and closeOk and closeResult ~= nil
+  end, "trash catalog")
+end
+
+local function refreshTrash()
+  local originals = {}
+  local catalog = io.open(TRASH_CATALOG_FILE, "rb")
+  if catalog then
+    for line in catalog:lines() do
+      local filename, original = line:match("^([^\t]+)\t([^\t]+)$")
+      if filename and original then
+        originals[catalogDecode(filename)] = catalogDecode(original)
+      end
+    end
+    catalog:close()
+  end
+  local trash = {}
+  local entries = safeDirectoryEntries(TRASH_DIR, 0)
+  for _, entry in ipairs(entries or {}) do
+    if entry.type == "file" and entry.name:lower():sub(-7) == ".preset" then
+      local preset = readPresetFile(TRASH_DIR .. "/" .. entry.name)
+      if preset then
+        trash[entry.name] = {
+          original = originals[entry.name] or entry.name:sub(1, -8),
+          preset = preset,
+        }
+      end
+    end
+  end
+  state.trash = trash
+  writeTrashCatalog(trash)
+end
+
+local function uniqueTrashFilename(name)
+  local leaf = sanitizeName(baseName(name))
+  for index = 1, 9999 do
+    local suffix = index == 1 and "" or (" %d"):format(index)
+    local candidate = leaf:sub(1, 64 - #suffix) .. suffix .. ".preset"
+    if not state.trash[candidate] and not fileExists(TRASH_DIR .. "/" .. candidate) then
+      return candidate
+    end
+  end
+  return nil
+end
+
+local function trashPreset()
+  auditSection("TRASH PRESET")
+  log(("[PRESET] Trash requested: selected='%s' confirmed=%s")
     :format(tostring(state.selected),
       tostring(state.pendingDeleteName == state.selected)), "info")
   if not state.selected then return end
@@ -1887,7 +2078,7 @@ local function deletePreset()
   if state.pendingDeleteName ~= old then
     state.pendingDeleteName = old
     state.pendingDeleteFingerprint = currentFingerprint
-    setStatus("delete", ("Permanently delete \"%s\"? Select Confirm Delete to continue.")
+    setStatus("delete", ("Move \"%s\" to Trash? Select Confirm Move to Trash.")
       :format(old))
     return
   end
@@ -1900,32 +2091,45 @@ local function deletePreset()
   state.pendingDeleteFingerprint = nil
 
   local oldPath = presetPath(old)
-  local removed, removeError = os.remove(oldPath)
-  if not removed then
-    setStatus("delete", ("Could not delete \"%s\": %s")
-      :format(old, tostring(removeError)), true)
+  local trashFilename = uniqueTrashFilename(old)
+  if not trashFilename then
+    setStatus("delete", "A safe Trash filename could not be allocated.", true)
+    return
+  end
+  local trashPath = TRASH_DIR .. "/" .. trashFilename
+  local moved, moveError = os.rename(oldPath, trashPath)
+  if not moved then
+    setStatus("delete", ("Could not move \"%s\" to Trash: %s")
+      :format(old, tostring(moveError)), true)
     return
   end
   state.presets[old] = nil
+  state.trash[trashFilename] = { original = old, preset = preset }
   if not writeCatalog(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) then
+      state.ignoredPhysicalFolders) or not writeTrashCatalog(state.trash) then
     state.presets[old] = preset
-    local restored = writePresetPath(oldPath, preset)
+    state.trash[trashFilename] = nil
+    local restored = os.rename(trashPath, oldPath) ~= nil
+    writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders)
+    writeTrashCatalog(state.trash)
     setStatus("delete", restored
-      and "Deletion was rolled back because the virtual-folder catalog could not be updated."
-      or "Deletion failed, and the preset file could not be restored.", true)
+      and "The Trash operation was rolled back because its catalog could not be updated."
+      or "The Trash operation failed, and the preset file could not be restored.", true)
     return
   end
   state.selected = nil
+  state.presetNotes = ""
+  state.presetTags = ""
   invalidateViewCache()
   state.renameName = ""
   resetLoadState()
   state.renameStatus = ""
   state.renameStatusError = false
   if writeInventory(state.presets, state.folders) then
-    setStatus("delete", "Deleted \"" .. old .. "\".")
+    setStatus("delete", "Moved \"" .. old .. "\" to Trash.")
   else
-    setStatus("delete", "Deleted \"" .. old .. "\", but the inventory could not be updated.", true)
+    setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the inventory could not be updated.", true)
   end
 end
 
@@ -1933,6 +2137,87 @@ local function cloneMap(source)
   local copy = {}
   for key, value in pairs(source or {}) do copy[key] = value end
   return copy
+end
+
+local function restoreTrashPreset(filename)
+  local item = state.trash[filename]
+  if not item then setStatus("delete", "The Trash item is no longer available.", true); return end
+  local logicalName = item.original
+  if findPresetCollision(logicalName) then
+    logicalName = uniquePresetCopyName(logicalName)
+  end
+  if not logicalName then
+    setStatus("delete", "A unique restored preset name could not be allocated.", true); return
+  end
+  local storage = uniqueStorageName(baseName(logicalName))
+  if not storage then
+    setStatus("delete", "A safe restored filename could not be allocated.", true); return
+  end
+  local sourcePath = TRASH_DIR .. "/" .. filename
+  local destinationPath = PRESET_DIR .. "/" .. storage .. ".preset"
+  local moved, moveError = os.rename(sourcePath, destinationPath)
+  if not moved then
+    setStatus("delete", "The preset could not be restored: " .. tostring(moveError), true); return
+  end
+  local preset = readPresetFile(destinationPath)
+  if not preset then
+    os.rename(destinationPath, sourcePath)
+    setStatus("delete", "The restored preset could not be verified.", true); return
+  end
+  preset.storage = storage
+  local previousFolders = cloneMap(state.folders)
+  state.presets[logicalName] = preset
+  addFolderAncestors(state.folders, parentFolder(logicalName))
+  state.trash[filename] = nil
+  if not writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders) or not writeTrashCatalog(state.trash) then
+    state.presets[logicalName] = nil
+    state.folders = previousFolders
+    state.trash[filename] = item
+    os.rename(destinationPath, sourcePath)
+    writeCatalog(state.presets, state.folders, state.manualFolders,
+      state.ignoredPhysicalFolders)
+    writeTrashCatalog(state.trash)
+    setStatus("delete", "Restore was rolled back because a catalog could not be saved.", true)
+    return
+  end
+  state.selected = logicalName
+  state.presetNotes = preset.notes or ""
+  state.presetTags = preset.tags or ""
+  invalidateViewCache()
+  writeInventory(state.presets, state.folders)
+  setStatus("delete", "Restored \"" .. logicalName .. "\" from Trash.")
+end
+
+local function emptyTrash()
+  local count = 0
+  for _ in pairs(state.trash) do count = count + 1 end
+  if count == 0 then setStatus("delete", "Trash is already empty."); return end
+  if not state.pendingEmptyTrash then
+    cancelConfirmations()
+    state.pendingEmptyTrash = true
+    setStatus("delete", ("Permanently delete %d trashed preset%s? Select Empty Trash Permanently again.")
+      :format(count, count == 1 and "" or "s"))
+    return
+  end
+  state.pendingEmptyTrash = false
+  local failed = 0
+  for filename in pairs(state.trash) do
+    if os.remove(TRASH_DIR .. "/" .. filename) then
+      state.trash[filename] = nil
+    else
+      failed = failed + 1
+    end
+  end
+  local catalogSaved = writeTrashCatalog(state.trash)
+  if failed > 0 then
+    setStatus("delete", ("Trash cleanup stopped with %d file%s remaining.")
+      :format(failed, failed == 1 and "" or "s"), true)
+  elseif not catalogSaved then
+    setStatus("delete", "Trash was emptied, but its catalog could not be updated.", true)
+  else
+    setStatus("delete", "Trash emptied permanently.")
+  end
 end
 
 local function remapFolderTreePath(path, source, destination)
@@ -1972,12 +2257,42 @@ local function renamePreset()
     return
   end
   local preset = state.presets[old]
+  local oldStorage = preset.storage
+  local newStorage = joinFolder(parentFolder(oldStorage), newLeafName)
+  local oldPath = PRESET_DIR .. "/" .. oldStorage .. ".preset"
+  local newPath = PRESET_DIR .. "/" .. newStorage .. ".preset"
+  local physicalRenameNeeded = newStorage ~= oldStorage
+  if physicalRenameNeeded and fileExists(newPath) then
+    setStatus("rename", "A shareable preset file with that name already exists.", true)
+    return
+  end
+  if physicalRenameNeeded then
+    local renamed, renameError = os.rename(oldPath, newPath)
+    if not renamed then
+      setStatus("rename", "The shareable preset file could not be renamed: " ..
+        tostring(renameError), true)
+      return
+    end
+    preset.storage = newStorage
+  end
   state.presets[old] = nil
   state.presets[newName] = preset
   if not persistVirtualState(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders) then
     state.presets[newName] = nil
     state.presets[old] = preset
+    if physicalRenameNeeded then
+      local rolledBack = os.rename(newPath, oldPath) ~= nil
+      preset.storage = rolledBack and oldStorage or newStorage
+      if not rolledBack then
+        local repaired = writeCatalog(state.presets, state.folders, state.manualFolders,
+          state.ignoredPhysicalFolders)
+        setStatus("rename", repaired
+          and "The display rename failed, and the physical file could not be moved back. The catalog now tracks the new physical filename."
+          or "The display rename failed, the physical file could not be moved back, and the catalog could not be repaired.", true)
+        return
+      end
+    end
     setStatus("rename", "The preset could not be renamed because the virtual-folder catalog could not be saved.", true)
     return
   end
@@ -1987,7 +2302,7 @@ local function renamePreset()
   cancelConfirmations()
   resetLoadState()
   setStatus("rename", "Renamed \"" .. old .. "\" to \"" .. newName .. "\".")
-  log(("[PRESET] Virtual rename completed: '%s' -> '%s' storage='%s'.")
+  log(("[PRESET] Display and physical rename completed: '%s' -> '%s' storage='%s'.")
     :format(old, newName, preset.storage), "complete")
 end
 
@@ -2025,6 +2340,32 @@ local function movePresetToSelectedFolder()
       state.selectedFolder == "" and "All Presets" or state.selectedFolder), false
   log(("[PRESET] Virtual move completed: '%s' -> '%s' storage='%s'.")
     :format(old, newName, preset.storage), "complete")
+end
+
+local function savePresetMetadata()
+  if not state.selected or not state.presets[state.selected] then
+    setStatus("rename", "Select a preset before saving its details.", true); return
+  end
+  local preset = state.presets[state.selected]
+  local previousNotes, previousTags = preset.notes, preset.tags
+  local previousModified, previousFormat = preset.modified, preset.format
+  local previousSource = preset.source
+  preset.notes = sanitizeMetadata(state.presetNotes, 512)
+  preset.tags = sanitizeMetadata(state.presetTags, 128)
+  preset.modified = logTimestamp()
+  preset.created = preset.created or preset.modified
+  preset.source = MOD_NAME
+  preset.format = 5
+  if not writePresetPath(presetPath(state.selected), preset) then
+    preset.notes, preset.tags = previousNotes, previousTags
+    preset.modified, preset.format = previousModified, previousFormat
+    preset.source = previousSource
+    setStatus("rename", "Preset details could not be saved safely.", true)
+    return
+  end
+  state.presetNotes = preset.notes
+  state.presetTags = preset.tags
+  setStatus("rename", "Saved details for \"" .. state.selected .. "\".")
 end
 
 local function duplicatePreset()
@@ -2253,121 +2594,65 @@ local function duplicateFolder()
     :format(source, destination, #createdFiles), "complete")
 end
 
-local function deleteFolder()
-  auditSection("DELETE FOLDER")
+local function removeFolderKeepPresets()
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
-    state.folderStatus, state.folderStatusError = "Select a folder to delete.", true; return
+    state.folderStatus, state.folderStatusError = "Select a folder to remove.", true; return
   end
-  local presetsToDelete = {}
-  local fingerprintParts = {}
-  local nestedFolderCount = 0
-  for name, preset in pairs(state.presets) do
-    if isInFolderTree(parentFolder(name), folder) then
-      local path = PRESET_DIR .. "/" .. preset.storage .. ".preset"
-      local fingerprint = fileFingerprint(path)
-      if not fingerprint then
-        state.folderStatus, state.folderStatusError =
-          ("The preset \"%s\" could not be verified safely."):format(name), true; return
-      end
-      table.insert(presetsToDelete, { name = name, preset = preset, path = path })
-      table.insert(fingerprintParts, "P:" .. name .. ":" .. preset.storage .. ":" .. fingerprint)
-    end
-  end
-  for candidate in pairs(state.folders) do
-    if candidate ~= folder and isInFolderTree(candidate, folder) then
-      nestedFolderCount = nestedFolderCount + 1
-      table.insert(fingerprintParts, "F:" .. candidate)
-    end
-  end
-  table.sort(fingerprintParts)
-  local fingerprint = table.concat(fingerprintParts, "\30")
-  if state.pendingDeleteFolder == folder
-      and state.pendingDeleteFolderStage > 0
-      and state.pendingDeleteFolderFingerprint ~= fingerprint then
-    cancelConfirmations()
-    state.folderStatus, state.folderStatusError =
-      "The virtual folder changed. Review it and start deletion again.", true
-    return
-  end
-  local hasContents = #presetsToDelete > 0 or nestedFolderCount > 0
-  if state.pendingDeleteFolder ~= folder or state.pendingDeleteFolderStage == 0 then
-    state.pendingDeleteFolder = folder
-    state.pendingDeleteFolderStage = hasContents and 1 or 2
-    state.pendingDeleteFolderPresetCount = #presetsToDelete
-    state.pendingDeleteFolderHasContents = hasContents
-    state.pendingDeleteFolderFingerprint = fingerprint
-    state.folderStatus, state.folderStatusError = hasContents
-      and (("Delete virtual folder \"%s\" and permanently delete %d preset%s? Select Confirm Delete Folder.")
-        :format(folder, #presetsToDelete, #presetsToDelete == 1 and "" or "s"))
-      or ("Delete empty virtual folder \"" .. folder .. "\"? Select Confirm Delete Empty Folder."), false
-    return
-  end
-  if state.pendingDeleteFolderStage == 1 then
-    state.pendingDeleteFolderStage = 2
-    state.folderStatus, state.folderStatusError =
-      "Preset deletion cannot be undone. Select Permanently Delete Folder to continue.", false
-    return
-  end
-
-  local removedFiles = {}
-  for _, item in ipairs(presetsToDelete) do
-    local removed, removeError = os.remove(item.path)
-    if not removed then
-      local restored = true
-      for _, removedItem in ipairs(removedFiles) do
-        if not writePresetPath(removedItem.path, removedItem.preset) then restored = false end
-      end
-      state.folderStatus, state.folderStatusError = restored
-        and (("Folder deletion was rolled back because \"%s\" could not be removed: %s")
-          :format(item.name, tostring(removeError)))
-        or (("Folder deletion failed at \"%s\", and some removed presets could not be restored.")
-          :format(item.name)), true
-      return
-    end
-    table.insert(removedFiles, item)
-  end
-
+  local destinationParent = parentFolder(folder)
   local newPresets, newFolders = {}, {}
   local newManualFolders = {}
   local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  local usedPresets, usedFolders = {}, {}
   for name, preset in pairs(state.presets) do
-    if not isInFolderTree(parentFolder(name), folder) then newPresets[name] = preset end
+    local mapped = name
+    if isInFolderTree(parentFolder(name), folder) then
+      mapped = joinFolder(destinationParent, name:sub(#folder + 2))
+    end
+    if usedPresets[mapped:lower()] then
+      state.folderStatus, state.folderStatusError =
+        "The folder cannot be removed because preset names would collide.", true; return
+    end
+    usedPresets[mapped:lower()] = true
+    newPresets[mapped] = preset
   end
   for candidate in pairs(state.folders) do
-    if not isInFolderTree(candidate, folder) then
-      newFolders[candidate] = true
-      if state.manualFolders[candidate] then newManualFolders[candidate] = true end
+    if candidate ~= folder then
+      local mapped = candidate
+      if isInFolderTree(candidate, folder) then
+        mapped = joinFolder(destinationParent, candidate:sub(#folder + 2))
+      end
+      if usedFolders[mapped:lower()] then
+        state.folderStatus, state.folderStatusError =
+          "The folder cannot be removed because folder names would collide.", true; return
+      end
+      usedFolders[mapped:lower()] = true
+      newFolders[mapped] = true
+      if mapped == candidate and state.manualFolders[candidate] then
+        newManualFolders[mapped] = true
+      elseif mapped ~= candidate and state.manualFolders[candidate] then
+        newIgnored[candidate] = true
+      end
     elseif state.manualFolders[candidate] then
       newIgnored[candidate] = true
     end
   end
   if not persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored) then
-    local restored = true
-    for _, item in ipairs(removedFiles) do
-      if not writePresetPath(item.path, item.preset) then restored = false end
-    end
-    state.folderStatus, state.folderStatusError = restored
-      and "Folder deletion was rolled back because the catalog could not be saved."
-      or "Folder deletion failed, and some preset files could not be restored.", true
-    return
+    state.folderStatus, state.folderStatusError =
+      "The folder could not be removed because the catalog could not be saved.", true; return
   end
-  state.presets = newPresets
-  state.folders = newFolders
-  state.manualFolders = newManualFolders
-  state.ignoredPhysicalFolders = newIgnored
+  local selectedPreset = state.selected
+  if selectedPreset and isInFolderTree(parentFolder(selectedPreset), folder) then
+    selectedPreset = joinFolder(destinationParent, selectedPreset:sub(#folder + 2))
+  end
+  state.presets, state.folders = newPresets, newFolders
+  state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
+  state.selected, state.selectedFolder = selectedPreset, destinationParent
   invalidateViewCache()
-  state.selectedFolder = ""
-  if state.selected and isInFolderTree(parentFolder(state.selected), folder) then
-    state.selected = nil
-  end
   cancelConfirmations()
   resetLoadState()
   state.folderStatus, state.folderStatusError =
-    ("Deleted virtual folder \"%s\" and %d preset%s. Manual directories were left in place.")
-      :format(folder, #presetsToDelete, #presetsToDelete == 1 and "" or "s"), false
-  log(("[FOLDER] Virtual delete completed: folder='%s' presets=%d nestedFolders=%d.")
-    :format(folder, #presetsToDelete, nestedFolderCount), "complete")
+    "Removed folder \"" .. folder .. "\" and kept all presets.", false
 end
 
 local function refreshEditorState()
@@ -2499,12 +2784,9 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   end
   local success = not isError and isSuccess and isSuccess(text)
   local destructiveWarning = (section == "delete"
-      and state.pendingDeleteName ~= nil
-      and state.pendingDeleteName == state.selected)
-    or (section == "folder"
-      and state.pendingDeleteFolder ~= nil
-      and state.pendingDeleteFolder == state.selectedFolder
-      and state.pendingDeleteFolderStage > 0)
+      and (state.pendingEmptyTrash == true
+        or (state.pendingDeleteName ~= nil
+          and state.pendingDeleteName == state.selected)))
   local customColors = false
   ImGui.Spacing()
   if isError or destructiveWarning then
@@ -2556,14 +2838,21 @@ local function isLoadSuccess(text)
     or text:find("Open the character creator", 1, true) == 1
 end
 local function isCreateSuccess(text) return text:find("^Saved ") ~= nil end
-local function isRenameSuccess(text) return text:find("^Renamed ") ~= nil end
-local function isDeleteSuccess(text) return text:find("^Deleted ") ~= nil end
+local function isRenameSuccess(text)
+  return text:find("^Renamed ") ~= nil or text:find("^Duplicated ") ~= nil
+    or text:find("^Saved details ") ~= nil
+end
+local function isDeleteSuccess(text)
+  return text:find("^Moved ") ~= nil or text:find("^Restored ") ~= nil
+    or text == "Trash emptied permanently."
+end
 local function isEditorSuccess(text) return text == "Full editor opened." end
 local function isFolderSuccess(text)
   return text:find("^Created virtual folder ") ~= nil
     or text:find("^Renamed virtual folder ") ~= nil
     or text:find("^Duplicated virtual folder ") ~= nil
-    or text:find("^Deleted virtual folder ") ~= nil
+    or text:find("^Removed folder ") ~= nil
+    or text:find("^Moved ") ~= nil
 end
 
 local function setDebugLogText(text)
@@ -2640,10 +2929,12 @@ local function drawDebugPanel(height)
   if ImGui.Button("Copy##debugCopy", 52, 0) then
     ImGui.SetClipboardText(state.debugLogText or "")
   end
-  ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
-    :format(state.editorInputCount, state.editorControllerCaptureCount,
-      state.editorPauseRedirectCount, state.editorPuppetReadyCount))
-  ImGui.TextDisabled("After one successful hotkey launch, all four values should be at least 1.")
+  if ImGui.CollapsingHeader("Advanced diagnostics##advancedDiagnostics") then
+    ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
+      :format(state.editorInputCount, state.editorControllerCaptureCount,
+        state.editorPauseRedirectCount, state.editorPuppetReadyCount))
+    ImGui.TextDisabled("After one successful input launch, all four values should be at least 1.")
+  end
   ImGui.TextColored(0.3, 1.0, 0.4, 1.0, "Green = complete")
   ImGui.SameLine()
   ImGui.TextColored(0.75, 0.77, 0.82, 1.0, "|")
@@ -2780,19 +3071,6 @@ local function defaultWindowPosition()
   return math.max(20, displayWidth - 440), displayWidth
 end
 
-local function drawDiscoveryNotificationToggle()
-  local label = state.discoveryNoticeIgnored
-    and "Enable Notification##discoveryReminder"
-    or "Ignore Notification##discoveryReminder"
-  if ImGui.Button(label, 132, 0) then
-    if state.discoveryNoticeIgnored then
-      restoreDiscoveryNotice()
-    else
-      ignoreDiscoveryNotice()
-    end
-  end
-end
-
 local function discoveryViewport()
   if ImGui.GetMainViewport then
     local viewport = ImGui.GetMainViewport()
@@ -2904,7 +3182,7 @@ local function draw()
     local narrowTopRow = ImGui.GetWindowWidth() < 620
     local topRowStartX = ImGui.GetCursorPosX()
     local topRowWidth = ImGui.GetContentRegionAvail()
-    local topControlsWidth = 256
+    local topControlsWidth = 198
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
     if state.inCustomization then
@@ -2916,7 +3194,9 @@ local function draw()
     end
     ImGui.SameLine()
     ImGui.SetCursorPosX(topRowStartX + topRowWidth - topControlsWidth)
-    drawDiscoveryNotificationToggle()
+    if ImGui.Button("Settings##settings", 74, 0) then
+      state.settingsOpen = not state.settingsOpen
+    end
     ImGui.SameLine()
     if ImGui.Button("Debug##debug", 58, 0) then
       state.debugOpen = not state.debugOpen
@@ -2926,6 +3206,19 @@ local function draw()
     if ImGui.Button("Help##help", 50, 0) then
       state.helpOpen = not state.helpOpen
       if state.helpOpen then state.bindingCache = {} end
+    end
+    if state.settingsOpen then
+      ImGui.Spacing()
+      ImGui.BeginChild("##settings", 0, 92, true)
+      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
+      ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
+      local reminderLabel = state.discoveryNoticeIgnored
+        and "Enable Customization Reminder" or "Disable Customization Reminder"
+      if fullWidthButton(reminderLabel .. "##discoveryPreference", 28) then
+        if state.discoveryNoticeIgnored then restoreDiscoveryNotice()
+        else ignoreDiscoveryNotice() end
+      end
+      ImGui.EndChild()
     end
     if state.debugOpen then
       drawDebugPanel(200 + extraHeight * 0.35)
@@ -2972,10 +3265,10 @@ local function draw()
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "Options not saved in the preset may be removed.")
 
-      helpHeading("Create a Preset")
+      helpHeading("Save a Preset")
       ImGui.TextWrapped("1. Select a folder under Folders, or select All Presets.")
-      ImGui.TextWrapped("2. Enter a name under Create.")
-      ImGui.TextWrapped("3. Select Create New Preset. Confirm only if replacing an existing preset.")
+      ImGui.TextWrapped("2. Enter a name under Save Preset.")
+      ImGui.TextWrapped("3. Select Save New Preset. Confirm only if replacing an existing preset.")
 
       helpHeading("Folders")
       ImGui.TextWrapped("Use [+] and [-] under Load to open or close a folder.")
@@ -2984,18 +3277,21 @@ local function draw()
       ImGui.TextWrapped("Folders created in CET are virtual and have no packaged slot limit. Renaming them or moving presets between them does not rename directories in File Explorer.")
       ImGui.TextWrapped("Manually created directories are discovered recursively and labeled Imported. Their preset files remain at their existing paths.")
 
-      helpHeading("Rename, Copy, or Delete")
-      ImGui.TextWrapped("Select a preset or folder before using its rename, copy, or delete button.")
+      helpHeading("Rename, Copy, or Trash")
+      ImGui.TextWrapped("Select a preset or folder before using its rename, copy, or Trash action.")
       ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
-      coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Deleting a folder permanently deletes its presets, but leaves manually created directories and unrelated files in place.")
+      ImGui.TextWrapped("Removing a folder keeps its presets and moves their organization to the parent folder. Moving a preset to Trash keeps it recoverable until Trash is emptied permanently.")
 
       helpHeading("Import and Share")
       ImGui.TextWrapped("Place .preset files in the preset folder or any folder inside it. Copy a .preset file to share it.")
       ImGui.TextWrapped("Virtual folder assignments are local and are not embedded in shared preset files. New imports follow the manual directory where they are placed.")
-      ImGui.TextWrapped("Close and reopen the CET window after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
+      ImGui.TextWrapped("Select Refresh under Load after changing files outside the game. Supported, safely bounded ACU-format .preset files can be imported.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
+      if fullWidthButton("Copy Preset Folder Path##copyPresetPath", 28) then
+        ImGui.SetClipboardText(
+          "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
+      end
 
       helpHeading("Debug")
       ImGui.TextWrapped("Open Debug to view or copy the activity log. Green means complete, yellow means notice, and red means error.")
@@ -3020,8 +3316,53 @@ local function draw()
     if collapsibleSectionHeader("LOAD", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     ImGui.Spacing()
+    local searchRowWidth = ImGui.GetContentRegionAvail()
+    ImGui.PushItemWidth(math.max(80, searchRowWidth - 142))
+    state.searchText = ImGui.InputTextWithHint("##presetSearch", "Search presets or folders", state.searchText, 65)
+    ImGui.PopItemWidth()
+    ImGui.SameLine()
+    local clearSearchUnavailable = not tostring(state.searchText):match("%S")
+    if clearSearchUnavailable then ImGui.BeginDisabled() end
+    if ImGui.Button("Clear##presetSearchClear", 48, 0) then state.searchText = "" end
+    if clearSearchUnavailable then ImGui.EndDisabled() end
+    ImGui.SameLine()
+    if ImGui.Button("Refresh##presetRefresh", 78, 0) then
+      local before = state.presets
+      local after, refreshed = refreshPresets("external")
+      refreshTrash()
+      if state.selected and state.presets[state.selected] then
+        state.presetNotes = state.presets[state.selected].notes or ""
+        state.presetTags = state.presets[state.selected].tags or ""
+      end
+      refreshPreflight()
+      local added, removed, updated = 0, 0, 0
+      if refreshed then
+        for name, preset in pairs(after) do
+          if not before[name] then added = added + 1
+          elseif not presetsMatch(before[name], preset) then updated = updated + 1 end
+        end
+        for name in pairs(before) do if not after[name] then removed = removed + 1 end end
+      end
+      setStatus("load", refreshed
+        and ("Refreshed: %d added, %d updated, %d removed; %d available.")
+          :format(added, updated, removed, #sortedPresetNames())
+        or "Refresh failed; the previous list was kept.", not refreshed)
+    end
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
     local names = sortedPresetNames()
+    local queryActive = tostring(state.searchText):match("%S") ~= nil
+    local matchedFolders = {}
+    if queryActive then
+      for _, name in ipairs(names) do
+        if textMatches(name, state.searchText) then
+          local current = parentFolder(name)
+          while current ~= "" do
+            matchedFolders[current] = true
+            current = parentFolder(current)
+          end
+        end
+      end
+    end
     if #names == 0 then
       ImGui.TextDisabled("No presets saved.")
     else
@@ -3031,6 +3372,9 @@ local function draw()
           log(("[UI] Preset selection changed: old='%s' new='%s'.")
             :format(tostring(state.selected), name), "info")
           state.selected = name
+          local selectedPreset = state.presets[name]
+          state.presetNotes = selectedPreset and selectedPreset.notes or ""
+          state.presetTags = selectedPreset and selectedPreset.tags or ""
           cancelConfirmations()
           state.renameName = ""
           resetLoadState()
@@ -3038,36 +3382,71 @@ local function draw()
           state.renameStatusError = false
           state.deleteStatus = ""
           state.deleteStatusError = false
+          refreshPreflight()
         end
       end
       for _, folder in ipairs(sortedFolderNames()) do
         local folderPresets = presetsInFolder(folder)
-        if #folderPresets > 0 then
+        local subtreeCount = state.cachedFolderPresetCounts[folder] or 0
+        local folderMatches = textMatches(folder, state.searchText)
+        local matchingPresets = {}
+        for _, name in ipairs(folderPresets) do
+          if textMatches(name, state.searchText) then table.insert(matchingPresets, name) end
+        end
+        local descendantMatches = matchedFolders[folder] == true
+        if subtreeCount > 0 and (folderMatches or #matchingPresets > 0 or descendantMatches) then
           local expanded = state.expandedLoadFolders[folder] == true
           local folderKind = state.manualFolders[folder]
             and " (imported folder)" or " (folder)"
           if ImGui.Selectable(
-              (expanded and "[-] " or "[+] ") .. folder ..
-                folderKind .. "##loadFolder:" .. folder,
+              string.rep("  ", folderDepth(folder)) ..
+                (expanded and "[-] " or "[+] ") .. baseName(folder) ..
+                (" (%d)"):format(subtreeCount) .. folderKind .. "##loadFolder:" .. folder,
               false) then
             expanded = not expanded
             state.expandedLoadFolders[folder] = expanded
           end
-          if expanded then
+          if expanded or queryActive then
             ImGui.Indent(12)
-            for _, name in ipairs(folderPresets) do drawPresetChoice(name, baseName(name)) end
+            for _, name in ipairs(folderMatches and folderPresets or matchingPresets) do
+              drawPresetChoice(name, baseName(name))
+            end
             ImGui.Unindent(12)
           end
         end
       end
       for _, name in ipairs(presetsInFolder("")) do
-        drawPresetChoice(name, name)
+        if textMatches(name, state.searchText) then drawPresetChoice(name, name) end
       end
     end
     ImGui.EndChild()
     ImGui.Spacing()
 
-    if not state.selected then ImGui.BeginDisabled() end
+    if state.selected and state.presets[state.selected] then
+      local preset = state.presets[state.selected]
+      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, baseName(state.selected))
+      ImGui.TextDisabled(("Folder: %s  |  Options: %d  |  Format: %s")
+        :format(breadcrumb(parentFolder(state.selected)), #(preset.entries or {}),
+          tostring(preset.format or 4)))
+      ImGui.TextDisabled(("Source: %s  |  Modified: %s")
+        :format(tostring(preset.source or "Legacy or ACU-compatible"),
+          tostring(preset.modified or "Unknown")))
+      if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
+      if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
+      if state.preflight then
+        local check = state.preflight
+        local color = (check.ambiguous + check.invalid) > 0 and { 1.0, 0.4, 0.4 }
+          or check.unavailable > 0 and { 1.0, 0.8, 0.2 } or { 0.3, 1.0, 0.4 }
+        coloredWrapped(color[1], color[2], color[3], 1.0,
+          ("Compatibility check: %d available, %d dependency-hidden/unavailable, %d ambiguous, %d invalid")
+            :format(check.available, check.unavailable, check.ambiguous, check.invalid))
+      else
+        ImGui.TextDisabled("Open a customization screen to check compatibility.")
+      end
+    end
+
+    local loadUnavailable = not state.selected or not state.inCustomization
+    if loadUnavailable then ImGui.BeginDisabled() end
     local loadLabel
     if state.autoLoad then
       loadLabel = ("Loading... (pass %d)"):format(state.loadPass)
@@ -3088,13 +3467,27 @@ local function draw()
       if state.loadNeedsContinue then state.autoLoad = true end
     end
     if state.autoLoad then ImGui.EndDisabled() end
-    if not state.selected then ImGui.EndDisabled() end
+    if loadUnavailable then ImGui.EndDisabled() end
+    if state.autoLoad or state.loadNeedsContinue then
+      if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), 28) then
+        cancelLoading()
+      end
+    elseif loadUnavailable then
+      ImGui.TextDisabled(not state.selected and "Select a preset to enable loading."
+        or "Open a customization screen to enable loading.")
+    end
     drawSectionStatus("load", "##loadStatus", isLoadSuccess, statusHeight)
     end
 
-    if collapsibleSectionHeader("CREATE", "create") then
+    if collapsibleSectionHeader("SAVE PRESET", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
+    ImGui.TextWrapped("Save location: " .. breadcrumb(state.selectedFolder))
+    ImGui.TextDisabled("Choose a different destination under Folders.")
+    if state.selectedFolder ~= "" and fullWidthButton("Save to All Presets Instead##saveRoot", 26) then
+      state.selectedFolder = ""
+      cancelConfirmations()
+    end
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
     local previousNewName = state.newName
@@ -3104,14 +3497,23 @@ local function draw()
       state.pendingOverwriteName = nil
       state.pendingOverwriteFingerprint = nil
     end
-    local saveLabel = "Create New Preset"
+    local saveLabel = "Save New Preset"
     local pendingCreateName = joinFolder(state.selectedFolder, sanitizeName(state.newName))
     if state.pendingOverwriteName == pendingCreateName then
       saveLabel = "Confirm Overwrite"
     end
     ImGui.Spacing()
+    local saveUnavailable = not state.inCustomization
+      or validatedPresetName(state.newName) == nil
+    if saveUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton(saveLabel, actionButtonHeight) then
       savePreset(state.pendingOverwriteName == pendingCreateName)
+    end
+    if saveUnavailable then ImGui.EndDisabled() end
+    if saveUnavailable then
+      ImGui.TextDisabled(not state.inCustomization
+        and "Open a customization screen to enable saving."
+        or "Enter a valid preset name to enable saving.")
     end
     drawSectionStatus("create", "##createStatus", isCreateSuccess, statusHeight)
     end
@@ -3119,6 +3521,7 @@ local function draw()
     if collapsibleSectionHeader("FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Select how new or moved presets are organized")
+    ImGui.TextWrapped("Selected destination: " .. breadcrumb(state.selectedFolder))
     ImGui.TextDisabled("Virtual folders have no packaged slot limit. Imported folders come from File Explorer.")
     ImGui.Spacing()
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
@@ -3130,7 +3533,8 @@ local function draw()
       cancelConfirmations()
     end
     for _, folder in ipairs(sortedFolderNames()) do
-      local label = folder .. (state.manualFolders[folder] and " (imported)" or "")
+      local label = string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
+        (state.manualFolders[folder] and " (imported)" or "")
       if ImGui.Selectable(label .. "##folder:" .. folder, state.selectedFolder == folder)
           and state.selectedFolder ~= folder then
         log(("[UI] Folder selection changed: old='%s' new='%s'.")
@@ -3144,7 +3548,11 @@ local function draw()
     ImGui.PushItemWidth(-1)
     state.folderName = ImGui.InputTextWithHint("##newFolder", "New folder name", state.folderName, 65)
     ImGui.PopItemWidth()
+    local addFolderUnavailable = validatedFolderName(state.folderName) == nil
+    if addFolderUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Add Folder", actionButtonHeight) then createFolder() end
+    if addFolderUnavailable then ImGui.EndDisabled() end
+    if addFolderUnavailable then ImGui.TextDisabled("Enter a valid folder name to enable adding.") end
     if state.selectedFolder ~= "" then
       ImGui.PushItemWidth(-1)
       state.folderRenameName = ImGui.InputTextWithHint("##renameFolder", "Rename selected folder", state.folderRenameName, 65)
@@ -3154,28 +3562,24 @@ local function draw()
       if fullWidthButton("Rename Folder", actionButtonHeight) then renameFolder() end
       if folderRenameUnavailable then ImGui.EndDisabled() end
       if fullWidthButton("Duplicate Selected Folder", actionButtonHeight) then duplicateFolder() end
+      local moveUnavailable = not state.selected
+        or parentFolder(state.selected) == state.selectedFolder
+      if moveUnavailable then ImGui.BeginDisabled() end
       if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then movePresetToSelectedFolder() end
-      local folderDeleteLabel = "Delete Virtual Folder & Presets##folderDanger"
-      if state.pendingDeleteFolder == state.selectedFolder then
-        if state.pendingDeleteFolderStage == 1 then
-          folderDeleteLabel = ("Confirm Delete Folder (%d presets)##folderDanger")
-            :format(state.pendingDeleteFolderPresetCount)
-        elseif state.pendingDeleteFolderStage >= 2 then
-          folderDeleteLabel = state.pendingDeleteFolderHasContents
-            and "Permanently Delete Folder##folderDanger"
-            or "Confirm Delete Empty Folder##folderDanger"
-        end
+      if moveUnavailable then ImGui.EndDisabled() end
+      if moveUnavailable then ImGui.TextDisabled(not state.selected
+        and "Select a preset under Load before moving it."
+        or "The selected preset is already in this destination.")
       end
-      if dangerButton(folderDeleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then deleteFolder() end
+      if fullWidthButton("Remove Folder (Keep Presets)##removeFolder", actionButtonHeight) then
+        removeFolderKeepPresets()
+      end
     elseif state.selected then
       if fullWidthButton("Move Selected Preset to Root", actionButtonHeight) then movePresetToSelectedFolder() end
     end
     if state.folderStatus ~= "" then
-      local awaitingFolderDelete = state.pendingDeleteFolder == state.selectedFolder
-        and state.pendingDeleteFolderStage > 0
       if state.lastLoggedFolderStatus ~= state.folderStatus then
-        local level = state.folderStatusError and "error"
-          or (awaitingFolderDelete and "warn" or "info")
+        local level = state.folderStatusError and "error" or "info"
         log(("[FOLDER STATUS] %s"):format(state.folderStatus), level)
         state.lastLoggedFolderStatus = state.folderStatus
       end
@@ -3198,23 +3602,59 @@ local function draw()
     if not state.selected then ImGui.BeginDisabled() end
     if fullWidthButton("Duplicate Selected Preset", actionButtonHeight) then duplicatePreset() end
     if not state.selected then ImGui.EndDisabled() end
+    ImGui.Spacing()
+    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Optional preset details")
+    ImGui.PushItemWidth(-1)
+    state.presetTags = ImGui.InputTextWithHint("##presetTags", "Tags", state.presetTags, 129)
+    state.presetNotes = ImGui.InputTextWithHint("##presetNotes", "Notes", state.presetNotes, 513)
+    ImGui.PopItemWidth()
+    if not state.selected then ImGui.BeginDisabled() end
+    if fullWidthButton("Save Preset Details", actionButtonHeight) then savePresetMetadata() end
+    if not state.selected then ImGui.EndDisabled() end
     drawSectionStatus("rename", "##renameStatus", isRenameSuccess, statusHeight)
 
     ImGui.Spacing()
     ImGui.Spacing()
     ImGui.Separator()
     ImGui.Spacing()
-    coloredWrapped(1.0, 0.4, 0.4, 1.0,
-      "Preset deletion is permanent")
+    ImGui.TextWrapped("Trashed presets can be restored until Trash is emptied.")
     ImGui.Spacing()
     if not state.selected then ImGui.BeginDisabled() end
     local deleteLabel = state.selected
       and state.pendingDeleteName == state.selected
-      and "Confirm Delete##danger"
-      or "Delete Preset##danger"
-    if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then deletePreset() end
+      and "Confirm Move to Trash##danger"
+      or "Move Preset to Trash##danger"
+    if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then trashPreset() end
     if not state.selected then ImGui.EndDisabled() end
     drawSectionStatus("delete", "##deleteStatus", isDeleteSuccess, statusHeight)
+    end
+
+    if collapsibleSectionHeader("TRASH", "trash") then
+      local trashNames = {}
+      for filename in pairs(state.trash) do table.insert(trashNames, filename) end
+      table.sort(trashNames, function(a, b) return a:lower() < b:lower() end)
+      if #trashNames == 0 then
+        ImGui.TextDisabled("Trash is empty.")
+      else
+        ImGui.TextWrapped(("%d recoverable preset%s")
+          :format(#trashNames, #trashNames == 1 and "" or "s"))
+        ImGui.BeginChild("##trashList", 0, ImGui.GetFontSize() * 4.5, true)
+        for _, filename in ipairs(trashNames) do
+          local item = state.trash[filename]
+          if fullWidthButton("Restore " .. (item.original or filename) ..
+              "##trash:" .. filename, 26) then
+            restoreTrashPreset(filename)
+          end
+        end
+        ImGui.EndChild()
+        local emptyLabel = state.pendingEmptyTrash
+          and "Confirm Empty Trash Permanently##emptyTrash"
+          or "Empty Trash Permanently##emptyTrash"
+        if dangerButton(emptyLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
+          emptyTrash()
+        end
+      end
+      drawSectionStatus("delete", "##trashStatus", isDeleteSuccess, statusHeight)
     end
 
   end
@@ -3395,6 +3835,7 @@ registerForEvent("onInit", function()
   end
 
   refreshPresets("startup")
+  refreshTrash()
   local presetCount = 0
   for _ in pairs(state.presets) do presetCount = presetCount + 1 end
   log(("Preset files loaded: presets=%d directory='%s'")
@@ -3506,7 +3947,9 @@ registerForEvent("onOverlayOpen", function()
   state.cachedDisplayWidth = nil
   state.statusUpdateTimer = 0
   refreshPresets("external")
+  refreshTrash()
   refreshEditorState()
+  refreshPreflight()
 end)
 registerForEvent("onOverlayClose", function()
   log("[UI] CET overlay closed.", "info")

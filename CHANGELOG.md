@@ -1,5 +1,36 @@
 # Changelog
 
+## 2.0.9
+
+- Adds case-insensitive preset and folder search above the Load list.
+- Adds a direct Refresh action that rescans external preset files and recoverable
+  Trash without closing CET.
+- Shows total preset counts on nested folder rows and uses compact indented leaf
+  names instead of repeating full slash-qualified paths.
+- Shows the selected preset's folder, option count, format, source, modification
+  time, notes, tags, and current-editor compatibility summary.
+- Adds Cancel Loading while automatic staged loading is active.
+- Shows the active save destination at all times, renames Create to Save Preset,
+  and provides a direct return-to-root destination action.
+- Disables unavailable Save, Load, Add Folder, and Move actions and explains the
+  missing prerequisite instead of requiring an error-producing click.
+- Moves preset deletion into a recoverable hidden Trash directory with individual
+  restore actions and a separately confirmed permanent Empty Trash action.
+- Replaces the normal Delete Folder & Presets action with Remove Folder, which
+  keeps every preset and remaps its organization to the parent folder.
+- Adds backward-compatible format-5 metadata for source, created and modified
+  times, optional notes, and optional tags.
+- Renames the physical shareable `.preset` file when a preset is renamed and
+  rolls the file rename back if its catalog update fails.
+- Automatically disables the customization discovery reminder after the first
+  successful save or complete load while retaining the user's ability to enable
+  or disable it under Settings.
+- Removes the discovery preference from the permanent top control row.
+- Moves editor input, controller, redirect, and puppet counters behind Advanced
+  diagnostics while retaining them in copied logs.
+- Adds a Help action that copies the preset-folder path to the clipboard.
+- Keeps full apartment mirror expansion unchanged.
+
 ## 2.0.8
 
 - Draws the reminder heading at CET's native font size so its gold color stays

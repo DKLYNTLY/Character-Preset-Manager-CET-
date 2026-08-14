@@ -8,7 +8,7 @@
   <a href="CHANGELOG.md">View the complete changelog</a>
 </p>
 
-**Current version: 2.0.8**
+**Current version: 2.0.9**
 
 ## AI disclosure
 
@@ -26,6 +26,9 @@ were written and tested by the author.
   character-creator option set.
 - **One-click loading:** Select a preset once and the remaining loading passes
   continue automatically.
+- **Search, refresh, and compatibility summary:** Find presets quickly, rescan
+  imported files without closing CET, and review the current editor match before
+  loading.
 - **Cosmetic cleanup:** Clears exposed cosmetics that are not included in the
   incoming preset.
 - **Unlimited virtual preset folders:** Create, rename, copy, nest, and organize
@@ -38,6 +41,8 @@ were written and tested by the author.
   running ACU itself.
 - **Easy preset sharing:** Each appearance is stored as an individual shareable
   `.preset` file.
+- **Recoverable Trash:** Removed presets remain restorable until Trash is emptied
+  permanently.
 - **Activity log:** View preset actions, results, notices, and errors through
   **Debug** or the log file.
 - **Clean interface:** Collapsible sections and folder rows keep the CET window
@@ -71,15 +76,15 @@ The Help panel shows the current editor and window-toggle bindings when CET can
 provide their key names. It falls back to session input detection when the
 installed CET version cannot return a key name.
 
-## Creating a preset
+## Saving a preset
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc customization
    screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
 3. Under **Folders**, select where you want the preset organized, or select
    **All Presets**.
-4. Enter a name under **Create**.
-5. Select **Create New Preset**.
+4. Confirm the displayed save location and enter a name under **Save Preset**.
+5. Select **Save New Preset**.
 
 If a preset with the same name already exists, confirm the overwrite only if
 you want to replace it.
@@ -90,6 +95,10 @@ you want to replace it.
 2. Select a saved preset under **Load**.
 3. Select **Load Selected Preset** once.
 4. Wait for the green **Preset fully applied** message.
+
+The selected-preset summary shows its option count, source, metadata, and a
+compatibility check for the currently open editor. Select **Cancel Loading** to
+stop an automatic load before it completes.
 
 Cyberpunk may rebuild the editor several times while loading. Character Preset
 Manager waits for each rebuild and continues automatically.
@@ -113,7 +122,12 @@ Fix the appearance and save the preset again.
 - A copied preset is placed beside the original.
 - A copied virtual folder includes its presets and nested virtual folders.
 - Copy names use `Copy`, `Copy 2`, and so on.
-- Preset and folder deletion requires confirmation and is permanent.
+- Removing a folder keeps its presets and moves their organization to the
+  parent folder.
+- Moving a preset to **Trash** keeps it recoverable. Only **Empty Trash
+  Permanently** destroys trashed preset files.
+- **Manage** can save optional notes and tags inside new format-5 preset files.
+- Renaming a preset also renames its physical shareable `.preset` file.
 
 ### Virtual folders
 
@@ -138,9 +152,9 @@ original physical paths.
 - Renaming an Imported folder in CET changes only its displayed virtual name.
 - Moving one of its presets changes only its catalog assignment, not its file
   location.
-- Deleting an Imported folder through CET permanently deletes the presets
-  assigned to it, but leaves the manually created directory and unrelated files
-  in place.
+- Removing an Imported folder through CET keeps its presets, changes their
+  virtual organization, and leaves the manually created directory and unrelated
+  files in place.
 - Directory discovery stops if an entry cannot be verified or nesting exceeds
   12 levels.
 - Linked folders and junctions are not supported.
@@ -181,8 +195,8 @@ Copy the file into:
 bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
 ```
 
-Close and reopen the CET window after copying the file. Imported ACU presets
-work like normal presets and can be renamed, copied, saved again, or deleted.
+Select **Refresh** under Load after copying the file. Imported ACU presets work
+like normal presets and can be renamed, copied, saved again, or moved to Trash.
 
 ### ❌ Character Customization Anywhere
 
@@ -228,10 +242,13 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 - **Sharing:** Upload the individual `.preset` file.
 - **Installing:** Place a downloaded `.preset` file in this directory or any
   directory inside it.
-- **Refreshing:** Close and reopen the CET window after changing preset files
+- **Refreshing:** Select **Refresh** under Load after changing preset files
   outside the game.
 - **Virtual folder assignments:** Folder organization is local catalog data and
   is not stored inside a shared `.preset` file.
+- **Preset details:** New format-5 files may contain backward-compatible source,
+  created, modified, notes, and tags metadata. Older and ACU-compatible files
+  remain loadable.
 - **Import safety:** Unsafe or unusually large preset files are ignored. A preset
   is limited to 1 MB, 8,192 lines, 4,096 valid options, 256 bytes per option key,
   and option indexes within the game's unsigned 32-bit range.
@@ -297,11 +314,11 @@ release. The screenshots showcase Character Preset Manager itself.
 <details>
 <summary><strong>Show upgrade instructions</strong></summary>
 
-Do not install version 2.0.8 directly over a 1.0.x installation.
+Do not install version 2.0.9 directly over a 1.0.x installation.
 
 1. Back up your `.preset` files somewhere outside the mod folder.
 2. Delete `mods/Preset Manager (CET)`.
-3. Install version 2.0.8 normally.
+3. Install version 2.0.9 normally.
 4. Move your presets into
    `mods/Character Preset Manager (CET)/Character Presets`.
 5. Launch the game and open CET.
@@ -334,6 +351,25 @@ This comparison explains differences between the approaches. It does not claim
 that both mods provide the same feature set.
 
 </details>
+
+## Version 2.0.9 highlights
+
+- Adds preset and folder search, a direct Refresh action, folder counts, and
+  compact nested folder labels.
+- Shows the selected preset's folder, option count, source, format, modification
+  time, notes, tags, and current-editor compatibility summary.
+- Shows the active save destination, renames Create to Save Preset, and disables
+  unavailable Save, Load, Add Folder, and Move actions with a reason.
+- Adds Cancel Loading and keeps apartment mirrors exposing the full creator
+  options.
+- Moves preset deletion into recoverable Trash and makes folder removal keep
+  every preset instead of deleting folder contents.
+- Automatically disables the customization discovery reminder after a
+  successful save or load and moves its preference into Settings.
+- Moves editor hook counters behind Advanced diagnostics and adds a Help action
+  for copying the preset-folder path.
+- Saves optional notes and tags in backward-compatible format-5 preset metadata
+  and renames the physical shareable file when a preset is renamed.
 
 ## Version 2.0.8 highlights
 
