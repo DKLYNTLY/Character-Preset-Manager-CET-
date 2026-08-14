@@ -12,11 +12,10 @@
 
 ## AI disclosure
 
-AI assistance was limited to visual planning and iteration for the CET
-interface's layout, styling, and presentation. The author directed and
-substantially revised the final interface. Preset saving, loading, folders,
-recovery, and gameplay features are deterministic Lua functionality manually
-tested by the author. The mod does not use AI at runtime.
+I used AI only to help plan and improve the CET menu's layout, style, and overall
+look. I made the final design choices and heavily changed the AI-assisted work
+to fit the mod. I manually tested the preset saving, loading, folders, recovery,
+and gameplay features. The mod does not use AI while you play.
 
 ## Features
 
