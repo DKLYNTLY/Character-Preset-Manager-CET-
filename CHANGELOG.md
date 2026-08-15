@@ -30,6 +30,17 @@ grouped into collapsible histories so the page remains easy to scan.
 - Adds an in-menu **Folder Bundle Files** list that moves one selected
   `.cpmfolder` file to the existing recoverable Trash without changing its
   presets or virtual folders, with restore and permanent Empty Trash support.
+- Moves the selected bundle to recoverable Trash in one click, avoiding the
+  confirmation state that could reset before the second click completed.
+- Rejects temporary `userdata: 0x...` memory addresses as format-7 choice
+  identities and ignores them safely in presets already saved with those
+  values, falling back to their numeric indexes instead.
+- Resolves valid choice identities lazily and caches verified results between
+  loading passes, preventing the multi-second frame drops shown when 1,472
+  exposed CCXL options were repeatedly scanned.
+- Defers options that a dependency immediately resets so later options can
+  continue loading, and limits retries instead of applying the same option for
+  dozens of passes.
 - Updates Help and documentation for format 7, Force Full Load, CCXL index drift,
   folder-bundle cleanup, and the manual correction required for older
   index-only presets.

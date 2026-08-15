@@ -109,6 +109,8 @@ local state = {
   loadSavedSlotCounts = nil,
   loadValueCount = 0,
   loadForcedKeys = {},
+  loadResolvedChoiceIndexes = {},
+  loadApplyAttempts = {},
   forceFullLoad = false,
   pendingOverwriteName = nil,
   pendingOverwriteFingerprint = nil,
@@ -116,8 +118,6 @@ local state = {
   pendingDeleteFingerprint = nil,
   pendingRemoveFolder = nil,
   selectedBundleFile = nil,
-  pendingDeleteBundleFile = nil,
-  pendingDeleteBundleFingerprint = nil,
   helpOpen = false,
   debugOpen = false,
   advancedDiagnosticsOpen = false,
@@ -234,8 +234,6 @@ local function cancelConfirmations()
   state.pendingDeleteName = nil
   state.pendingDeleteFingerprint = nil
   state.pendingRemoveFolder = nil
-  state.pendingDeleteBundleFile = nil
-  state.pendingDeleteBundleFingerprint = nil
   state.pendingEmptyTrash = false
   state.pendingBulkAction = nil
   state.pendingBulkFingerprint = nil
@@ -256,6 +254,8 @@ local function resetLoadState()
   state.loadSavedSlotCounts = nil
   state.loadValueCount = 0
   state.loadForcedKeys = {}
+  state.loadResolvedChoiceIndexes = {}
+  state.loadApplyAttempts = {}
   state.autoLoad = false
   state.autoLoadTimer = 0
   state.autoLoadPasses = 0
@@ -500,9 +500,7 @@ local function statusShouldRemain(section, text)
       and state.pendingDeleteName == state.selected
   end
   if section == "bulk" then return state.pendingBulkAction ~= nil end
-  if section == "folder" then
-    return state.pendingRemoveFolder ~= nil or state.pendingDeleteBundleFile ~= nil
-  end
+  if section == "folder" then return state.pendingRemoveFolder ~= nil end
   return false
 end
 
@@ -754,17 +752,40 @@ local function optionSlot(option)
   return slot
 end
 
+local function isRuntimePointerText(value)
+  value = tostring(value or "")
+  return value:match("^userdata: 0x%x+$") ~= nil
+    or value:match("^table: 0x%x+$") ~= nil
+    or value:match("^function: 0x%x+$") ~= nil
+    or value:match("^thread: 0x%x+$") ~= nil
+end
+
 local function stableRuntimeValue(value)
   if value == nil then return nil end
-  if type(value) == "string" then return value ~= "" and value or nil end
+  if type(value) == "string" then
+    if value == "" or isRuntimePointerText(value) then
+      return nil
+    end
+    return value
+  end
   local nameOk, name = pcall(function()
     if NameToString then return NameToString(value) end
     return nil
   end)
-  if nameOk and name and tostring(name) ~= "" then return tostring(name) end
+  local nameText = nameOk and name and tostring(name) or ""
+  if nameText ~= "" and not isRuntimePointerText(nameText) then return nameText end
   local textOk, text = pcall(tostring, value)
   text = textOk and tostring(text or "") or ""
+  if isRuntimePointerText(text) then return nil end
   return text ~= "" and text or nil
+end
+
+local function stableChoiceIdentity(choice)
+  local field, value = tostring(choice or ""):match("^([%a]+):(.*)$")
+  if value == "" or (field ~= "definitions" and field ~= "options"
+      and field ~= "morphNames") then return nil end
+  if isRuntimePointerText(value) then return nil end
+  return field .. ":" .. value
 end
 
 local function choiceCollectionValue(info, field, index, member)
@@ -793,6 +814,7 @@ local function optionChoiceKey(option, index)
 end
 
 local function optionChoiceIndex(option, choice)
+  choice = stableChoiceIdentity(choice)
   local field, wanted = tostring(choice or ""):match("^([%a]+):(.*)$")
   if not option or not option.info or wanted == ""
       or (field ~= "definitions" and field ~= "options" and field ~= "morphNames") then
@@ -809,6 +831,18 @@ local function optionChoiceIndex(option, choice)
     end
   end
   return match
+end
+
+local function optionChoiceMatchesIndex(option, choice, index)
+  choice = stableChoiceIdentity(choice)
+  local field, wanted = tostring(choice or ""):match("^([%a]+):(.*)$")
+  index = tonumber(index)
+  if not option or not option.info or wanted == "" or not index
+      or index ~= math.floor(index) or index < 0 or index > MAX_OPTION_INDEX then
+    return false
+  end
+  local member = field == "options" and "localizedName" or nil
+  return choiceCollectionValue(option.info, field, index, member) == wanted
 end
 
 local function optionDisplayName(option, key)
@@ -1253,7 +1287,7 @@ local function readPresetFile(path)
     elseif metadataKey == "choice" then
       local choice = catalogDecode(metadataValue)
       pendingChoice = #choice <= MAX_PRESET_KEY_BYTES * 4 and not choice:find("%c")
-        and choice or nil
+        and stableChoiceIdentity(choice) or nil
     end
     local key, index = line:match("^%s*(.-):(-?%d+)%s*$")
     local numericIndex = tonumber(index)
@@ -1710,28 +1744,14 @@ trashSelectedFolderBundle = function()
   end
   if not selectedPath then
     state.selectedBundleFile = nil
-    state.pendingDeleteBundleFile = nil
-    state.pendingDeleteBundleFingerprint = nil
     state.folderStatus, state.folderStatusError =
       "That folder bundle file is no longer available.", true
     return
   end
   local fingerprint = fileFingerprint(selectedPath, MAX_FOLDER_BUNDLE_BYTES)
   if not fingerprint then
-    state.pendingDeleteBundleFile = nil
-    state.pendingDeleteBundleFingerprint = nil
     state.folderStatus, state.folderStatusError =
       "The selected folder bundle could not be verified safely.", true
-    return
-  end
-  if state.pendingDeleteBundleFile ~= selected
-      or state.pendingDeleteBundleFingerprint ~= fingerprint then
-    cancelConfirmations()
-    state.pendingDeleteBundleFile = selected
-    state.pendingDeleteBundleFingerprint = fingerprint
-    state.folderStatus, state.folderStatusError =
-      ("Move \"%s\" to recoverable Trash? Select Confirm Move Bundle to Trash.")
-        :format(selected), false
     return
   end
   local trashFilename = uniqueTrashedBundleFilename(selected)
@@ -1749,8 +1769,6 @@ trashSelectedFolderBundle = function()
   end
   if fileFingerprint(trashPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
     local rolledBack = os.rename(trashPath, selectedPath) ~= nil
-    state.pendingDeleteBundleFile = nil
-    state.pendingDeleteBundleFingerprint = nil
     state.folderStatus, state.folderStatusError = rolledBack
       and "Folder bundle verification failed; the file was returned to Character Presets."
       or "Folder bundle verification failed, and the file could not be returned from Trash.", true
@@ -1758,8 +1776,6 @@ trashSelectedFolderBundle = function()
   end
   state.trashBundles[trashFilename] = true
   state.selectedBundleFile = nil
-  state.pendingDeleteBundleFile = nil
-  state.pendingDeleteBundleFingerprint = nil
   state.folderStatus, state.folderStatusError =
     ("Moved folder bundle \"%s\" to Trash. Presets and folders were not changed.")
       :format(selected), false
@@ -2474,6 +2490,8 @@ local function loadPreset()
     state.unresolvedRepeatCount = 0
     state.loadSatisfied = {}
     state.loadForcedKeys = {}
+    state.loadResolvedChoiceIndexes = {}
+    state.loadApplyAttempts = {}
     values, savedCounts, orderedEntries, savedSlotCounts, valueCount = {}, {}, {}, {}, 0
     for _, entry in ipairs(preset.entries or {}) do
       local label = tostring(entry.key or "")
@@ -2562,6 +2580,7 @@ local function loadPreset()
   end
 
   local applied, missing, ambiguous, invalid = 0, 0, 0, 0
+  local deferred = {}
   local unresolved = {}
   local seen = {}
   local exposed = {}
@@ -2617,8 +2636,12 @@ local function loadPreset()
     local wanted = key and values[key] or nil
     local savedEntry = key and savedEntryByKey[key] or nil
     if wanted ~= nil and savedEntry and savedEntry.choice then
-      wanted = optionChoiceIndex(exposedOption.option, savedEntry.choice)
-      if wanted ~= nil then values[key] = wanted end
+      local cachedIndex = state.loadResolvedChoiceIndexes[key]
+      if cachedIndex ~= nil
+          and optionChoiceMatchesIndex(exposedOption.option, savedEntry.choice, cachedIndex) then
+        wanted = cachedIndex
+        values[key] = cachedIndex
+      end
     end
     local countMatches = label
       and (savedCounts[label] or 0) == (activeCounts[label] or 0)
@@ -2642,10 +2665,16 @@ local function loadPreset()
     local savedEntry = key and savedEntryByKey[key] or nil
     local choiceUnavailable = false
     if wanted ~= nil and savedEntry and savedEntry.choice then
-      local resolvedIndex = optionChoiceIndex(option, savedEntry.choice)
+      local resolvedIndex = state.loadResolvedChoiceIndexes[key]
+      if resolvedIndex == nil
+          or not optionChoiceMatchesIndex(option, savedEntry.choice, resolvedIndex) then
+        resolvedIndex = optionChoiceIndex(option, savedEntry.choice)
+      end
       if resolvedIndex == nil then
+        state.loadResolvedChoiceIndexes[key] = nil
         choiceUnavailable = true
       else
+        state.loadResolvedChoiceIndexes[key] = resolvedIndex
         wanted = resolvedIndex
         values[key] = resolvedIndex
       end
@@ -2684,44 +2713,58 @@ local function loadPreset()
       if current == wanted then
         state.loadSatisfied[key] = true
         applied = applied + 1
+      elseif state.loadSatisfied[key] then
+        deferred[key] = true
+        missing = missing + 1
+        unresolved["reverted:" .. tostring(key)] = true
       else
-        state.loadSatisfied[key] = nil
-        if savedEntry and savedEntry.choice and wanted ~= savedEntry.index then
-          log(("CHOICE REMAP | pass=%d | %s | savedIndex=%s currentIndex=%s choice='%s'")
-            :format(state.loadPass,
+        local attempts = state.loadApplyAttempts[key] or 0
+        if attempts >= STALL_CONFIRMATION_PASSES then
+          missing = missing + 1
+          unresolved["not-sticking:" .. tostring(key)] = true
+          log(("[SKIPPED] Option did not retain its saved value after %d applications: %s targetIndex=%s")
+            :format(attempts,
               optionAuditIdentity(option, label, exposedOption.occurrence),
-              tostring(savedEntry.index), tostring(wanted), tostring(savedEntry.choice)),
-            "info")
-        end
-        local ok, applyError = pcall(system.ApplyChangeToOption, system, option, wanted)
-        if ok then
-          state.loadSatisfied[key] = true
-          state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
-          state.loadNeedsContinue = true
-          state.previousUnresolvedSignature = nil
-          state.unresolvedRepeatCount = 0
-          log(("CHANGE | pass=%d | %s | index %s -> %s")
-            :format(state.loadPass,
-              optionAuditIdentity(option, label, exposedOption.occurrence),
-              tostring(current), tostring(wanted)), "info")
-          setStatus("load", ("Applied one option. %d %s remain%s to be checked.")
-            :format(state.loadRemaining,
-              state.loadRemaining == 1 and "option" or "options",
-              state.loadRemaining == 1 and "s" or ""))
+              tostring(wanted)), "warn")
         else
-          state.loadNeedsContinue = false
-          state.loadStalled = true
-          log(("FAILED | pass=%d | %s | target index %s | %s")
-            :format(state.loadPass,
-              optionAuditIdentity(option, label, exposedOption.occurrence),
-              tostring(wanted), tostring(applyError)), "error")
-          setStatus("load", 
-            "Loading stopped because an option could not be applied safely. " ..
-            "Close the editor without confirming, reopen it, and retry.",
-            true
-          )
+          if savedEntry and savedEntry.choice and wanted ~= savedEntry.index then
+            log(("CHOICE REMAP | pass=%d | %s | savedIndex=%s currentIndex=%s choice='%s'")
+              :format(state.loadPass,
+                optionAuditIdentity(option, label, exposedOption.occurrence),
+                tostring(savedEntry.index), tostring(wanted), tostring(savedEntry.choice)),
+              "info")
+          end
+          local ok, applyError = pcall(system.ApplyChangeToOption, system, option, wanted)
+          if ok then
+            state.loadApplyAttempts[key] = attempts + 1
+            state.loadSatisfied[key] = true
+            state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
+            state.loadNeedsContinue = true
+            state.previousUnresolvedSignature = nil
+            state.unresolvedRepeatCount = 0
+            log(("CHANGE | pass=%d | %s | index %s -> %s")
+              :format(state.loadPass,
+                optionAuditIdentity(option, label, exposedOption.occurrence),
+                tostring(current), tostring(wanted)), "info")
+            setStatus("load", ("Applied one option. %d %s remain%s to be checked.")
+              :format(state.loadRemaining,
+                state.loadRemaining == 1 and "option" or "options",
+                state.loadRemaining == 1 and "s" or ""))
+          else
+            state.loadNeedsContinue = false
+            state.loadStalled = true
+            log(("FAILED | pass=%d | %s | target index %s | %s")
+              :format(state.loadPass,
+                optionAuditIdentity(option, label, exposedOption.occurrence),
+                tostring(wanted), tostring(applyError)), "error")
+            setStatus("load",
+              "Loading stopped because an option could not be applied safely. " ..
+              "Close the editor without confirming, reopen it, and retry.",
+              true
+            )
+          end
+          return
         end
-        return
       end
     end
   end
@@ -2799,6 +2842,8 @@ local function loadPreset()
       end
     end
   end
+
+  for key in pairs(deferred) do state.loadSatisfied[key] = nil end
 
   local forced = 0
   for key in pairs(values) do
@@ -4555,7 +4600,6 @@ local function drawSectionStatus(section, childId, isSuccess, height)
         or (state.pendingDeleteName ~= nil
           and state.pendingDeleteName == state.selected)))
     or (section == "bulk" and state.pendingBulkAction ~= nil)
-    or (section == "folder" and state.pendingDeleteBundleFile ~= nil)
   local customColors = false
   ImGui.Spacing()
   if isError or destructiveWarning then
@@ -5192,7 +5236,7 @@ draw = function()
       helpHeading("Share or Import a Folder")
       ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
       ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. New or changed bundles are processed; unchanged imported bundles are skipped.")
-      ImGui.TextWrapped("Trash a bundle file: under All Presets (root), open Folder Bundle Files, select one file, and select Move Selected Bundle to Trash twice. Restore it under Delete & Restore, or remove it with Empty Trash Permanently. Its source or imported folder and presets remain available.")
+      ImGui.TextWrapped("Trash a bundle file: under All Presets (root), open Folder Bundle Files, select one file, and select Move Selected Bundle to Trash. Restore it under Delete & Restore, or remove it with Empty Trash Permanently. Its source or imported folder and presets remain available.")
       ImGui.TextWrapped("After a successful import, the bundle stays untouched and its filename plus fingerprint are recorded in Data/Catalog/Imported Bundles.txt. An unchanged bundle is skipped; a changed bundle with the same filename can be imported again. Existing folder names receive a safe Copy name.")
 
       helpHeading("Settings and Config")
@@ -5572,8 +5616,6 @@ draw = function()
         ImGui.Indent(8)
         if #bundleFiles == 0 then
           state.selectedBundleFile = nil
-          state.pendingDeleteBundleFile = nil
-          state.pendingDeleteBundleFingerprint = nil
           ImGui.TextDisabled("No .cpmfolder files found.")
         else
           ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
@@ -5595,15 +5637,10 @@ draw = function()
           ImGui.EndChild()
           if state.selectedBundleFile and not selectedStillExists then
             state.selectedBundleFile = nil
-            state.pendingDeleteBundleFile = nil
-            state.pendingDeleteBundleFingerprint = nil
           end
           local bundleDeleteUnavailable = not state.selectedBundleFile
           if bundleDeleteUnavailable then ImGui.BeginDisabled() end
-          local bundleDeleteLabel = state.pendingDeleteBundleFile == state.selectedBundleFile
-            and "Confirm Move Bundle to Trash"
-            or "Move Selected Bundle to Trash"
-          if dangerButton(bundleDeleteLabel .. "##trashFolderBundle",
+          if dangerButton("Move Selected Bundle to Trash##trashFolderBundle",
               ImGui.GetContentRegionAvail(), actionButtonHeight) then
             trashSelectedFolderBundle()
           end

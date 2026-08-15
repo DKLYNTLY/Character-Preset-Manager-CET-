@@ -258,7 +258,7 @@ preset metadata travel with the preset files in the bundle.
 An empty folder cannot be exported. One bundle may contain up to 512 presets and
 may not exceed 32 MB. To remove an export after sharing it, select **All Presets
 (root)**, open **Folder Bundle Files**, select the exact `.cpmfolder` file, and
-select **Move Selected Bundle to Trash** twice to confirm. This moves only the
+select **Move Selected Bundle to Trash**. This moves only the
 bundle file; its source folder and presets remain available in Character Preset
 Manager. Restore it under **Delete & Restore**, or remove it permanently with
 **Empty Trash Permanently**.
@@ -329,6 +329,11 @@ identity. When added CCXL content shifts a choice list, CPM can locate the saved
 choice at its new index. **Force Full Load** may match a renamed dependent
 selector, such as a hairstyle-specific color selector, through its saved UI
 slot. Always verify the result after changing character-option mods.
+
+Only stable names are stored as choice identities. Temporary runtime memory
+addresses are ignored and use the saved numeric index instead. Choice matching
+is spread across normal loading passes and cached, while an option that a mod
+immediately resets is deferred so it cannot block every option after it.
 
 Older presets contain only LocKeys and numeric indexes. If adding hairs shifts
 the Hairstyle list, an old index may select a different hair and cannot reveal
