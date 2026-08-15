@@ -27,8 +27,9 @@ grouped into collapsible histories so the page remains easy to scan.
   preset move while retaining the success status.
 - Condenses selected-preset and compatibility information, places secondary
   metadata behind **More Preset Info**, and shortens Force Full Load warnings.
-- Adds an in-menu **Folder Bundle Files** list with confirmed deletion of one
-  selected `.cpmfolder` file without changing its presets or virtual folders.
+- Adds an in-menu **Folder Bundle Files** list that moves one selected
+  `.cpmfolder` file to the existing recoverable Trash without changing its
+  presets or virtual folders, with restore and permanent Empty Trash support.
 - Updates Help and documentation for format 7, Force Full Load, CCXL index drift,
   folder-bundle cleanup, and the manual correction required for older
   index-only presets.

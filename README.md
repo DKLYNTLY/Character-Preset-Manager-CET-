@@ -258,9 +258,10 @@ preset metadata travel with the preset files in the bundle.
 An empty folder cannot be exported. One bundle may contain up to 512 presets and
 may not exceed 32 MB. To remove an export after sharing it, select **All Presets
 (root)**, open **Folder Bundle Files**, select the exact `.cpmfolder` file, and
-select **Delete Selected Bundle File** twice to confirm. This deletes only the
+select **Move Selected Bundle to Trash** twice to confirm. This moves only the
 bundle file; its source folder and presets remain available in Character Preset
-Manager.
+Manager. Restore it under **Delete & Restore**, or remove it permanently with
+**Empty Trash Permanently**.
 
 #### Import a folder
 
@@ -284,9 +285,9 @@ imports, while a changed bundle using the same filename can be imported again.
 If that folder name already exists, the imported folder receives a safe `Copy`
 name. A failed bundle is not recorded, so the error can be corrected and the
 import tried again. Bundles are imported only from `Character Presets`.
-After a successful import, the same **Folder Bundle Files** menu can permanently
-delete the source bundle so it no longer appears in later import scans. This
-does not delete the imported virtual folder or any imported preset.
+After a successful import, the same **Folder Bundle Files** menu can move the
+source bundle to Trash so it no longer appears in later import scans. It can be
+restored without deleting the imported virtual folder or any imported preset.
 
 ### Runtime data layout
 

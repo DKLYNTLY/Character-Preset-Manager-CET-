@@ -117,6 +117,7 @@ local state = {
   pendingRemoveFolder = nil,
   selectedBundleFile = nil,
   pendingDeleteBundleFile = nil,
+  pendingDeleteBundleFingerprint = nil,
   helpOpen = false,
   debugOpen = false,
   advancedDiagnosticsOpen = false,
@@ -131,6 +132,7 @@ local state = {
   preflight = nil,
   trash = {},
   trashGroups = {},
+  trashBundles = {},
   pendingEmptyTrash = false,
   bulkSelected = {},
   pendingBulkAction = nil,
@@ -192,6 +194,13 @@ local function fileExists(path)
   return true
 end
 
+local function isFolderBundleFilename(filename)
+  return type(filename) == "string" and filename ~= ""
+    and #filename <= 255 and not filename:find("/", 1, true)
+    and not filename:find("\\", 1, true) and not filename:find("%c")
+    and filename:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION
+end
+
 local function fileFingerprint(path, maximumBytes)
   local file = io.open(path, "rb")
   if not file then return nil end
@@ -226,6 +235,7 @@ local function cancelConfirmations()
   state.pendingDeleteFingerprint = nil
   state.pendingRemoveFolder = nil
   state.pendingDeleteBundleFile = nil
+  state.pendingDeleteBundleFingerprint = nil
   state.pendingEmptyTrash = false
   state.pendingBulkAction = nil
   state.pendingBulkFingerprint = nil
@@ -490,7 +500,9 @@ local function statusShouldRemain(section, text)
       and state.pendingDeleteName == state.selected
   end
   if section == "bulk" then return state.pendingBulkAction ~= nil end
-  if section == "folder" then return state.pendingRemoveFolder ~= nil end
+  if section == "folder" then
+    return state.pendingRemoveFolder ~= nil or state.pendingDeleteBundleFile ~= nil
+  end
   return false
 end
 
@@ -1629,11 +1641,9 @@ end
 local exportSelectedFolderBundle
 local importAvailableFolderBundles
 local folderBundleFiles
-local deleteSelectedFolderBundle
+local trashSelectedFolderBundle
 
 do
-
-local validBundleFilename
 
 local function validBundlePath(value)
   if not validRelativePath(value) then return false end
@@ -1671,12 +1681,23 @@ folderBundleFiles = function()
   return bundles
 end
 
-deleteSelectedFolderBundle = function()
-  auditSection("DELETE FOLDER BUNDLE")
+local function uniqueTrashedBundleFilename(filename)
+  local stem = filename:sub(1, -#FOLDER_BUNDLE_EXTENSION - 1)
+  for index = 1, 9999 do
+    local suffix = index == 1 and "" or (" %d"):format(index)
+    local candidate = stem:sub(1, 255 - #FOLDER_BUNDLE_EXTENSION - #suffix) ..
+      suffix .. FOLDER_BUNDLE_EXTENSION
+    if not fileExists(TRASH_DIR .. "/" .. candidate) then return candidate end
+  end
+  return nil
+end
+
+trashSelectedFolderBundle = function()
+  auditSection("TRASH FOLDER BUNDLE")
   local selected = state.selectedBundleFile
-  if not validBundleFilename(selected) then
+  if not isFolderBundleFilename(selected) then
     state.folderStatus, state.folderStatusError =
-      "Select a folder bundle file to delete.", true
+      "Select a folder bundle file to move to Trash.", true
     return
   end
   local selectedPath = nil
@@ -1690,35 +1711,60 @@ deleteSelectedFolderBundle = function()
   if not selectedPath then
     state.selectedBundleFile = nil
     state.pendingDeleteBundleFile = nil
+    state.pendingDeleteBundleFingerprint = nil
     state.folderStatus, state.folderStatusError =
       "That folder bundle file is no longer available.", true
     return
   end
-  if state.pendingDeleteBundleFile ~= selected then
+  local fingerprint = fileFingerprint(selectedPath, MAX_FOLDER_BUNDLE_BYTES)
+  if not fingerprint then
+    state.pendingDeleteBundleFile = nil
+    state.pendingDeleteBundleFingerprint = nil
+    state.folderStatus, state.folderStatusError =
+      "The selected folder bundle could not be verified safely.", true
+    return
+  end
+  if state.pendingDeleteBundleFile ~= selected
+      or state.pendingDeleteBundleFingerprint ~= fingerprint then
+    cancelConfirmations()
     state.pendingDeleteBundleFile = selected
+    state.pendingDeleteBundleFingerprint = fingerprint
     state.folderStatus, state.folderStatusError =
-      ("Select Delete again to permanently remove \"%s\". Presets and folders will not be changed.")
-        :format(selected), true
+      ("Move \"%s\" to recoverable Trash? Select Confirm Move Bundle to Trash.")
+        :format(selected), false
     return
   end
-  if not os.remove(selectedPath) then
+  local trashFilename = uniqueTrashedBundleFilename(selected)
+  if not trashFilename then
     state.folderStatus, state.folderStatusError =
-      ("The folder bundle file could not be deleted: %s"):format(selected), true
+      "A safe Trash filename could not be allocated for the folder bundle.", true
     return
   end
+  local trashPath = TRASH_DIR .. "/" .. trashFilename
+  local moved, moveError = os.rename(selectedPath, trashPath)
+  if not moved then
+    state.folderStatus, state.folderStatusError =
+      ("The folder bundle could not be moved to Trash: %s"):format(tostring(moveError)), true
+    return
+  end
+  if fileFingerprint(trashPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
+    local rolledBack = os.rename(trashPath, selectedPath) ~= nil
+    state.pendingDeleteBundleFile = nil
+    state.pendingDeleteBundleFingerprint = nil
+    state.folderStatus, state.folderStatusError = rolledBack
+      and "Folder bundle verification failed; the file was returned to Character Presets."
+      or "Folder bundle verification failed, and the file could not be returned from Trash.", true
+    return
+  end
+  state.trashBundles[trashFilename] = true
   state.selectedBundleFile = nil
   state.pendingDeleteBundleFile = nil
+  state.pendingDeleteBundleFingerprint = nil
   state.folderStatus, state.folderStatusError =
-    ("Deleted folder bundle file \"%s\". Presets and folders were not changed.")
+    ("Moved folder bundle \"%s\" to Trash. Presets and folders were not changed.")
       :format(selected), false
-  log(("[FOLDER BUNDLE] Deleted file='%s'."):format(selectedPath), "complete")
-end
-
-validBundleFilename = function(filename)
-  return type(filename) == "string" and filename ~= ""
-    and #filename <= 255 and not filename:find("/", 1, true)
-    and not filename:find("\\", 1, true) and not filename:find("%c")
-    and filename:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION
+  log(("[FOLDER BUNDLE] Moved file='%s' to Trash as '%s'.")
+    :format(selectedPath, trashFilename), "complete")
 end
 
 local function readImportedBundles()
@@ -1732,7 +1778,7 @@ local function readImportedBundles()
       if lineCount > MAX_CATALOG_LINES then return nil, false end
       local encodedName, fingerprint = line:match("^B\t([^\t]+)\t(%d+:%d+)$")
       local filename = encodedName and catalogDecode(encodedName) or nil
-      if not validBundleFilename(filename) then return nil, false end
+      if not isFolderBundleFilename(filename) then return nil, false end
       imported[filename:lower()] = { filename = filename, fingerprint = fingerprint }
     end
   end
@@ -1742,7 +1788,7 @@ end
 local function writeImportedBundles(imported)
   local lines = {}
   for _, item in pairs(imported or {}) do
-    if not validBundleFilename(item.filename)
+    if not isFolderBundleFilename(item.filename)
         or type(item.fingerprint) ~= "string"
         or not item.fingerprint:match("^%d+:%d+$") then return false end
     table.insert(lines, "B\t" .. catalogEncode(item.filename) .. "\t" .. item.fingerprint)
@@ -2877,6 +2923,7 @@ local refreshTrash
 local trashPreset
 local restoreTrashPreset
 local restoreTrashGroup
+local restoreTrashBundle
 local emptyTrash
 local bulkPresetNamesInFolder
 local selectedBulkPresetNames
@@ -3126,7 +3173,7 @@ refreshTrash = function(recoveredOriginals)
     return false
   end
   for filename, item in pairs(recoveredOriginals or {}) do originals[filename] = item end
-  local trash = {}
+  local trash, trashBundles = {}, {}
   local entries = safeDirectoryEntries(TRASH_DIR, 0)
   for _, entry in ipairs(entries or {}) do
     if entry.type == "file" and entry.name:lower():sub(-7) == ".preset" then
@@ -3139,10 +3186,14 @@ refreshTrash = function(recoveredOriginals)
           preset = preset,
         }
       end
+    elseif entry.type == "file" and isFolderBundleFilename(entry.name)
+        and fileFingerprint(TRASH_DIR .. "/" .. entry.name, MAX_FOLDER_BUNDLE_BYTES) then
+      trashBundles[entry.name] = true
     end
   end
   state.trash = trash
   state.trashGroups = groups
+  state.trashBundles = trashBundles
   if not writeTrashCatalog(trash, groups) then return false end
   return true
 end
@@ -3158,6 +3209,55 @@ local function uniqueTrashFilename(name, reserved)
     end
   end
   return nil
+end
+
+local function uniqueRestoredBundleFilename(filename)
+  local stem = filename:sub(1, -#FOLDER_BUNDLE_EXTENSION - 1)
+  for index = 1, 9999 do
+    local suffix = index == 1 and "" or (" Copy %d"):format(index)
+    local candidate = stem:sub(1, 255 - #FOLDER_BUNDLE_EXTENSION - #suffix) ..
+      suffix .. FOLDER_BUNDLE_EXTENSION
+    if not fileExists(PRESET_DIR .. "/" .. candidate) then return candidate end
+  end
+  return nil
+end
+
+restoreTrashBundle = function(filename)
+  if not state.trashBundles[filename] or not isFolderBundleFilename(filename) then
+    setStatus("delete", "The trashed folder bundle is no longer available.", true)
+    return
+  end
+  local sourcePath = TRASH_DIR .. "/" .. filename
+  local fingerprint = fileFingerprint(sourcePath, MAX_FOLDER_BUNDLE_BYTES)
+  local restoredFilename = fingerprint and uniqueRestoredBundleFilename(filename) or nil
+  if not fingerprint then
+    setStatus("delete", "The trashed folder bundle could not be verified safely.", true)
+    return
+  end
+  if not restoredFilename then
+    setStatus("delete", "A safe restored bundle filename could not be allocated.", true)
+    return
+  end
+  local destinationPath = PRESET_DIR .. "/" .. restoredFilename
+  local moved, moveError = os.rename(sourcePath, destinationPath)
+  if not moved then
+    setStatus("delete", "The folder bundle could not be restored: " ..
+      tostring(moveError), true)
+    return
+  end
+  if fileFingerprint(destinationPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
+    local rolledBack = os.rename(destinationPath, sourcePath) ~= nil
+    setStatus("delete", rolledBack
+      and "Folder bundle restore verification failed; the file was returned to Trash."
+      or "Folder bundle restore verification failed, and the file could not be returned to Trash.", true)
+    return
+  end
+  state.trashBundles[filename] = nil
+  state.selectedBundleFile = restoredFilename
+  setStatus("delete", ("Restored folder bundle \"%s\" to Character Presets.")
+    :format(restoredFilename))
+  log(("[FOLDER BUNDLE] Restored Trash file='%s' as '%s'.")
+    :format(filename, restoredFilename), "complete")
 end
 
 trashPreset = function()
@@ -3463,25 +3563,37 @@ emptyTrash = function()
   for _ in pairs(state.trash) do count = count + 1 end
   local groupCount = 0
   for _ in pairs(state.trashGroups) do groupCount = groupCount + 1 end
-  if count == 0 and groupCount == 0 then setStatus("delete", "Trash is already empty."); return end
+  local bundleCount = 0
+  for _ in pairs(state.trashBundles) do bundleCount = bundleCount + 1 end
+  if count == 0 and groupCount == 0 and bundleCount == 0 then
+    setStatus("delete", "Trash is already empty."); return
+  end
   if not state.pendingEmptyTrash then
     cancelConfirmations()
     state.pendingEmptyTrash = true
-    setStatus("delete", ("Permanently delete %d trashed preset%s and %d folder recovery record%s? Select Empty Trash Permanently again.")
+    setStatus("delete", ("Permanently delete %d trashed preset%s, %d folder recovery record%s, and %d folder bundle%s? Select Empty Trash Permanently again.")
       :format(count, count == 1 and "" or "s", groupCount,
-        groupCount == 1 and "" or "s"))
+        groupCount == 1 and "" or "s", bundleCount, bundleCount == 1 and "" or "s"))
     return
   end
   state.pendingEmptyTrash = false
-  local failed = 0
+  local failed, presetFailed = 0, 0
   for filename in pairs(state.trash) do
     if os.remove(TRASH_DIR .. "/" .. filename) then
       state.trash[filename] = nil
     else
       failed = failed + 1
+      presetFailed = presetFailed + 1
     end
   end
-  if failed == 0 then state.trashGroups = {} end
+  for filename in pairs(state.trashBundles) do
+    if os.remove(TRASH_DIR .. "/" .. filename) then
+      state.trashBundles[filename] = nil
+    else
+      failed = failed + 1
+    end
+  end
+  if presetFailed == 0 then state.trashGroups = {} end
   local catalogSaved = writeTrashCatalog(state.trash, state.trashGroups)
   if failed > 0 then
     setStatus("delete", ("Trash cleanup stopped with %d file%s remaining.")
@@ -4443,6 +4555,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
         or (state.pendingDeleteName ~= nil
           and state.pendingDeleteName == state.selected)))
     or (section == "bulk" and state.pendingBulkAction ~= nil)
+    or (section == "folder" and state.pendingDeleteBundleFile ~= nil)
   local customColors = false
   ImGui.Spacing()
   if isError or destructiveWarning then
@@ -5079,7 +5192,7 @@ draw = function()
       helpHeading("Share or Import a Folder")
       ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
       ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. New or changed bundles are processed; unchanged imported bundles are skipped.")
-      ImGui.TextWrapped("Delete a bundle file: under All Presets (root), open Folder Bundle Files, select one file, and select Delete Selected Bundle File twice. Only that .cpmfolder file is deleted; its source or imported folder and presets remain available.")
+      ImGui.TextWrapped("Trash a bundle file: under All Presets (root), open Folder Bundle Files, select one file, and select Move Selected Bundle to Trash twice. Restore it under Delete & Restore, or remove it with Empty Trash Permanently. Its source or imported folder and presets remain available.")
       ImGui.TextWrapped("After a successful import, the bundle stays untouched and its filename plus fingerprint are recorded in Data/Catalog/Imported Bundles.txt. An unchanged bundle is skipped; a changed bundle with the same filename can be imported again. Existing folder names receive a safe Copy name.")
 
       helpHeading("Settings and Config")
@@ -5460,6 +5573,7 @@ draw = function()
         if #bundleFiles == 0 then
           state.selectedBundleFile = nil
           state.pendingDeleteBundleFile = nil
+          state.pendingDeleteBundleFingerprint = nil
           ImGui.TextDisabled("No .cpmfolder files found.")
         else
           ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
@@ -5474,7 +5588,7 @@ draw = function()
             if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
                 state.selectedBundleFile == leaf) then
               state.selectedBundleFile = leaf
-              state.pendingDeleteBundleFile = nil
+              cancelConfirmations()
               selectedStillExists = true
             end
           end
@@ -5482,18 +5596,19 @@ draw = function()
           if state.selectedBundleFile and not selectedStillExists then
             state.selectedBundleFile = nil
             state.pendingDeleteBundleFile = nil
+            state.pendingDeleteBundleFingerprint = nil
           end
           local bundleDeleteUnavailable = not state.selectedBundleFile
           if bundleDeleteUnavailable then ImGui.BeginDisabled() end
           local bundleDeleteLabel = state.pendingDeleteBundleFile == state.selectedBundleFile
-            and "Confirm Delete Bundle File"
-            or "Delete Selected Bundle File"
-          if dangerButton(bundleDeleteLabel .. "##deleteFolderBundle",
+            and "Confirm Move Bundle to Trash"
+            or "Move Selected Bundle to Trash"
+          if dangerButton(bundleDeleteLabel .. "##trashFolderBundle",
               ImGui.GetContentRegionAvail(), actionButtonHeight) then
-            deleteSelectedFolderBundle()
+            trashSelectedFolderBundle()
           end
           if bundleDeleteUnavailable then ImGui.EndDisabled() end
-          ImGui.TextDisabled("Deletes only the selected .cpmfolder file.")
+          ImGui.TextDisabled("Moves only the selected .cpmfolder file to recoverable Trash.")
         end
         ImGui.Unindent(8)
       end
@@ -5547,7 +5662,7 @@ draw = function()
     end
 
     if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
-      ImGui.TextWrapped("Delete presets safely by moving them to recoverable Trash, or restore them later.")
+      ImGui.TextWrapped("Move presets, folders, and folder bundle files to recoverable Trash, or restore them later.")
       if not state.selected then
         ImGui.TextDisabled("Select a preset under Load Preset to move one preset to Trash.")
       else
@@ -5578,11 +5693,15 @@ draw = function()
       table.sort(trashGroupIds, function(a, b)
         return state.trashGroups[a].root:lower() < state.trashGroups[b].root:lower()
       end)
-      if #trashNames == 0 and #trashGroupIds == 0 then
+      local trashBundleNames = {}
+      for filename in pairs(state.trashBundles) do table.insert(trashBundleNames, filename) end
+      table.sort(trashBundleNames, function(a, b) return a:lower() < b:lower() end)
+      if #trashNames == 0 and #trashGroupIds == 0 and #trashBundleNames == 0 then
         ImGui.TextDisabled("Trash is empty.")
       else
-        ImGui.TextWrapped(("%d recoverable preset%s")
-          :format(#trashNames, #trashNames == 1 and "" or "s"))
+        ImGui.TextWrapped(("%d recoverable preset%s  |  %d folder bundle%s")
+          :format(#trashNames, #trashNames == 1 and "" or "s",
+            #trashBundleNames, #trashBundleNames == 1 and "" or "s"))
         ImGui.BeginChild("##trashList", 0, ImGui.GetFontSize() * 6, true)
         local trashChanged = false
         for _, groupId in ipairs(trashGroupIds) do
@@ -5607,6 +5726,19 @@ draw = function()
             if item and fullWidthButton("Restore " .. (item.original or filename) ..
                 "##trash:" .. filename, actionButtonHeight) then
               restoreTrashPreset(filename)
+              trashChanged = true
+              break
+            end
+          end
+        end
+        if not trashChanged then
+          if #trashBundleNames > 0 and (#trashGroupIds > 0 or #trashNames > 0) then
+            ImGui.Separator()
+          end
+          for _, filename in ipairs(trashBundleNames) do
+            if fullWidthButton("Restore Bundle " .. filename ..
+                "##trashBundle:" .. filename, actionButtonHeight) then
+              restoreTrashBundle(filename)
               trashChanged = true
               break
             end
