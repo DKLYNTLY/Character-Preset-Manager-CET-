@@ -4,7 +4,39 @@ The newest release is separated into clear categories. Older releases are
 grouped into collapsible histories so the page remains easy to scan.
 
 <details open>
-<summary><strong>Latest release — 3.0.2</strong></summary>
+<summary><strong>Latest release — 3.0.3</strong></summary>
+
+## 3.0.3
+
+*Stable CCXL choice identities and focused force loading.*
+
+- Introduces format-7 presets that retain LocKeys as primary selector IDs while
+  also saving UI slots and stable selected-choice definitions or names.
+- Resolves a saved choice to its current index before applying it, preventing
+  newly inserted CCXL hairs from silently redirecting an old numeric index to a
+  different hairstyle when the selected definition remains available.
+- Adds opt-in Force Full Load matching for renamed dependent selectors such as
+  hairstyle-specific color selectors. Format-7 presets use UI-slot and choice
+  identity matching; legacy presets permit only a tightly anchored positional
+  fallback and display a warning that shifted hairstyles cannot be recovered.
+- Refuses to reuse a stored numeric index when a format-7 choice identity is no
+  longer exposed, instead of knowingly applying a different choice.
+- Calculates first-open placement from ImGui's usable work area before falling
+  back to physical display resolution, avoiding Windows-scaling offsets.
+- Hides the redundant already-in-destination hint after a successful virtual
+  preset move while retaining the success status.
+- Condenses selected-preset and compatibility information, places secondary
+  metadata behind **More Preset Info**, and shortens Force Full Load warnings.
+- Adds an in-menu **Folder Bundle Files** list with confirmed deletion of one
+  selected `.cpmfolder` file without changing its presets or virtual folders.
+- Updates Help and documentation for format 7, Force Full Load, CCXL index drift,
+  folder-bundle cleanup, and the manual correction required for older
+  index-only presets.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.2</strong></summary>
 
 ## 3.0.2
 

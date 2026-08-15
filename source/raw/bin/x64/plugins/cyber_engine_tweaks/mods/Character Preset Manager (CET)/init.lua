@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "3.0.2"
+local VERSION = "3.0.3"
 local PRESET_DIR = "Character Presets"
 local DATA_DIR = "Data"
 local CONFIG_DIR = DATA_DIR .. "/Config"
@@ -74,6 +74,8 @@ local state = {
   },
   openSubsections = {
     saveDestination = false,
+    loadDetails = false,
+    folderBundleFiles = false,
     presetDetails = false,
     bulkTrash = false,
   },
@@ -103,12 +105,18 @@ local state = {
   loadSatisfied = {},
   loadValues = nil,
   loadSavedCounts = nil,
+  loadOrderedEntries = nil,
+  loadSavedSlotCounts = nil,
   loadValueCount = 0,
+  loadForcedKeys = {},
+  forceFullLoad = false,
   pendingOverwriteName = nil,
   pendingOverwriteFingerprint = nil,
   pendingDeleteName = nil,
   pendingDeleteFingerprint = nil,
   pendingRemoveFolder = nil,
+  selectedBundleFile = nil,
+  pendingDeleteBundleFile = nil,
   helpOpen = false,
   debugOpen = false,
   advancedDiagnosticsOpen = false,
@@ -165,6 +173,7 @@ local state = {
   cachedBulkSelectedNames = {},
   windowPositionCached = false,
   cachedWindowX = nil,
+  cachedWindowY = nil,
   cachedDisplayWidth = nil,
   clothingCheckDirty = true,
   cachedClothingLabels = nil,
@@ -216,6 +225,7 @@ local function cancelConfirmations()
   state.pendingDeleteName = nil
   state.pendingDeleteFingerprint = nil
   state.pendingRemoveFolder = nil
+  state.pendingDeleteBundleFile = nil
   state.pendingEmptyTrash = false
   state.pendingBulkAction = nil
   state.pendingBulkFingerprint = nil
@@ -232,7 +242,10 @@ local function resetLoadState()
   state.loadSatisfied = {}
   state.loadValues = nil
   state.loadSavedCounts = nil
+  state.loadOrderedEntries = nil
+  state.loadSavedSlotCounts = nil
   state.loadValueCount = 0
+  state.loadForcedKeys = {}
   state.autoLoad = false
   state.autoLoadTimer = 0
   state.autoLoadPasses = 0
@@ -716,6 +729,76 @@ local function optionKey(option)
   return tostring(key)
 end
 
+local function optionSlot(option)
+  if not option or not option.info then return nil end
+  local ok, slot = pcall(function()
+    local value = option.info.uiSlot
+    if value == nil then return nil end
+    if NameToString then return NameToString(value) end
+    return tostring(value)
+  end)
+  slot = ok and tostring(slot or "") or ""
+  if slot == "" or #slot > MAX_PRESET_KEY_BYTES or slot:find("%c") then return nil end
+  return slot
+end
+
+local function stableRuntimeValue(value)
+  if value == nil then return nil end
+  if type(value) == "string" then return value ~= "" and value or nil end
+  local nameOk, name = pcall(function()
+    if NameToString then return NameToString(value) end
+    return nil
+  end)
+  if nameOk and name and tostring(name) ~= "" then return tostring(name) end
+  local textOk, text = pcall(tostring, value)
+  text = textOk and tostring(text or "") or ""
+  return text ~= "" and text or nil
+end
+
+local function choiceCollectionValue(info, field, index, member)
+  local ok, value = pcall(function()
+    local collection = info and info[field]
+    if collection == nil then return nil end
+    local item = collection[index + 1]
+    if item == nil then return nil end
+    return member and item[member] or item
+  end)
+  return ok and stableRuntimeValue(value) or nil
+end
+
+local function optionChoiceKey(option, index)
+  if not option or not option.info or type(index) ~= "number"
+      or index ~= math.floor(index) or index < 0 or index > MAX_OPTION_INDEX then return nil end
+  for _, source in ipairs({
+    { "definitions", nil },
+    { "options", "localizedName" },
+    { "morphNames", nil },
+  }) do
+    local value = choiceCollectionValue(option.info, source[1], index, source[2])
+    if value then return source[1] .. ":" .. value end
+  end
+  return nil
+end
+
+local function optionChoiceIndex(option, choice)
+  local field, wanted = tostring(choice or ""):match("^([%a]+):(.*)$")
+  if not option or not option.info or wanted == ""
+      or (field ~= "definitions" and field ~= "options" and field ~= "morphNames") then
+    return nil
+  end
+  local member = field == "options" and "localizedName" or nil
+  local sizeOk, size = pcall(function() return #(option.info[field] or {}) end)
+  if not sizeOk or type(size) ~= "number" or size > MAX_OPTION_INDEX then return nil end
+  local match = nil
+  for index = 0, size - 1 do
+    if choiceCollectionValue(option.info, field, index, member) == wanted then
+      if match ~= nil then return nil end
+      match = index
+    end
+  end
+  return match
+end
+
 local function optionDisplayName(option, key)
   local candidates = {}
   if option and option.info then
@@ -1129,7 +1212,7 @@ local function readPresetFile(path)
   if not rewindOk or rewindResult == nil then file:close(); return nil end
   local entries = {}
   local metadata = { format = 4, source = "Legacy or ACU-compatible" }
-  local lineNumber, malformed = 0, 0
+  local lineNumber, malformed, pendingSlot, pendingChoice = 0, 0, nil, nil
   for line in file:lines() do
     lineNumber = lineNumber + 1
     if lineNumber > MAX_PRESET_LINES then
@@ -1151,6 +1234,14 @@ local function readPresetFile(path)
       metadata.notes = sanitizeMetadata(catalogDecode(metadataValue), 512)
     elseif metadataKey == "tags" then
       metadata.tags = sanitizeMetadata(catalogDecode(metadataValue), 128)
+    elseif metadataKey == "slot" then
+      local slot = catalogDecode(metadataValue)
+      pendingSlot = #slot <= MAX_PRESET_KEY_BYTES and not slot:find("%c")
+        and slot or nil
+    elseif metadataKey == "choice" then
+      local choice = catalogDecode(metadataValue)
+      pendingChoice = #choice <= MAX_PRESET_KEY_BYTES * 4 and not choice:find("%c")
+        and choice or nil
     end
     local key, index = line:match("^%s*(.-):(-?%d+)%s*$")
     local numericIndex = tonumber(index)
@@ -1165,7 +1256,13 @@ local function readPresetFile(path)
             tostring(indexError or "none"), #entries), "warn")
         return nil
       end
-      table.insert(entries, { key = key, index = numericIndex })
+      table.insert(entries, {
+        key = key,
+        index = numericIndex,
+        slot = pendingSlot,
+        choice = pendingChoice,
+      })
+      pendingSlot, pendingChoice = nil, nil
     elseif not metadataKey and line:match("%S") then
       malformed = malformed + 1
       if malformed <= 20 then
@@ -1209,6 +1306,14 @@ local function writePresetContents(path, preset)
       if not result then return false end
     end
     for _, entry in ipairs(preset.entries or {}) do
+      if entry.slot and entry.slot ~= "" then
+        local slotResult = file:write("# CPM\tslot\t" .. catalogEncode(entry.slot) .. "\n")
+        if not slotResult then return false end
+      end
+      if entry.choice and entry.choice ~= "" then
+        local choiceResult = file:write("# CPM\tchoice\t" .. catalogEncode(entry.choice) .. "\n")
+        if not choiceResult then return false end
+      end
       local result = file:write(("%s:%d\n"):format(
         tostring(entry.key),
         tonumber(entry.index) or 0
@@ -1403,6 +1508,10 @@ presetsMatch = function(expected, actual)
         or (tonumber(entry.index) or 0) ~= (tonumber(other.index) or 0) then
       return false
     end
+    if (tonumber(expected and expected.format) or 4) >= 6
+        and tostring(entry.slot or "") ~= tostring(other.slot or "") then return false end
+    if (tonumber(expected and expected.format) or 4) >= 7
+        and tostring(entry.choice or "") ~= tostring(other.choice or "") then return false end
   end
   return true
 end
@@ -1519,8 +1628,12 @@ end
 
 local exportSelectedFolderBundle
 local importAvailableFolderBundles
+local folderBundleFiles
+local deleteSelectedFolderBundle
 
 do
+
+local validBundleFilename
 
 local function validBundlePath(value)
   if not validRelativePath(value) then return false end
@@ -1544,7 +1657,7 @@ local function hexDecode(value)
   end))
 end
 
-local function folderBundleFiles()
+folderBundleFiles = function()
   local bundles = {}
   local entries = safeDirectoryEntries(PRESET_DIR, 0)
   if not entries then return bundles end
@@ -1558,7 +1671,50 @@ local function folderBundleFiles()
   return bundles
 end
 
-local function validBundleFilename(filename)
+deleteSelectedFolderBundle = function()
+  auditSection("DELETE FOLDER BUNDLE")
+  local selected = state.selectedBundleFile
+  if not validBundleFilename(selected) then
+    state.folderStatus, state.folderStatusError =
+      "Select a folder bundle file to delete.", true
+    return
+  end
+  local selectedPath = nil
+  for _, path in ipairs(folderBundleFiles()) do
+    local leaf = path:match("([^/]+)$")
+    if leaf and leaf:lower() == selected:lower() then
+      selected, selectedPath = leaf, path
+      break
+    end
+  end
+  if not selectedPath then
+    state.selectedBundleFile = nil
+    state.pendingDeleteBundleFile = nil
+    state.folderStatus, state.folderStatusError =
+      "That folder bundle file is no longer available.", true
+    return
+  end
+  if state.pendingDeleteBundleFile ~= selected then
+    state.pendingDeleteBundleFile = selected
+    state.folderStatus, state.folderStatusError =
+      ("Select Delete again to permanently remove \"%s\". Presets and folders will not be changed.")
+        :format(selected), true
+    return
+  end
+  if not os.remove(selectedPath) then
+    state.folderStatus, state.folderStatusError =
+      ("The folder bundle file could not be deleted: %s"):format(selected), true
+    return
+  end
+  state.selectedBundleFile = nil
+  state.pendingDeleteBundleFile = nil
+  state.folderStatus, state.folderStatusError =
+    ("Deleted folder bundle file \"%s\". Presets and folders were not changed.")
+      :format(selected), false
+  log(("[FOLDER BUNDLE] Deleted file='%s'."):format(selectedPath), "complete")
+end
+
+validBundleFilename = function(filename)
   return type(filename) == "string" and filename ~= ""
     and #filename <= 255 and not filename:find("/", 1, true)
     and not filename:find("\\", 1, true) and not filename:find("%c")
@@ -2166,12 +2322,16 @@ local function savePreset(confirmOverwrite)
         return
       end
       savedOccurrences[key] = (savedOccurrences[key] or 0) + 1
-      log(("[SNAPSHOT] Saved %s index=%d editable=true active=true")
+      local slot = optionSlot(option)
+      local choice = optionChoiceKey(option, currentIndex)
+      log(("[SNAPSHOT] Saved %s index=%d slot='%s' choice='%s' editable=true active=true")
         :format(optionAuditIdentity(option, key, savedOccurrences[key]),
-          currentIndex), "info")
+          currentIndex, tostring(slot or "none"), tostring(choice or "none")), "info")
       table.insert(entries, {
         key = key,
         index = currentIndex,
+        slot = slot,
+        choice = choice,
       })
     end
   end
@@ -2188,7 +2348,7 @@ local function savePreset(confirmOverwrite)
     return
   end
   local newPreset = {
-    format = 5,
+    format = 7,
     source = MOD_NAME,
     created = previousPreset and previousPreset.created or logTimestamp(),
     modified = logTimestamp(),
@@ -2225,7 +2385,7 @@ local function savePreset(confirmOverwrite)
   state.renameName = ""
   state.newName = ""
   resetLoadState()
-  log(("Created preset '%s': format=5 orderedOptions=%d")
+  log(("Created preset '%s': format=7 orderedOptions=%d")
     :format(name, #entries), "info")
   if writeInventory(state.presets, state.folders) then
     setStatus("create", ("Saved \"%s\" with %d options.")
@@ -2251,11 +2411,13 @@ local function loadPreset()
   if state.loadPresetName ~= state.selected then refreshPreflight() end
 
   local preset = state.presets[state.selected]
-  local values, savedCounts, valueCount
+  local values, savedCounts, orderedEntries, savedSlotCounts, valueCount
   if state.loadPresetName == state.selected then
     state.loadPass = state.loadPass + 1
     values = state.loadValues
     savedCounts = state.loadSavedCounts
+    orderedEntries = state.loadOrderedEntries
+    savedSlotCounts = state.loadSavedSlotCounts
     valueCount = state.loadValueCount
   else
     auditSection("LOAD PRESET")
@@ -2265,18 +2427,35 @@ local function loadPreset()
     state.previousUnresolvedSignature = nil
     state.unresolvedRepeatCount = 0
     state.loadSatisfied = {}
-    values, savedCounts, valueCount = {}, {}, 0
+    state.loadForcedKeys = {}
+    values, savedCounts, orderedEntries, savedSlotCounts, valueCount = {}, {}, {}, {}, 0
     for _, entry in ipairs(preset.entries or {}) do
       local label = tostring(entry.key or "")
       if label ~= "" then
         savedCounts[label] = (savedCounts[label] or 0) + 1
         local savedKey = label .. "\31" .. tostring(savedCounts[label])
         values[savedKey] = tonumber(entry.index) or 0
+        local slot = tostring(entry.slot or "")
+        local slotOccurrence = nil
+        if slot ~= "" then
+          savedSlotCounts[slot] = (savedSlotCounts[slot] or 0) + 1
+          slotOccurrence = savedSlotCounts[slot]
+        end
+        table.insert(orderedEntries, {
+          key = savedKey,
+          label = label,
+          index = tonumber(entry.index) or 0,
+          slot = slot ~= "" and slot or nil,
+          slotOccurrence = slotOccurrence,
+          choice = entry.choice,
+        })
         valueCount = valueCount + 1
       end
     end
     state.loadValues = values
     state.loadSavedCounts = savedCounts
+    state.loadOrderedEntries = orderedEntries
+    state.loadSavedSlotCounts = savedSlotCounts
     state.loadValueCount = valueCount
   end
   state.loadStalled = false
@@ -2343,23 +2522,46 @@ local function loadPreset()
   local activeKeySet = {}
   local activeCounts = {}
   local occurrences = {}
+  local activeExposed = {}
+  local exposedBySlot = {}
+  local activeSlotCounts = {}
   for _, option in ipairs(options) do
     local label = optionKey(option)
+    local slot = optionSlot(option)
     local key = nil
     local occurrence = nil
+    local slotOccurrence = nil
     if label and option.isEditable and option.isActive then
       occurrences[label] = (occurrences[label] or 0) + 1
       activeCounts[label] = occurrences[label]
       occurrence = occurrences[label]
       key = label .. "\31" .. tostring(occurrence)
+      if slot then
+        activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
+        slotOccurrence = activeSlotCounts[slot]
+      end
     end
-    table.insert(exposed, {
+    local exposedOption = {
       option = option,
       label = label,
       key = key,
       occurrence = occurrence,
-    })
-    if key then activeKeySet[key] = true end
+      slot = slot,
+      slotOccurrence = slotOccurrence,
+    }
+    table.insert(exposed, exposedOption)
+    if key then
+      activeKeySet[key] = true
+      table.insert(activeExposed, exposedOption)
+      exposedOption.activePosition = #activeExposed
+      if slot then exposedBySlot[slot .. "\31" .. tostring(slotOccurrence)] = exposedOption end
+    end
+  end
+
+  local savedEntryByKey = {}
+  for position, entry in ipairs(orderedEntries or {}) do
+    entry.position = position
+    savedEntryByKey[entry.key] = entry
   end
 
   local satisfiedBefore = 0
@@ -2367,6 +2569,11 @@ local function loadPreset()
     local key = exposedOption.key
     local label = exposedOption.label
     local wanted = key and values[key] or nil
+    local savedEntry = key and savedEntryByKey[key] or nil
+    if wanted ~= nil and savedEntry and savedEntry.choice then
+      wanted = optionChoiceIndex(exposedOption.option, savedEntry.choice)
+      if wanted ~= nil then values[key] = wanted end
+    end
     local countMatches = label
       and (savedCounts[label] or 0) == (activeCounts[label] or 0)
     if wanted ~= nil and countMatches and optionIndexIsValid(wanted)
@@ -2386,12 +2593,29 @@ local function loadPreset()
     local label = exposedOption.label
     local key = exposedOption.key
     local wanted = key and values[key] or nil
+    local savedEntry = key and savedEntryByKey[key] or nil
+    local choiceUnavailable = false
+    if wanted ~= nil and savedEntry and savedEntry.choice then
+      local resolvedIndex = optionChoiceIndex(option, savedEntry.choice)
+      if resolvedIndex == nil then
+        choiceUnavailable = true
+      else
+        wanted = resolvedIndex
+        values[key] = resolvedIndex
+      end
+    end
     local countMatches = label
       and (savedCounts[label] or 0) == (activeCounts[label] or 0)
     local indexIsValid = wanted == nil or optionIndexIsValid(wanted)
     if wanted ~= nil then
       seen[key] = true
-      if not countMatches then
+      if choiceUnavailable then
+        missing = missing + 1
+        unresolved["unavailable-choice:" .. tostring(key)] = true
+        log(("[SKIPPED] Saved choice is no longer exposed for %s choice='%s'")
+          :format(optionAuditIdentity(option, label, exposedOption.occurrence),
+            tostring(savedEntry.choice)), "warn")
+      elseif not countMatches then
         ambiguous = ambiguous + 1
         unresolved["ambiguous:" .. tostring(key)] = true
         log(("[SKIPPED] Ambiguous repeated option: %s savedCount=%d exposedCount=%d")
@@ -2408,7 +2632,7 @@ local function loadPreset()
             tostring(wanted)), "warn")
       end
     end
-    if wanted ~= nil and countMatches and indexIsValid
+    if wanted ~= nil and not choiceUnavailable and countMatches and indexIsValid
         and option.isEditable and option.isActive then
       local current = tonumber(option.currIndex) or 0
       if current == wanted then
@@ -2416,6 +2640,13 @@ local function loadPreset()
         applied = applied + 1
       else
         state.loadSatisfied[key] = nil
+        if savedEntry and savedEntry.choice and wanted ~= savedEntry.index then
+          log(("CHOICE REMAP | pass=%d | %s | savedIndex=%s currentIndex=%s choice='%s'")
+            :format(state.loadPass,
+              optionAuditIdentity(option, label, exposedOption.occurrence),
+              tostring(savedEntry.index), tostring(wanted), tostring(savedEntry.choice)),
+            "info")
+        end
         local ok, applyError = pcall(system.ApplyChangeToOption, system, option, wanted)
         if ok then
           state.loadSatisfied[key] = true
@@ -2448,10 +2679,87 @@ local function loadPreset()
       end
     end
   end
+  if state.forceFullLoad then
+    local claimedOptions = {}
+    for _, exposedOption in ipairs(exposed) do
+      if exposedOption.key and values[exposedOption.key] ~= nil then
+        claimedOptions[exposedOption.option] = true
+      end
+    end
+    for _, entry in ipairs(orderedEntries or {}) do
+      local savedKey = entry.key
+      if not seen[savedKey] and not state.loadSatisfied[savedKey]
+          and optionIndexIsValid(entry.index) then
+        local candidate = nil
+        local method = nil
+        if entry.slot
+            and (savedSlotCounts[entry.slot] or 0) == (activeSlotCounts[entry.slot] or 0) then
+          local slotKey = entry.slot .. "\31" .. tostring(entry.slotOccurrence or 1)
+          candidate = exposedBySlot[slotKey]
+          method = "uiSlot"
+        elseif not entry.slot and entry.position and entry.position > 1
+            and entry.position < #(orderedEntries or {}) then
+          local previousEntry = orderedEntries[entry.position - 1]
+          local nextEntry = orderedEntries[entry.position + 1]
+          local positioned = activeExposed[entry.position]
+          if positioned and activeExposed[entry.position - 1]
+              and activeExposed[entry.position + 1]
+              and activeExposed[entry.position - 1].key == previousEntry.key
+              and activeExposed[entry.position + 1].key == nextEntry.key
+              and values[positioned.key] == nil then
+            candidate = positioned
+            method = "anchored legacy position"
+          end
+        end
+        if candidate and candidate.option.isEditable and candidate.option.isActive
+            and not claimedOptions[candidate.option] then
+          local target = entry.choice and optionChoiceIndex(candidate.option, entry.choice)
+            or entry.index
+          if target ~= nil and optionIndexIsValid(target) then
+            seen[savedKey] = true
+            local current = tonumber(candidate.option.currIndex) or 0
+            if current == target then
+              state.loadSatisfied[savedKey] = true
+              state.loadForcedKeys[savedKey] = true
+            else
+              local ok, applyError = pcall(
+                system.ApplyChangeToOption, system, candidate.option, target)
+              if ok then
+                state.loadSatisfied[savedKey] = true
+                state.loadForcedKeys[savedKey] = true
+                state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
+                state.loadNeedsContinue = true
+                state.previousUnresolvedSignature = nil
+                state.unresolvedRepeatCount = 0
+                log(("FORCED | pass=%d | saved LocKey='%s' unavailable | %s fallback -> %s | index %s -> %s")
+                  :format(state.loadPass, entry.label, method,
+                    optionAuditIdentity(candidate.option, candidate.label, candidate.occurrence),
+                    tostring(current), tostring(target)), "warn")
+                setStatus("load",
+                  "Applied one unmatched option using Force Full Load. Verify the appearance manually.")
+                return
+              else
+                state.loadForcedKeys[savedKey] = nil
+                log(("FORCE FAILED | pass=%d | saved LocKey='%s' | %s fallback target index %s | %s")
+                  :format(state.loadPass, entry.label, method, tostring(target),
+                    tostring(applyError)), "error")
+              end
+            end
+          elseif entry.choice then
+            log(("[SKIPPED] Force Full Load found the selector but not its saved choice: LocKey='%s' choice='%s'.")
+              :format(entry.label, tostring(entry.choice)), "warn")
+          end
+        end
+      end
+    end
+  end
+
+  local forced = 0
   for key in pairs(values) do
     if not seen[key] then
       if state.loadSatisfied[key] then
         applied = applied + 1
+        if state.loadForcedKeys[key] then forced = forced + 1 end
         local hiddenLabel, hiddenOccurrence = occurrenceKeyParts(key)
         log(("VERIFY | %s | target index=%s | applied, then hidden by dependency")
           :format(optionAuditIdentity(nil, hiddenLabel, hiddenOccurrence),
@@ -2464,6 +2772,9 @@ local function loadPreset()
           :format(optionAuditIdentity(nil, missingLabel, missingOccurrence),
             tostring(values[key])), "warn")
       end
+    elseif state.loadForcedKeys[key] then
+      applied = applied + 1
+      forced = forced + 1
     end
   end
   state.loadRemaining = missing + ambiguous + invalid
@@ -2500,10 +2811,17 @@ local function loadPreset()
     state.previousUnresolvedSignature = nil
     state.unresolvedRepeatCount = 0
     refreshCustomizationUi()
-    log(("SUMMARY | preset='%s' | applied=%d | skipped=0 | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=complete")
-      :format(state.selected, applied, state.loadPass), "complete")
-    setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
-      :format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es"))
+    log(("SUMMARY | preset='%s' | applied=%d | forced=%d | skipped=0 | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=complete")
+      :format(state.selected, applied, forced, state.loadPass), "complete")
+    if forced > 0 then
+      setStatus("load", (
+        "Preset fully applied: %d options applied in %d pass%s (%d force-matched). " ..
+        "Verify hair, hair color, and other forced options manually."
+      ):format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es", forced))
+    else
+      setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
+        :format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es"))
+    end
   end
 end
 
@@ -3567,7 +3885,7 @@ local function savePresetMetadata()
   preset.modified = logTimestamp()
   preset.created = preset.created or preset.modified
   preset.source = MOD_NAME
-  preset.format = 5
+  preset.format = math.max(5, tonumber(preset.format) or 4)
   if not writePresetPath(presetPath(state.selected), preset) then
     preset.notes, preset.tags = previousNotes, previousTags
     preset.modified, preset.format = previousModified, previousFormat
@@ -4390,18 +4708,19 @@ local function pathCallout(childId, label, path)
 end
 
 local function defaultWindowPosition()
-  local displayWidth = nil
-  local resolutionOk, resolutionWidth = pcall(function()
-    if GetDisplayResolution then
-      local width = GetDisplayResolution()
-      return width
-    end
-    return nil
+  local viewportOk, workX, workY, workWidth = pcall(function()
+    if not ImGui.GetMainViewport then return nil end
+    local viewport = ImGui.GetMainViewport()
+    if not viewport or not viewport.WorkPos or not viewport.WorkSize then return nil end
+    return tonumber(viewport.WorkPos.x or viewport.WorkPos.X or viewport.WorkPos[1]),
+      tonumber(viewport.WorkPos.y or viewport.WorkPos.Y or viewport.WorkPos[2]),
+      tonumber(viewport.WorkSize.x or viewport.WorkSize.X or viewport.WorkSize[1])
   end)
-  if resolutionOk then displayWidth = tonumber(resolutionWidth) end
-
+  if viewportOk and workWidth and workWidth > 460 then
+    workX, workY = workX or 0, workY or 0
+    return math.max(workX + 20, workX + workWidth - 440), workY + 40, workWidth
+  end
   local sizeOk, first, second = pcall(function()
-    if displayWidth then return nil end
     if ImGui.GetDisplaySize then return ImGui.GetDisplaySize() end
     if ImGui.GetIO then
       local io = ImGui.GetIO()
@@ -4409,7 +4728,8 @@ local function defaultWindowPosition()
     end
     return nil
   end)
-  if not displayWidth and sizeOk then
+  local displayWidth = nil
+  if sizeOk then
     displayWidth = tonumber(first)
     if not displayWidth and first then
       local widthOk, width = pcall(function()
@@ -4419,8 +4739,14 @@ local function defaultWindowPosition()
     end
     if not displayWidth then displayWidth = tonumber(second) end
   end
-  if not displayWidth or displayWidth <= 460 then return nil, displayWidth end
-  return math.max(20, displayWidth - 440), displayWidth
+  if not displayWidth then
+    local resolutionOk, resolutionWidth = pcall(function()
+      return GetDisplayResolution and GetDisplayResolution() or nil
+    end)
+    if resolutionOk then displayWidth = tonumber(resolutionWidth) end
+  end
+  if not displayWidth or displayWidth <= 460 then return nil, 40, displayWidth end
+  return math.max(20, displayWidth - 440), 40, displayWidth
 end
 
 local function discoveryViewport()
@@ -4561,28 +4887,30 @@ draw = function()
 
   pushTheme()
   if not state.windowPositionCached then
-    state.cachedWindowX, state.cachedDisplayWidth = defaultWindowPosition()
+    state.cachedWindowX, state.cachedWindowY, state.cachedDisplayWidth = defaultWindowPosition()
     state.windowPositionCached = true
   end
   local initialX = state.cachedWindowX
+  local initialY = state.cachedWindowY or 40
   local displayWidth = state.cachedDisplayWidth
   if initialX then
     local positionCondition = state.initialWindowPlacementPending
       and ImGuiCond.Always or ImGuiCond.FirstUseEver
-    ImGui.SetNextWindowPos(initialX, 40, positionCondition)
+    ImGui.SetNextWindowPos(initialX, initialY, positionCondition)
   end
   ImGui.SetNextWindowSize(420, 700, ImGuiCond.FirstUseEver)
   local visible = ImGui.Begin("Character Preset Manager (CET)##CPM2")
   if state.initialWindowPlacementPending and initialX then
     state.initialWindowPlacementPending = false
-    log(("[UI] Initial window position forced to the right: displayWidth=%s x=%s y=40.")
-      :format(tostring(displayWidth), tostring(initialX)), "info")
+    log(("[UI] Initial window position forced to the right: displayWidth=%s x=%s y=%s.")
+      :format(tostring(displayWidth), tostring(initialX), tostring(initialY)), "info")
     local status = io.open(WINDOW_POSITION_STATUS_FILE, "w")
     if status then
       local wrote = status:write((
         "Character Preset Manager (CET) initial right-side position applied.\n" ..
-        "Applied: %s\nDisplay width: %s\nInitial X: %s\n"
-      ):format(logTimestamp(), tostring(displayWidth), tostring(initialX)))
+        "Applied: %s\nDisplay width: %s\nInitial X: %s\nInitial Y: %s\n"
+      ):format(logTimestamp(), tostring(displayWidth), tostring(initialX),
+        tostring(initialY)))
       status:close()
       log(("[UI] Window position status written: file='%s' success=%s.")
         :format(WINDOW_POSITION_STATUS_FILE, tostring(wrote ~= nil)),
@@ -4739,7 +5067,8 @@ draw = function()
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Place .preset files in the preset folder or a directory inside it. Copy one .preset file to share one appearance. A shared .preset does not contain its virtual folder assignment.")
       ImGui.TextWrapped("New .preset imports follow the manual directory where they are placed.")
-      ImGui.TextWrapped("Select Refresh under Load Preset after changing files outside the game. Only current format-5 Character Preset Manager .preset files are accepted.")
+      ImGui.TextWrapped("Select Refresh under Load Preset after changing files outside the game. Current format-7, older Character Preset Manager, and compatible ACU .preset files remain readable.")
+      ImGui.TextWrapped("Format-7 presets save each selector's LocKey, UI slot, and selected-choice identity. Force Full Load can recover a renamed dependent selector through that extra identity. Older index-only presets cannot identify the original hairstyle after added hairs shift the list; correct the appearance and re-save it in the current format.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       if fullWidthButton("Copy Preset Folder Path##copyPresetPath", actionButtonHeight) then
@@ -4749,7 +5078,8 @@ draw = function()
 
       helpHeading("Share or Import a Folder")
       ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
-      ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. Every bundle found there is processed.")
+      ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. New or changed bundles are processed; unchanged imported bundles are skipped.")
+      ImGui.TextWrapped("Delete a bundle file: under All Presets (root), open Folder Bundle Files, select one file, and select Delete Selected Bundle File twice. Only that .cpmfolder file is deleted; its source or imported folder and presets remain available.")
       ImGui.TextWrapped("After a successful import, the bundle stays untouched and its filename plus fingerprint are recorded in Data/Catalog/Imported Bundles.txt. An unchanged bundle is skipped; a changed bundle with the same filename can be imported again. Existing folder names receive a safe Copy name.")
 
       helpHeading("Settings and Config")
@@ -4888,24 +5218,51 @@ draw = function()
       local preset = state.presets[state.selected]
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, baseName(state.selected))
       coloredWrapped(0.64, 0.67, 0.73, 1.0,
-        ("Folder: %s  |  Options: %d  |  Format: %s")
+        ("%s  |  %d options  |  Format %s")
         :format(breadcrumb(parentFolder(state.selected)), #(preset.entries or {}),
           tostring(preset.format or 4)))
-      coloredWrapped(0.64, 0.67, 0.73, 1.0,
-        ("Source: %s  |  Modified: %s")
-          :format(tostring(preset.source or "Legacy or ACU-compatible"),
-          tostring(preset.modified or "Unknown")))
-      if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
-      if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
       if state.preflight then
         local check = state.preflight
         local color = (check.ambiguous + check.invalid) > 0 and { 1.0, 0.4, 0.4 }
           or check.unavailable > 0 and { 1.0, 0.8, 0.2 } or { 0.3, 1.0, 0.4 }
         coloredWrapped(color[1], color[2], color[3], 1.0,
-          ("Compatibility check: %d available, %d dependency-hidden/unavailable, %d ambiguous, %d invalid")
+          ("Compatibility: %d ready  |  %d hidden  |  %d ambiguous  |  %d invalid")
             :format(check.available, check.unavailable, check.ambiguous, check.invalid))
       else
         ImGui.TextDisabled("Open a customization screen to check compatibility.")
+      end
+      if compactSubsectionButton("More Preset Info", "Hide Preset Info", "loadDetails") then
+        ImGui.Indent(8)
+        coloredWrapped(0.64, 0.67, 0.73, 1.0,
+          ("Source: %s\nModified: %s")
+            :format(tostring(preset.source or "Legacy or ACU-compatible"),
+            tostring(preset.modified or "Unknown")))
+        if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
+        if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
+        ImGui.Unindent(8)
+      end
+    end
+
+    if state.autoLoad then ImGui.BeginDisabled() end
+    local forceLoadLabel = state.forceFullLoad
+      and "Force Full Load: On##forceFullLoad"
+      or "Force Full Load: Off##forceFullLoad"
+    if fullWidthButton(forceLoadLabel, actionButtonHeight) then
+      state.forceFullLoad = not state.forceFullLoad
+      resetLoadState()
+      log(("[UI] Force Full Load toggled %s.")
+        :format(state.forceFullLoad and "on" or "off"), "info")
+    end
+    if state.autoLoad then ImGui.EndDisabled() end
+    if state.forceFullLoad then
+      local selectedFormat = state.selected and state.presets[state.selected]
+        and tonumber(state.presets[state.selected].format) or 4
+      if selectedFormat >= 7 then
+        coloredWrapped(1.0, 0.8, 0.2, 1.0,
+          "Force matching is active. Verify the appearance after loading.")
+      else
+        coloredWrapped(1.0, 0.4, 0.4, 1.0,
+          "Legacy preset: shifted indexes may change hair or color. Verify after loading.")
       end
     end
 
@@ -5052,9 +5409,8 @@ draw = function()
       if moveUnavailable then ImGui.BeginDisabled() end
       if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then movePresetToSelectedFolder() end
       if moveUnavailable then ImGui.EndDisabled() end
-      if moveUnavailable then ImGui.TextDisabled(not state.selected
-        and "Select a preset under Load Preset before moving it."
-        or "The selected preset is already in this destination.")
+      if moveUnavailable and not state.selected then
+        ImGui.TextDisabled("Select a preset under Load Preset before moving it.")
       end
       if fullWidthButton("Export Folder for Sharing", actionButtonHeight) then
         exportSelectedFolderBundle()
@@ -5096,7 +5452,51 @@ draw = function()
         importAvailableFolderBundles()
       end
       coloredWrapped(0.64, 0.67, 0.73, 1.0,
-        "Place .cpmfolder files in Character Presets. Every bundle found there will be processed.")
+        "Imports .cpmfolder files from Character Presets. Already imported files are skipped.")
+      local bundleFiles = folderBundleFiles()
+      local bundleLabel = ("Folder Bundle Files (%d)"):format(#bundleFiles)
+      if compactSubsectionButton(bundleLabel, "Hide Folder Bundle Files", "folderBundleFiles") then
+        ImGui.Indent(8)
+        if #bundleFiles == 0 then
+          state.selectedBundleFile = nil
+          state.pendingDeleteBundleFile = nil
+          ImGui.TextDisabled("No .cpmfolder files found.")
+        else
+          ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
+          local selectedStillExists = false
+          for _, path in ipairs(bundleFiles) do
+            local leaf = path:match("([^/]+)$") or path
+            if state.selectedBundleFile
+                and state.selectedBundleFile:lower() == leaf:lower() then
+              state.selectedBundleFile = leaf
+              selectedStillExists = true
+            end
+            if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
+                state.selectedBundleFile == leaf) then
+              state.selectedBundleFile = leaf
+              state.pendingDeleteBundleFile = nil
+              selectedStillExists = true
+            end
+          end
+          ImGui.EndChild()
+          if state.selectedBundleFile and not selectedStillExists then
+            state.selectedBundleFile = nil
+            state.pendingDeleteBundleFile = nil
+          end
+          local bundleDeleteUnavailable = not state.selectedBundleFile
+          if bundleDeleteUnavailable then ImGui.BeginDisabled() end
+          local bundleDeleteLabel = state.pendingDeleteBundleFile == state.selectedBundleFile
+            and "Confirm Delete Bundle File"
+            or "Delete Selected Bundle File"
+          if dangerButton(bundleDeleteLabel .. "##deleteFolderBundle",
+              ImGui.GetContentRegionAvail(), actionButtonHeight) then
+            deleteSelectedFolderBundle()
+          end
+          if bundleDeleteUnavailable then ImGui.EndDisabled() end
+          ImGui.TextDisabled("Deletes only the selected .cpmfolder file.")
+        end
+        ImGui.Unindent(8)
+      end
     end
     if state.folderStatus ~= "" then
       if state.lastLoggedFolderStatus ~= state.folderStatus then

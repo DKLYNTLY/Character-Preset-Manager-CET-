@@ -10,7 +10,7 @@
   <a href="CHANGELOG.md">Complete changelog</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.2</strong></p>
+<p align="center"><strong>Current version: 3.0.3</strong></p>
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -37,7 +37,7 @@
   manually created directories.
 - **Preset and folder duplication** — Copy one preset or a complete virtual
   folder tree.
-- **Optional preset details** — Add notes and tags through the current format-5
+- **Optional preset details** — Add notes and tags through the current format-7
   preset metadata.
 - **Recoverable Trash** — Move presets, folder groups, or multi-selections to
   Trash with confirmation.
@@ -78,7 +78,7 @@ it falls back to detecting whether the input was used during the current session
 
 ### Current preset system
 
-New presets use format 5. Existing older and compatible ACU-format `.preset`
+New presets use format 7. Existing older and compatible ACU-format `.preset`
 files remain readable so established preset libraries are not lost, but all new
 presets and shared folders use the current system. Do not leave an older mod
 folder installed beside this one.
@@ -230,8 +230,9 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
   outside CET.
 - **Virtual organization:** Folder assignments are local catalog data and are
   not embedded in an individual shared preset.
-- **Format:** New presets use format 5, which stores source, created, modified,
-  notes, and tags. Existing older preset files remain readable.
+- **Format:** New presets use format 7, which stores source, timestamps, notes,
+  tags, selector slots, and selected-choice identities. Existing older preset
+  files remain readable.
 - **Safety limits:** Imported presets are limited to 1 MB, 8,192 lines, 4,096
   valid options, 256 bytes per option key, and unsigned 32-bit option indexes.
 
@@ -255,12 +256,16 @@ preset metadata travel with the preset files in the bundle.
 4. Share that single `.cpmfolder` file.
 
 An empty folder cannot be exported. One bundle may contain up to 512 presets and
-may not exceed 32 MB.
+may not exceed 32 MB. To remove an export after sharing it, select **All Presets
+(root)**, open **Folder Bundle Files**, select the exact `.cpmfolder` file, and
+select **Delete Selected Bundle File** twice to confirm. This deletes only the
+bundle file; its source folder and presets remain available in Character Preset
+Manager.
 
 #### Import a folder
 
 1. Put each downloaded `.cpmfolder` file in `Character Presets`, beside current
-   format-5 `.preset` files:
+   `.preset` files:
 
    ```text
    bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
@@ -279,6 +284,9 @@ imports, while a changed bundle using the same filename can be imported again.
 If that folder name already exists, the imported folder receives a safe `Copy`
 name. A failed bundle is not recorded, so the error can be corrected and the
 import tried again. Bundles are imported only from `Character Presets`.
+After a successful import, the same **Folder Bundle Files** menu can permanently
+delete the source bundle so it no longer appears in later import scans. This
+does not delete the imported virtual folder or any imported preset.
 
 ### Runtime data layout
 
@@ -296,8 +304,8 @@ Data/
     `-- Archive/
 ```
 
-Version 3.0.2 does not move loose files created by older releases. For the
-clean layout, remove the old mod installation before installing 3.0.2, while
+Version 3.0.3 does not move loose files created by older releases. For the
+clean layout, remove the old mod installation before installing 3.0.3, while
 backing up and restoring only the presets or bundles you want to keep from
 `Character Presets`.
 
@@ -314,8 +322,18 @@ Custom options are saved when they appear in Cyberpunk's normal
 customization system. Repeated and linked options, including heterochromia, are
 supported.
 
-Keep the same option mods and load order when saving and loading. If the setup
-changes, fix the appearance and save the preset again.
+Format-7 presets retain each option's LocKey, UI slot, selected definition or
+choice name when exposed, and numeric index. LocKey remains the primary selector
+identity. When added CCXL content shifts a choice list, CPM can locate the saved
+choice at its new index. **Force Full Load** may match a renamed dependent
+selector, such as a hairstyle-specific color selector, through its saved UI
+slot. Always verify the result after changing character-option mods.
+
+Older presets contain only LocKeys and numeric indexes. If adding hairs shifts
+the Hairstyle list, an old index may select a different hair and cannot reveal
+which hair was originally intended. Correct the hair and color manually once,
+then overwrite or re-save the preset in format 7 before changing the CCXL setup
+again.
 
 ### ✅ Custom character creators and customization fixes
 
@@ -408,7 +426,7 @@ saved options. Developer hook counters remain under **Advanced diagnostics**.
 ### Can I import ACU or older presets?
 
 Yes. Compatible files remain readable to protect existing preset libraries. New
-presets use Character Preset Manager's current format-5 system.
+presets use Character Preset Manager's current format-7 system.
 
 ### Can ACU remain installed?
 
@@ -437,7 +455,15 @@ screenshots demonstrate Character Preset Manager itself.
 </details>
 
 <details>
-<summary><strong>🆕 Version 3.0.2 highlights</strong></summary>
+<summary><strong>🆕 Version 3.0.3 highlights</strong></summary>
+
+- Saves stable selector-slot and selected-choice identities in format-7 presets
+  so newly inserted CCXL choices do not silently redirect a saved hairstyle to
+  the same outdated numeric index.
+- Adds an opt-in **Force Full Load** fallback for renamed dependent selectors,
+  with explicit warnings for legacy index-only presets.
+- Uses ImGui's usable work area for first-open placement and removes the
+  redundant already-in-destination message immediately after a successful move.
 
 - Groups CPM-owned configuration, catalog, recovery, Trash, and log data under
   `Data` so the mod root and `Character Presets` stay focused.
@@ -463,7 +489,7 @@ screenshots demonstrate Character Preset Manager itself.
   one-action folder restoration.
 - Adds **Remove Folder, Keep Presets** with safe Imported-directory cleanup and
   complete `.cpmfolder` export/import for sharing virtual folder trees.
-- Adds optional format-5 notes and tags and renames the physical file with its
+- Adds optional format-7 metadata and renames the physical file with its
   preset.
 - Moves reminder and sorting preferences into Settings and a human-editable
   config.
