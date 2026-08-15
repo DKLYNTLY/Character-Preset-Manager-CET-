@@ -19,7 +19,7 @@
 > removing either mod.
 
 <details open>
-<summary><strong>✨ Features at a glance</strong></summary>
+<summary><strong>✨ Features</strong></summary>
 
 - **Complete appearance presets** — Save and load full appearances, including
   exposed CC and CCXL options.
@@ -48,7 +48,7 @@
 </details>
 
 <details>
-<summary><strong>📦 Installation, requirements, and hotkeys</strong></summary>
+<summary><strong>📦 Requirements, Installation & Hotkeys</strong></summary>
 
 ### Requirements
 
@@ -83,10 +83,31 @@ files remain readable so established preset libraries are not lost, but all new
 presets and shared folders use the current system. Do not leave an older mod
 folder installed beside this one.
 
+### Runtime data layout
+
+The install root contains only `init.lua`, `Character Presets`, and `Data` from
+this mod. Virtual folders never create physical directories. CPM-owned files
+are grouped under:
+
+```text
+Data/
+|-- Config/
+|-- Catalog/
+|-- Recovery/
+|   `-- Trash/
+`-- Logs/
+    `-- Archive/
+```
+
+Version 3.0.3 does not move loose files created by older releases. For the
+clean layout, remove the old mod installation before installing 3.0.3, while
+backing up and restoring only the presets or bundles you want to keep from
+`Character Presets`.
+
 </details>
 
 <details open>
-<summary><strong>💾 Saving, loading, and settings</strong></summary>
+<summary><strong>💾 Using Character Preset Manager</strong></summary>
 
 ### Saving a preset
 
@@ -146,9 +167,9 @@ is required.
 </details>
 
 <details>
-<summary><strong>📁 Folders, preset management, Trash, and sharing</strong></summary>
+<summary><strong>📁 Organizing Presets & Folders</strong></summary>
 
-### Organizing presets
+### Folders & preset management
 
 - **Folder controls** — Folder rows use CET's native drawn arrow, so the open
   and closed indicator works with every font.
@@ -173,7 +194,7 @@ is required.
   selected. Rename and Duplicate stay visible, while the less-used tags and
   notes remain behind **Optional Preset Details**.
 
-### Virtual and imported folders
+### Virtual folders
 
 Folders created through CET are virtual. They organize presets without creating
 or renaming directories in File Explorer. Their organization is stored in:
@@ -183,6 +204,8 @@ Data/Catalog/Virtual Folders.txt
 ```
 
 There is no fixed virtual-folder limit.
+
+### Imported folders
 
 Directories created manually inside `Character Presets` are discovered
 recursively and labeled **Imported**. Their files remain in their original
@@ -197,24 +220,17 @@ physical locations until an operation explicitly needs to relocate them.
 - Discovery stops when an entry cannot be verified or nesting exceeds 12 levels.
 - Linked folders and junctions are not supported.
 
-### Deleting and restoring presets
+### Remove Folder, Keep Presets
 
-- Moving a selected preset to Trash keeps it recoverable.
-- A selected folder and all of its presets can be moved to Trash directly under
-  **Folders**. **More Trash Options** handles filtered multi-selection.
-- **Select All Visible** and **Clear Selection** help manage filtered results.
-- Folder Trash removes the logical tree and keeps all presets recoverable.
-  An imported physical directory is removed when it becomes empty; unknown
-  content keeps the directory in place and is never deleted.
-- **Restore Folder** rebuilds the complete logical folder tree, including empty
-  nested virtual folders, and restores every preset in that Trash group.
-  Restored files receive safe storage names in the main `Character Presets`
-  directory; their original folder paths are restored virtually. Name conflicts
-  receive a `Copy` name instead of overwriting an existing preset.
-- Individual presets may also be restored separately.
-- Only **Empty Trash Permanently** destroys trashed preset files.
-- Interrupted Trash, restore, bulk-move, and physical-rename operations are
-  resolved through the recovery journal at startup.
+After confirmation, **Remove Folder, Keep Presets** moves a folder's presets
+and nested folders to its parent. For an Imported folder, recognized `.preset`
+files are safely relocated to the main preset folder first. The physical
+directory is removed only if no unknown files remain.
+
+</details>
+
+<details>
+<summary><strong>🔗 Sharing & Importing</strong></summary>
 
 ### Sharing individual presets
 
@@ -236,7 +252,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 - **Safety limits:** Imported presets are limited to 1 MB, 8,192 lines, 4,096
   valid options, 256 bytes per option key, and unsigned 32-bit option indexes.
 
-### Sharing and importing complete folders
+### Sharing complete folders
 
 A `.cpmfolder` file contains one selected virtual folder, all nested virtual
 folders, and every preset inside that tree. Notes, tags, and other supported
@@ -294,31 +310,35 @@ The displayed bundle list is cached while the menu is open and refreshed when
 the overlay opens, **Refresh** is selected, or a bundle is imported, exported,
 moved to Trash, or restored.
 
-### Runtime data layout
+</details>
 
-The install root contains only `init.lua`, `Character Presets`, and `Data` from
-this mod. Virtual folders never create physical directories. CPM-owned files
-are grouped under:
+<details>
+<summary><strong>🗑️ Trash & Recovery</strong></summary>
 
-```text
-Data/
-|-- Config/
-|-- Catalog/
-|-- Recovery/
-|   `-- Trash/
-`-- Logs/
-    `-- Archive/
-```
+### Trash and recovery
 
-Version 3.0.3 does not move loose files created by older releases. For the
-clean layout, remove the old mod installation before installing 3.0.3, while
-backing up and restoring only the presets or bundles you want to keep from
-`Character Presets`.
+- Moving a selected preset to Trash keeps it recoverable.
+- A selected folder and all of its presets can be moved to Trash directly under
+  **Folders**. **More Trash Options** handles filtered multi-selection.
+- **Select All Visible** and **Clear Selection** help manage filtered results.
+- Folder Trash removes the logical tree and keeps all presets recoverable.
+  An imported physical directory is removed when it becomes empty; unknown
+  content keeps the directory in place and is never deleted.
+- **Restore Folder** rebuilds the complete logical folder tree, including empty
+  nested virtual folders, and restores every preset in that Trash group.
+  Restored files receive safe storage names in the main `Character Presets`
+  directory; their original folder paths are restored virtually.
+- Individual presets may also be restored separately.
+- Name conflicts receive a safe `Copy` name instead of overwriting an existing
+  preset.
+- Only **Empty Trash Permanently** destroys trashed preset files.
+- Interrupted Trash, restore, bulk-move, and physical-rename operations are
+  resolved through the recovery journal at startup.
 
 </details>
 
 <details>
-<summary><strong>🧩 Compatibility and known issues</strong></summary>
+<summary><strong>🧩 Compatibility & Known Issues</strong></summary>
 
 ### ✅ CC and CCXL character-option mods
 
@@ -422,7 +442,7 @@ mods together.
 </details>
 
 <details>
-<summary><strong>🛠 Troubleshooting, activity log, and FAQ</strong></summary>
+<summary><strong>🛠 Troubleshooting & FAQ</strong></summary>
 
 ### Activity log
 
@@ -470,7 +490,9 @@ screenshots demonstrate Character Preset Manager itself.
 </details>
 
 <details>
-<summary><strong>🆕 Version 3.0.3 highlights</strong></summary>
+<summary><strong>🆕 Changelog</strong></summary>
+
+### Version 3.0.3
 
 - Saves stable selector-slot and selected-choice identities in format-7 presets
   so newly inserted CCXL choices do not silently redirect a saved hairstyle to
@@ -517,7 +539,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete history of every release.
 </details>
 
 <details>
-<summary><strong>🤝 Credits, AI disclosure, and links</strong></summary>
+<summary><strong>🤝 Credits & AI Disclosure</strong></summary>
 
 ### AI disclosure
 
