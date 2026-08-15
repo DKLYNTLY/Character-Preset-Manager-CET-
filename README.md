@@ -335,6 +335,10 @@ addresses are ignored and use the saved numeric index instead. Choice matching
 is spread across normal loading passes and cached, while an option that a mod
 immediately resets is deferred so it cannot block every option after it.
 
+Status messages remain visible while the CET overlay is open and clear when the
+overlay closes, so results and errors do not disappear while you are reading
+them.
+
 Older presets contain only LocKeys and numeric indexes. If adding hairs shifts
 the Hairstyle list, an old index may select a different hair and cannot reveal
 which hair was originally intended. Correct the hair and color manually once,

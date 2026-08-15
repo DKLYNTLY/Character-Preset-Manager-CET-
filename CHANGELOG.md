@@ -41,6 +41,8 @@ grouped into collapsible histories so the page remains easy to scan.
 - Defers options that a dependency immediately resets so later options can
   continue loading, and limits retries instead of applying the same option for
   dozens of passes.
+- Keeps status messages visible for the full CET overlay session and clears
+  them only when the overlay closes instead of after an eight-second timer.
 - Updates Help and documentation for format 7, Force Full Load, CCXL index drift,
   folder-bundle cleanup, and the manual correction required for older
   index-only presets.

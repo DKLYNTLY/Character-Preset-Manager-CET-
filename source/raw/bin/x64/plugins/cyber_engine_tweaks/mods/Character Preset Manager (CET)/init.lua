@@ -28,8 +28,6 @@ local AUTO_LOAD_INTERVAL = 0.40
 local AUTO_LOAD_MAX_PASSES = 400
 local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_OPEN_TIMEOUT = 5.0
-local STATUS_CLEAR_DELAY = 8.0
-local STATUS_UPDATE_INTERVAL = 0.25
 local MAX_TREE_DEPTH = 12
 local MAX_PRESET_BYTES = 1048576
 local MAX_PRESET_ENTRIES = 4096
@@ -179,9 +177,6 @@ local state = {
   cachedDisplayWidth = nil,
   clothingCheckDirty = true,
   cachedClothingLabels = nil,
-  statusUpdateTimer = 0,
-  statusTimers = {},
-  statusSnapshots = {},
   statusKinds = {},
 }
 
@@ -467,8 +462,6 @@ local function setStatus(section, message, isError, kind)
   state[section .. "Status"] = message
   state[section .. "StatusError"] = effectiveError
   state.statusKinds[section] = kind or inferredStatusKind(section, message, effectiveError)
-  state.statusSnapshots[section] = message
-  state.statusTimers[section] = 0
   if section == "load" then
     local transient = message:find("Applied one option.", 1, true) == 1
       or message:find("Cleared a remaining option.", 1, true) == 1
@@ -487,46 +480,13 @@ local function setStatus(section, message, isError, kind)
   end
 end
 
-local function statusShouldRemain(section, text)
-  if not text or text == "" then return true end
-  if section == "load" then
-    return state.autoLoad
-      or state.loadNeedsContinue
-      or text:find("Open the character creator", 1, true) == 1
-  end
-  if section == "editor" then return state.editorOpenPending end
-  if section == "delete" then
-    return state.pendingEmptyTrash == true or state.pendingDeleteName ~= nil
-      and state.pendingDeleteName == state.selected
-  end
-  if section == "bulk" then return state.pendingBulkAction ~= nil end
-  if section == "folder" then return state.pendingRemoveFolder ~= nil end
-  return false
-end
-
-local function updateStatusTimers(delta)
-  local elapsed = tonumber(delta) or 0
+local function clearSectionStatuses()
   for _, section in ipairs(STATUS_SECTIONS) do
-    local statusKey = section .. "Status"
-    local errorKey = section .. "StatusError"
-    local text = state[statusKey] or ""
-    if state.statusSnapshots[section] ~= text then
-      state.statusSnapshots[section] = text
-      state.statusTimers[section] = 0
-    elseif text ~= "" and not statusShouldRemain(section, text) then
-      local timer = (state.statusTimers[section] or 0) + elapsed
-      if timer >= STATUS_CLEAR_DELAY then
-        state[statusKey] = ""
-        state[errorKey] = false
-        state.statusSnapshots[section] = ""
-        state.statusTimers[section] = 0
-      else
-        state.statusTimers[section] = timer
-      end
-    else
-      state.statusTimers[section] = 0
-    end
+    state[section .. "Status"] = ""
+    state[section .. "StatusError"] = false
+    state.statusKinds[section] = nil
   end
+  state.lastLoggedFolderStatus = nil
 end
 
 local function sanitizeName(value)
@@ -6022,19 +5982,9 @@ end)
 
 registerForEvent("onUpdate", function(delta)
   local elapsed = tonumber(delta) or 0
-  local updateStatuses = state.overlayOpen and state.windowOpen
-  if not updateStatuses then state.statusUpdateTimer = 0 end
-  if not updateStatuses
-      and not state.editorOpenPending
+  if not state.editorOpenPending
       and not state.autoLoad then
     return
-  end
-  if updateStatuses then
-    state.statusUpdateTimer = state.statusUpdateTimer + elapsed
-    if state.statusUpdateTimer >= STATUS_UPDATE_INTERVAL then
-      updateStatusTimers(state.statusUpdateTimer)
-      state.statusUpdateTimer = 0
-    end
   end
   if state.editorOpenPending then
     state.editorOpenTimer = state.editorOpenTimer + elapsed
@@ -6097,7 +6047,6 @@ registerForEvent("onOverlayOpen", function()
   state.windowPositionCached = false
   state.cachedWindowX = nil
   state.cachedDisplayWidth = nil
-  state.statusUpdateTimer = 0
   refreshPresets("external")
   refreshTrash()
   refreshEditorState()
@@ -6106,7 +6055,7 @@ end)
 registerForEvent("onOverlayClose", function()
   log("[UI] CET overlay closed.", "info")
   state.overlayOpen = false
-  state.statusUpdateTimer = 0
+  clearSectionStatuses()
   cancelConfirmations()
 end)
 registerForEvent("onDraw", function()
