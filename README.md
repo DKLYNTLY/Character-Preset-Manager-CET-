@@ -279,15 +279,20 @@ Manager. Restore it under **Delete & Restore**, or remove it permanently with
 
 A successful import recreates the complete folder tree as virtual folders and
 leaves its source `.cpmfolder` file untouched. Character Preset Manager records
-the bundle filename and content fingerprint in
-`Data/Catalog/Imported Bundles.txt`; an unchanged bundle is skipped on later
-imports, while a changed bundle using the same filename can be imported again.
+the bundle filename, content fingerprint, and created root folder in
+`Data/Catalog/Imported Bundles.txt`. An unchanged bundle is skipped while its
+imported folder still exists. After deleting that imported folder, the same
+bundle can be imported again. A changed bundle using the same filename can also
+be imported again.
 If that folder name already exists, the imported folder receives a safe `Copy`
 name. A failed bundle is not recorded, so the error can be corrected and the
 import tried again. Bundles are imported only from `Character Presets`.
 After a successful import, the same **Folder Bundle Files** menu can move the
 source bundle to Trash so it no longer appears in later import scans. It can be
 restored without deleting the imported virtual folder or any imported preset.
+The displayed bundle list is cached while the menu is open and refreshed when
+the overlay opens, **Refresh** is selected, or a bundle is imported, exported,
+moved to Trash, or restored.
 
 ### Runtime data layout
 

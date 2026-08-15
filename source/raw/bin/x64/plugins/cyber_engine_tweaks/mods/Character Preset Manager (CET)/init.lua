@@ -171,6 +171,8 @@ local state = {
   cachedBulkNestedFolderCount = 0,
   bulkSelectionDirty = true,
   cachedBulkSelectedNames = {},
+  folderBundleFilesDirty = true,
+  cachedFolderBundleFiles = {},
   windowPositionCached = false,
   cachedWindowX = nil,
   cachedWindowY = nil,
@@ -1661,10 +1663,13 @@ local function hexDecode(value)
   end))
 end
 
-folderBundleFiles = function()
+folderBundleFiles = function(forceRefresh)
+  if not forceRefresh and not state.folderBundleFilesDirty then
+    return state.cachedFolderBundleFiles
+  end
   local bundles = {}
   local entries = safeDirectoryEntries(PRESET_DIR, 0)
-  if not entries then return bundles end
+  if not entries then return state.cachedFolderBundleFiles end
   for _, entry in ipairs(entries) do
     if entry.type == "file"
         and entry.name:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION then
@@ -1672,7 +1677,9 @@ folderBundleFiles = function()
     end
   end
   table.sort(bundles, function(a, b) return a:lower() < b:lower() end)
-  return bundles
+  state.cachedFolderBundleFiles = bundles
+  state.folderBundleFilesDirty = false
+  return state.cachedFolderBundleFiles
 end
 
 local function uniqueTrashedBundleFilename(filename)
@@ -1695,7 +1702,7 @@ trashSelectedFolderBundle = function()
     return
   end
   local selectedPath = nil
-  for _, path in ipairs(folderBundleFiles()) do
+  for _, path in ipairs(folderBundleFiles(true)) do
     local leaf = path:match("([^/]+)$")
     if leaf and leaf:lower() == selected:lower() then
       selected, selectedPath = leaf, path
@@ -1736,6 +1743,7 @@ trashSelectedFolderBundle = function()
   end
   state.trashBundles[trashFilename] = true
   state.selectedBundleFile = nil
+  state.folderBundleFilesDirty = true
   state.folderStatus, state.folderStatusError =
     ("Moved folder bundle \"%s\" to Trash. Presets and folders were not changed.")
       :format(selected), false
@@ -1752,10 +1760,20 @@ local function readImportedBundles()
     if line ~= "" then
       lineCount = lineCount + 1
       if lineCount > MAX_CATALOG_LINES then return nil, false end
-      local encodedName, fingerprint = line:match("^B\t([^\t]+)\t(%d+:%d+)$")
+      local encodedName, fingerprint, encodedRoot =
+        line:match("^B\t([^\t]+)\t(%d+:%d+)\t([^\t]+)$")
+      if not encodedName then
+        encodedName, fingerprint = line:match("^B\t([^\t]+)\t(%d+:%d+)$")
+      end
       local filename = encodedName and catalogDecode(encodedName) or nil
-      if not isFolderBundleFilename(filename) then return nil, false end
-      imported[filename:lower()] = { filename = filename, fingerprint = fingerprint }
+      local root = encodedRoot and catalogDecode(encodedRoot) or nil
+      if not isFolderBundleFilename(filename)
+          or (root ~= nil and not validBundlePath(root)) then return nil, false end
+      imported[filename:lower()] = {
+        filename = filename,
+        fingerprint = fingerprint,
+        root = root,
+      }
     end
   end
   return imported, true
@@ -1767,7 +1785,12 @@ local function writeImportedBundles(imported)
     if not isFolderBundleFilename(item.filename)
         or type(item.fingerprint) ~= "string"
         or not item.fingerprint:match("^%d+:%d+$") then return false end
-    table.insert(lines, "B\t" .. catalogEncode(item.filename) .. "\t" .. item.fingerprint)
+    local line = "B\t" .. catalogEncode(item.filename) .. "\t" .. item.fingerprint
+    if item.root ~= nil then
+      if not validBundlePath(item.root) then return false end
+      line = line .. "\t" .. catalogEncode(item.root)
+    end
+    table.insert(lines, line)
   end
   table.sort(lines, function(a, b) return a:lower() < b:lower() end)
   return writeLinesIfChanged(
@@ -1852,6 +1875,7 @@ exportSelectedFolderBundle = function()
   if not wrote then
     state.folderStatus, state.folderStatusError = "The folder bundle could not be written.", true; return
   end
+  state.folderBundleFilesDirty = true
   state.folderStatus, state.folderStatusError =
     ("Exported %d preset%s to %s. Share this one file.")
       :format(#names, #names == 1 and "" or "s", filename), false
@@ -1980,7 +2004,11 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   end
   local leaf = filename:match("([^/]+)$")
   local updatedImported = cloneMap(importedBundles)
-  updatedImported[leaf:lower()] = { filename = leaf, fingerprint = fingerprint }
+  updatedImported[leaf:lower()] = {
+    filename = leaf,
+    fingerprint = fingerprint,
+    root = root,
+  }
   if not writeImportedBundles(updatedImported) then
     writeCatalog(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders)
@@ -2002,7 +2030,7 @@ end
 
 importAvailableFolderBundles = function()
   auditSection("IMPORT FOLDER BUNDLES")
-  local files = folderBundleFiles()
+  local files = folderBundleFiles(true)
   if #files == 0 then
     state.folderStatus, state.folderStatusError =
       "Place a .cpmfolder file in Character Presets, then select Import Folder Bundles.", true; return
@@ -2016,14 +2044,19 @@ importAvailableFolderBundles = function()
   for _, filename in ipairs(files) do
     local leaf = filename:match("([^/]+)$")
     local fingerprint = fileFingerprint(filename, MAX_FOLDER_BUNDLE_BYTES)
+    local previousImport = importedBundles[leaf:lower()]
     if not fingerprint then
       table.insert(failures, filename .. ": Bundle fingerprint could not be read safely.")
-    elseif importedBundles[leaf:lower()]
-        and importedBundles[leaf:lower()].fingerprint == fingerprint then
+    elseif previousImport and previousImport.fingerprint == fingerprint
+        and previousImport.root and folderNameExists(previousImport.root) then
       skipped = skipped + 1
-      log(("[FOLDER BUNDLE] Skipped previously imported file='%s' fingerprint='%s'.")
-        :format(filename, fingerprint), "info")
+      log(("[FOLDER BUNDLE] Skipped previously imported file='%s' fingerprint='%s' root='%s'.")
+        :format(filename, fingerprint, previousImport.root), "info")
     else
+      if previousImport and previousImport.fingerprint == fingerprint then
+        log(("[FOLDER BUNDLE] Previously imported folder root='%s' is no longer present; reimporting file='%s'.")
+          :format(tostring(previousImport.root or "unknown"), filename), "info")
+      end
       local root, result = importFolderBundle(filename, fingerprint, importedBundles)
       if root then
         imported = imported + 1
@@ -2050,6 +2083,7 @@ end
 
 local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
     recoveryManualFolders)
+  state.folderBundleFilesDirty = true
   local currentPresets = state.presets or {}
   local currentFolders = state.folders or {}
   local previousPresets = currentPresets
@@ -3259,6 +3293,7 @@ restoreTrashBundle = function(filename)
   end
   state.trashBundles[filename] = nil
   state.selectedBundleFile = restoredFilename
+  state.folderBundleFilesDirty = true
   setStatus("delete", ("Restored folder bundle \"%s\" to Character Presets.")
     :format(restoredFilename))
   log(("[FOLDER BUNDLE] Restored Trash file='%s' as '%s'.")
@@ -5197,7 +5232,7 @@ draw = function()
       ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
       ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. New or changed bundles are processed; unchanged imported bundles are skipped.")
       ImGui.TextWrapped("Trash a bundle file: under All Presets (root), open Folder Bundle Files, select one file, and select Move Selected Bundle to Trash. Restore it under Delete & Restore, or remove it with Empty Trash Permanently. Its source or imported folder and presets remain available.")
-      ImGui.TextWrapped("After a successful import, the bundle stays untouched and its filename plus fingerprint are recorded in Data/Catalog/Imported Bundles.txt. An unchanged bundle is skipped; a changed bundle with the same filename can be imported again. Existing folder names receive a safe Copy name.")
+      ImGui.TextWrapped("After a successful import, the bundle stays untouched and its filename, fingerprint, and imported folder are recorded in Data/Catalog/Imported Bundles.txt. An unchanged bundle is skipped while that folder still exists. If the imported folder is deleted, the same bundle can be imported again. Existing folder names receive a safe Copy name.")
 
       helpHeading("Settings and Config")
       ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder stays enabled until you turn it off here.")

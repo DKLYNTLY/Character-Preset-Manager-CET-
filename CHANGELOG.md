@@ -43,6 +43,11 @@ grouped into collapsible histories so the page remains easy to scan.
   dozens of passes.
 - Keeps status messages visible for the full CET overlay session and clears
   them only when the overlay closes instead of after an eight-second timer.
+- Records the root folder created by each bundle import and skips an unchanged
+  bundle only while that imported folder still exists, allowing the same bundle
+  to be imported again after its folder is deleted.
+- Caches the `.cpmfolder` list used by the menu and refreshes it only for an
+  overlay rescan or bundle action instead of reading the directory every frame.
 - Updates Help and documentation for format 7, Force Full Load, CCXL index drift,
   folder-bundle cleanup, and the manual correction required for older
   index-only presets.
