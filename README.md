@@ -19,7 +19,7 @@
 > removing either mod.
 
 <details open>
-<summary><strong>✨ Features</strong></summary>
+<summary><strong>Features</strong></summary>
 
 - **Complete appearance presets** — Save and load full appearances, including
   exposed CC and CCXL options.
@@ -48,7 +48,7 @@
 </details>
 
 <details>
-<summary><strong>📦 Requirements, Installation & Hotkeys</strong></summary>
+<summary><strong>Requirements, Installation & Hotkeys</strong></summary>
 
 ### Requirements
 
@@ -107,7 +107,7 @@ backing up and restoring only the presets or bundles you want to keep from
 </details>
 
 <details open>
-<summary><strong>💾 Using Character Preset Manager</strong></summary>
+<summary><strong>Using Character Preset Manager</strong></summary>
 
 ### Saving a preset
 
@@ -167,7 +167,7 @@ is required.
 </details>
 
 <details>
-<summary><strong>📁 Organizing Presets & Folders</strong></summary>
+<summary><strong>Organizing Presets & Folders</strong></summary>
 
 ### Folders & preset management
 
@@ -230,7 +230,7 @@ directory is removed only if no unknown files remain.
 </details>
 
 <details>
-<summary><strong>🔗 Sharing & Importing</strong></summary>
+<summary><strong>Sharing & Importing</strong></summary>
 
 ### Sharing individual presets
 
@@ -313,7 +313,7 @@ moved to Trash, or restored.
 </details>
 
 <details>
-<summary><strong>🗑️ Trash & Recovery</strong></summary>
+<summary><strong>Trash & Recovery</strong></summary>
 
 ### Trash and recovery
 
@@ -338,9 +338,9 @@ moved to Trash, or restored.
 </details>
 
 <details>
-<summary><strong>🧩 Compatibility & Known Issues</strong></summary>
+<summary><strong>Compatibility & Known Issues</strong></summary>
 
-### ✅ CC and CCXL character-option mods
+### CC / CCXL CHARACTER OPTION MODS
 
 **Status: Supported**
 
@@ -370,7 +370,7 @@ which hair was originally intended. Correct the hair and color manually once,
 then overwrite or re-save the preset in format 7 before changing the CCXL setup
 again.
 
-### ✅ Custom character creators and customization fixes
+### CUSTOM CHARACTER CREATORS & CUSTOMIZATION FIXES
 
 **Status: Supported when using the vanilla customization system**
 
@@ -382,7 +382,7 @@ One compatible example is
 Keep the same EKT version, body and eye variants, other option mods, and load
 order for reliable preset results.
 
-### ❌ Appearance Change Unlocker (ACU)
+### APPEARANCE CHANGE UNLOCKER (ACU)
 
 **Status: Hard incompatible**
 
@@ -394,7 +394,7 @@ Compatible ACU preset files remain readable after ACU itself is removed. New
 presets should be created and shared with Character Preset Manager's current
 system.
 
-### ❌ Character Customization Anywhere
+### CHARACTER CUSTOMIZATION ANYWHERE
 
 **Status: Hard incompatible**
 
@@ -403,7 +403,7 @@ changes the same mirrors and character customization screens. Remove it and
 fully restart Cyberpunk. Character Preset Manager does not check for it
 automatically.
 
-### ✅ Photo Mode and Appearance Menu Mod
+### PHOTO MODE & APPEARANCE MENU MOD (AMM)
 
 **Status: Compatible with a usage limitation**
 
@@ -411,7 +411,7 @@ Both may remain installed, but Character Preset Manager cannot save or load from
 inside their interfaces. Use the Full Appearance Editor, a mirror, a ripperdoc,
 or the new-game editor instead.
 
-### ⚠️ Loading screen after customization
+### LOADING SCREEN AFTER CUSTOMIZATION
 
 **Status: Cyberpunk game issue**
 
@@ -442,7 +442,7 @@ mods together.
 </details>
 
 <details>
-<summary><strong>🛠 Troubleshooting & FAQ</strong></summary>
+<summary><strong>Troubleshooting & FAQ</strong></summary>
 
 ### Activity log
 
@@ -490,7 +490,7 @@ screenshots demonstrate Character Preset Manager itself.
 </details>
 
 <details>
-<summary><strong>🆕 Changelog</strong></summary>
+<summary><strong>Changelog</strong></summary>
 
 ### Version 3.0.3
 
@@ -539,7 +539,7 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete history of every release.
 </details>
 
 <details>
-<summary><strong>🤝 Credits & AI Disclosure</strong></summary>
+<summary><strong>Credits & AI Disclosure</strong></summary>
 
 ### AI disclosure
 
