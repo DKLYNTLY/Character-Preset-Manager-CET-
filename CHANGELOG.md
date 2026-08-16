@@ -84,6 +84,8 @@ used. See the README and in-game Help for current instructions.
   invalidation, and panel status resets without weakening their safety checks.
 - Removes two shared-folder cleanup attempts that ran before any files had been
   created and now reports if later partial files cannot be removed.
+- Fixes empty or partly drawn menu panels caused by core helpers being hidden
+  inside a Lua scope that the menu and startup handlers could not access.
 
 </details>
 

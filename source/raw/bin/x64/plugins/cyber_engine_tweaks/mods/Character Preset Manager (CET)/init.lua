@@ -356,9 +356,8 @@ local function logTimestamp()
   return "unknown-time"
 end
 
+local helpers = {}
 local closeActivityLog
-
-do
 
 local activityLogFile = nil
 
@@ -400,7 +399,7 @@ local function writeLog(message, level)
   return true
 end
 
-local function pruneLogArchives()
+helpers.pruneLogArchives = function()
   local listOk, files = pcall(dir, LOG_ARCHIVE_DIR)
   if not listOk or type(files) ~= "table" then
     return 0, "dated activity-log archives could not be listed"
@@ -430,7 +429,7 @@ local function pruneLogArchives()
   return deleted, nil
 end
 
-local function archiveLogForNewSession()
+helpers.archiveLogForNewSession = function()
   closeActivityLog()
   local file = io.open(LOG_FILE, "rb")
   if not file then return true, nil end
@@ -477,7 +476,7 @@ local function archiveLogForNewSession()
       return false, "the dated activity-log archive could not be written"
     end
 
-    local deleted, pruneError = pruneLogArchives()
+    local deleted, pruneError = helpers.pruneLogArchives()
 
     local fresh = io.open(LOG_FILE, "w")
     if not fresh then return false, "the activity log could not be cleared" end
@@ -532,7 +531,7 @@ local function clearStatus(section)
   state.statusKinds[section] = nil
 end
 
-local function clearSectionStatuses()
+helpers.clearSectionStatuses = function()
   for _, section in ipairs(STATUS_SECTIONS) do
     clearStatus(section)
   end
@@ -581,7 +580,7 @@ local function setEditorOpenStatus(message, isError, kind)
   log("[editor] " .. tostring(message), isError and "error" or "info")
 end
 
-local function activeWardrobeSetEquipped()
+helpers.activeWardrobeSetEquipped = function()
   local playerOk, player = pcall(Game.GetPlayer)
   if not playerOk or not player then return false, nil end
   local setOk, activeSet = pcall(EquipmentSystem.GetActiveWardrobeSetID, player)
@@ -589,7 +588,7 @@ local function activeWardrobeSetEquipped()
   return activeSet ~= gameWardrobeClothingSetIndex.INVALID, player
 end
 
-local function equippedClothingLabels()
+helpers.equippedClothingLabels = function()
   local playerOk, player = pcall(Game.GetPlayer)
   if not playerOk or not player then return nil end
   local dataOk, data = pcall(EquipmentSystem.GetData, player)
@@ -624,7 +623,7 @@ end
 
 local function temporarilyDisableWardrobe()
   if state.wardrobeTemporarilyDisabled then return true end
-  local active, player = activeWardrobeSetEquipped()
+  local active, player = helpers.activeWardrobeSetEquipped()
   if not active then return true end
   local system = equipmentSystem()
   if not system then
@@ -805,7 +804,7 @@ local function choiceCollectionValue(info, field, index, member)
   return ok and stableRuntimeValue(value) or nil
 end
 
-local function optionChoiceKey(option, index)
+helpers.optionChoiceKey = function(option, index)
   if not option or not option.info or type(index) ~= "number"
       or index ~= math.floor(index) or index < 0 or index > MAX_OPTION_INDEX then return nil end
   for _, source in ipairs({
@@ -851,7 +850,7 @@ local function optionChoiceMatchesIndex(option, choice, index)
   return choiceCollectionValue(option.info, field, index, member) == wanted
 end
 
-local function optionDisplayName(option, key)
+helpers.optionDisplayName = function(option, key)
   local candidates = {}
   if option and option.info then
     table.insert(candidates, option.info.name)
@@ -883,7 +882,7 @@ end
 
 local function optionAuditIdentity(option, key, occurrence)
   return ("%s | LocKey=%s | occurrence=%s")
-    :format(optionDisplayName(option, key), tostring(key or "unknown"),
+    :format(helpers.optionDisplayName(option, key), tostring(key or "unknown"),
       tostring(occurrence or 1))
 end
 
@@ -907,7 +906,7 @@ assert(optionIndexIsValid(0)
   and not optionIndexIsValid(4294967296),
   MOD_NAME .. " option-index validation contract failed")
 
-local function ignoreDiscoveryNotice()
+helpers.ignoreDiscoveryNotice = function()
   state.discoveryNoticeIgnored = true
   state.discoveryNoticePending = false
   state.discoveryNoticeLayout = nil
@@ -918,7 +917,7 @@ local function ignoreDiscoveryNotice()
   return saved == true
 end
 
-local function restoreDiscoveryNotice()
+helpers.restoreDiscoveryNotice = function()
   state.discoveryNoticeIgnored = false
   state.discoveryNoticeLayout = nil
   local saved = writeConfig and writeConfig()
@@ -1016,7 +1015,7 @@ local function invalidatePresetAndTrashCaches()
   if state.invalidateTrashViewCache then state.invalidateTrashViewCache() end
 end
 
-local function rebuildViewCache()
+helpers.rebuildViewCache = function()
   local presetNames = {}
   local folderNames = {}
   local presetsByFolder = {}
@@ -1056,7 +1055,7 @@ local function rebuildViewCache()
 end
 
 local function ensureViewCache()
-  if state.viewCacheDirty then rebuildViewCache() end
+  if state.viewCacheDirty then helpers.rebuildViewCache() end
 end
 
 local EMPTY_LIST = {}
@@ -1071,12 +1070,12 @@ local function sortedFolderNames()
   return state.cachedFolderNames
 end
 
-local function presetsInFolder(folder)
+helpers.presetsInFolder = function(folder)
   ensureViewCache()
   return state.cachedPresetsByFolder[folder] or EMPTY_LIST
 end
 
-local function rebuildFilteredViewCache()
+helpers.rebuildFilteredViewCache = function()
   ensureViewCache()
   local query = normalizeSearch(state.searchText)
   local visibleNames = {}
@@ -1111,11 +1110,11 @@ end
 local function ensureFilteredViewCache()
   local query = normalizeSearch(state.searchText)
   if state.filteredViewDirty or state.cachedSearchText ~= query then
-    rebuildFilteredViewCache()
+    helpers.rebuildFilteredViewCache()
   end
 end
 
-local function filteredPresetNames()
+helpers.filteredPresetNames = function()
   ensureFilteredViewCache()
   return state.cachedFilteredPresetNames
 end
@@ -1181,7 +1180,7 @@ local function catalogDecode(value)
   end))
 end
 
-local function readCatalog()
+helpers.readCatalog = function()
   local assignments, folders, ignored = {}, {}, {}
   local file = io.open(CATALOG_FILE, "rb")
   if not file then return assignments, folders, ignored, nil end
@@ -1706,7 +1705,7 @@ local function readVerifiedPresetCopy(expected, path)
   return copy
 end
 
-local function readInventory()
+helpers.readInventory = function()
   local presets, folders = {}, {}
   local contents, readError = readBoundedFile(INVENTORY_FILE, MAX_CATALOG_BYTES)
   if not contents then
@@ -1756,8 +1755,6 @@ local function readInventory()
     end
   end
   return presets, folders, true
-end
-
 end
 
 local function writeInventory(presets, folders)
@@ -2447,13 +2444,13 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   local previousFolders = currentFolders
   local baselineAvailable = state.ready
   if scanReason == "startup" then
-    previousPresets, previousFolders, baselineAvailable = readInventory()
+    previousPresets, previousFolders, baselineAvailable = helpers.readInventory()
     log(("[INVENTORY] Startup baseline available=%s presets=%d folders=%d.")
       :format(tostring(baselineAvailable),
         (function() local count = 0; for _ in pairs(previousPresets) do count = count + 1 end; return count end)(),
         (function() local count = 0; for _ in pairs(previousFolders) do count = count + 1 end; return count end)()), "info")
   end
-  local assignments, catalogFolders, ignoredPhysicalFolders, catalogStatus = readCatalog()
+  local assignments, catalogFolders, ignoredPhysicalFolders, catalogStatus = helpers.readCatalog()
   if catalogStatus == false then
     log("[FOLDER LIST] The preset scan stopped because the saved folder list is invalid.", "error")
     return currentPresets, false
@@ -2799,7 +2796,7 @@ local function savePreset(confirmOverwrite)
       end
       savedOccurrences[key] = (savedOccurrences[key] or 0) + 1
       local slot = optionSlot(option)
-      local choice = optionChoiceKey(option, currentIndex)
+      local choice = helpers.optionChoiceKey(option, currentIndex)
       log(("[SNAPSHOT] Saved %s index=%d slot='%s' choice='%s' editable=true active=true")
         :format(optionAuditIdentity(option, key, savedOccurrences[key]),
           currentIndex, tostring(slot or "none"), tostring(choice or "none")), "info")
@@ -5229,7 +5226,7 @@ local function drawSectionStatus(section, childId, height)
     local clockOk, now = pcall(os.clock)
     now = clockOk and tonumber(now) or 0
     if state.clothingCheckDirty or now >= (state.clothingCheckNextAt or 0) then
-      state.cachedClothingLabels = equippedClothingLabels()
+      state.cachedClothingLabels = helpers.equippedClothingLabels()
       state.clothingCheckDirty = false
       state.clothingCheckNextAt = now + 1
     end
@@ -5609,7 +5606,7 @@ ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
     "Search presets or folders", state.searchText, 65)
   if state.searchText ~= previousSearchText then invalidateFilteredViewCache() end
   ImGui.PopItemWidth()
-  local visibleNames = filteredPresetNames()
+  local visibleNames = helpers.filteredPresetNames()
   local selectedBulkNames = selectedBulkPresetNames()
   local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
   if ImGui.Button("Select All Visible##bulkSelectAll",
@@ -5742,8 +5739,8 @@ draw = function()
         or "Customization Reminder: Disabled"
       if fullWidthButton(reminderLabel .. "##discoveryPreference", actionButtonHeight) then
         local saved
-        if reminderEnabled then saved = ignoreDiscoveryNotice()
-        else saved = restoreDiscoveryNotice() end
+        if reminderEnabled then saved = helpers.ignoreDiscoveryNotice()
+        else saved = helpers.restoreDiscoveryNotice() end
         local currentState = state.discoveryNoticeIgnored and "disabled" or "enabled"
         if saved then
           state.settingsStatus = "Customization reminder " .. currentState .. ". Settings saved."
@@ -5948,7 +5945,7 @@ draw = function()
         end
       end
       for _, folder in ipairs(sortedFolderNames()) do
-        local folderPresets = presetsInFolder(folder)
+        local folderPresets = helpers.presetsInFolder(folder)
         local subtreeCount = state.cachedFolderPresetCounts[folder] or 0
         local folderMatches = state.cachedFolderMatches[folder] == true
         local matchingPresets = state.cachedMatchingPresetsByFolder[folder] or EMPTY_LIST
@@ -6409,7 +6406,7 @@ end
 
 registerForEvent("onInit", function()
   activitySequence = 0
-  local archived, archiveResult, cleanupWarning, deletedArchives = archiveLogForNewSession()
+  local archived, archiveResult, cleanupWarning, deletedArchives = helpers.archiveLogForNewSession()
   log(("========== Character Preset Manager (CET) v%s session started =========="):format(VERSION), "info")
   log("Log guide: CHANGE = an option was written; SNAPSHOT = an option was read while saving; SKIPPED = nothing was changed; SUMMARY = final result.", "info")
   if not archived then
@@ -6720,7 +6717,7 @@ registerForEvent("onOverlayClose", function()
   log("[UI] CET overlay closed.", "info")
   closeActivityLog()
   state.overlayOpen = false
-  clearSectionStatuses()
+  helpers.clearSectionStatuses()
   cancelConfirmations()
 end)
 registerForEvent("onDraw", function()

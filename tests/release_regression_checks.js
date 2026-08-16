@@ -19,6 +19,18 @@ function requireMatch(pattern, message) {
 }
 
 requireText('local VERSION = "3.0.4"', "The mod version changed unexpectedly.");
+requireText("local helpers = {}",
+  "Shared low-use helpers no longer use the main helper table.");
+rejectText("local closeActivityLog\n\ndo\n",
+  "Core helpers are scoped away from the menu and event handlers.");
+requireMatch(/local helpers = \{\}\s+local closeActivityLog\s+local activityLogFile/,
+  "Core helpers are no longer in the menu's visible Lua scope.");
+for (const helper of ["auditSection", "breadcrumb", "sortedPresetNames", "setStatus"]) {
+  requireText(`local function ${helper}`,
+    `${helper} is no longer a visible local helper.`);
+}
+requireText("helpers.clearSectionStatuses()",
+  "Overlay status cleanup can no longer reach its shared helper.");
 requireMatch(/not metadataOnly and readableFormatConfirmed\s+and readableKey == "Saved choice"/,
   "Format-8 choice details are no longer gated by the format header.");
 requireMatch(/not metadataOnly and readableFormatConfirmed\s+and readableKey == "Editor slot"/,
