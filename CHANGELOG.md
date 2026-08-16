@@ -132,6 +132,14 @@ used. See the README and in-game Help for current instructions.
   identify the replacement. The option check uses the same rule.
 - Extends the Activity Log measurements with targeted-check time and fallback
   counts.
+- Uses targeted checks between the first and final full dependency-stability
+  checks. This reduces the remaining full-scan stutters without allowing another
+  option to start before the final structure check.
+- Fixes formats below 7 losing a hair color after Force Full Load applied it.
+  Cleanup now revalidates and protects the exact forced selector instead of
+  resetting it to zero and then incorrectly reporting the preset as complete.
+- Returns to preset verification without clearing anything if the editor
+  structure changes immediately before cleanup.
 
 </details>
 

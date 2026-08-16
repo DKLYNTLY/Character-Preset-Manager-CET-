@@ -3017,6 +3017,7 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
     exposedBySlot = {},
     activeSlotCounts = {},
     descriptors = {},
+    structureChanged = false,
   }
   local occurrences, activeSlotCounts, signatureParts = {}, result.activeSlotCounts, {}
   local cached = not state.loadMetadataDisabled and state.loadMetadataCache or nil
@@ -3097,6 +3098,7 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
   local previousSignature = state.loadLastStructureSignature
   local previousDescriptors = state.loadLastStructureDescriptors
   if previousSignature and previousSignature ~= result.signature then
+    result.structureChanged = true
     state.loadStructureChanges = state.loadStructureChanges + 1
     state.loadMetadataCache = nil
     state.loadResolvedChoiceIndexes = {}
@@ -3160,7 +3162,8 @@ end
 helpers.pollPendingOption = function(options)
   local pending = state.loadPendingChange
   if not pending or state.forceFullLoad or state.loadMetadataDisabled
-      or not pending.position or pending.confirmedAt or pending.longSettle then
+      or not pending.position or pending.confirmedDisappeared
+      or (pending.longSettle and not pending.confirmedAt) then
     return "full"
   end
   local started = helpers.loadClock()
@@ -3196,6 +3199,16 @@ helpers.pollPendingOption = function(options)
     return "fallback"
   end
   local current = tonumber(candidate.currIndex) or 0
+  if pending.confirmedAt then
+    if current ~= pending.target
+        or state.loadElapsed - pending.confirmedAt
+          >= AUTO_LOAD_TIMING.dependencyStableTime then
+      return "full"
+    end
+    state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+    state.loadPendingElapsed = math.max(0, state.loadElapsed - pending.startedAt)
+    return "waiting"
+  end
   local timeout = pending.longSettle and AUTO_LOAD_TIMING.dependencyTimeout
     or AUTO_LOAD_TIMING.settleTimeout
   if current == pending.target
@@ -3237,6 +3250,7 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
     structureSignature = state.loadLastStructureSignature,
     confirmedAt = nil,
     confirmedSignature = nil,
+    confirmedDisappeared = false,
     longSettle = longSettle,
   }
   state.loadPendingElapsed = 0
@@ -3284,6 +3298,7 @@ helpers.checkPendingChange = function(system, scan)
         :format(pending.kind, pending.identity), "warn")
     end
   end
+  if candidate then pending.position = candidate.position end
   local current = candidate and (tonumber(candidate.option.currIndex) or 0) or nil
   local disappeared = candidate == nil
   local reached = not pending.choiceStructureChanged and current == pending.target
@@ -3296,6 +3311,7 @@ helpers.checkPendingChange = function(system, scan)
           or pending.confirmedSignature ~= scan.signature then
         pending.confirmedAt = state.loadElapsed
         pending.confirmedSignature = scan.signature
+        pending.confirmedDisappeared = disappeared
         state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
         setStatus("load", disappeared
           and "A dependent option was replaced. Waiting for the editor to settle."
@@ -3465,6 +3481,14 @@ local function loadPreset()
   local deferred = {}
   local unresolved = {}
   local seen = {}
+  if state.forceFullLoad and not state.loadMetadataDisabled then
+    state.loadMetadataCache = nil
+    state.loadMetadataDisabled = true
+    state.loadResolvedChoiceIndexes = {}
+    state.loadOptionIdentityCache = {}
+    state.loadDependencyRemaps = {}
+    log("[CACHE] Force Full Load fallback disabled metadata reuse for this load.", "info")
+  end
   if helpers.pollPendingOption(options) == "waiting" then return end
   local scan = helpers.scanLoadOptions(options, savedCounts, savedSlotCounts)
   local exposed = scan.exposed
@@ -3484,6 +3508,18 @@ local function loadPreset()
     return
   end
 
+  if state.loadPhase == "cleanup" and scan.structureChanged then
+    state.loadPhase = "verify"
+    state.loadReturnToCleanup = true
+    state.loadRemaining = valueCount
+    state.loadNeedsContinue = true
+    helpers.clearVisibleLoadSatisfaction(scan)
+    log("CLEANUP | The editor structure changed before cleanup. Verifying the preset again before clearing anything.", "info")
+    setStatus("load",
+      "The editor changed before cleanup. Checking the preset again first.")
+    return
+  end
+
   if state.loadPhase == "cleanup" then
     for _, exposedOption in ipairs(exposed) do
       local label = exposedOption.label
@@ -3492,11 +3528,16 @@ local function loadPreset()
       local current = tonumber(exposedOption.option.currIndex) or 0
       local remap = cleanupKey and state.loadDependencyRemaps[cleanupKey] or nil
       local keepRemap = remap and state.loadSatisfied[remap.savedKey]
+        and exposedOption.label == remap.label
+        and exposedOption.occurrence == remap.occurrence
+        and exposedOption.position == remap.position
         and exposedOption.slot == remap.slot
         and exposedOption.slotOccurrence == remap.slotOccurrence
-        and (activeSlotCounts[remap.slot] or 0) == remap.slotCount
-        and optionChoiceMatchesIndex(
-          exposedOption.option, remap.choice, remap.target)
+        and current == remap.target
+        and (not remap.slot
+          or (activeSlotCounts[remap.slot] or 0) == remap.slotCount)
+        and (not remap.choice or optionChoiceMatchesIndex(
+          exposedOption.option, remap.choice, remap.target))
       if remap and not keepRemap then
         state.loadDependencyRemaps[cleanupKey] = nil
       end
@@ -3701,6 +3742,9 @@ local function loadPreset()
           claimedOptions[candidate.option] = true
           state.loadDependencyRemaps[candidate.key] = {
             savedKey = savedKey,
+            label = candidate.label,
+            occurrence = candidate.occurrence,
+            position = candidate.position,
             slot = candidate.slot,
             slotOccurrence = candidate.slotOccurrence,
             slotCount = savedSlotCounts[entry.slot] or 0,
@@ -3748,17 +3792,9 @@ local function loadPreset()
     end
   end
   if state.forceFullLoad then
-    if not state.loadMetadataDisabled then
-      state.loadMetadataCache = nil
-      state.loadMetadataDisabled = true
-      state.loadResolvedChoiceIndexes = {}
-      state.loadOptionIdentityCache = {}
-      state.loadDependencyRemaps = {}
-      log("[CACHE] Force Full Load fallback disabled metadata reuse for this load.", "info")
-    end
     for _, entry in ipairs(orderedEntries or {}) do
       local savedKey = entry.key
-      if not seen[savedKey] and not state.loadSatisfied[savedKey]
+      if not seen[savedKey]
           and optionIndexIsValid(entry.index) then
         local candidate = nil
         local method = nil
@@ -3788,11 +3824,31 @@ local function loadPreset()
             or entry.index
           if target ~= nil and optionIndexIsValid(target) then
             seen[savedKey] = true
+            claimedOptions[candidate.option] = true
+            state.loadDependencyRemaps[candidate.key] = {
+              savedKey = savedKey,
+              label = candidate.label,
+              occurrence = candidate.occurrence,
+              position = candidate.position,
+              slot = candidate.slot,
+              slotOccurrence = candidate.slotOccurrence,
+              slotCount = candidate.slot
+                and (activeSlotCounts[candidate.slot] or 0) or 0,
+              choice = entry.choice,
+              target = target,
+            }
             local current = tonumber(candidate.option.currIndex) or 0
             if current == target then
               state.loadSatisfied[savedKey] = true
               state.loadUnconfirmed[savedKey] = nil
               state.loadForcedKeys[savedKey] = true
+            elseif state.loadSatisfied[savedKey] and state.loadUnconfirmed[savedKey] then
+              state.loadForcedKeys[savedKey] = true
+            elseif state.loadSatisfied[savedKey] then
+              state.loadForcedKeys[savedKey] = nil
+              deferred[savedKey] = true
+              missing = missing + 1
+              unresolved["reverted-force:" .. tostring(savedKey)] = true
             else
               local ok, applyError = helpers.beginPendingChange(
                 system, candidate, target, "apply", savedKey, current)

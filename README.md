@@ -120,7 +120,9 @@ the mod discards and rebuilds that information. It also checks quickly after
 ordinary changes and waits longer for hairstyles and other changes that rebuild
 related options. While an ordinary change is still pending, it checks only that
 option until the value changes or the time limit is reached. A full check always
-runs before the next option is applied.
+runs before the next option is applied. After the first full dependency check,
+the stable waiting period also uses the smaller check and finishes with another
+full check.
 
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
 
@@ -133,6 +135,11 @@ list. If a hairstyle replaces a related option under a new name, a current
 preset can match it automatically when its editor slot and unique saved choice
 both agree. **Force Full Load** can try less certain editor-position matches.
 Always check the result after changing option mods.
+
+When Force Full Load applies a renamed option from an older preset, post-load
+cleanup protects that exact live match. The protection remains only while its
+position, name, occurrence, slot, and applied number still agree. Cleanup cannot
+silently reset a forced hair color and then report it as applied.
 
 Older presets only know the option name and number. If new hairstyles shift the list, an older preset may choose the wrong hairstyle because it cannot know the original choice. Correct it once and save the preset again in the current format.
 
@@ -415,8 +422,12 @@ and I do not plan to release it.
 - Checks only the pending ordinary option between full safety checks, and avoids
   building temporary loader records for unrelated options. A full check still
   runs before another option is applied.
+- Uses the same smaller checks during the stable part of a hairstyle dependency
+  wait, with a full structure check at both ends.
 - Matches a renamed hairstyle-dependent option automatically only when its
   editor slot and unique saved choice both identify the replacement.
+- Keeps an older preset's Force Full Load match through cleanup only while the
+  exact selector and applied number remain valid.
 - Treats a hidden dependent option saved as zero as already clear instead of
   reporting it as missing.
 - Records option retrieval, full scanning, targeted checks, choice matching,

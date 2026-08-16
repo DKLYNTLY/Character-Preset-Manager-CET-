@@ -468,6 +468,99 @@ assert(state.loadNeedsContinue == false and state.loadStalled == false,
   "the safely remapped dependency fixture did not finish")
 assert(state.preflight.available == 2 and state.preflight.unavailable == 0,
   "the option check did not recognize a safe dependency replacement")
+assert(state.loadTargetPolls > 0,
+  "dependency stability waiting did not use targeted checks between full scans")
+for _, remap in pairs(state.loadDependencyRemaps) do
+  assert(remap.option == nil,
+    "dependency protection retained a live option object")
+end
+
+dependencyHair.currIndex = 0
+oldHairColor.currIndex = 0
+newHairColor.currIndex = 0
+customOptions = { dependencyHair, oldHairColor }
+resetLoadState()
+state.forceFullLoad = true
+state.selected = "dependency replacement full scan fixture"
+state.presets["dependency replacement full scan fixture"] = {
+  storage = "dependency replacement full scan fixture",
+  format = 8,
+  entries = state.presets["dependency replacement fixture"].entries,
+}
+state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+for _ = 1, 150 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+assert(newHairColor.currIndex == 1,
+  "full scanning produced a different dependency replacement result")
+assert(state.loadNeedsContinue == false and state.loadStalled == false,
+  "the full-scan dependency fixture did not finish")
+assert(state.loadMetadataDisabled == true,
+  "Force Full Load did not keep metadata reuse disabled")
+state.forceFullLoad = false
+applyHook = nil
+customOptions = nil
+
+local legacyBefore = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = { name = "legacy before" },
+}
+local legacyHairColor = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = { name = "renamed legacy hair color" },
+}
+local legacyAfter = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = { name = "legacy after" },
+}
+customOptions = { legacyBefore, legacyHairColor, legacyAfter }
+applyHook = function(option, index) option.currIndex = index end
+for _, format in ipairs({ 4, 5, 6 }) do
+  resetLoadState()
+  legacyHairColor.currIndex = 0
+  state.forceFullLoad = true
+  local name = "legacy forced hair color format " .. tostring(format)
+  state.selected = name
+  state.presets[name] = {
+    storage = name,
+    format = format,
+    entries = {
+      { key = "legacy before", index = 0 },
+      { key = "old legacy hair color", index = 5 },
+      { key = "legacy after", index = 0 },
+    },
+  }
+  state.resetBeforeLoad = true
+  loadPreset()
+  state.autoLoad = state.loadNeedsContinue
+  for _ = 1, 150 do
+    update(0.05)
+    if not state.autoLoad and not state.loadNeedsContinue then break end
+  end
+  assert(legacyHairColor.currIndex == 5,
+    "cleanup removed a format " .. tostring(format)
+      .. " hair color applied by Force Full Load")
+  assert(state.loadNeedsContinue == false and state.loadStalled == false,
+    "the protected format " .. tostring(format)
+      .. " Force Full Load fixture did not finish")
+  assert(state.loadForcedKeys["old legacy hair color\31" .. "1"] == true,
+    "the protected format " .. tostring(format)
+      .. " replacement was not reported as forced")
+  for _, remap in pairs(state.loadDependencyRemaps) do
+    assert(remap.option == nil,
+      "legacy cleanup protection retained a live option object")
+  end
+end
+state.forceFullLoad = false
 applyHook = nil
 customOptions = nil
 

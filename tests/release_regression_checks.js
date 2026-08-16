@@ -60,6 +60,12 @@ requireText("or (pendingOption and pendingOption.label == label)",
   "A pending option can disappear from the reduced live scan.");
 requireText('log(("DEPENDENCY REMAP |',
   "Renamed hairstyle-dependent options no longer require both slot and saved-choice proof.");
+requireText("state.loadDependencyRemaps[candidate.key]",
+  "Applied dependency replacements are no longer protected from cleanup.");
+requireText("current == remap.target",
+  "Cleanup can preserve a remapped option without confirming its applied value.");
+requireText("scan.structureChanged",
+  "Cleanup can run immediately after an unverified structure change.");
 requireText("state.loadElapsed - pending.attemptStartedAt",
   "Option settling is no longer based on elapsed time.");
 requireText("relevantLabels[label]",
