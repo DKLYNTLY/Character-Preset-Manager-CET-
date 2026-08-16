@@ -73,7 +73,9 @@ local saved = {
 local extraAttempts = 0
 local extraVisible = true
 local keepExtraVisible = false
+local keepSavedStale = false
 local applicationOrder = {}
+local savedAttempts = 0
 local customOptions = nil
 local system = {}
 function system:GetUnitedOptions()
@@ -86,7 +88,8 @@ function system:ApplyChangeToOption(option, index)
   if option == extra then
     extraAttempts = extraAttempts + 1
   else
-    option.currIndex = index
+    savedAttempts = savedAttempts + 1
+    if not keepSavedStale then option.currIndex = index end
     if not keepExtraVisible then extraVisible = false end
   end
 end
@@ -107,6 +110,7 @@ local update = assert(events.onUpdate, "onUpdate event was not registered")
 local state = upvalue(update, "state")
 local loadPreset = upvalue(update, "loadPreset")
 local resetLoadState = upvalue(loadPreset, "resetLoadState")
+local helpers = upvalue(loadPreset, "helpers")
 
 state.selected = "fixture"
 state.presets.fixture = {
@@ -130,8 +134,8 @@ assert(extraAttempts == 0,
 assert(state.loadNeedsContinue == false, "the loader did not finish")
 assert(state.loadStructureChanges > 0,
   "the dependent option disappearance was not measured")
-assert(state.loadMetadataDisabled == true,
-  "metadata reuse was not disabled after an option-structure change")
+assert(state.loadMetadataDisabled == false,
+  "a measured option-structure change disabled safe metadata for the whole load")
 for _, descriptor in ipairs(state.loadLastStructureDescriptors) do
   assert(descriptor.option == nil,
     "structure measurement retained a live option object")
@@ -161,8 +165,8 @@ end
 
 assert(applicationOrder[1] == "saved",
   "leftover cleanup ran before the saved preset option")
-assert(extraAttempts == 3,
-  "timed cleanup did not stop after three real attempts: " .. tostring(extraAttempts))
+assert(extraAttempts == 1,
+  "unconfirmed cleanup was applied more than once: " .. tostring(extraAttempts))
 assert(saved.currIndex == 2,
   "preset verification did not preserve the saved option")
 assert(state.loadNeedsContinue == false, "the timed cleanup fixture did not finish")
@@ -174,6 +178,35 @@ for _, descriptor in ipairs(state.loadMetadataCache.descriptors) do
   assert(descriptor.option == nil,
     "the metadata cache retained a live option object")
 end
+
+resetLoadState()
+saved.currIndex = 0
+savedAttempts = 0
+extraVisible = false
+keepExtraVisible = false
+keepSavedStale = true
+state.selected = "stale currIndex fixture"
+state.presets["stale currIndex fixture"] = {
+  storage = "stale currIndex fixture",
+  format = 8,
+  entries = { { key = "hairstyle", index = 2 } },
+}
+state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+for _ = 1, 100 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+assert(savedAttempts == 1,
+  "stale currIndex caused the same option to be applied repeatedly")
+assert(state.loadUnconfirmed["hairstyle\31" .. "1"] == true,
+  "stale currIndex was not retained as an unconfirmed result")
+assert(state.loadStatus:find("could not be confirmed", 1, true) ~= nil,
+  "the final status claimed an unconfirmed option was fully applied")
+assert(state.loadNeedsContinue == false,
+  "the stale currIndex fixture did not finish")
+keepSavedStale = false
 
 keepExtraVisible = false
 extraVisible = false
@@ -206,6 +239,68 @@ for _, format in ipairs({ 4, 7 }) do
   assert(state.loadNeedsContinue == false,
     "format " .. tostring(format) .. " preset did not finish")
 end
+
+customOptions = { saved }
+resetLoadState()
+saved.currIndex = 2
+state.selected = "hidden zero fixture"
+state.presets["hidden zero fixture"] = {
+  storage = "hidden zero fixture",
+  format = 8,
+  entries = {
+    { key = "hairstyle", index = 2 },
+    { key = "hidden child", index = 0 },
+  },
+}
+state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+for _ = 1, 100 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+assert(state.preflight.available == 2 and state.preflight.unavailable == 0,
+  "a hidden option already saved as zero was reported as unavailable")
+assert(state.loadSatisfied["hidden child\31" .. "1"] == true,
+  "a hidden option already saved as zero was not treated as clear")
+assert(state.loadNeedsContinue == false,
+  "the hidden zero fixture did not finish")
+
+local originalLoadChoiceShape = helpers.loadChoiceShape
+local choiceShapeCalls = 0
+helpers.loadChoiceShape = function(option)
+  choiceShapeCalls = choiceShapeCalls + 1
+  return originalLoadChoiceShape(option)
+end
+customOptions = { saved }
+for index = 1, 200 do
+  customOptions[#customOptions + 1] = {
+    currIndex = 0,
+    isEditable = true,
+    isActive = true,
+    info = { name = "irrelevant " .. tostring(index) },
+  }
+end
+resetLoadState()
+saved.currIndex = 2
+state.selected = "large scan fixture"
+state.presets["large scan fixture"] = {
+  storage = "large scan fixture",
+  format = 8,
+  entries = { { key = "hairstyle", index = 2 } },
+}
+state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+for _ = 1, 100 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+assert(choiceShapeCalls < 20,
+  "polling inspected every irrelevant option choice structure")
+assert(state.loadNeedsContinue == false,
+  "the large scan fixture did not finish")
+helpers.loadChoiceShape = originalLoadChoiceShape
 
 local repeatedA = {
   currIndex = 0,

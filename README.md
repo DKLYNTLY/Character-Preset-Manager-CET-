@@ -102,7 +102,8 @@ If that name already exists, confirm **Replace Existing Preset** only when you w
 2. Choose a preset under **Load Preset**.
 3. Check its folder, number of saved options, source, details, and compatibility summary.
 4. Select **Load Selected Preset** once.
-5. Wait for the green **Preset Fully Applied** message.
+5. Wait for the final result. A green message means every saved option was
+   confirmed. A yellow message names anything the game did not confirm.
 
 Cyberpunk may refresh the editor several times. The mod waits and continues on
 its own. It applies the saved appearance before clearing any remaining options,
@@ -115,9 +116,9 @@ and switch back. Other selected-preset details update at the same time.
 Automatic loading gets a fresh option list after every change. It reuses only
 checked names, positions, and saved-choice matches while the editor structure
 remains the same. If a change adds, removes, disables, or rearranges an option,
-the mod stops reusing that information for the rest of the load. It also checks
-quickly after ordinary changes and waits longer for hairstyles and other changes
-that rebuild related options.
+the mod discards and rebuilds that information. It also checks quickly after
+ordinary changes and waits longer for hairstyles and other changes that rebuild
+related options.
 
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
 
@@ -400,8 +401,13 @@ and I do not plan to release it.
 - Applies saved options before clearing remaining appearance choices, then checks
   the preset again after every cleanup change.
 - Waits for each live option value to change or for a dependent option to
-  disappear before continuing. Retries now use elapsed time instead of rapid
-  pass counts.
+  disappear before continuing. If the game keeps returning an old value, the
+  mod reports the option as unconfirmed instead of repeatedly applying it or
+  later claiming that every option was confirmed.
+- Limits full choice-list checks to options used by the preset. This avoids the
+  continuous slowdown found during the first instrumented 3.0.4 game test.
+- Treats a hidden dependent option saved as zero as already clear instead of
+  reporting it as missing.
 - Records option retrieval, scanning, choice matching, update waiting, structure
   changes, and safe metadata reuse in the Activity Log for loader testing.
 - Refreshes the selected preset's compatibility text while the editor changes.

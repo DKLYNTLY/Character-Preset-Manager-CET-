@@ -46,12 +46,16 @@ rejectText("loadCursor",
   "Automatic loading must restart from the live editor list after every change.");
 rejectText("AUTO_LOAD_FAST_INTERVAL",
   "Automatic loading must not use the removed fast snapshot interval.");
-requireText("AUTO_LOAD_TIMING.maximumAttempts",
-  "Timed option changes no longer have a bounded retry limit.");
+rejectText('log(("RETRY |',
+  "A stale currIndex can trigger repeated game changes again.");
+requireText('state.logLoadOnce("apply-not-confirmed:" .. pending.trackingKey',
+  "Stale currIndex results are no longer reported as unconfirmed.");
 requireText("helpers.checkPendingChange(system, scan)",
   "Loading no longer confirms changes against a fresh option list.");
 requireText("state.loadElapsed - pending.attemptStartedAt",
-  "Option retries are no longer based on elapsed time.");
+  "Option settling is no longer based on elapsed time.");
+requireText("relevantLabels[label]",
+  "Every polling pass can inspect every option's full choice structure again.");
 requireText('state.loadPhase = "cleanup"',
   "Leftover cleanup is no longer a separate post-apply phase.");
 requireText("post-apply leftover cleanup",
@@ -66,8 +70,8 @@ requireText("GetUnitedOptions calls=%d time=%.6fs",
   "Loader retrieval timing is missing from the Activity Log.");
 requireText("currIndex/dependency wait=%.3fs",
   "Loader settling timing is missing from the Activity Log.");
-requireText('state.logLoadOnce("cleanup-not-sticking:" .. pending.trackingKey',
-  "Cleanup no longer reports and skips an option that refuses to stay cleared.");
+requireText('state.logLoadOnce("cleanup-not-confirmed:" .. pending.trackingKey',
+  "Cleanup no longer reports an option whose cleared value cannot be confirmed.");
 requireText("state.logLoadOnce",
   "Repeated loading warnings are no longer deduplicated.");
 requireText("readPresetFile(path, metadataOnly)",

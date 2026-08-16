@@ -102,14 +102,24 @@ used. See the README and in-game Help for current instructions.
   before treating an application as successful. A successful game call alone is
   no longer enough.
 - Replaces rapid three-pass applications with elapsed-time deadlines and fresh
-  option lists. A retry happens only after the previous change had time to settle.
+  option lists. If the game keeps returning an old `currIndex`, the change is
+  reported as unconfirmed and is not applied repeatedly.
 - Polls ordinary changes quickly and gives hairstyles and other option-list
   rebuilds a longer stable period.
 - Reuses only validated text identities, editor positions, choice shapes, and
   saved-choice matches. It never keeps game option objects between passes and
-  returns to full scanning after any structural mismatch or Force Full Load use.
+  rebuilds stable metadata after an ordinary structure change. A failed identity
+  check or Force Full Load use returns to full scanning for the rest of the load.
 - Adds Activity Log measurements for option retrieval, scanning, choice matching,
   applied calls, live-value waiting, option-structure changes, and metadata reuse.
+- Limits full choice-structure inspection to preset-related options. The first
+  instrumented game test spent 65.1 of 70.2 seconds scanning all 1,496 exposed
+  options, which caused continuous lag.
+- Uses a clear final warning for saved options or cleanup changes the game did not
+  confirm. A later pass can no longer replace that warning with a false fully
+  applied message.
+- Treats a hidden dependent option saved as zero as already clear. It no longer
+  appears as missing in the option check or stops an otherwise complete load.
 
 </details>
 
