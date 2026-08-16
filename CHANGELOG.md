@@ -74,6 +74,12 @@ used. See the README and in-game Help for current instructions.
 - Fixes numbered Activity Log archives so they remain inside the Archive folder
   when two sessions receive the same date and time.
 - Removes unused diagnostic and option-position state.
+- Reconnects the fast loader to the current editor options before it reuses saved
+  work, preventing an old game reference from being applied after the list changes.
+- Checks newly discovered preset files during startup while continuing to reuse
+  lightweight saved details for presets that were already known.
+- Loads lightweight source presets before duplicating a folder, so an untouched
+  preset no longer causes copy verification to fail.
 
 </details>
 

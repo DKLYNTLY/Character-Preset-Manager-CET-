@@ -2464,11 +2464,22 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
             :format(scannedPresetCount), "error")
           return false
         end
-        local preset = scanReason == "startup" and {
-          entryCount = 0,
-          entryCountKnown = false,
-          lazy = true,
-        } or readPresetFile(path .. "/" .. filename, scanReason ~= "external")
+        local preset
+        if scanReason == "startup" then
+          local inventoryName = assignments[storage]
+          if not validRelativePath(inventoryName) then inventoryName = storage end
+          if type(previousPresets[inventoryName]) == "table" then
+            preset = {
+              entryCount = 0,
+              entryCountKnown = false,
+              lazy = true,
+            }
+          else
+            preset = readPresetFile(path .. "/" .. filename, true)
+          end
+        else
+          preset = readPresetFile(path .. "/" .. filename, scanReason ~= "external")
+        end
         if preset then
           if scanReason == "external" then
             preset.fingerprint = fileFingerprint(
@@ -2995,13 +3006,17 @@ local function loadPreset()
   if snapshot then
     local snapshotCurrent = #options == snapshot.optionCount
     if snapshotCurrent then
-      for _, exposedOption in ipairs(snapshot.exposed) do
-        if exposedOption.key and (not exposedOption.option.isEditable
-            or not exposedOption.option.isActive
-            or optionKey(exposedOption.option) ~= exposedOption.label) then
+      for index, exposedOption in ipairs(snapshot.exposed) do
+        local currentOption = options[index]
+        if not currentOption
+            or optionKey(currentOption) ~= exposedOption.label
+            or optionSlot(currentOption) ~= exposedOption.slot
+            or (not not currentOption.isEditable) ~= exposedOption.editable
+            or (not not currentOption.isActive) ~= exposedOption.active then
           snapshotCurrent = false
           break
         end
+        exposedOption.option = currentOption
       end
     end
     if not snapshotCurrent then
@@ -3039,6 +3054,8 @@ local function loadPreset()
         occurrence = occurrence,
         slot = slot,
         slotOccurrence = slotOccurrence,
+        editable = not not option.isEditable,
+        active = not not option.isActive,
       }
       table.insert(exposed, exposedOption)
       if key then
@@ -4824,6 +4841,12 @@ local function duplicateFolder()
   newFolders[destination] = true
   for name, preset in pairs(state.presets) do
     if isInFolderTree(parentFolder(name), source) then
+      if not state.hydratePreset(preset, presetPath(name)) then
+        local cleaned = removeFileList(createdFiles)
+        state.folderStatus, state.folderStatusError = cleaned
+          and "Folder duplication stopped because a source preset could not be read."
+          or "A source preset could not be read, and some partial files could not be removed.", true; return
+      end
       local mapped = remapFolderTreePath(name, source, destination)
       if findPresetCollision(mapped) or newPresets[mapped] then
         local cleaned = removeFileList(createdFiles)
@@ -4839,7 +4862,7 @@ local function duplicateFolder()
           or "Storage allocation failed, and some partial files could not be removed.", true; return
       end
       local path = PRESET_DIR .. "/" .. storage .. ".preset"
-      if not copyFile(PRESET_DIR .. "/" .. preset.storage .. ".preset", path) then
+      if not copyFile(presetPath(name), path) then
         table.insert(createdFiles, path)
         local cleaned = removeFileList(createdFiles)
         state.folderStatus, state.folderStatusError = cleaned

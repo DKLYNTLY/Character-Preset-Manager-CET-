@@ -29,6 +29,8 @@ requireText("AUTO_LOAD_LIMITS.passesPerOption",
   "Automatic loading no longer scales with the preset size.");
 requireText("state.loadSnapshot = snapshot",
   "Automatic loading no longer preserves its exposed-option snapshot.");
+requireText("exposedOption.option = currentOption",
+  "Automatic loading can retain stale game option references.");
 requireText("usingSnapshot and state.loadCursor or 1",
   "Automatic loading no longer resumes from its saved work cursor.");
 requireText("AUTO_LOAD_FAST_INTERVAL",
@@ -39,8 +41,10 @@ requireText("readPresetFile(path, metadataOnly)",
   "Preset files no longer support lightweight startup records.");
 requireText("state.hydratePreset",
   "Lightweight presets can no longer be loaded fully on demand.");
-requireText('scanReason == "startup" and {',
-  "Startup opens every preset instead of using lightweight inventory records.");
+requireText('type(previousPresets[inventoryName]) == "table"',
+  "Startup no longer reuses lightweight records for known presets.");
+requireText('preset = readPresetFile(path .. "/" .. filename, true)',
+  "New presets are no longer checked safely during startup.");
 requireText('line:match("^P2\\t',
   "The startup inventory no longer stores lightweight preset details.");
 rejectText('readPresetFile(TRASH_DIR .. "/" .. entry.name',
@@ -59,6 +63,8 @@ rejectText("readBoundedFile(filename, MAX_FOLDER_BUNDLE_BYTES)",
   "Shared-folder import reads the complete bundle into memory again.");
 requireText("state.ensureTrashViewCache()",
   "The Trash panel no longer uses its cached sorted view.");
+requireText("state.hydratePreset(preset, presetPath(name))",
+  "Folder duplication no longer loads lightweight source presets before checking copies.");
 requireText("local _, refreshed, changes = refreshPresets(\"external\")",
   "Refresh no longer reuses the scan's change counts.");
 requireText("PREFLIGHT_REFRESH_INTERVAL",
