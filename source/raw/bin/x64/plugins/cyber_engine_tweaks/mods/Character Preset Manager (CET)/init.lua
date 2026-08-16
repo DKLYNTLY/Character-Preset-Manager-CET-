@@ -26,7 +26,8 @@ local CURRENT_PRESET_FORMAT = 8
 local activitySequence = 0
 
 local AUTO_LOAD_INTERVAL = 0.40
-local AUTO_LOAD_MAX_PASSES = 400
+local AUTO_LOAD_MINIMUM_MAX_PASSES = 400
+local AUTO_LOAD_PASSES_PER_OPTION = 4
 local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_OPEN_TIMEOUT = 5.0
 local MAX_TREE_DEPTH = 12
@@ -209,21 +210,24 @@ local function fileFingerprint(path, maximumBytes)
     file:close()
     return nil
   end
-  local hash, bytesRead = 0, 0
+  local hash, secondHash, bytesRead = 0, 0, 0
   local ok = pcall(function()
     while true do
       local chunk = file:read(FILE_COPY_CHUNK_SIZE)
       if not chunk then break end
       bytesRead = bytesRead + #chunk
       for index = 1, #chunk do
-        hash = (hash * 131 + chunk:byte(index)) % 2147483647
+        local byte = chunk:byte(index)
+        hash = (hash * 131 + byte) % 2147483647
+        secondHash = (secondHash * 137 + byte) % 2147483629
       end
     end
   end)
   local closeOk, closeResult = pcall(file.close, file)
   if not ok or bytesRead ~= fileSize
       or not closeOk or closeResult == nil then return nil end
-  return tostring(bytesRead) .. ":" .. tostring(hash)
+  local legacy = tostring(bytesRead) .. ":" .. tostring(hash)
+  return "2:" .. legacy .. ":" .. tostring(secondHash), legacy
 end
 
 local function cancelConfirmations()
@@ -442,29 +446,16 @@ local function auditSection(title)
   log(("---------------- %s ----------------"):format(tostring(title)), "info")
 end
 
-local function inferredStatusKind(section, message, isError)
+local function defaultStatusKind(isError)
   if isError then return "error" end
-  if section == "load" and (message:find("Preset fully applied", 1, true)
-      or message:find("Open the character creator", 1, true) == 1) then return "success" end
-  if section == "create" and message:find("Saved ", 1, true) == 1 then return "success" end
-  if section == "rename" and (message:find("Renamed ", 1, true) == 1
-      or message:find("Duplicated ", 1, true) == 1
-      or message:find("Saved details ", 1, true) == 1) then return "success" end
-  if section == "delete" and (message:find("Moved ", 1, true) == 1
-      or message:find("Restored ", 1, true) == 1
-      or message == "Trash emptied permanently.") then return "success" end
-  if section == "bulk" and message:find("Moved ", 1, true) == 1 then return "success" end
-  if section == "editor" and message == "Full editor opened." then return "success" end
   return "info"
 end
 
 local function setStatus(section, message, isError, kind)
-  local loadStopped = section == "load"
-    and message:find("Loading stopped", 1, true) == 1
-  local effectiveError = isError == true or loadStopped
+  local effectiveError = isError == true
   state[section .. "Status"] = message
   state[section .. "StatusError"] = effectiveError
-  state.statusKinds[section] = kind or inferredStatusKind(section, message, effectiveError)
+  state.statusKinds[section] = kind or defaultStatusKind(effectiveError)
   if section == "load" then
     local transient = message:find("Applied one option.", 1, true) == 1
       or message:find("Cleared a remaining option.", 1, true) == 1
@@ -474,7 +465,7 @@ local function setStatus(section, message, isError, kind)
     local level = "load"
     if effectiveError then
       level = "load error"
-    elseif message:find("Preset fully applied", 1, true) == 1 then
+    elseif kind == "success" then
       level = "complete"
     end
     log(message, level)
@@ -533,10 +524,10 @@ end
 local isCustomizationActive
 local refreshPreflight
 
-local function setEditorOpenStatus(message, isError)
+local function setEditorOpenStatus(message, isError, kind)
   state.editorStatus = message
   state.editorStatusError = isError == true
-  state.statusKinds.editor = inferredStatusKind("editor", message, isError == true)
+  state.statusKinds.editor = kind or defaultStatusKind(isError == true)
   log("[editor] " .. tostring(message), isError and "error" or "info")
 end
 
@@ -1222,6 +1213,7 @@ local function readPresetFile(path)
   local entries = {}
   local metadata = { format = 4, source = "Legacy or ACU-compatible" }
   local lineNumber, malformed, pendingSlot, pendingChoice = 0, 0, nil, nil
+  local readableFormatConfirmed = false
   local lastEntry = nil
   for line in file:lines() do
     lineNumber = lineNumber + 1
@@ -1254,22 +1246,26 @@ local function readPresetFile(path)
         and stableChoiceIdentity(choice) or nil
     end
     local readableKey, readableValue = line:match("^# ([%a ]+):%s?(.*)$")
-    if readableKey == "Format" then
-      metadata.format = tonumber(readableValue) or metadata.format
-    elseif readableKey == "Source" then
+    if readableKey == "Format" and #entries == 0 then
+      local readableFormat = tonumber(readableValue)
+      if readableFormat and readableFormat >= CURRENT_PRESET_FORMAT then
+        metadata.format = readableFormat
+        readableFormatConfirmed = true
+      end
+    elseif readableFormatConfirmed and readableKey == "Source" then
       metadata.source = sanitizeMetadata(readableValue, 128)
-    elseif readableKey == "Created" then
+    elseif readableFormatConfirmed and readableKey == "Created" then
       metadata.created = sanitizeMetadata(readableValue, 64)
-    elseif readableKey == "Modified" then
+    elseif readableFormatConfirmed and readableKey == "Modified" then
       metadata.modified = sanitizeMetadata(readableValue, 64)
-    elseif readableKey == "Notes" then
+    elseif readableFormatConfirmed and readableKey == "Notes" then
       metadata.notes = sanitizeMetadata(readableValue, 512)
-    elseif readableKey == "Tags" then
+    elseif readableFormatConfirmed and readableKey == "Tags" then
       metadata.tags = sanitizeMetadata(readableValue, 128)
-    elseif readableKey == "Editor slot" and lastEntry then
+    elseif readableFormatConfirmed and readableKey == "Editor slot" and lastEntry then
       local slot = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES)
       lastEntry.slot = slot ~= "" and slot or nil
-    elseif readableKey == "Saved choice" and lastEntry then
+    elseif readableFormatConfirmed and readableKey == "Saved choice" and lastEntry then
       lastEntry.choice = stableChoiceIdentity(
         sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES * 4))
     end
@@ -1403,6 +1399,7 @@ local function atomicReplace(path, writeTemporary, description)
     log(("[FILES] Recovery attempted: backup='%s' target='%s' success=%s error=%s")
       :format(backup, path, tostring(recovered ~= nil), tostring(recoverError)),
       recovered and "info" or "error")
+    if not recovered then return false end
   end
   os.remove(temporary)
   if not writeTemporary(temporary) then
@@ -1410,7 +1407,10 @@ local function atomicReplace(path, writeTemporary, description)
     log(("[FILES] Could not write temporary %s '%s'."):format(description, temporary), "error")
     return false
   end
-  if os.rename(temporary, path) then return true end
+  if os.rename(temporary, path) then
+    os.remove(backup)
+    return true
+  end
 
   os.remove(backup)
   local movedOriginal = os.rename(path, backup)
@@ -1419,8 +1419,13 @@ local function atomicReplace(path, writeTemporary, description)
     return false
   end
   if not os.rename(temporary, path) then
-    os.rename(backup, path)
-    os.remove(temporary)
+    local restored, restoreError = os.rename(backup, path)
+    if restored then
+      os.remove(temporary)
+    else
+      log(("[FILES] Could not restore backup after replacing %s: backup='%s' target='%s' temporary='%s' error=%s")
+        :format(description, backup, path, temporary, tostring(restoreError)), "error")
+    end
     return false
   end
   os.remove(backup)
@@ -1586,14 +1591,30 @@ end
 
 local function readInventory()
   local presets, folders = {}, {}
-  local file = io.open(INVENTORY_FILE, "r")
-  if not file then return presets, folders, false end
-  for line in file:lines() do
-    local kind, name = line:match("^([PF]):(.*)$")
-    if kind == "P" and name ~= "" then presets[name] = true
-    elseif kind == "F" and name ~= "" then folders[name] = true end
+  local contents, readError = readBoundedFile(INVENTORY_FILE, MAX_CATALOG_BYTES)
+  if not contents then
+    if readError ~= "missing" then
+      log("[INVENTORY] The preset file list is unreadable or too large; it was not used as the startup comparison.", "warn")
+    end
+    return presets, folders, false
   end
-  file:close()
+  local lineCount = 0
+  for line in (contents .. "\n"):gmatch("(.-)\n") do
+    if line ~= "" then
+      lineCount = lineCount + 1
+      if lineCount > MAX_CATALOG_LINES then
+        log("[INVENTORY] The preset file list has too many lines; it was not used as the startup comparison.", "warn")
+        return {}, {}, false
+      end
+      local kind, name = line:match("^([PF]):(.*)$")
+      if kind == "P" and validRelativePath(name) then presets[name] = true
+      elseif kind == "F" and validRelativePath(name) then folders[name] = true
+      else
+        log("[INVENTORY] The preset file list contains an invalid line; it was not used as the startup comparison.", "warn")
+        return {}, {}, false
+      end
+    end
+  end
   return presets, folders, true
 end
 
@@ -1754,6 +1775,7 @@ local function uniqueTrashedBundleFilename(filename)
 end
 
 trashSelectedFolderBundle = function()
+  state.statusKinds.folder = nil
   auditSection("TRASH FOLDER BUNDLE")
   local selected = state.selectedBundleFile
   if not isFolderBundleFilename(selected) then
@@ -1807,6 +1829,7 @@ trashSelectedFolderBundle = function()
   state.folderStatus, state.folderStatusError =
     ("Moved shared-folder file \"%s\" to Trash. Presets and folders were not changed.")
       :format(selected), false
+  state.statusKinds.folder = "success"
   log(("[FOLDER BUNDLE] Moved file='%s' to Trash as '%s'.")
     :format(selectedPath, trashFilename), "complete")
 end
@@ -1821,7 +1844,14 @@ local function readImportedBundles()
       lineCount = lineCount + 1
       if lineCount > MAX_CATALOG_LINES then return nil, false end
       local encodedName, fingerprint, encodedRoot =
-        line:match("^B\t([^\t]+)\t(%d+:%d+)\t([^\t]+)$")
+        line:match("^B\t([^\t]+)\t(2:%d+:%d+:%d+)\t([^\t]+)$")
+      if not encodedName then
+        encodedName, fingerprint, encodedRoot =
+          line:match("^B\t([^\t]+)\t(%d+:%d+)\t([^\t]+)$")
+      end
+      if not encodedName then
+        encodedName, fingerprint = line:match("^B\t([^\t]+)\t(2:%d+:%d+:%d+)$")
+      end
       if not encodedName then
         encodedName, fingerprint = line:match("^B\t([^\t]+)\t(%d+:%d+)$")
       end
@@ -1844,7 +1874,8 @@ local function writeImportedBundles(imported)
   for _, item in pairs(imported or {}) do
     if not isFolderBundleFilename(item.filename)
         or type(item.fingerprint) ~= "string"
-        or not item.fingerprint:match("^%d+:%d+$") then return false end
+        or (not item.fingerprint:match("^%d+:%d+$")
+          and not item.fingerprint:match("^2:%d+:%d+:%d+$")) then return false end
     local line = "B\t" .. catalogEncode(item.filename) .. "\t" .. item.fingerprint
     if item.root ~= nil then
       if not validBundlePath(item.root) then return false end
@@ -1869,6 +1900,7 @@ local function uniqueFolderBundleFilename(folder)
 end
 
 exportSelectedFolderBundle = function()
+  state.statusKinds.folder = nil
   auditSection("EXPORT FOLDER BUNDLE")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
@@ -1939,6 +1971,7 @@ exportSelectedFolderBundle = function()
   state.folderStatus, state.folderStatusError =
     ("Exported %d preset%s to %s. Share this one file.")
       :format(#names, #names == 1 and "" or "s", filename), false
+  state.statusKinds.folder = "success"
   log(("[FOLDER BUNDLE] Exported folder='%s' presets=%d file='%s'.")
     :format(folder, #names, filename), "complete")
 end
@@ -2089,6 +2122,7 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
 end
 
 importAvailableFolderBundles = function()
+  state.statusKinds.folder = nil
   auditSection("IMPORT FOLDER BUNDLES")
   local files = folderBundleFiles(true)
   if #files == 0 then
@@ -2103,17 +2137,27 @@ importAvailableFolderBundles = function()
   local imported, skipped, failures, warnings = 0, 0, {}, {}
   for _, filename in ipairs(files) do
     local leaf = filename:match("([^/]+)$")
-    local fingerprint = fileFingerprint(filename, MAX_FOLDER_BUNDLE_BYTES)
+    local fingerprint, legacyFingerprint = fileFingerprint(filename, MAX_FOLDER_BUNDLE_BYTES)
     local previousImport = importedBundles[leaf:lower()]
+    local previouslySame = previousImport
+      and (previousImport.fingerprint == fingerprint
+        or previousImport.fingerprint == legacyFingerprint)
     if not fingerprint then
       table.insert(failures, filename .. ": The file could not be checked safely.")
-    elseif previousImport and previousImport.fingerprint == fingerprint
+    elseif previouslySame
         and previousImport.root and folderNameExists(previousImport.root) then
+      if previousImport.fingerprint ~= fingerprint then
+        previousImport.fingerprint = fingerprint
+        if not writeImportedBundles(importedBundles) then
+          table.insert(warnings,
+            filename .. ": The saved file check could not be updated, but the existing folder was kept.")
+        end
+      end
       skipped = skipped + 1
       log(("[FOLDER BUNDLE] Skipped previously imported file='%s' fingerprint='%s' root='%s'.")
         :format(filename, fingerprint, previousImport.root), "info")
     else
-      if previousImport and previousImport.fingerprint == fingerprint then
+      if previouslySame then
         log(("[FOLDER BUNDLE] Previously imported folder root='%s' is no longer present; reimporting file='%s'.")
           :format(tostring(previousImport.root or "unknown"), filename), "info")
       end
@@ -2136,6 +2180,7 @@ importAvailableFolderBundles = function()
         skipped,
         #warnings > 0 and (" " .. table.concat(warnings, " | ")) or "")
     state.folderStatusError = false
+    state.statusKinds.folder = "success"
   end
 end
 
@@ -2505,7 +2550,7 @@ local function savePreset(confirmOverwrite)
     :format(name, CURRENT_PRESET_FORMAT, #entries), "info")
   if writeInventory(state.presets, state.folders) then
     setStatus("create", ("Saved \"%s\" with %d options.")
-      :format(name, #entries))
+      :format(name, #entries), false, "success")
   else
     setStatus("create", ("Saved \"%s\", but the preset file list could not be updated.")
       :format(name), false, "warning")
@@ -2962,10 +3007,11 @@ local function loadPreset()
         "Preset fully applied: %d options applied in %d pass%s. Force Full Load matched %d option%s. " ..
         "Check the hair, hair color, and other forced options."
       ):format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es", forced,
-        forced == 1 and "" or "s"))
+        forced == 1 and "" or "s"), false, "success")
     else
       setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
-        :format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es"))
+        :format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es"),
+        false, "success")
     end
   end
 end
@@ -2976,27 +3022,59 @@ refreshPreflight = function()
   if not preset then return end
   local _, options = getOptions()
   if not options then return end
-  local savedCounts, exposedCounts = {}, {}
-  local invalid = 0
+  local savedCounts, savedSlotCounts = {}, {}
   for _, entry in ipairs(preset.entries or {}) do
     savedCounts[entry.key] = (savedCounts[entry.key] or 0) + 1
-    if not optionIndexIsValid(tonumber(entry.index)) then invalid = invalid + 1 end
+    local slot = tostring(entry.slot or "")
+    if slot ~= "" then savedSlotCounts[slot] = (savedSlotCounts[slot] or 0) + 1 end
   end
+  local exposedCounts, exposedByLabel, exposedBySlot = {}, {}, {}
+  local activeSlotCounts = {}
   for _, option in ipairs(options) do
     local key = optionKey(option)
     if key and option.isEditable and option.isActive then
       exposedCounts[key] = (exposedCounts[key] or 0) + 1
+      exposedByLabel[key] = exposedByLabel[key] or {}
+      table.insert(exposedByLabel[key], option)
+      local slot = optionSlot(option)
+      if slot then
+        activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
+        exposedBySlot[slot] = exposedBySlot[slot] or {}
+        table.insert(exposedBySlot[slot], option)
+      end
     end
   end
-  local available, unavailable, ambiguous = 0, 0, 0
-  for key, count in pairs(savedCounts) do
-    local exposed = exposedCounts[key] or 0
-    if exposed == count then
-      available = available + count
-    elseif exposed == 0 then
-      unavailable = unavailable + count
+  local available, unavailable, ambiguous, invalid = 0, 0, 0, 0
+  local savedOccurrences, savedSlotOccurrences, claimedOptions = {}, {}, {}
+  for _, entry in ipairs(preset.entries or {}) do
+    local key = entry.key
+    savedOccurrences[key] = (savedOccurrences[key] or 0) + 1
+    local candidate = nil
+    if (exposedCounts[key] or 0) == (savedCounts[key] or 0) then
+      candidate = (exposedByLabel[key] or {})[savedOccurrences[key]]
+    end
+    local slot = tostring(entry.slot or "")
+    if slot ~= "" then
+      savedSlotOccurrences[slot] = (savedSlotOccurrences[slot] or 0) + 1
+    end
+    if not candidate and state.forceFullLoad and slot ~= ""
+        and (savedSlotCounts[slot] or 0) == (activeSlotCounts[slot] or 0) then
+      local slotCandidate = (exposedBySlot[slot] or {})[savedSlotOccurrences[slot]]
+      if slotCandidate and not claimedOptions[slotCandidate] then candidate = slotCandidate end
+    end
+    if not optionIndexIsValid(tonumber(entry.index)) then
+      invalid = invalid + 1
+    elseif candidate and not claimedOptions[candidate] then
+      if entry.choice and optionChoiceIndex(candidate, entry.choice) == nil then
+        unavailable = unavailable + 1
+      else
+        available = available + 1
+        claimedOptions[candidate] = true
+      end
+    elseif (exposedCounts[key] or 0) == 0 then
+      unavailable = unavailable + 1
     else
-      ambiguous = ambiguous + count
+      ambiguous = ambiguous + 1
     end
   end
   state.preflight = {
@@ -3355,7 +3433,7 @@ restoreTrashBundle = function(filename)
   state.selectedBundleFile = restoredFilename
   state.folderBundleFilesDirty = true
   setStatus("delete", ("Restored shared-folder file \"%s\" to Character Presets.")
-    :format(restoredFilename))
+    :format(restoredFilename), false, "success")
   log(("[FOLDER BUNDLE] Restored Trash file='%s' as '%s'.")
     :format(filename, restoredFilename), "complete")
 end
@@ -3443,7 +3521,7 @@ trashPreset = function()
   state.renameStatus = ""
   state.renameStatusError = false
   if writeInventory(state.presets, state.folders) then
-    setStatus("delete", "Moved \"" .. old .. "\" to Trash.")
+    setStatus("delete", "Moved \"" .. old .. "\" to Trash.", false, "success")
   else
     setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the preset file list could not be updated.",
       false, "warning")
@@ -3701,7 +3779,7 @@ emptyTrash = function()
   elseif not catalogSaved then
     setStatus("delete", "Trash was emptied, but its list could not be updated.", true)
   else
-    setStatus("delete", "Trash emptied permanently.")
+    setStatus("delete", "Trash emptied permanently.", false, "success")
   end
 end
 
@@ -4043,12 +4121,14 @@ local function renamePreset()
   state.renameName = ""
   cancelConfirmations()
   resetLoadState()
-  setStatus("rename", "Renamed \"" .. old .. "\" to \"" .. newName .. "\".")
+  setStatus("rename", "Renamed \"" .. old .. "\" to \"" .. newName .. "\".",
+    false, "success")
   log(("[PRESET] Display and physical rename completed: '%s' -> '%s' storage='%s'.")
     :format(old, newName, preset.storage), "complete")
 end
 
 local function movePresetToSelectedFolder()
+  state.statusKinds.folder = nil
   auditSection("MOVE PRESET")
   if not state.selected or not state.presets[state.selected] then
     state.folderStatus, state.folderStatusError = "Select a preset before moving it.", true; return
@@ -4080,6 +4160,7 @@ local function movePresetToSelectedFolder()
   state.folderStatus, state.folderStatusError =
     ("Moved \"%s\" to %s."):format(baseName(newName),
       state.selectedFolder == "" and "All Presets" or state.selectedFolder), false
+  state.statusKinds.folder = "success"
   log(("[PRESET] Virtual move completed: '%s' -> '%s' storage='%s'.")
     :format(old, newName, preset.storage), "complete")
 end
@@ -4107,7 +4188,8 @@ local function savePresetMetadata()
   end
   state.presetNotes = preset.notes
   state.presetTags = preset.tags
-  setStatus("rename", "Saved details for \"" .. state.selected .. "\".")
+  setStatus("rename", "Saved details for \"" .. state.selected .. "\".",
+    false, "success")
 end
 
 local function duplicatePreset()
@@ -4153,12 +4235,14 @@ local function duplicatePreset()
   state.renameName = ""
   cancelConfirmations()
   resetLoadState()
-  setStatus("rename", ("Duplicated \"%s\" as \"%s\"."):format(source, destination))
+  setStatus("rename", ("Duplicated \"%s\" as \"%s\"."):format(source, destination),
+    false, "success")
   log(("[PRESET] Duplicate completed: source='%s' destination='%s' storage='%s'.")
     :format(source, destination, storage), "complete")
 end
 
 local function createFolder()
+  state.statusKinds.folder = nil
   auditSection("CREATE FOLDER")
   local leaf, nameError = validatedFolderName(state.folderName)
   if not leaf then state.folderStatus, state.folderStatusError = nameError, true; return end
@@ -4180,10 +4264,12 @@ local function createFolder()
   state.folderName = ""
   cancelConfirmations()
   state.folderStatus, state.folderStatusError = "Created folder \"" .. name .. "\".", false
+  state.statusKinds.folder = "success"
   log(("[FOLDER] Created virtual folder '%s'."):format(name), "complete")
 end
 
 local function renameFolder()
+  state.statusKinds.folder = nil
   auditSection("RENAME FOLDER")
   local old = state.selectedFolder
   if old == "" or not state.folders[old] then
@@ -4251,10 +4337,12 @@ local function renameFolder()
   resetLoadState()
   state.folderStatus, state.folderStatusError =
     ("Renamed folder \"%s\" to \"%s\"."):format(old, destination), false
+  state.statusKinds.folder = "success"
   log(("[FOLDER] Virtual rename completed: '%s' -> '%s'."):format(old, destination), "complete")
 end
 
 local function duplicateFolder()
+  state.statusKinds.folder = nil
   auditSection("DUPLICATE FOLDER")
   local source = state.selectedFolder
   if source == "" or not state.folders[source] then
@@ -4332,11 +4420,13 @@ local function duplicateFolder()
   cancelConfirmations()
   state.folderStatus, state.folderStatusError =
     ("Copied folder \"%s\" as \"%s\"."):format(source, destination), false
+  state.statusKinds.folder = "success"
   log(("[FOLDER] Virtual duplicate completed: source='%s' destination='%s' presets=%d.")
     :format(source, destination, #createdFiles), "complete")
 end
 
 local function removeVirtualFolder()
+  state.statusKinds.folder = nil
   auditSection("REMOVE VIRTUAL FOLDER")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
@@ -4491,6 +4581,7 @@ local function removeVirtualFolder()
           and ". Its empty Windows folder was also removed."
           or ". Its Windows folder was kept because it contains other files or could not be removed safely.")
         or "."), false
+  state.statusKinds.folder = "success"
 end
 
 local function refreshEditorState()
@@ -4620,7 +4711,7 @@ local function coloredWrapped(r, g, b, a, text)
   ImGui.PopStyleColor(1)
 end
 
-local function drawSectionStatus(section, childId, isSuccess, height)
+local function drawSectionStatus(section, childId, height)
   local text = state[section .. "Status"]
   if not text or text == "" then return end
   local kind = state.statusKinds[section]
@@ -4631,7 +4722,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
     and not isNewGameCharacterCreator()
     and not state.autoLoad
     and not state.loadNeedsContinue
-    and text:find("Open the character creator", 1, true) == 1
+    and kind == "ready"
   if checkClothing and state.clothingCheckDirty then
     state.cachedClothingLabels = equippedClothingLabels()
     state.clothingCheckDirty = false
@@ -4647,8 +4738,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   elseif clothingCheckUnavailable then
     text = "Clothing could not be checked. You may ignore this notice and load normally. If the game hangs when customization closes, unequip all clothing and select No Outfit before trying again."
   end
-  local success = not isError and (kind == "success"
-    or (kind == nil and isSuccess and isSuccess(text)))
+  local success = not isError and (kind == "success" or kind == "ready")
   local warning = not isError and kind == "warning"
   local destructiveWarning = (section == "delete"
       and (state.pendingEmptyTrash == true
@@ -4692,8 +4782,7 @@ local function drawSectionStatus(section, childId, isSuccess, height)
     ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "LOADING")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   elseif success then
-    local successLabel = text:find("Open the character creator", 1, true) == 1
-      and "READY" or "SUCCESS"
+    local successLabel = kind == "ready" and "READY" or "SUCCESS"
     ImGui.TextColored(0.3, 1.0, 0.4, 1.0, successLabel)
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   else
@@ -4702,34 +4791,6 @@ local function drawSectionStatus(section, childId, isSuccess, height)
   end
   ImGui.EndChild()
   if customColors then ImGui.PopStyleColor(2) end
-end
-
-local statusSuccess = {}
-
-statusSuccess.load = function(text)
-  return text:find("Preset fully applied", 1, true) ~= nil
-    or text:find("Open the character creator", 1, true) == 1
-end
-statusSuccess.create = function(text) return text:find("^Saved ") ~= nil end
-statusSuccess.rename = function(text)
-  return text:find("^Renamed ") ~= nil or text:find("^Duplicated ") ~= nil
-    or text:find("^Saved details ") ~= nil
-end
-statusSuccess.delete = function(text)
-  return text:find("^Moved ") ~= nil or text:find("^Restored ") ~= nil
-    or text == "Trash emptied permanently."
-end
-statusSuccess.bulk = function(text) return text:find("^Moved ") ~= nil end
-statusSuccess.editor = function(text) return text == "Full editor opened." end
-statusSuccess.folder = function(text)
-  return text:find("^Created folder ") ~= nil
-    or text:find("^Renamed folder ") ~= nil
-    or text:find("^Copied folder ") ~= nil
-    or text:find("^Removed folder ") ~= nil
-    or text:find("^Exported ") ~= nil
-    or text:find("^Imported ") ~= nil
-    or text:find("^Installed ") ~= nil
-    or text:find("^Moved ") ~= nil
 end
 
 local function setDebugLogText(text)
@@ -5092,7 +5153,7 @@ local function drawBulkTrashOptions(actionButtonHeight, statusHeight)
     requestBulkTrash(selectedBulkNames)
   end
   if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-  drawSectionStatus("bulk", "##bulkStatus", statusSuccess.bulk, statusHeight)
+  drawSectionStatus("bulk", "##bulkStatus", statusHeight)
 end
 
 draw = function()
@@ -5246,6 +5307,7 @@ draw = function()
       ImGui.TextWrapped("3. Select Load Selected Preset once.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
         "4. Wait for Preset Fully Applied.")
+      ImGui.TextWrapped("If you add, remove, or edit preset files outside CET, select Refresh under Load Preset before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "The mod may clear appearance options that are not saved in the preset.")
 
@@ -5316,7 +5378,7 @@ draw = function()
       openFullAppearanceEditor()
     end
     if editorUnavailable then ImGui.EndDisabled() end
-    drawSectionStatus("editor", "##editorStatus", statusSuccess.editor, statusHeight)
+    drawSectionStatus("editor", "##editorStatus", statusHeight)
     end
 
     if collapsibleSectionHeader("LOAD PRESET", "load") then
@@ -5458,6 +5520,7 @@ draw = function()
     if fullWidthButton(forceLoadLabel, actionButtonHeight) then
       state.forceFullLoad = not state.forceFullLoad
       resetLoadState()
+      refreshPreflight()
       log(("[UI] Force Full Load toggled %s.")
         :format(state.forceFullLoad and "on" or "off"), "info")
     end
@@ -5505,7 +5568,7 @@ draw = function()
       ImGui.TextDisabled(not state.selected and "Select a preset to enable loading."
         or "Open a customization screen to enable loading.")
     end
-    drawSectionStatus("load", "##loadStatus", statusSuccess.load, statusHeight)
+    drawSectionStatus("load", "##loadStatus", statusHeight)
     end
 
     if collapsibleSectionHeader("SAVE PRESET", "create") then
@@ -5564,7 +5627,7 @@ draw = function()
         and "Open a customization screen to enable saving."
         or "Enter a valid preset name to enable saving.")
     end
-    drawSectionStatus("create", "##createStatus", statusSuccess.create, statusHeight)
+    drawSectionStatus("create", "##createStatus", statusHeight)
     end
 
     if collapsibleSectionHeader("FOLDERS", "folders") then
@@ -5646,7 +5709,7 @@ draw = function()
       coloredWrapped(0.64, 0.67, 0.73, 1.0,
         ("Trash will include %d folder%s inside this one. You can restore them later.")
           :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
-      drawSectionStatus("bulk", "##folderBulkStatus", statusSuccess.bulk, statusHeight)
+      drawSectionStatus("bulk", "##folderBulkStatus", statusHeight)
     else
       local rootMoveUnavailable = not state.selected or parentFolder(state.selected) == ""
       if rootMoveUnavailable then ImGui.BeginDisabled() end
@@ -5708,7 +5771,7 @@ draw = function()
         state.lastLoggedFolderStatus = state.folderStatus
       end
     end
-    drawSectionStatus("folder", "##folderStatus", statusSuccess.folder, statusHeight)
+    drawSectionStatus("folder", "##folderStatus", statusHeight)
     end
 
     if collapsibleSectionHeader("RENAME & COPY", "manage") then
@@ -5745,7 +5808,7 @@ draw = function()
           end
           ImGui.Unindent(8)
         end
-        drawSectionStatus("rename", "##renameStatus", statusSuccess.rename, statusHeight)
+        drawSectionStatus("rename", "##renameStatus", statusHeight)
       end
     end
 
@@ -5842,7 +5905,7 @@ draw = function()
           end
         end
       end
-      drawSectionStatus("delete", "##trashStatus", statusSuccess.delete, statusHeight)
+      drawSectionStatus("delete", "##trashStatus", statusHeight)
     end
 
   end
@@ -6013,7 +6076,7 @@ registerForEvent("onInit", function()
         restoreTemporarilyDisabledWardrobe()
         return wrappedMethod()
       end
-      setEditorOpenStatus("Full editor opened.", false)
+      setEditorOpenStatus("Full editor opened.", false, "success")
     end
   )
 
@@ -6044,7 +6107,8 @@ registerForEvent("onInit", function()
   state.ready = true
   refreshEditorState()
   if recovered then
-    setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.")
+    setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.",
+      false, "ready")
   end
 end)
 
@@ -6107,7 +6171,11 @@ registerForEvent("onUpdate", function(delta)
   end
 
   state.autoLoadPasses = state.autoLoadPasses + 1
-  if state.autoLoadPasses > AUTO_LOAD_MAX_PASSES then
+  local maximumPasses = math.max(
+    AUTO_LOAD_MINIMUM_MAX_PASSES,
+    (tonumber(state.loadValueCount) or 0) * AUTO_LOAD_PASSES_PER_OPTION
+      + STALL_CONFIRMATION_PASSES + 8)
+  if state.autoLoadPasses > maximumPasses then
     state.autoLoad = false
     setStatus("load",
       "Automatic loading reached its safety limit without stopping or finishing. " ..
@@ -6126,7 +6194,7 @@ registerForEvent("onUpdate", function(delta)
 end)
 
 registerForEvent("onOverlayOpen", function()
-  log("[UI] CET overlay opened; showing Character Preset Manager and rescanning preset files.", "info")
+  log("[UI] CET overlay opened; showing Character Preset Manager. Use Refresh after changing preset files outside CET.", "info")
   if state.discoveryNoticePending then
     state.discoveryNoticePending = false
     state.discoveryNoticeLayout = nil
@@ -6138,8 +6206,6 @@ registerForEvent("onOverlayOpen", function()
   state.windowPositionCached = false
   state.cachedWindowX = nil
   state.cachedDisplayWidth = nil
-  refreshPresets("external")
-  refreshTrash()
   refreshEditorState()
   refreshPreflight()
 end)

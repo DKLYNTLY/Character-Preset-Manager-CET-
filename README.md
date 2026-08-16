@@ -194,6 +194,8 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 - To share an appearance, send its `.preset` file.
 - To install a preset, place its file in `Character Presets` or in a Windows folder inside it.
 - Select **Refresh** under **Load Preset** after changing files outside the game.
+- Opening the CET overlay does not scan every preset again. This keeps large
+  preset libraries responsive.
 - A single `.preset` file does not include its CET folder assignment.
 
 For safety, an imported preset cannot be larger than 1 MB or contain more than
@@ -227,7 +229,7 @@ The mod rebuilds the complete folder group and leaves the `.cpmfolder` file in p
 
 An unchanged bundle is skipped while its imported folder still exists. You can import it again after deleting that folder. You can also import a changed bundle that uses the same filename. If a folder name is already in use, the new folder gets a safe `Copy` name. A failed import is not marked as complete, so you can fix the file and try again.
 
-After a successful import, **Shared Folder Files** can move the source file to Trash without removing the imported folder or presets. The list updates when the CET overlay opens, when you select **Refresh**, and after any shared-folder action.
+After a successful import, **Shared Folder Files** can move the source file to Trash without removing the imported folder or presets. The list updates when you select **Refresh** and after any shared-folder action.
 
 </details>
 
@@ -363,6 +365,13 @@ No. The screenshots show the mod. The creator's personal character preset is not
 - Updates an older preset to format 8 when it is overwritten or when its optional
   notes or tags are saved.
 - Keeps the format-7 CCXL choice and editor-position information in the new layout.
+- Prevents comments in older preset files from changing how their options load.
+- Lets large valid presets finish instead of stopping at a fixed 400-pass limit.
+- Makes the option check use the same saved choices and editor positions as the
+  loader.
+- Keeps the menu faster by scanning external file changes only when you select
+  **Refresh**.
+- Strengthens file checks, backup recovery, and startup file limits.
 
 - New presets store stable information about editor options and selected choices. This helps them keep the correct CCXL choice when new items change a list.
 - **Force Full Load** can try a saved editor position when a related option was renamed. The mod warns when an older preset does not contain the information needed for this check.

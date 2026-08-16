@@ -28,6 +28,20 @@ used. See the README and in-game Help for current instructions.
 - Raises the safe line limit from 8,192 to 16,448 so the readable layout can
   still hold the existing maximum of 4,096 character options.
 - Updates Help and the README with the new layout and upgrade behavior.
+- Prevents ordinary comments in older presets from being treated as format-8
+  option details.
+- Lets automatic loading grow with the number of saved options instead of
+  stopping at a fixed 400-pass limit.
+- Makes the option check use saved choices and editor positions, so its result
+  is closer to what the loader can apply.
+- Stops rescanning every preset whenever the CET overlay opens. Select
+  **Refresh** after changing files outside CET.
+- Adds stronger checks before overwriting, deleting, moving, or reinstalling a
+  file while continuing to recognize older shared-folder records.
+- Improves backup recovery and places size and line limits on the saved preset
+  list used during startup.
+- Stores status types separately from their wording, so clearer text changes do
+  not alter warning or success colors.
 
 </details>
 
