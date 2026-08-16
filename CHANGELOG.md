@@ -86,6 +86,10 @@ used. See the README and in-game Help for current instructions.
   created and now reports if later partial files cannot be removed.
 - Fixes empty or partly drawn menu panels caused by core helpers being hidden
   inside a Lua scope that the menu and startup handlers could not access.
+- Fixes lightweight startup records being mistaken for fully loaded presets,
+  which made every preset show zero options and prevented it from loading.
+- Fixes clicking a selected preset in the bulk list so it is removed from the
+  selection instead of remaining selected.
 
 </details>
 

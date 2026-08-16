@@ -51,6 +51,12 @@ requireText("state.logLoadOnce",
   "Repeated loading warnings are no longer deduplicated.");
 requireText("readPresetFile(path, metadataOnly)",
   "Preset files no longer support lightweight startup records.");
+requireText("entries = not metadataOnly and entries or nil",
+  "Metadata-only reads can incorrectly keep an empty entries table.");
+rejectText("entries = metadataOnly and nil or entries",
+  "The broken metadata-only Lua expression returned.");
+rejectText("selectedForBulk and nil or true",
+  "Selected presets can no longer be removed from a bulk selection.");
 requireText("state.hydratePreset",
   "Lightweight presets can no longer be loaded fully on demand.");
 requireText("hydrateNamedPreset",

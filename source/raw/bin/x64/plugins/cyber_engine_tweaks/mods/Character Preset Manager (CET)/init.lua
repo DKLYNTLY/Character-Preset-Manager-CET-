@@ -1379,7 +1379,7 @@ local function readPresetFile(path, metadataOnly)
     modified = metadata.modified,
     notes = metadata.notes or "",
     tags = metadata.tags or "",
-    entries = metadataOnly and nil or entries,
+    entries = not metadataOnly and entries or nil,
     entryCount = entryCount,
     entryCountKnown = true,
     lazy = metadataOnly == true,
@@ -5634,7 +5634,11 @@ ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
       local selectedForBulk = state.bulkSelected[name] == true
       if ImGui.Selectable((selectedForBulk and "[x] " or "[ ] ") ..
           breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
-        state.bulkSelected[name] = selectedForBulk and nil or true
+        if selectedForBulk then
+          state.bulkSelected[name] = nil
+        else
+          state.bulkSelected[name] = true
+        end
         invalidateBulkSelectionCache()
         cancelConfirmations()
         clearStatus("bulk")
