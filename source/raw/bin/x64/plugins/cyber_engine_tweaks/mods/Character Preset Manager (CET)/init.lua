@@ -26,8 +26,6 @@ local CURRENT_PRESET_FORMAT = 8
 local activitySequence = 0
 
 local AUTO_LOAD_INTERVAL = 0.15
-local AUTO_LOAD_FAST_INTERVAL = 0.05
-local AUTO_LOAD_BATCH_SIZE = 6
 local PREFLIGHT_REFRESH_INTERVAL = 0.75
 local AUTO_LOAD_LIMITS = {
   minimum = 400,
@@ -119,11 +117,9 @@ local state = {
   loadForcedKeys = {},
   loadResolvedChoiceIndexes = {},
   loadApplyAttempts = {},
+  loadCleanupAttempts = {},
   loadLoggedWarnings = {},
   loadOptionIdentityCache = {},
-  loadSnapshot = nil,
-  loadCursor = 1,
-  loadChangesSinceScan = 0,
   forceFullLoad = false,
   pendingOverwriteName = nil,
   pendingOverwriteFingerprint = nil,
@@ -280,11 +276,9 @@ local function resetLoadState()
   state.loadForcedKeys = {}
   state.loadResolvedChoiceIndexes = {}
   state.loadApplyAttempts = {}
+  state.loadCleanupAttempts = {}
   state.loadLoggedWarnings = {}
   state.loadOptionIdentityCache = {}
-  state.loadSnapshot = nil
-  state.loadCursor = 1
-  state.loadChangesSinceScan = 0
   state.autoLoad = false
   state.autoLoadTimer = 0
   state.autoLoadPasses = 0
@@ -1730,6 +1724,8 @@ helpers.readInventory = function()
         local entryCount = count ~= "-" and tonumber(count) or nil
         local presetFormat = format ~= "-" and tonumber(format) or nil
         if not validRelativePath(name)
+            or (count ~= "-" and not entryCount)
+            or (format ~= "-" and not presetFormat)
             or (entryCount and (entryCount < 1 or entryCount > MAX_PRESET_ENTRIES))
             or (presetFormat and presetFormat < 1)
             or (fingerprint ~= "-" and not fingerprint:match("^2:%d+:%d+:%d+$")) then
@@ -1760,7 +1756,7 @@ end
 local function writeInventory(presets, folders)
   local lines = {}
   for name, preset in pairs(presets or {}) do
-    local count = preset and preset.entryCountKnown ~= false
+    local count = preset and preset.entryCountKnown == true
       and state.presetEntryCount(preset) or nil
     local format = tonumber(preset and preset.format)
     table.insert(lines, "P2\t" .. catalogEncode(name) .. "\t" ..
@@ -2516,8 +2512,8 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
             end
           end
           scannedPresetCount = scannedPresetCount + 1
-          local entryCount = preset.entryCountKnown == false
-            and 0 or state.presetEntryCount(preset)
+          local entryCount = preset.entryCountKnown == true
+            and state.presetEntryCount(preset) or 0
           scannedEntryCount = scannedEntryCount + entryCount
           if scannedEntryCount > AUTO_LOAD_LIMITS.maximumScannedEntries then
             log(("[FILES] Scan stopped after %d saved options because the library exceeds the safety limit.")
@@ -2985,30 +2981,40 @@ local function loadPreset()
         occurrence = activeOccurrences[label]
       end
       if occurrence and occurrence > (savedCounts[label] or 0) and current ~= 0 then
-        local ok, clearError = pcall(system.ApplyChangeToOption, system, option, 0)
-        if ok then
-          state.loadRemaining = valueCount
-          state.loadNeedsContinue = true
-          state.previousUnresolvedSignature = nil
-          state.unresolvedRepeatCount = 0
-          log(("CHANGE | pass=%d | %s | index %d -> 0 | reset leftover")
-            :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
-              current), "info")
-          setStatus("load", "Cleared a remaining option. Waiting for the editor.")
+        local cleanupKey = label .. "\31" .. tostring(occurrence)
+        local attempts = state.loadCleanupAttempts[cleanupKey] or 0
+        if attempts >= STALL_CONFIRMATION_PASSES then
+          state.logLoadOnce("cleanup-not-sticking:" .. cleanupKey,
+            ("[SKIPPED] A remaining option did not stay cleared after %d attempts: %s")
+              :format(attempts, state.loadOptionIdentity(option, label, occurrence)),
+            "warn")
         else
-          state.resetBeforeLoad = false
-          state.loadNeedsContinue = false
-          state.loadStalled = true
-          log(("FAILED | pass=%d | %s | index %d -> 0 | reset leftover | %s")
-            :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
-              current, tostring(clearError)), "error")
-          setStatus("load", 
-            "Loading stopped because a remaining option could not be cleared safely. " ..
-            "Close the editor without confirming, reopen it, and retry.",
-            true
-          )
+          local ok, clearError = pcall(system.ApplyChangeToOption, system, option, 0)
+          if ok then
+            state.loadCleanupAttempts[cleanupKey] = attempts + 1
+            state.loadRemaining = valueCount
+            state.loadNeedsContinue = true
+            state.previousUnresolvedSignature = nil
+            state.unresolvedRepeatCount = 0
+            log(("CHANGE | pass=%d | %s | index %d -> 0 | reset leftover")
+              :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
+                current), "info")
+            setStatus("load", "Cleared a remaining option. Waiting for the editor.")
+          else
+            state.resetBeforeLoad = false
+            state.loadNeedsContinue = false
+            state.loadStalled = true
+            log(("FAILED | pass=%d | %s | index %d -> 0 | reset leftover | %s")
+              :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
+                current, tostring(clearError)), "error")
+            setStatus("load",
+              "Loading stopped because a remaining option could not be cleared safely. " ..
+              "Close the editor without confirming, reopen it, and retry.",
+              true
+            )
+          end
+          return
         end
-        return
       end
     end
 
@@ -3026,98 +3032,39 @@ local function loadPreset()
   local deferred = {}
   local unresolved = {}
   local seen = {}
-  local snapshot = state.loadSnapshot
-  local usingSnapshot = snapshot ~= nil
-  if snapshot then
-    local snapshotCurrent = #options == snapshot.optionCount
-    if snapshotCurrent then
-      for index, exposedOption in ipairs(snapshot.exposed) do
-        local currentOption = options[index]
-        if not currentOption
-            or optionKey(currentOption) ~= exposedOption.label
-            or optionSlot(currentOption) ~= exposedOption.slot
-            or (not not currentOption.isEditable) ~= exposedOption.editable
-            or (not not currentOption.isActive) ~= exposedOption.active then
-          snapshotCurrent = false
-          break
-        end
-        exposedOption.option = currentOption
+  local exposed, activeKeySet, activeCounts = {}, {}, {}
+  local occurrences, activeExposed, exposedBySlot, activeSlotCounts = {}, {}, {}, {}
+  for _, option in ipairs(options) do
+    local label = optionKey(option)
+    local slot = optionSlot(option)
+    local key = nil
+    local occurrence = nil
+    local slotOccurrence = nil
+    if label and option.isEditable and option.isActive then
+      occurrences[label] = (occurrences[label] or 0) + 1
+      activeCounts[label] = occurrences[label]
+      occurrence = occurrences[label]
+      key = label .. "\31" .. tostring(occurrence)
+      if slot then
+        activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
+        slotOccurrence = activeSlotCounts[slot]
       end
     end
-    if not snapshotCurrent then
-      state.loadSnapshot = nil
-      state.loadCursor = 1
-      state.loadChangesSinceScan = 0
-      state.loadNeedsContinue = true
-      setStatus("load", "The editor options changed. Rechecking before continuing.")
-      return
-    end
-  end
-  if not snapshot then
-    local exposed, activeKeySet, activeCounts = {}, {}, {}
-    local occurrences, activeExposed, exposedBySlot, activeSlotCounts = {}, {}, {}, {}
-    for _, option in ipairs(options) do
-      local label = optionKey(option)
-      local slot = optionSlot(option)
-      local key = nil
-      local occurrence = nil
-      local slotOccurrence = nil
-      if label and option.isEditable and option.isActive then
-        occurrences[label] = (occurrences[label] or 0) + 1
-        activeCounts[label] = occurrences[label]
-        occurrence = occurrences[label]
-        key = label .. "\31" .. tostring(occurrence)
-        if slot then
-          activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
-          slotOccurrence = activeSlotCounts[slot]
-        end
-      end
-      local exposedOption = {
-        option = option,
-        label = label,
-        key = key,
-        occurrence = occurrence,
-        slot = slot,
-        slotOccurrence = slotOccurrence,
-        editable = not not option.isEditable,
-        active = not not option.isActive,
-      }
-      table.insert(exposed, exposedOption)
-      if key then
-        activeKeySet[key] = true
-        table.insert(activeExposed, exposedOption)
-        if slot then exposedBySlot[slot .. "\31" .. tostring(slotOccurrence)] = exposedOption end
-      end
-    end
-    local reusable = true
-    for key in pairs(values) do
-      if not activeKeySet[key] then reusable = false; break end
-      local label = occurrenceKeyParts(key)
-      if (savedCounts[label] or 0) ~= (activeCounts[label] or 0) then
-        reusable = false
-        break
-      end
-    end
-    snapshot = {
-      exposed = exposed,
-      activeKeySet = activeKeySet,
-      activeCounts = activeCounts,
-      activeExposed = activeExposed,
-      exposedBySlot = exposedBySlot,
-      activeSlotCounts = activeSlotCounts,
-      optionCount = #options,
-      reusable = reusable,
+    local exposedOption = {
+      option = option,
+      label = label,
+      key = key,
+      occurrence = occurrence,
+      slot = slot,
+      slotOccurrence = slotOccurrence,
     }
-    state.loadSnapshot = snapshot
-    state.loadCursor = 1
-    state.loadChangesSinceScan = 0
+    table.insert(exposed, exposedOption)
+    if key then
+      activeKeySet[key] = true
+      table.insert(activeExposed, exposedOption)
+      if slot then exposedBySlot[slot .. "\31" .. tostring(slotOccurrence)] = exposedOption end
+    end
   end
-  local exposed = snapshot.exposed
-  local activeKeySet = snapshot.activeKeySet
-  local activeCounts = snapshot.activeCounts
-  local activeExposed = snapshot.activeExposed
-  local exposedBySlot = snapshot.exposedBySlot
-  local activeSlotCounts = snapshot.activeSlotCounts
 
   local satisfiedBefore = 0
   for _, exposedOption in ipairs(exposed) do
@@ -3146,7 +3093,7 @@ local function loadPreset()
     end
   end
 
-  for i = usingSnapshot and state.loadCursor or 1, #exposed do
+  for i = 1, #exposed do
     local exposedOption = exposed[i]
     local option = exposedOption.option
     local label = exposedOption.label
@@ -3236,15 +3183,6 @@ local function loadPreset()
             state.loadNeedsContinue = true
             state.previousUnresolvedSignature = nil
             state.unresolvedRepeatCount = 0
-            state.loadCursor = i + 1
-            state.loadChangesSinceScan = state.loadChangesSinceScan + 1
-            if not snapshot.reusable
-                or state.loadChangesSinceScan >= AUTO_LOAD_BATCH_SIZE
-                or state.loadCursor > #exposed then
-              state.loadSnapshot = nil
-              state.loadCursor = 1
-              state.loadChangesSinceScan = 0
-            end
             log(("CHANGE | pass=%d | %s | index %s -> %s")
               :format(state.loadPass,
                 state.loadOptionIdentity(option, label, exposedOption.occurrence),
@@ -3254,9 +3192,6 @@ local function loadPreset()
                 state.loadRemaining == 1 and "option" or "options",
                 state.loadRemaining == 1 and "s" or ""))
           else
-            state.loadSnapshot = nil
-            state.loadCursor = 1
-            state.loadChangesSinceScan = 0
             state.loadNeedsContinue = false
             state.loadStalled = true
             log(("FAILED | pass=%d | %s | target index %s | %s")
@@ -3273,14 +3208,6 @@ local function loadPreset()
         end
       end
     end
-  end
-  if usingSnapshot then
-    state.loadSnapshot = nil
-    state.loadCursor = 1
-    state.loadChangesSinceScan = 0
-    state.loadNeedsContinue = true
-    setStatus("load", "Recent changes were applied. Checking the complete editor again.")
-    return
   end
   if state.forceFullLoad then
     local claimedOptions = {}
@@ -3330,9 +3257,6 @@ local function loadPreset()
               if ok then
                 state.loadSatisfied[savedKey] = true
                 state.loadForcedKeys[savedKey] = true
-                state.loadSnapshot = nil
-                state.loadCursor = 1
-                state.loadChangesSinceScan = 0
                 state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
                 state.loadNeedsContinue = true
                 state.previousUnresolvedSignature = nil
@@ -3389,9 +3313,6 @@ local function loadPreset()
   end
   state.loadRemaining = missing + ambiguous + invalid
   if state.loadRemaining > 0 then
-    state.loadSnapshot = nil
-    state.loadCursor = 1
-    state.loadChangesSinceScan = 0
     local signature = unresolvedSignature(unresolved)
     if state.previousUnresolvedSignature == signature then
       state.unresolvedRepeatCount = state.unresolvedRepeatCount + 1
@@ -6666,9 +6587,7 @@ registerForEvent("onUpdate", function(delta)
   end
 
   state.autoLoadTimer = state.autoLoadTimer + elapsed
-  local loadInterval = state.loadSnapshot and AUTO_LOAD_FAST_INTERVAL
-    or AUTO_LOAD_INTERVAL
-  if state.autoLoadTimer < loadInterval then return end
+  if state.autoLoadTimer < AUTO_LOAD_INTERVAL then return end
   state.autoLoadTimer = 0
 
   if not state.selected then

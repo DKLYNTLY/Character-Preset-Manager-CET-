@@ -1,5 +1,6 @@
 const fs = require("fs");
 const path = require("path");
+const childProcess = require("child_process");
 
 const root = path.resolve(__dirname, "..");
 const sourcePath = path.join(root, "source", "raw", "bin", "x64", "plugins",
@@ -39,14 +40,16 @@ requireText("readBoundedFile(INVENTORY_FILE, MAX_CATALOG_BYTES)",
   "The startup preset list is no longer size-limited.");
 requireText("AUTO_LOAD_LIMITS.passesPerOption",
   "Automatic loading no longer scales with the preset size.");
-requireText("state.loadSnapshot = snapshot",
-  "Automatic loading no longer preserves its exposed-option snapshot.");
-requireText("exposedOption.option = currentOption",
-  "Automatic loading can retain stale game option references.");
-requireText("usingSnapshot and state.loadCursor or 1",
-  "Automatic loading no longer resumes from its saved work cursor.");
-requireText("AUTO_LOAD_FAST_INTERVAL",
-  "Automatic loading no longer uses its faster interval while reusing safe work.");
+rejectText("loadSnapshot",
+  "Automatic loading must rescan the live editor instead of retaining game option references.");
+rejectText("loadCursor",
+  "Automatic loading must restart from the live editor list after every change.");
+rejectText("AUTO_LOAD_FAST_INTERVAL",
+  "Automatic loading must not use the removed fast snapshot interval.");
+requireText("state.loadCleanupAttempts[cleanupKey] = attempts + 1",
+  "Cleanup can retry the same editor option forever.");
+requireText('state.logLoadOnce("cleanup-not-sticking:" .. cleanupKey',
+  "Cleanup no longer reports and skips an option that refuses to stay cleared.");
 requireText("state.logLoadOnce",
   "Repeated loading warnings are no longer deduplicated.");
 requireText("readPresetFile(path, metadataOnly)",
@@ -67,6 +70,14 @@ requireText('preset = readPresetFile(path .. "/" .. filename, true)',
   "New presets are no longer checked safely during startup.");
 requireText('line:match("^P2\\t',
   "The startup inventory no longer stores lightweight preset details.");
+requireText('count ~= "-" and not entryCount',
+  "Malformed preset counts can be accepted as unknown inventory values.");
+requireText('format ~= "-" and not presetFormat',
+  "Malformed preset formats can be accepted as unknown inventory values.");
+requireMatch(/preset and preset\.entryCountKnown == true\s+and state\.presetEntryCount\(preset\) or nil/,
+  "Unknown preset counts can be written to the inventory as real zeroes.");
+requireMatch(/local entryCount = preset\.entryCountKnown == true\s+and state\.presetEntryCount\(preset\) or 0/,
+  "Preset scans can treat an unknown option count as a real zero.");
 rejectText('readPresetFile(TRASH_DIR .. "/" .. entry.name',
   "Startup Trash discovery parses every trashed preset again.");
 requireText("maximumScannedEntries",
@@ -125,7 +136,9 @@ if (overlayHandler.includes("refreshPresets(") || overlayHandler.includes("refre
 const parserPath = path.join(root, ".audit_lua_parser", "node_modules", "luaparse");
 if (fs.existsSync(parserPath)) {
   const luaparse = require(parserPath);
-  const syntaxTree = luaparse.parse(source, { luaVersion: "5.3" });
+  const syntaxTree = luaparse.parse(source, {
+    luaVersion: "5.3", scope: true, locations: true,
+  });
   function mainBlockLocalUsage(statements, startingLocals) {
     let active = startingLocals;
     let maximum = startingLocals;
@@ -159,6 +172,65 @@ if (fs.existsSync(parserPath)) {
   if (mainLocals > 190) {
     throw new Error(`The main Lua function uses ${mainLocals} active locals; keep it at 190 or fewer to stay safely below CET's 200-local limit.`);
   }
+
+  const allowedGlobals = new Set([
+    "EquipmentSystem", "Game", "GetBind", "GetDisplayResolution",
+    "GetLocalizedTextByKey", "ImGui", "ImGuiCol", "ImGuiCond",
+    "ImGuiStyleVar", "ImGuiWindowFlags", "IsBound", "ItemID",
+    "LocKeyToString", "MorphMenuUserData", "NameToString", "Observe",
+    "Override", "QuestDisableWardrobeSetRequest", "QuestRestoreWardrobeSetRequest",
+    "ToCName", "assert", "bit32", "dir", "gameWardrobeClothingSetIndex",
+    "gamedataEquipmentArea", "gameuiCharacterCustomizationEditTag", "io",
+    "ipairs", "math", "next", "os", "pairs", "pcall", "registerForEvent",
+    "registerHotkey", "registerInput", "string", "table", "tonumber",
+    "tostring", "type",
+  ]);
+  const unexpectedGlobals = new Map();
+  function findUnexpectedGlobals(node, parent, parentKey) {
+    if (!node || typeof node !== "object") return;
+    if (node.type === "Identifier" && !node.isLocal) {
+      const propertyName = parent && parent.type === "MemberExpression" &&
+        parentKey === "identifier";
+      const tableKey = parent && parent.type === "TableKeyString" &&
+        parentKey === "key";
+      const declarationName = parent && parent.type === "FunctionDeclaration" &&
+        parentKey === "identifier";
+      if (!propertyName && !tableKey && !declarationName &&
+          !allowedGlobals.has(node.name)) {
+        if (!unexpectedGlobals.has(node.name)) unexpectedGlobals.set(node.name, []);
+        unexpectedGlobals.get(node.name).push(node.loc.start.line);
+      }
+    }
+    for (const [key, value] of Object.entries(node)) {
+      if (key === "loc" || key === "range") continue;
+      if (Array.isArray(value)) {
+        for (const child of value) findUnexpectedGlobals(child, node, key);
+      } else {
+        findUnexpectedGlobals(value, node, key);
+      }
+    }
+  }
+  findUnexpectedGlobals(syntaxTree, null, "");
+  if (unexpectedGlobals.size > 0) {
+    const details = [...unexpectedGlobals]
+      .map(([name, lines]) => `${name} at ${lines.join(", ")}`).join("; ");
+    throw new Error(`Lua references names outside their visible scope: ${details}`);
+  }
+}
+
+const fengariPath = path.join(root, ".audit_lua_runtime", "node_modules",
+  "fengari-node-cli", "src", "lua-cli.js");
+if (fs.existsSync(fengariPath)) {
+  const smokePath = path.join(root, "tests", "runtime_smoke.lua");
+  const result = childProcess.spawnSync(process.execPath,
+    [fengariPath, smokePath, sourcePath], {
+    cwd: root,
+    encoding: "utf8",
+  });
+  if (result.status !== 0) {
+    throw new Error(`Lua behavior smoke test failed:\n${result.stdout || ""}${result.stderr || ""}`);
+  }
+  process.stdout.write(result.stdout);
 }
 
 console.log("Release regression checks: OK");

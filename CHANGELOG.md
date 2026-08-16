@@ -56,9 +56,8 @@ used. See the README and in-game Help for current instructions.
   only when it is selected, loaded, edited, restored, copied, exported, or
   checked with **Refresh**.
 - Stops a library scan safely if it exceeds the preset or saved-option limits.
-- Keeps a short automatic-loading work list between checks, uses a faster wait
-  while the editor remains stable, and rebuilds the list when editor options
-  change.
+- Rechecks the live editor after every applied option so loading never continues
+  with an old game option list.
 - Refreshes the selected preset's compatibility summary while the character
   editor changes. Selecting another preset and switching back is no longer
   needed.
@@ -90,6 +89,10 @@ used. See the README and in-game Help for current instructions.
   which made every preset show zero options and prevented it from loading.
 - Fixes clicking a selected preset in the bulk list so it is removed from the
   selection instead of remaining selected.
+- Keeps unknown startup option counts unknown and rejects damaged saved-list
+  counts instead of turning either case into a real zero-option preset.
+- Stops retrying the same leftover editor option forever when the game reports
+  success but does not keep the change, then continues applying the preset.
 
 </details>
 
