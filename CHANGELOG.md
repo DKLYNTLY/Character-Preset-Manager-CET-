@@ -5,7 +5,34 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.3</strong></summary>
+<summary><strong>Latest release — 3.0.4</strong></summary>
+
+## 3.0.4
+
+*Readable preset files with full older-format support.*
+
+- Adds format 8 for newly saved presets.
+- Replaces percent-encoded header values such as `%20` and `%3A` with plain text.
+- Gives each file a clear title, preset information, and short instructions for
+  reading its appearance entries.
+- Keeps the familiar `OptionKey:SavedNumber` line for every character option.
+- Places **Editor slot** and **Saved choice** on clearly labeled lines below the
+  option they describe.
+- Continues reading every older Character Preset Manager format and compatible
+  ACU preset files.
+- Ignores ordinary comment lines instead of reporting them as damaged preset data.
+- Updates an older preset to format 8 when the user overwrites it or saves its
+  optional notes or tags. Simply finding or loading an older file does not change it.
+- Keeps all format-7 CCXL choice matching and **Force Full Load** information in
+  the new layout.
+- Raises the safe line limit from 8,192 to 16,448 so the readable layout can
+  still hold the existing maximum of 4,096 character options.
+- Updates Help and the README with the new layout and upgrade behavior.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.3</strong></summary>
 
 ## 3.0.3
 

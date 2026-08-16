@@ -10,7 +10,7 @@
   <a href="CHANGELOG.md">Full changelog</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.3</strong></p>
+<p align="center"><strong>Current version: 3.0.4</strong></p>
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -65,13 +65,20 @@ The Help panel shows the assigned keys when CET makes that information available
 
 ### Update from an older release
 
-New presets use format 7. Older Character Preset Manager presets and compatible ACU `.preset` files can still be loaded. New presets and shared folders use the current system.
+New presets use format 8. Its file layout is easier to read, but it keeps the
+same appearance information introduced with format 7. Older Character Preset
+Manager presets and compatible ACU `.preset` files can still be loaded.
 
-Do not keep an older copy of the mod beside the current one. Version 3.0.3 does not move loose files left by older releases. For a clean update:
+Existing preset files are not rewritten just because the mod finds them. Saving
+over an older preset updates it to format 8. Saving its optional notes or tags
+also updates that file. Keep a backup before replacing any preset you may still
+want to use with an older mod version.
+
+Do not keep an older copy of the mod beside the current one. Version 3.0.4 does not move loose files left by older releases. For a clean update:
 
 1. Back up the presets and `.cpmfolder` files you want to keep from `Character Presets`.
 2. Remove the old Character Preset Manager folder.
-3. Install version 3.0.3.
+3. Install version 3.0.4.
 4. Put your saved presets and bundles back in `Character Presets`.
 
 </details>
@@ -103,11 +110,34 @@ Loading stops if the same options are still missing after three checks. The mod 
 
 ### What a preset saves
 
-Format-7 presets store each visible option, its position in the editor, its selected choice when a stable name is available, and its number in the choice list. They can also store the source, date, notes, and tags.
+Format-8 presets store each visible option, its position in the editor, its selected choice when a stable name is available, and its number in the choice list. They can also store the source, date, notes, and tags.
 
 This information helps the mod find a saved choice after CCXL adds items to a list. **Force Full Load** can also try the saved editor position when a related option was renamed. Always check the result after changing option mods.
 
 Older presets only know the option name and number. If new hairstyles shift the list, an older preset may choose the wrong hairstyle because it cannot know the original choice. Correct it once and save the preset again in the current format.
+
+### Readable preset files
+
+Format 8 replaces encoded lines such as `%20` and `%3A` with plain text. Each
+option keeps its original `OptionKey:SavedNumber` line, followed by readable
+details when they are available:
+
+```text
+# Character Preset Manager (CET) preset
+# Format: 8
+# Source: Character Preset Manager (CET)
+# Created: 2026-08-15 13:19:27
+# Modified: 2026-08-15 13:19:27
+# Notes:
+# Tags:
+
+LocKey#9502141975964618858:50
+# Editor slot: hairstyle
+# Saved choice: options:51
+```
+
+The mod ignores normal comment lines when reading a preset. This keeps the file
+easy to inspect without treating its headings as damaged data.
 
 </details>
 
@@ -166,7 +196,10 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 - Select **Refresh** under **Load Preset** after changing files outside the game.
 - A single `.preset` file does not include its CET folder assignment.
 
-For safety, an imported preset cannot be larger than 1 MB or contain more than 8,192 lines and 4,096 valid options. An option name cannot exceed 256 bytes, and an option number must fit in an unsigned 32-bit value.
+For safety, an imported preset cannot be larger than 1 MB or contain more than
+16,448 lines and 4,096 valid options. An option name cannot exceed 256 bytes,
+and an option number must fit in an unsigned 32-bit value. The higher line limit
+allows the readable detail lines and spacing used by format 8.
 
 ### Share a complete folder
 
@@ -304,7 +337,8 @@ Each full game launch starts a new log. The old log is saved with its date and t
 
 ### Can I use older Character Preset Manager or ACU presets?
 
-Yes. Compatible preset files can still be loaded. New presets use format 7.
+Yes. Version 3.0.4 can load older Character Preset Manager formats and compatible
+ACU presets. New and updated presets use format 8.
 
 ### Can ACU or Character Customization Anywhere stay installed?
 
@@ -321,7 +355,14 @@ No. The screenshots show the mod. The creator's personal character preset is not
 </details>
 
 <details>
-<summary><strong>Version 3.0.3 summary</strong></summary>
+<summary><strong>Version 3.0.4 summary</strong></summary>
+
+- Adds the readable format-8 preset layout.
+- Removes percent-encoded text from newly saved preset headers and option details.
+- Keeps older Character Preset Manager formats and compatible ACU presets readable.
+- Updates an older preset to format 8 when it is overwritten or when its optional
+  notes or tags are saved.
+- Keeps the format-7 CCXL choice and editor-position information in the new layout.
 
 - New presets store stable information about editor options and selected choices. This helps them keep the correct CCXL choice when new items change a list.
 - **Force Full Load** can try a saved editor position when a related option was renamed. The mod warns when an older preset does not contain the information needed for this check.

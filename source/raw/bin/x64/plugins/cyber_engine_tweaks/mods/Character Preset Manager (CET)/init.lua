@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "3.0.3"
+local VERSION = "3.0.4"
 local PRESET_DIR = "Character Presets"
 local DATA_DIR = "Data"
 local CONFIG_DIR = DATA_DIR .. "/Config"
@@ -22,6 +22,7 @@ local DISCOVERY_NOTICE_TITLE = "OPEN CHARACTER PRESET MANAGER"
 local DISCOVERY_NOTICE_MESSAGE = "Press the key you assigned to the CET Overlay."
 local DISCOVERY_NOTICE_SETTINGS_MESSAGE = "You can turn off this message in Settings."
 local LOG_ARCHIVE_LIMIT = 10
+local CURRENT_PRESET_FORMAT = 8
 local activitySequence = 0
 
 local AUTO_LOAD_INTERVAL = 0.40
@@ -31,7 +32,7 @@ local EDITOR_OPEN_TIMEOUT = 5.0
 local MAX_TREE_DEPTH = 12
 local MAX_PRESET_BYTES = 1048576
 local MAX_PRESET_ENTRIES = 4096
-local MAX_PRESET_LINES = 8192
+local MAX_PRESET_LINES = MAX_PRESET_ENTRIES * 4 + 64
 local MAX_PRESET_KEY_BYTES = 256
 local MAX_OPTION_INDEX = 4294967295
 local FILE_COPY_CHUNK_SIZE = 65536
@@ -1221,6 +1222,7 @@ local function readPresetFile(path)
   local entries = {}
   local metadata = { format = 4, source = "Legacy or ACU-compatible" }
   local lineNumber, malformed, pendingSlot, pendingChoice = 0, 0, nil, nil
+  local lastEntry = nil
   for line in file:lines() do
     lineNumber = lineNumber + 1
     if lineNumber > MAX_PRESET_LINES then
@@ -1251,7 +1253,30 @@ local function readPresetFile(path)
       pendingChoice = #choice <= MAX_PRESET_KEY_BYTES * 4 and not choice:find("%c")
         and stableChoiceIdentity(choice) or nil
     end
-    local key, index = line:match("^%s*(.-):(-?%d+)%s*$")
+    local readableKey, readableValue = line:match("^# ([%a ]+):%s?(.*)$")
+    if readableKey == "Format" then
+      metadata.format = tonumber(readableValue) or metadata.format
+    elseif readableKey == "Source" then
+      metadata.source = sanitizeMetadata(readableValue, 128)
+    elseif readableKey == "Created" then
+      metadata.created = sanitizeMetadata(readableValue, 64)
+    elseif readableKey == "Modified" then
+      metadata.modified = sanitizeMetadata(readableValue, 64)
+    elseif readableKey == "Notes" then
+      metadata.notes = sanitizeMetadata(readableValue, 512)
+    elseif readableKey == "Tags" then
+      metadata.tags = sanitizeMetadata(readableValue, 128)
+    elseif readableKey == "Editor slot" and lastEntry then
+      local slot = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES)
+      lastEntry.slot = slot ~= "" and slot or nil
+    elseif readableKey == "Saved choice" and lastEntry then
+      lastEntry.choice = stableChoiceIdentity(
+        sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES * 4))
+    end
+    local key, index = nil, nil
+    if not line:match("^#") then
+      key, index = line:match("^%s*(.-):(-?%d+)%s*$")
+    end
     local numericIndex = tonumber(index)
     if key and key ~= "" then
       local indexError = optionIndexValidationError(numericIndex)
@@ -1264,14 +1289,15 @@ local function readPresetFile(path)
             tostring(indexError or "none"), #entries), "warn")
         return nil
       end
-      table.insert(entries, {
+      lastEntry = {
         key = key,
         index = numericIndex,
         slot = pendingSlot,
         choice = pendingChoice,
-      })
+      }
+      table.insert(entries, lastEntry)
       pendingSlot, pendingChoice = nil, nil
-    elseif not metadataKey and line:match("%S") then
+    elseif not metadataKey and line:match("%S") and not line:match("^#") then
       malformed = malformed + 1
       if malformed <= 20 then
         log(("[FILES] Malformed preset line skipped: file='%s' line=%d content='%s'.")
@@ -1300,8 +1326,42 @@ local function writePresetContents(path, preset)
   local file = io.open(path, "w")
   if not file then return false end
   local wrote, writeResult = pcall(function()
+    local format = tonumber(preset.format) or 5
+    if format >= CURRENT_PRESET_FORMAT then
+      local header = {
+        "# Character Preset Manager (CET) preset",
+        "# Format: " .. tostring(format),
+        "# Source: " .. sanitizeMetadata(preset.source or MOD_NAME, 128),
+        "# Created: " .. sanitizeMetadata(preset.created or "", 64),
+        "# Modified: " .. sanitizeMetadata(preset.modified or "", 64),
+        "# Notes: " .. sanitizeMetadata(preset.notes, 512),
+        "# Tags: " .. sanitizeMetadata(preset.tags, 128),
+        "#",
+        "# Appearance options",
+        "# Each main line is OptionKey:SavedNumber.",
+        "# Editor slot and Saved choice lines describe the option above them.",
+        "",
+      }
+      for _, line in ipairs(header) do
+        if not file:write(line .. "\n") then return false end
+      end
+      for _, entry in ipairs(preset.entries or {}) do
+        if not file:write(("%s:%d\n"):format(
+            tostring(entry.key), tonumber(entry.index) or 0)) then return false end
+        if entry.slot and entry.slot ~= "" then
+          if not file:write("# Editor slot: " ..
+              sanitizeMetadata(entry.slot, MAX_PRESET_KEY_BYTES) .. "\n") then return false end
+        end
+        if entry.choice and entry.choice ~= "" then
+          if not file:write("# Saved choice: " ..
+              sanitizeMetadata(entry.choice, MAX_PRESET_KEY_BYTES * 4) .. "\n") then return false end
+        end
+        if not file:write("\n") then return false end
+      end
+      return file:flush() ~= nil
+    end
     local metadata = {
-      { "format", tostring(tonumber(preset.format) or 5) },
+      { "format", tostring(format) },
       { "source", preset.source or MOD_NAME },
       { "created", preset.created or "" },
       { "modified", preset.modified or "" },
@@ -2404,7 +2464,7 @@ local function savePreset(confirmOverwrite)
     return
   end
   local newPreset = {
-    format = 7,
+    format = CURRENT_PRESET_FORMAT,
     source = MOD_NAME,
     created = previousPreset and previousPreset.created or logTimestamp(),
     modified = logTimestamp(),
@@ -2441,8 +2501,8 @@ local function savePreset(confirmOverwrite)
   state.renameName = ""
   state.newName = ""
   resetLoadState()
-  log(("Created preset '%s': format=7 orderedOptions=%d")
-    :format(name, #entries), "info")
+  log(("Created preset '%s': format=%d orderedOptions=%d")
+    :format(name, CURRENT_PRESET_FORMAT, #entries), "info")
   if writeInventory(state.presets, state.folders) then
     setStatus("create", ("Saved \"%s\" with %d options.")
       :format(name, #entries))
@@ -4037,7 +4097,7 @@ local function savePresetMetadata()
   preset.modified = logTimestamp()
   preset.created = preset.created or preset.modified
   preset.source = MOD_NAME
-  preset.format = math.max(5, tonumber(preset.format) or 4)
+  preset.format = math.max(CURRENT_PRESET_FORMAT, tonumber(preset.format) or 4)
   if not writePresetPath(presetPath(state.selected), preset) then
     preset.notes, preset.tags = previousNotes, previousTags
     preset.modified, preset.format = previousModified, previousFormat
@@ -5215,6 +5275,7 @@ draw = function()
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load Preset.")
       ImGui.TextWrapped("A shared preset does not include its CET folder. Older Character Preset Manager and compatible ACU preset files can still be loaded.")
+      ImGui.TextWrapped("New format-8 preset files use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
       ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
