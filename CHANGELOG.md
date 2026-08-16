@@ -120,6 +120,18 @@ used. See the README and in-game Help for current instructions.
   applied message.
 - Treats a hidden dependent option saved as zero as already clear. It no longer
   appears as missing in the option check or stops an otherwise complete load.
+- Keeps retrieving a fresh game option list but checks only the pending ordinary
+  option between full safety passes. It returns to a full pass before applying
+  another option and disables reuse if the pending option no longer matches its
+  position, name, occurrence, slot, active state, or choice structure.
+- Avoids building temporary loader records for unrelated options during normal
+  application and verification. Full option exposure remains available for
+  cleanup and Force Full Load.
+- Safely matches a hairstyle-dependent option that reappears under a different
+  name when its editor slot count, slot occurrence, and unique saved choice all
+  identify the replacement. The option check uses the same rule.
+- Extends the Activity Log measurements with targeted-check time and fallback
+  counts.
 
 </details>
 

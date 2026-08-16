@@ -52,6 +52,14 @@ requireText('state.logLoadOnce("apply-not-confirmed:" .. pending.trackingKey',
   "Stale currIndex results are no longer reported as unconfirmed.");
 requireText("helpers.checkPendingChange(system, scan)",
   "Loading no longer confirms changes against a fresh option list.");
+requireText("helpers.pollPendingOption(options)",
+  "Pending ordinary changes no longer use targeted checks between full scans.");
+requireText("state.loadTargetFallbacks = state.loadTargetFallbacks + 1",
+  "A failed targeted identity check no longer disables unsafe reuse.");
+requireText("or (pendingOption and pendingOption.label == label)",
+  "A pending option can disappear from the reduced live scan.");
+requireText('log(("DEPENDENCY REMAP |',
+  "Renamed hairstyle-dependent options no longer require both slot and saved-choice proof.");
 requireText("state.loadElapsed - pending.attemptStartedAt",
   "Option settling is no longer based on elapsed time.");
 requireText("relevantLabels[label]",
@@ -70,6 +78,8 @@ requireText("GetUnitedOptions calls=%d time=%.6fs",
   "Loader retrieval timing is missing from the Activity Log.");
 requireText("currIndex/dependency wait=%.3fs",
   "Loader settling timing is missing from the Activity Log.");
+requireText("targeted polls=%d time=%.6fs fallbacks=%d",
+  "Targeted polling timing is missing from the Activity Log.");
 requireText('state.logLoadOnce("cleanup-not-confirmed:" .. pending.trackingKey',
   "Cleanup no longer reports an option whose cleared value cannot be confirmed.");
 requireText("state.logLoadOnce",
@@ -249,7 +259,8 @@ if (fs.existsSync(fengariPath)) {
     cwd: root,
     encoding: "utf8",
   });
-  if (result.status !== 0) {
+  const smokeOutput = `${result.stdout || ""}${result.stderr || ""}`;
+  if (result.status !== 0 || smokeOutput.includes("stack traceback:")) {
     throw new Error(`Lua behavior smoke test failed:\n${result.stdout || ""}${result.stderr || ""}`);
   }
   process.stdout.write(result.stdout);

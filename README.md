@@ -118,7 +118,9 @@ checked names, positions, and saved-choice matches while the editor structure
 remains the same. If a change adds, removes, disables, or rearranges an option,
 the mod discards and rebuilds that information. It also checks quickly after
 ordinary changes and waits longer for hairstyles and other changes that rebuild
-related options.
+related options. While an ordinary change is still pending, it checks only that
+option until the value changes or the time limit is reached. A full check always
+runs before the next option is applied.
 
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
 
@@ -126,7 +128,11 @@ Loading stops if the same options are still missing after three checks. The mod 
 
 Format-8 presets store each visible option, its position in the editor, its selected choice when a stable name is available, and its number in the choice list. They can also store the source, date, notes, and tags.
 
-This information helps the mod find a saved choice after CCXL adds items to a list. **Force Full Load** can also try the saved editor position when a related option was renamed. Always check the result after changing option mods.
+This information helps the mod find a saved choice after CCXL adds items to a
+list. If a hairstyle replaces a related option under a new name, a current
+preset can match it automatically when its editor slot and unique saved choice
+both agree. **Force Full Load** can try less certain editor-position matches.
+Always check the result after changing option mods.
 
 Older presets only know the option name and number. If new hairstyles shift the list, an older preset may choose the wrong hairstyle because it cannot know the original choice. Correct it once and save the preset again in the current format.
 
@@ -406,10 +412,16 @@ and I do not plan to release it.
   later claiming that every option was confirmed.
 - Limits full choice-list checks to options used by the preset. This avoids the
   continuous slowdown found during the first instrumented 3.0.4 game test.
+- Checks only the pending ordinary option between full safety checks, and avoids
+  building temporary loader records for unrelated options. A full check still
+  runs before another option is applied.
+- Matches a renamed hairstyle-dependent option automatically only when its
+  editor slot and unique saved choice both identify the replacement.
 - Treats a hidden dependent option saved as zero as already clear instead of
   reporting it as missing.
-- Records option retrieval, scanning, choice matching, update waiting, structure
-  changes, and safe metadata reuse in the Activity Log for loader testing.
+- Records option retrieval, full scanning, targeted checks, choice matching,
+  update waiting, structure changes, and safe metadata reuse in the Activity Log
+  for loader testing.
 - Refreshes the selected preset's compatibility text while the editor changes.
 - Streams shared-folder export and import one preset at a time.
 - Preserves the last good Trash list when the Trash folder cannot be read.

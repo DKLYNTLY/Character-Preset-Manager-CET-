@@ -131,6 +131,9 @@ local state = {
   loadMetadataCache = nil,
   loadMetadataHits = 0,
   loadMetadataMisses = 0,
+  loadTargetPolls = 0,
+  loadTargetPollSeconds = 0,
+  loadTargetFallbacks = 0,
   loadPendingChange = nil,
   loadPendingElapsed = 0,
   loadPhase = "apply",
@@ -147,6 +150,7 @@ local state = {
   loadMetadataDisabled = false,
   loadReturnToCleanup = false,
   loadDependencyKeys = {},
+  loadDependencyRemaps = {},
   loadNextInterval = AUTO_LOAD_TIMING.interval,
   forceFullLoad = false,
   pendingOverwriteName = nil,
@@ -312,6 +316,9 @@ local function resetLoadState()
   state.loadMetadataCache = nil
   state.loadMetadataHits = 0
   state.loadMetadataMisses = 0
+  state.loadTargetPolls = 0
+  state.loadTargetPollSeconds = 0
+  state.loadTargetFallbacks = 0
   state.loadPendingChange = nil
   state.loadPendingElapsed = 0
   state.loadPhase = "apply"
@@ -328,6 +335,7 @@ local function resetLoadState()
   state.loadMetadataDisabled = false
   state.loadReturnToCleanup = false
   state.loadDependencyKeys = {}
+  state.loadDependencyRemaps = {}
   state.loadNextInterval = AUTO_LOAD_TIMING.interval
   state.autoLoad = false
   state.autoLoadTimer = 0
@@ -2996,8 +3004,10 @@ helpers.loadStructureDelta = function(before, after)
     #added > 0 and table.concat(added, " || ") or "none"
 end
 
-helpers.scanLoadOptions = function(options, relevantLabels)
+helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
   local started = helpers.loadClock()
+  relevantLabels = relevantLabels or {}
+  relevantSlots = relevantSlots or {}
   local result = {
     exposed = {},
     activeExposed = {},
@@ -3011,6 +3021,7 @@ helpers.scanLoadOptions = function(options, relevantLabels)
   local occurrences, activeSlotCounts, signatureParts = {}, result.activeSlotCounts, {}
   local cached = not state.loadMetadataDisabled and state.loadMetadataCache or nil
   local cacheValid = cached ~= nil and type(cached.descriptors) == "table"
+  local fullExposure = state.forceFullLoad or state.loadPhase == "cleanup"
   for position, option in ipairs(options) do
     local label = optionKey(option)
     local slot = optionSlot(option)
@@ -3052,18 +3063,23 @@ helpers.scanLoadOptions = function(options, relevantLabels)
         choiceShape = choiceShape,
       }
     if not descriptorMatches then cacheValid = false end
-    local exposedOption = {
-      option = option,
-      label = label,
-      key = key,
-      occurrence = occurrence,
-      slot = slot,
-      slotOccurrence = slotOccurrence,
-      choiceShape = choiceShape,
-    }
     result.descriptors[position] = descriptor
-    result.exposed[position] = exposedOption
-    if key then
+    local pendingOption = state.loadPendingChange
+    local includeOption = key and (fullExposure or relevantLabels[label]
+      or (slot and relevantSlots[slot])
+      or (pendingOption and pendingOption.label == label))
+    if includeOption then
+      local exposedOption = {
+        option = option,
+        position = position,
+        label = label,
+        key = key,
+        occurrence = occurrence,
+        slot = slot,
+        slotOccurrence = slotOccurrence,
+        choiceShape = choiceShape,
+      }
+      result.exposed[#result.exposed + 1] = exposedOption
       result.activeKeySet[key] = true
       result.activeByKey[key] = exposedOption
       result.activeExposed[#result.activeExposed + 1] = exposedOption
@@ -3085,6 +3101,7 @@ helpers.scanLoadOptions = function(options, relevantLabels)
     state.loadMetadataCache = nil
     state.loadResolvedChoiceIndexes = {}
     state.loadOptionIdentityCache = {}
+    state.loadDependencyRemaps = {}
     local removed, added = helpers.loadStructureDelta(
       previousDescriptors, result.descriptors)
     local pending = state.loadPendingChange
@@ -3140,6 +3157,56 @@ helpers.loadOptionNeedsLongSettle = function(exposedOption, trackingKey)
   return text:find("hair", 1, true) ~= nil or text:find("beard", 1, true) ~= nil
 end
 
+helpers.pollPendingOption = function(options)
+  local pending = state.loadPendingChange
+  if not pending or state.forceFullLoad or state.loadMetadataDisabled
+      or not pending.position or pending.confirmedAt or pending.longSettle then
+    return "full"
+  end
+  local started = helpers.loadClock()
+  state.loadTargetPolls = state.loadTargetPolls + 1
+  local candidate = options[pending.position]
+  local valid = candidate ~= nil
+    and optionKey(candidate) == pending.label
+    and candidate.isEditable and candidate.isActive
+    and optionSlot(candidate) == pending.slot
+  local occurrence = 0
+  if valid then
+    for position = 1, pending.position do
+      local option = options[position]
+      if option and option.isEditable and option.isActive
+          and optionKey(option) == pending.label then
+        occurrence = occurrence + 1
+      end
+    end
+    valid = occurrence == pending.occurrence
+      and helpers.loadChoiceShape(candidate) == pending.choiceShape
+  end
+  state.loadTargetPollSeconds = state.loadTargetPollSeconds
+    + math.max(0, helpers.loadClock() - started)
+  if not valid then
+    state.loadTargetFallbacks = state.loadTargetFallbacks + 1
+    state.loadMetadataCache = nil
+    state.loadMetadataDisabled = true
+    state.loadResolvedChoiceIndexes = {}
+    state.loadOptionIdentityCache = {}
+    state.loadDependencyRemaps = {}
+    log(("[CACHE] The pending option no longer matches its saved position; full scanning will be used for the rest of this load: %s")
+      :format(pending.identity), "warn")
+    return "fallback"
+  end
+  local current = tonumber(candidate.currIndex) or 0
+  local timeout = pending.longSettle and AUTO_LOAD_TIMING.dependencyTimeout
+    or AUTO_LOAD_TIMING.settleTimeout
+  if current == pending.target
+      or state.loadElapsed - pending.attemptStartedAt >= timeout then
+    return "full"
+  end
+  state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+  state.loadPendingElapsed = math.max(0, state.loadElapsed - pending.startedAt)
+  return "waiting"
+end
+
 helpers.beginPendingChange = function(system, exposedOption, target, kind, trackingKey, current)
   local attempts = kind == "cleanup" and state.loadCleanupAttempts
     or state.loadApplyAttempts
@@ -3156,6 +3223,7 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
     kind = kind,
     trackingKey = trackingKey,
     optionKey = exposedOption.key,
+    position = exposedOption.position,
     label = exposedOption.label,
     occurrence = exposedOption.occurrence,
     slot = exposedOption.slot,
@@ -3200,6 +3268,7 @@ helpers.checkPendingChange = function(system, scan)
     state.loadMetadataDisabled = true
     state.loadResolvedChoiceIndexes = {}
     state.loadOptionIdentityCache = {}
+    state.loadDependencyRemaps = {}
     log(("[CACHE] Live option identity changed while waiting for %s; full scanning will be used for the rest of this load: %s")
       :format(pending.kind, pending.identity), "warn")
   elseif candidate and candidate.choiceShape ~= pending.choiceShape then
@@ -3208,6 +3277,7 @@ helpers.checkPendingChange = function(system, scan)
       state.loadMetadataDisabled = true
       state.loadResolvedChoiceIndexes = {}
       state.loadOptionIdentityCache = {}
+      state.loadDependencyRemaps = {}
       pending.longSettle = true
       pending.choiceStructureChanged = true
       log(("[CACHE] Choice structure changed while waiting for %s; the result will require manual confirmation: %s")
@@ -3290,10 +3360,11 @@ helpers.checkPendingChange = function(system, scan)
 end
 
 helpers.logLoadMeasurements = function(result)
-  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | GetUnitedOptions calls=%d time=%.6fs | scans=%.6fs | choice matching=%.6fs | ApplyChangeToOption=%.6fs | currIndex/dependency wait=%.3fs | structure changes=%d | metadata hits=%d misses=%d disabled=%s")
+  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | GetUnitedOptions calls=%d time=%.6fs | scans=%.6fs | targeted polls=%d time=%.6fs fallbacks=%d | choice matching=%.6fs | ApplyChangeToOption=%.6fs | currIndex/dependency wait=%.3fs | structure changes=%d | metadata hits=%d misses=%d disabled=%s")
     :format(tostring(result), tostring(state.loadPresetName or state.selected),
       state.loadElapsed, state.loadOptionCalls, state.loadOptionsSeconds,
-      state.loadScanSeconds, state.loadChoiceSeconds, state.loadApplySeconds,
+      state.loadScanSeconds, state.loadTargetPolls, state.loadTargetPollSeconds,
+      state.loadTargetFallbacks, state.loadChoiceSeconds, state.loadApplySeconds,
       state.loadWaitSeconds, state.loadStructureChanges, state.loadMetadataHits,
       state.loadMetadataMisses, tostring(state.loadMetadataDisabled)), "info")
 end
@@ -3394,7 +3465,8 @@ local function loadPreset()
   local deferred = {}
   local unresolved = {}
   local seen = {}
-  local scan = helpers.scanLoadOptions(options, savedCounts)
+  if helpers.pollPendingOption(options) == "waiting" then return end
+  local scan = helpers.scanLoadOptions(options, savedCounts, savedSlotCounts)
   local exposed = scan.exposed
   local activeKeySet = scan.activeKeySet
   local activeCounts = scan.activeCounts
@@ -3418,8 +3490,19 @@ local function loadPreset()
       local occurrence = exposedOption.occurrence
       local cleanupKey = exposedOption.key
       local current = tonumber(exposedOption.option.currIndex) or 0
+      local remap = cleanupKey and state.loadDependencyRemaps[cleanupKey] or nil
+      local keepRemap = remap and state.loadSatisfied[remap.savedKey]
+        and exposedOption.slot == remap.slot
+        and exposedOption.slotOccurrence == remap.slotOccurrence
+        and (activeSlotCounts[remap.slot] or 0) == remap.slotCount
+        and optionChoiceMatchesIndex(
+          exposedOption.option, remap.choice, remap.target)
+      if remap and not keepRemap then
+        state.loadDependencyRemaps[cleanupKey] = nil
+      end
       if cleanupKey and occurrence > (savedCounts[label] or 0)
-          and current ~= 0 and not state.loadCleanupSkipped[cleanupKey] then
+          and current ~= 0 and not keepRemap
+          and not state.loadCleanupSkipped[cleanupKey] then
         local ok, clearError = helpers.beginPendingChange(
           system, exposedOption, 0, "cleanup", cleanupKey, current)
         if not ok then
@@ -3595,19 +3678,83 @@ local function loadPreset()
         :format(optionAuditIdentity(nil, hiddenLabel, hiddenOccurrence)), "info")
     end
   end
+  local claimedOptions = {}
+  for _, exposedOption in ipairs(exposed) do
+    if exposedOption.key and values[exposedOption.key] ~= nil then
+      claimedOptions[exposedOption.option] = true
+    end
+  end
+  for _, entry in ipairs(orderedEntries or {}) do
+    local savedKey = entry.key
+    if not seen[savedKey]
+        and entry.slot and entry.choice
+        and (savedSlotCounts[entry.slot] or 0) == (activeSlotCounts[entry.slot] or 0) then
+      local slotKey = entry.slot .. "\31" .. tostring(entry.slotOccurrence or 1)
+      local candidate = exposedBySlot[slotKey]
+      if candidate and candidate.option.isEditable and candidate.option.isActive
+          and not claimedOptions[candidate.option] then
+        local target = helpers.resolveLoadChoice(candidate.option, entry.choice,
+          state.loadResolvedChoiceIndexes[savedKey])
+        if target ~= nil and optionIndexIsValid(target) then
+          state.loadResolvedChoiceIndexes[savedKey] = target
+          seen[savedKey] = true
+          claimedOptions[candidate.option] = true
+          state.loadDependencyRemaps[candidate.key] = {
+            savedKey = savedKey,
+            slot = candidate.slot,
+            slotOccurrence = candidate.slotOccurrence,
+            slotCount = savedSlotCounts[entry.slot] or 0,
+            choice = entry.choice,
+            target = target,
+          }
+          local current = tonumber(candidate.option.currIndex) or 0
+          if current == target then
+            state.loadSatisfied[savedKey] = true
+            state.loadUnconfirmed[savedKey] = nil
+            applied = applied + 1
+          elseif state.loadSatisfied[savedKey] and state.loadUnconfirmed[savedKey] then
+            applied = applied + 1
+          elseif state.loadSatisfied[savedKey] then
+            deferred[savedKey] = true
+            missing = missing + 1
+            unresolved["reverted-remap:" .. tostring(savedKey)] = true
+          else
+            state.loadDependencyKeys[savedKey] = true
+            local ok, applyError = helpers.beginPendingChange(
+              system, candidate, target, "apply", savedKey, current)
+            if ok then
+              state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
+              log(("DEPENDENCY REMAP | pass=%d | saved LocKey='%s' disappeared | uiSlot='%s' and saved choice='%s' matched %s | index %s -> %s")
+                :format(state.loadPass, entry.label, entry.slot, entry.choice,
+                  optionAuditIdentity(candidate.option, candidate.label,
+                    candidate.occurrence), tostring(current), tostring(target)), "info")
+              setStatus("load",
+                "A hairstyle-dependent option was replaced. Its saved choice was matched safely; waiting for the editor.")
+            else
+              state.loadNeedsContinue = false
+              state.loadStalled = true
+              log(("DEPENDENCY REMAP FAILED | pass=%d | saved LocKey='%s' | uiSlot='%s' target index %s | %s")
+                :format(state.loadPass, entry.label, entry.slot, tostring(target),
+                  tostring(applyError)), "error")
+              helpers.logLoadMeasurements("dependency-remap-failed")
+              setStatus("load",
+                "Loading stopped because a replaced hairstyle-dependent option could not be applied safely. Close the editor without confirming, reopen it, and retry.",
+                true)
+            end
+            return
+          end
+        end
+      end
+    end
+  end
   if state.forceFullLoad then
     if not state.loadMetadataDisabled then
       state.loadMetadataCache = nil
       state.loadMetadataDisabled = true
       state.loadResolvedChoiceIndexes = {}
       state.loadOptionIdentityCache = {}
+      state.loadDependencyRemaps = {}
       log("[CACHE] Force Full Load fallback disabled metadata reuse for this load.", "info")
-    end
-    local claimedOptions = {}
-    for _, exposedOption in ipairs(exposed) do
-      if exposedOption.key and values[exposedOption.key] ~= nil then
-        claimedOptions[exposedOption.option] = true
-      end
     end
     for _, entry in ipairs(orderedEntries or {}) do
       local savedKey = entry.key
@@ -3855,10 +4002,14 @@ refreshPreflight = function()
     if slot ~= "" then
       savedSlotOccurrences[slot] = (savedSlotOccurrences[slot] or 0) + 1
     end
-    if not candidate and state.forceFullLoad and slot ~= ""
+    if not candidate and slot ~= ""
         and (savedSlotCounts[slot] or 0) == (activeSlotCounts[slot] or 0) then
       local slotCandidate = (exposedBySlot[slot] or {})[savedSlotOccurrences[slot]]
-      if slotCandidate and not claimedOptions[slotCandidate] then candidate = slotCandidate end
+      if slotCandidate and not claimedOptions[slotCandidate]
+          and (state.forceFullLoad
+            or (entry.choice and optionChoiceIndex(slotCandidate, entry.choice) ~= nil)) then
+        candidate = slotCandidate
+      end
     end
     if not optionIndexIsValid(tonumber(entry.index)) then
       invalid = invalid + 1

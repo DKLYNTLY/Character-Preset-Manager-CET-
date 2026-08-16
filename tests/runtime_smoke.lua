@@ -77,6 +77,7 @@ local keepSavedStale = false
 local applicationOrder = {}
 local savedAttempts = 0
 local customOptions = nil
+local applyHook = nil
 local system = {}
 function system:GetUnitedOptions()
   if customOptions then return customOptions end
@@ -84,6 +85,7 @@ function system:GetUnitedOptions()
   return { saved }
 end
 function system:ApplyChangeToOption(option, index)
+  if applyHook then applyHook(option, index); return end
   applicationOrder[#applicationOrder + 1] = option == extra and "extra" or "saved"
   if option == extra then
     extraAttempts = extraAttempts + 1
@@ -181,6 +183,7 @@ end
 
 resetLoadState()
 saved.currIndex = 0
+saved.info.name = "eye color"
 savedAttempts = 0
 extraVisible = false
 keepExtraVisible = false
@@ -189,9 +192,15 @@ state.selected = "stale currIndex fixture"
 state.presets["stale currIndex fixture"] = {
   storage = "stale currIndex fixture",
   format = 8,
-  entries = { { key = "hairstyle", index = 2 } },
+  entries = { { key = "eye color", index = 2 } },
 }
 state.resetBeforeLoad = true
+local originalScanLoadOptions = helpers.scanLoadOptions
+local staleFullScans = 0
+helpers.scanLoadOptions = function(...)
+  staleFullScans = staleFullScans + 1
+  return originalScanLoadOptions(...)
+end
 loadPreset()
 state.autoLoad = state.loadNeedsContinue
 for _ = 1, 100 do
@@ -200,13 +209,57 @@ for _ = 1, 100 do
 end
 assert(savedAttempts == 1,
   "stale currIndex caused the same option to be applied repeatedly")
-assert(state.loadUnconfirmed["hairstyle\31" .. "1"] == true,
+assert(state.loadUnconfirmed["eye color\31" .. "1"] == true,
   "stale currIndex was not retained as an unconfirmed result")
 assert(state.loadStatus:find("could not be confirmed", 1, true) ~= nil,
   "the final status claimed an unconfirmed option was fully applied")
 assert(state.loadNeedsContinue == false,
   "the stale currIndex fixture did not finish")
+assert(state.loadTargetPolls > 0,
+  "ordinary pending changes were not checked with targeted polling")
+assert(staleFullScans < state.loadOptionCalls,
+  "every targeted polling pass still performed a full option scan")
+helpers.scanLoadOptions = originalScanLoadOptions
 keepSavedStale = false
+saved.info.name = "hairstyle"
+
+local movedOrdinary = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = { name = "eye color" },
+}
+local insertedOption = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = { name = "inserted option" },
+}
+customOptions = { movedOrdinary }
+applyHook = function(option, index)
+  option.currIndex = index
+  customOptions = { insertedOption, movedOrdinary }
+end
+resetLoadState()
+state.selected = "targeted fallback fixture"
+state.presets["targeted fallback fixture"] = {
+  storage = "targeted fallback fixture",
+  format = 8,
+  entries = { { key = "eye color", index = 1 } },
+}
+state.resetBeforeLoad = false
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+for _ = 1, 100 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+assert(movedOrdinary.currIndex == 1 and state.loadNeedsContinue == false,
+  "the full-scan fallback did not finish a moved ordinary option")
+assert(state.loadTargetFallbacks == 1 and state.loadMetadataDisabled == true,
+  "a targeted position mismatch did not disable metadata reuse")
+applyHook = nil
+customOptions = nil
 
 keepExtraVisible = false
 extraVisible = false
@@ -268,9 +321,16 @@ assert(state.loadNeedsContinue == false,
 
 local originalLoadChoiceShape = helpers.loadChoiceShape
 local choiceShapeCalls = 0
+local largestReducedExposure = 0
 helpers.loadChoiceShape = function(option)
   choiceShapeCalls = choiceShapeCalls + 1
   return originalLoadChoiceShape(option)
+end
+originalScanLoadOptions = helpers.scanLoadOptions
+helpers.scanLoadOptions = function(...)
+  local scan = originalScanLoadOptions(...)
+  largestReducedExposure = math.max(largestReducedExposure, #scan.exposed)
+  return scan
 end
 customOptions = { saved }
 for index = 1, 200 do
@@ -289,7 +349,7 @@ state.presets["large scan fixture"] = {
   format = 8,
   entries = { { key = "hairstyle", index = 2 } },
 }
-state.resetBeforeLoad = true
+state.resetBeforeLoad = false
 loadPreset()
 state.autoLoad = state.loadNeedsContinue
 for _ = 1, 100 do
@@ -298,9 +358,12 @@ for _ = 1, 100 do
 end
 assert(choiceShapeCalls < 20,
   "polling inspected every irrelevant option choice structure")
+assert(largestReducedExposure < 10,
+  "normal loading built temporary records for every irrelevant option")
 assert(state.loadNeedsContinue == false,
   "the large scan fixture did not finish")
 helpers.loadChoiceShape = originalLoadChoiceShape
+helpers.scanLoadOptions = originalScanLoadOptions
 
 local repeatedA = {
   currIndex = 0,
@@ -336,6 +399,76 @@ assert(repeatedA.currIndex == 1 and repeatedB.currIndex == 2,
   "repeated option occurrences were not applied independently")
 assert(state.loadNeedsContinue == false,
   "the repeated option fixture did not finish")
+
+local dependencyHair = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = {
+    name = "hairstyle",
+    uiSlot = "hair style",
+    definitions = { "hair zero", "hair one", "hair two" },
+  },
+}
+local oldHairColor = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = {
+    name = "old hair color",
+    uiSlot = "hair color",
+    definitions = { "black", "purple", "red" },
+  },
+}
+local newHairColor = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = {
+    name = "new hair color",
+    uiSlot = "hair color",
+    definitions = { "black", "purple", "red" },
+  },
+}
+customOptions = { dependencyHair, oldHairColor }
+applyHook = function(option, index)
+  option.currIndex = index
+  if option == dependencyHair then customOptions = { dependencyHair, newHairColor } end
+end
+resetLoadState()
+state.selected = "dependency replacement fixture"
+state.presets["dependency replacement fixture"] = {
+  storage = "dependency replacement fixture",
+  format = 8,
+  entries = {
+    {
+      key = "hairstyle",
+      index = 2,
+      slot = "hair style",
+      choice = "definitions:hair two",
+    },
+    {
+      key = "old hair color",
+      index = 1,
+      slot = "hair color",
+      choice = "definitions:purple",
+    },
+  },
+}
+state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+for _ = 1, 150 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+assert(newHairColor.currIndex == 1,
+  "a renamed hairstyle-dependent option was not matched by slot and saved choice")
+assert(state.loadNeedsContinue == false and state.loadStalled == false,
+  "the safely remapped dependency fixture did not finish")
+assert(state.preflight.available == 2 and state.preflight.unavailable == 0,
+  "the option check did not recognize a safe dependency replacement")
+applyHook = nil
 customOptions = nil
 
 state.overlayOpen = true
