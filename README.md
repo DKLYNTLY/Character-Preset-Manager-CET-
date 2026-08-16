@@ -106,6 +106,14 @@ If that name already exists, confirm **Replace Existing Preset** only when you w
 
 Cyberpunk may refresh the editor several times. The mod waits and continues on its own. Select **Cancel Loading** if you need to stop.
 
+The compatibility summary refreshes while the mod and character editor are open.
+It updates after the editor changes without making you select a different preset
+and switch back. Other selected-preset details update at the same time.
+
+Automatic loading keeps a short work list between checks and uses a faster wait
+while the editor options remain stable. If a change adds, removes, or disables an
+option, the mod rebuilds that list before it continues.
+
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
 
 ### What a preset saves
@@ -194,8 +202,10 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 - To share an appearance, send its `.preset` file.
 - To install a preset, place its file in `Character Presets` or in a Windows folder inside it.
 - Select **Refresh** under **Load Preset** after changing files outside the game.
-- Opening the CET overlay does not scan every preset again. This keeps large
-  preset libraries responsive.
+- Startup uses the saved preset list instead of fully reading every preset and
+  every Trash file. A preset is read in full when you select or use it. Opening
+  the CET overlay does not scan the library again. This keeps large collections
+  responsive.
 - A single `.preset` file does not include its CET folder assignment.
 
 For safety, an imported preset cannot be larger than 1 MB or contain more than
@@ -215,6 +225,9 @@ A `.cpmfolder` file contains the selected CET folder, all folders inside it, and
 4. Send that one file.
 
 A shared folder can contain up to 512 presets and cannot be larger than 32 MB. An empty folder cannot be exported.
+
+The mod writes and installs shared folders one preset at a time. Large bundles
+do not need to be held in memory all at once.
 
 To remove only the exported file, choose **All Presets**, open **Shared Folder Files**, select the file, and choose **Move Selected File to Trash**. This does not remove the original folder or its presets. You can restore the file under **Delete & Restore** or remove it with **Empty Trash Permanently**.
 
@@ -246,6 +259,8 @@ After a successful import, **Shared Folder Files** can move the source file to T
 - If a name is already in use, the restored item gets a `Copy` name instead of overwriting anything.
 - **Empty Trash Permanently** is the only action that permanently deletes trashed files.
 - If the game closes during a Trash, restore, multi-move, or file-rename action, the mod finishes or safely rolls back that action the next time it starts.
+- If the Trash folder cannot be read safely, the mod keeps its last good Trash
+  list and does not replace the saved names or folder information.
 
 </details>
 
@@ -373,6 +388,17 @@ and I do not plan to release it.
 - Keeps the menu faster by scanning external file changes only when you select
   **Refresh**.
 - Strengthens file checks, backup recovery, and startup file limits.
+- Keeps lightweight preset and Trash records at startup, then reads a preset in
+  full only when it is selected or used.
+- Makes automatic loading reuse safe work between checks and wait less between
+  stable options.
+- Refreshes the selected preset's compatibility text while the editor changes.
+- Streams shared-folder export and import one preset at a time.
+- Preserves the last good Trash list when the Trash folder cannot be read.
+- Caches Trash lists and folder totals until Trash changes.
+- Reduces repeated loading warnings and activity-log file work.
+- Uses the first Refresh comparison instead of comparing every preset twice.
+- Fixes numbered activity-log archives so they stay in the Archive folder.
 - Fixes the CET startup failure in the first revised 3.0.4 build and adds a
   release check that prevents the same Lua limit from being reached again.
 

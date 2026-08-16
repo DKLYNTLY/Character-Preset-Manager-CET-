@@ -50,6 +50,30 @@ used. See the README and in-game Help for current instructions.
   functions that repeated a single call.
 - Adds a release check that keeps the main function at 190 active local
   variables or fewer, leaving room below CET's limit.
+- Keeps the last good Trash names and folder information when the Trash folder
+  cannot be read safely.
+- Uses lightweight preset and Trash records at startup. A preset is read in full
+  only when it is selected, loaded, edited, restored, copied, exported, or
+  checked with **Refresh**.
+- Stops a library scan safely if it exceeds the preset or saved-option limits.
+- Keeps a short automatic-loading work list between checks, uses a faster wait
+  while the editor remains stable, and rebuilds the list when editor options
+  change.
+- Refreshes the selected preset's compatibility summary while the character
+  editor changes. Selecting another preset and switching back is no longer
+  needed.
+- Refreshes related selected-preset and clothing details while their source
+  information changes.
+- Streams shared-folder export and import one preset at a time to lower memory
+  use with large `.cpmfolder` files.
+- Caches sorted Trash lists and folder totals until Trash changes.
+- Keeps the Activity Log open during normal work, flushes it at useful points,
+  and records each repeated loading warning only once per load.
+- Uses the change totals already produced by **Refresh** instead of comparing
+  every preset a second time.
+- Fixes numbered Activity Log archives so they remain inside the Archive folder
+  when two sessions receive the same date and time.
+- Removes unused diagnostic and option-position state.
 
 </details>
 
