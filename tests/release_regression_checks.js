@@ -21,7 +21,7 @@ requireText("readableFormatConfirmed and readableKey == \"Editor slot\"",
   "Format-8 editor positions are no longer gated by the format header.");
 requireText("readBoundedFile(INVENTORY_FILE, MAX_CATALOG_BYTES)",
   "The startup preset list is no longer size-limited.");
-requireText("AUTO_LOAD_PASSES_PER_OPTION",
+requireText("AUTO_LOAD_LIMITS.passesPerOption",
   "Automatic loading no longer scales with the preset size.");
 requireText('return "2:" .. legacy .. ":" .. tostring(secondHash), legacy',
   "The stronger file check or its older-format result is missing.");
@@ -41,7 +41,40 @@ if (overlayHandler.includes("refreshPresets(") || overlayHandler.includes("refre
 const parserPath = path.join(root, ".audit_lua_parser", "node_modules", "luaparse");
 if (fs.existsSync(parserPath)) {
   const luaparse = require(parserPath);
-  luaparse.parse(source, { luaVersion: "5.3" });
+  const syntaxTree = luaparse.parse(source, { luaVersion: "5.3" });
+  function mainBlockLocalUsage(statements, startingLocals) {
+    let active = startingLocals;
+    let maximum = startingLocals;
+    for (const statement of statements || []) {
+      if (statement.type === "LocalStatement") {
+        active += (statement.variables || []).length;
+        maximum = Math.max(maximum, active);
+      } else if (statement.type === "FunctionDeclaration" && statement.isLocal) {
+        active += 1;
+        maximum = Math.max(maximum, active);
+      } else if (statement.type === "DoStatement" || statement.type === "WhileStatement" ||
+          statement.type === "RepeatStatement") {
+        maximum = Math.max(maximum,
+          mainBlockLocalUsage(statement.body, active).maximum);
+      } else if (statement.type === "IfStatement") {
+        for (const clause of statement.clauses || []) {
+          maximum = Math.max(maximum,
+            mainBlockLocalUsage(clause.body, active).maximum);
+        }
+      } else if (statement.type === "ForNumericStatement") {
+        maximum = Math.max(maximum,
+          mainBlockLocalUsage(statement.body, active + 1).maximum);
+      } else if (statement.type === "ForGenericStatement") {
+        maximum = Math.max(maximum, mainBlockLocalUsage(
+          statement.body, active + (statement.variables || []).length).maximum);
+      }
+    }
+    return { active, maximum };
+  }
+  const mainLocals = mainBlockLocalUsage(syntaxTree.body, 0).maximum;
+  if (mainLocals > 190) {
+    throw new Error(`The main Lua function uses ${mainLocals} active locals; keep it at 190 or fewer to stay safely below CET's 200-local limit.`);
+  }
 }
 
 console.log("Release regression checks: OK");

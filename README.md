@@ -373,6 +373,8 @@ and I do not plan to release it.
 - Keeps the menu faster by scanning external file changes only when you select
   **Refresh**.
 - Strengthens file checks, backup recovery, and startup file limits.
+- Fixes the CET startup failure in the first revised 3.0.4 build and adds a
+  release check that prevents the same Lua limit from being reached again.
 
 - New presets store stable information about editor options and selected choices. This helps them keep the correct CCXL choice when new items change a list.
 - **Force Full Load** can try a saved editor position when a related option was renamed. The mod warns when an older preset does not contain the information needed for this check.

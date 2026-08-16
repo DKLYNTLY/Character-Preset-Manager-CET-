@@ -44,6 +44,12 @@ used. See the README and in-game Help for current instructions.
   not alter warning or success colors.
 - Uses first-person wording for my AI disclosure, credits, and personal-preset
   answer.
+- Fixes a CET startup failure caused by the main Lua function reaching CET's
+  200-local-variable limit.
+- Groups UI-only helpers under one internal UI table and removes small wrapper
+  functions that repeated a single call.
+- Adds a release check that keeps the main function at 190 active local
+  variables or fewer, leaving room below CET's limit.
 
 </details>
 

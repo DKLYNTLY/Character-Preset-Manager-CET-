@@ -26,8 +26,7 @@ local CURRENT_PRESET_FORMAT = 8
 local activitySequence = 0
 
 local AUTO_LOAD_INTERVAL = 0.40
-local AUTO_LOAD_MINIMUM_MAX_PASSES = 400
-local AUTO_LOAD_PASSES_PER_OPTION = 4
+local AUTO_LOAD_LIMITS = { minimum = 400, passesPerOption = 4 }
 local STALL_CONFIRMATION_PASSES = 3
 local EDITOR_OPEN_TIMEOUT = 5.0
 local MAX_TREE_DEPTH = 12
@@ -323,10 +322,6 @@ local function removeEmptyDirectoryTree(path, depth)
   return os.remove(path) ~= nil
 end
 
-local function isNewGameCharacterCreator()
-  return state.newGameCharacterCreator == true
-end
-
 local function logTimestamp()
   local ok, value = pcall(os.date, "%Y-%m-%d %H:%M:%S")
   if ok and value then return value end
@@ -446,16 +441,11 @@ local function auditSection(title)
   log(("---------------- %s ----------------"):format(tostring(title)), "info")
 end
 
-local function defaultStatusKind(isError)
-  if isError then return "error" end
-  return "info"
-end
-
 local function setStatus(section, message, isError, kind)
   local effectiveError = isError == true
   state[section .. "Status"] = message
   state[section .. "StatusError"] = effectiveError
-  state.statusKinds[section] = kind or defaultStatusKind(effectiveError)
+  state.statusKinds[section] = kind or (effectiveError and "error" or "info")
   if section == "load" then
     local transient = message:find("Applied one option.", 1, true) == 1
       or message:find("Cleared a remaining option.", 1, true) == 1
@@ -515,19 +505,13 @@ local function validatedPresetName(value)
   return name
 end
 
-local function customizationSystem()
-  local ok, system = pcall(Game.GetCharacterCustomizationSystem)
-  if ok then return system end
-  return nil
-end
-
 local isCustomizationActive
 local refreshPreflight
 
 local function setEditorOpenStatus(message, isError, kind)
   state.editorStatus = message
   state.editorStatusError = isError == true
-  state.statusKinds.editor = kind or defaultStatusKind(isError == true)
+  state.statusKinds.editor = kind or (isError and "error" or "info")
   log("[editor] " .. tostring(message), isError and "error" or "info")
 end
 
@@ -662,8 +646,10 @@ end
 
 local emptyCustomizationName
 local function getOptions()
-  local system = customizationSystem()
-  if not system then return nil, nil, "Character customization system is unavailable" end
+  local systemOk, system = pcall(Game.GetCharacterCustomizationSystem)
+  if not systemOk or not system then
+    return nil, nil, "Character customization system is unavailable"
+  end
   local ok, options = pcall(function()
     if not emptyCustomizationName then emptyCustomizationName = ToCName({}) end
     return system:GetUnitedOptions(
@@ -4594,6 +4580,8 @@ local drawDiscoveryHudNotice
 
 do
 
+local ui = {}
+
 local THEME_COLORS = {
   { ImGuiCol.WindowBg,          0.055, 0.059, 0.078, 0.98 },
   { ImGuiCol.ChildBg,           0.086, 0.094, 0.118, 0.85 },
@@ -4719,7 +4707,7 @@ local function drawSectionStatus(section, childId, height)
   local checkClothing = section == "load"
     and not isError
     and state.inCustomization
-    and not isNewGameCharacterCreator()
+    and not state.newGameCharacterCreator
     and not state.autoLoad
     and not state.loadNeedsContinue
     and kind == "ready"
@@ -4793,7 +4781,7 @@ local function drawSectionStatus(section, childId, height)
   if customColors then ImGui.PopStyleColor(2) end
 end
 
-local function setDebugLogText(text)
+ui.setDebugLogText = function(text)
   state.debugLogText = tostring(text or "")
   local lines = {}
   for line in (state.debugLogText .. "\n"):gmatch("(.-)\n") do
@@ -4823,17 +4811,17 @@ local function setDebugLogText(text)
   state.debugLogLines = lines
 end
 
-local function readDiagnosticLog()
+ui.readDiagnosticLog = function()
   local file = io.open(LOG_FILE, "rb")
   if not file then
-    setDebugLogText("No activity log yet -- nothing has happened this session.")
+    ui.setDebugLogText("No activity log yet -- nothing has happened this session.")
     return
   end
   local limit = 65536
   local sizeOk, size = pcall(file.seek, file, "end")
   if not sizeOk or not size then
     file:close()
-    setDebugLogText("The activity log could not be measured.")
+    ui.setDebugLogText("The activity log could not be measured.")
     return
   end
   local truncated = size > limit
@@ -4843,18 +4831,18 @@ local function readDiagnosticLog()
   if seekOk and seekResult ~= nil then ok, contents = pcall(file.read, file, "*a") end
   file:close()
   if not ok or type(contents) ~= "string" then
-    setDebugLogText("The activity log could not be read.")
+    ui.setDebugLogText("The activity log could not be read.")
     return
   end
   if truncated then
     contents = "[Showing the newest 64 KB of Data/Logs/Activity.log]\n\n" ..
       contents
   end
-  setDebugLogText(contents ~= "" and contents
+  ui.setDebugLogText(contents ~= "" and contents
     or "Data/Logs/Activity.log is empty.")
 end
 
-local function drawDebugPanel(height)
+ui.drawDebugPanel = function(height)
   ImGui.Spacing()
   local logRowStartX = ImGui.GetCursorPosX()
   local logRowWidth = ImGui.GetContentRegionAvail()
@@ -4864,7 +4852,7 @@ local function drawDebugPanel(height)
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Activity Log")
   ImGui.SameLine()
   ImGui.SetCursorPosX(logRowStartX + logRowWidth - logButtonsWidth)
-  if ImGui.Button("Refresh##debugRefresh", logButtonWidth, logButtonHeight) then readDiagnosticLog() end
+  if ImGui.Button("Refresh##debugRefresh", logButtonWidth, logButtonHeight) then ui.readDiagnosticLog() end
   ImGui.SameLine()
   if ImGui.Button("Copy##debugCopy", logButtonWidth, logButtonHeight) then
     ImGui.SetClipboardText(state.debugLogText or "")
@@ -4916,7 +4904,7 @@ local function helpHeading(text)
   ImGui.Separator()
 end
 
-local function readCETBinding(slug)
+ui.readCETBinding = function(slug)
   local bound
   local queryAvailable = false
   if type(IsBound) == "function" then
@@ -4943,11 +4931,11 @@ local function readCETBinding(slug)
   return "unavailable"
 end
 
-local function drawBindingHelp(label, slug, receivedCount)
+ui.drawBindingHelp = function(label, slug, receivedCount)
   ImGui.TextWrapped(label)
   local binding = state.bindingCache[slug]
   if not binding then
-    local status, assignedKey = readCETBinding(slug)
+    local status, assignedKey = ui.readCETBinding(slug)
     binding = { status = status, assignedKey = assignedKey }
     state.bindingCache[slug] = binding
   end
@@ -4968,7 +4956,7 @@ local function drawBindingHelp(label, slug, receivedCount)
   end
 end
 
-local function pathCallout(childId, label, path)
+ui.pathCallout = function(childId, label, path)
   ImGui.Spacing()
   ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
@@ -4981,7 +4969,7 @@ local function pathCallout(childId, label, path)
   ImGui.PopStyleColor(2)
 end
 
-local function defaultWindowPosition()
+ui.defaultWindowPosition = function()
   local viewportOk, workX, workY, workWidth = pcall(function()
     if not ImGui.GetMainViewport then return nil end
     local viewport = ImGui.GetMainViewport()
@@ -5023,7 +5011,7 @@ local function defaultWindowPosition()
   return math.max(20, displayWidth - 440), 40, displayWidth
 end
 
-local function discoveryViewport()
+ui.discoveryViewport = function()
   if ImGui.GetMainViewport then
     local viewport = ImGui.GetMainViewport()
     if viewport and viewport.WorkPos and viewport.WorkSize then
@@ -5043,7 +5031,7 @@ drawDiscoveryHudNotice = function()
       or state.overlayOpen then return end
   local layout = state.discoveryNoticeLayout
   if not layout then
-    local viewportX, viewportY, viewportWidth = discoveryViewport()
+    local viewportX, viewportY, viewportWidth = ui.discoveryViewport()
     local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE)
     local messageWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_MESSAGE)
     local settingsWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_SETTINGS_MESSAGE)
@@ -5093,7 +5081,7 @@ drawDiscoveryHudNotice = function()
   ImGui.PopStyleColor(2)
 end
 
-local function drawBulkTrashOptions(actionButtonHeight, statusHeight)
+ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
   ImGui.PushItemWidth(-1)
   local previousSearchText = state.searchText
@@ -5161,7 +5149,7 @@ draw = function()
 
   pushTheme()
   if not state.windowPositionCached then
-    state.cachedWindowX, state.cachedWindowY, state.cachedDisplayWidth = defaultWindowPosition()
+    state.cachedWindowX, state.cachedWindowY, state.cachedDisplayWidth = ui.defaultWindowPosition()
     state.windowPositionCached = true
   end
   local initialX = state.cachedWindowX
@@ -5273,7 +5261,7 @@ draw = function()
       ImGui.EndChild()
     end
     if state.debugOpen then
-      drawDebugPanel(200 + extraHeight * 0.35)
+      ui.drawDebugPanel(200 + extraHeight * 0.35)
     end
     if state.helpOpen then
       ImGui.Spacing()
@@ -5296,9 +5284,9 @@ draw = function()
       helpHeading("Open the Editor")
       ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. You can also use a mirror, a ripperdoc, or the new-game editor.")
       ImGui.TextWrapped("Set these keys under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor key.")
-      drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
+      ui.drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editorInputCount)
-      drawBindingHelp("Toggle Character Preset Manager (CET)",
+      ui.drawBindingHelp("Toggle Character Preset Manager (CET)",
         "vanilla_character_presets_toggle", state.windowHotkeyCount)
 
       helpHeading("Load a Preset")
@@ -5339,7 +5327,7 @@ draw = function()
       ImGui.TextWrapped("A shared preset does not include its CET folder. Older Character Preset Manager and compatible ACU preset files can still be loaded.")
       ImGui.TextWrapped("New format-8 preset files use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
       ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
-      pathCallout("##presetFolderPath", "Preset Folder",
+      ui.pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       if fullWidthButton("Copy Preset Folder Path##copyPresetPath", actionButtonHeight) then
         ImGui.SetClipboardText(
@@ -5359,7 +5347,7 @@ draw = function()
       helpHeading("Activity Log")
       ImGui.TextWrapped("Open the activity log to see recent preset actions, warnings, and errors. You can copy the log when asking for help.")
       if fullWidthButton("Open Activity Log##openDebugFromHelp", actionButtonHeight) then
-        readDiagnosticLog()
+        ui.readDiagnosticLog()
         state.debugOpen = true
         state.helpOpen = false
       end
@@ -5828,7 +5816,7 @@ draw = function()
       if compactSubsectionButton("More Trash Options", "Hide More Trash Options",
           "bulkTrash") then
         ImGui.Indent(8)
-        drawBulkTrashOptions(actionButtonHeight, statusHeight)
+        ui.drawBulkTrashOptions(actionButtonHeight, statusHeight)
         ImGui.Unindent(8)
       end
 
@@ -6172,8 +6160,8 @@ registerForEvent("onUpdate", function(delta)
 
   state.autoLoadPasses = state.autoLoadPasses + 1
   local maximumPasses = math.max(
-    AUTO_LOAD_MINIMUM_MAX_PASSES,
-    (tonumber(state.loadValueCount) or 0) * AUTO_LOAD_PASSES_PER_OPTION
+    AUTO_LOAD_LIMITS.minimum,
+    (tonumber(state.loadValueCount) or 0) * AUTO_LOAD_LIMITS.passesPerOption
       + STALL_CONFIRMATION_PASSES + 8)
   if state.autoLoadPasses > maximumPasses then
     state.autoLoad = false
