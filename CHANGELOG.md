@@ -42,6 +42,8 @@ used. See the README and in-game Help for current instructions.
   list used during startup.
 - Stores status types separately from their wording, so clearer text changes do
   not alter warning or success colors.
+- Uses first-person wording for my AI disclosure, credits, and personal-preset
+  answer.
 
 </details>
 

@@ -352,7 +352,8 @@ Yes, but do not try to save or load inside their menus. Use a supported characte
 
 ### Is the character shown in the screenshots included?
 
-No. The screenshots show the mod. The creator's personal character preset is not included and is not planned for release.
+No. The screenshots show the mod. My personal character preset is not included,
+and I do not plan to release it.
 
 </details>
 
@@ -390,18 +391,31 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
 
 ### AI disclosure
 
-AI was used only to help plan and improve the CET menu's layout and appearance. The creator made the final design choices, changed the AI-assisted work to fit the mod, and manually tested saving, loading, folders, recovery, and gameplay features.
+I used AI only to help plan and improve the CET menu's layout and appearance. I
+made the final design choices, changed the AI-assisted work to fit the mod, and
+manually tested saving, loading, folders, recovery, and gameplay features.
 
 ### Credits
 
-- **Character Preset Manager (CET):** Created and maintained by **dklyntly**.
-- **[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850):** Created by **PotatoOfDoom**. ACU inspired this project. Character Preset Manager can read compatible ACU presets so existing preset collections are not lost, but it uses its own current format and controls.
-- **[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930):** Created by **keanuWheeze**. Its way of opening character customization during normal play inspired the Full Appearance Editor.
-- **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):** Created by **yamashi** and maintained by its contributors. CET provides the scripting and menu system used by this mod.
-- **CD Projekt Red:** Creator of Cyberpunk 2077 and its character system.
-- **Cyberpunk 2077 modding community:** Testing, research, compatibility information, and feedback.
+- **Character Preset Manager (CET):** I created and maintain this mod as
+  **dklyntly**.
+- **[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850):**
+  **PotatoOfDoom** created ACU, which inspired this project. I kept support for
+  compatible ACU presets so existing collections are not lost, while using my
+  own current format and controls.
+- **[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930):**
+  **keanuWheeze** created this mod. Its way of opening character customization
+  during normal play inspired me when I made the Full Appearance Editor.
+- **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):**
+  **yamashi** created CET, and its contributors maintain it. I use CET's
+  scripting and menu system for Character Preset Manager.
+- **CD Projekt Red:** I credit CD Projekt Red for Cyberpunk 2077 and its
+  character system.
+- **Cyberpunk 2077 modding community:** I appreciate the testing, research,
+  compatibility information, and feedback shared by the community.
 
-The mods named as inspiration are not included or required. Do not install ACU or Character Customization Anywhere beside Character Preset Manager.
+I do not include or require the mods I named as inspiration. Do not install ACU
+or Character Customization Anywhere beside Character Preset Manager.
 
 ### Links
 
