@@ -93,6 +93,23 @@ used. See the README and in-game Help for current instructions.
   counts instead of turning either case into a real zero-option preset.
 - Stops retrying the same leftover editor option forever when the game reports
   success but does not keep the change, then continues applying the preset.
+- Applies the saved preset before clearing remaining options. Hairstyle-dependent
+  color options that disappear during the hairstyle change are no longer cleared
+  first.
+- Checks the preset again after every cleanup change so a dependency rebuild
+  cannot leave an earlier saved option unverified.
+- Waits for a live option value to change, or for a dependent option to disappear,
+  before treating an application as successful. A successful game call alone is
+  no longer enough.
+- Replaces rapid three-pass applications with elapsed-time deadlines and fresh
+  option lists. A retry happens only after the previous change had time to settle.
+- Polls ordinary changes quickly and gives hairstyles and other option-list
+  rebuilds a longer stable period.
+- Reuses only validated text identities, editor positions, choice shapes, and
+  saved-choice matches. It never keeps game option objects between passes and
+  returns to full scanning after any structural mismatch or Force Full Load use.
+- Adds Activity Log measurements for option retrieval, scanning, choice matching,
+  applied calls, live-value waiting, option-structure changes, and metadata reuse.
 
 </details>
 

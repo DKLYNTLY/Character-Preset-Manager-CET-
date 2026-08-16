@@ -38,17 +38,35 @@ requireMatch(/not metadataOnly and readableFormatConfirmed\s+and readableKey == 
   "Format-8 editor positions are no longer gated by the format header.");
 requireText("readBoundedFile(INVENTORY_FILE, MAX_CATALOG_BYTES)",
   "The startup preset list is no longer size-limited.");
-requireText("AUTO_LOAD_LIMITS.passesPerOption",
-  "Automatic loading no longer scales with the preset size.");
+requireText("AUTO_LOAD_LIMITS.secondsPerOption",
+  "Automatic loading no longer scales its elapsed-time safety limit with the preset size.");
 rejectText("loadSnapshot",
   "Automatic loading must rescan the live editor instead of retaining game option references.");
 rejectText("loadCursor",
   "Automatic loading must restart from the live editor list after every change.");
 rejectText("AUTO_LOAD_FAST_INTERVAL",
   "Automatic loading must not use the removed fast snapshot interval.");
-requireText("state.loadCleanupAttempts[cleanupKey] = attempts + 1",
-  "Cleanup can retry the same editor option forever.");
-requireText('state.logLoadOnce("cleanup-not-sticking:" .. cleanupKey',
+requireText("AUTO_LOAD_TIMING.maximumAttempts",
+  "Timed option changes no longer have a bounded retry limit.");
+requireText("helpers.checkPendingChange(system, scan)",
+  "Loading no longer confirms changes against a fresh option list.");
+requireText("state.loadElapsed - pending.attemptStartedAt",
+  "Option retries are no longer based on elapsed time.");
+requireText('state.loadPhase = "cleanup"',
+  "Leftover cleanup is no longer a separate post-apply phase.");
+requireText("post-apply leftover cleanup",
+  "Leftover cleanup can run before the preset is applied again.");
+requireText('state.loadPhase = "verify"',
+  "Preset verification no longer follows cleanup changes.");
+requireText("state.loadMetadataCache",
+  "Validated stable option metadata reuse is missing.");
+requireText("state.loadMetadataDisabled = true",
+  "Unsafe metadata reuse can no longer fall back to full scanning.");
+requireText("GetUnitedOptions calls=%d time=%.6fs",
+  "Loader retrieval timing is missing from the Activity Log.");
+requireText("currIndex/dependency wait=%.3fs",
+  "Loader settling timing is missing from the Activity Log.");
+requireText('state.logLoadOnce("cleanup-not-sticking:" .. pending.trackingKey',
   "Cleanup no longer reports and skips an option that refuses to stay cleared.");
 requireText("state.logLoadOnce",
   "Repeated loading warnings are no longer deduplicated.");

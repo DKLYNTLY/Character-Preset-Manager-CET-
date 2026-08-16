@@ -68,16 +68,26 @@ local saved = {
   currIndex = 0,
   isEditable = true,
   isActive = true,
-  info = { name = "saved" },
+  info = { name = "hairstyle" },
 }
 local extraAttempts = 0
+local extraVisible = true
+local keepExtraVisible = false
+local applicationOrder = {}
+local customOptions = nil
 local system = {}
-function system:GetUnitedOptions() return { extra, saved } end
+function system:GetUnitedOptions()
+  if customOptions then return customOptions end
+  if extraVisible then return { extra, saved } end
+  return { saved }
+end
 function system:ApplyChangeToOption(option, index)
+  applicationOrder[#applicationOrder + 1] = option == extra and "extra" or "saved"
   if option == extra then
     extraAttempts = extraAttempts + 1
   else
     option.currIndex = index
+    if not keepExtraVisible then extraVisible = false end
   end
 end
 Game = { GetCharacterCustomizationSystem = function() return system end }
@@ -96,25 +106,142 @@ end
 local update = assert(events.onUpdate, "onUpdate event was not registered")
 local state = upvalue(update, "state")
 local loadPreset = upvalue(update, "loadPreset")
+local resetLoadState = upvalue(loadPreset, "resetLoadState")
 
 state.selected = "fixture"
 state.presets.fixture = {
   storage = "fixture",
   format = 8,
-  entries = { { key = "saved", index = 2 } },
+  entries = { { key = "hairstyle", index = 2 } },
 }
 state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
 
-for _ = 1, 8 do
-  loadPreset()
-  if not state.loadNeedsContinue and saved.currIndex == 2 then break end
+for _ = 1, 100 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
 end
 
-assert(extraAttempts == 3,
-  "cleanup did not stop after three attempts: " .. tostring(extraAttempts))
 assert(saved.currIndex == 2,
   "the saved option was never applied: " .. tostring(saved.currIndex))
+assert(extraAttempts == 0,
+  "a dependent child option was cleared before it disappeared: " .. tostring(extraAttempts))
 assert(state.loadNeedsContinue == false, "the loader did not finish")
+assert(state.loadStructureChanges > 0,
+  "the dependent option disappearance was not measured")
+assert(state.loadMetadataDisabled == true,
+  "metadata reuse was not disabled after an option-structure change")
+for _, descriptor in ipairs(state.loadLastStructureDescriptors) do
+  assert(descriptor.option == nil,
+    "structure measurement retained a live option object")
+end
+
+resetLoadState()
+saved.currIndex = 0
+extra.currIndex = 5
+extraAttempts = 0
+extraVisible = true
+keepExtraVisible = true
+applicationOrder = {}
+state.selected = "persistent fixture"
+state.presets["persistent fixture"] = {
+  storage = "persistent fixture",
+  format = 8,
+  entries = { { key = "hairstyle", index = 2 } },
+}
+state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+
+for _ = 1, 200 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+
+assert(applicationOrder[1] == "saved",
+  "leftover cleanup ran before the saved preset option")
+assert(extraAttempts == 3,
+  "timed cleanup did not stop after three real attempts: " .. tostring(extraAttempts))
+assert(saved.currIndex == 2,
+  "preset verification did not preserve the saved option")
+assert(state.loadNeedsContinue == false, "the timed cleanup fixture did not finish")
+assert(state.loadMetadataHits > 0,
+  "stable option metadata was never reused")
+assert(state.loadMetadataDisabled == false,
+  "stable option metadata was disabled without a structural difference")
+for _, descriptor in ipairs(state.loadMetadataCache.descriptors) do
+  assert(descriptor.option == nil,
+    "the metadata cache retained a live option object")
+end
+
+keepExtraVisible = false
+extraVisible = false
+saved.info.definitions = { "hair zero", "hair one", "hair two" }
+for _, format in ipairs({ 4, 7 }) do
+  resetLoadState()
+  saved.currIndex = 0
+  local name = "format " .. tostring(format)
+  state.selected = name
+  state.presets[name] = {
+    storage = name,
+    format = format,
+    entries = {
+      {
+        key = "hairstyle",
+        index = 2,
+        choice = format == 7 and "definitions:hair two" or nil,
+      },
+    },
+  }
+  state.resetBeforeLoad = true
+  loadPreset()
+  state.autoLoad = state.loadNeedsContinue
+  for _ = 1, 100 do
+    update(0.05)
+    if not state.autoLoad and not state.loadNeedsContinue then break end
+  end
+  assert(saved.currIndex == 2,
+    "format " .. tostring(format) .. " preset did not load")
+  assert(state.loadNeedsContinue == false,
+    "format " .. tostring(format) .. " preset did not finish")
+end
+
+local repeatedA = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = { name = "tattoo", uiSlot = "tattoo a" },
+}
+local repeatedB = {
+  currIndex = 0,
+  isEditable = true,
+  isActive = true,
+  info = { name = "tattoo", uiSlot = "tattoo b" },
+}
+customOptions = { repeatedA, repeatedB }
+resetLoadState()
+state.selected = "repeated fixture"
+state.presets["repeated fixture"] = {
+  storage = "repeated fixture",
+  format = 8,
+  entries = {
+    { key = "tattoo", index = 1, slot = "tattoo a" },
+    { key = "tattoo", index = 2, slot = "tattoo b" },
+  },
+}
+state.resetBeforeLoad = true
+loadPreset()
+state.autoLoad = state.loadNeedsContinue
+for _ = 1, 100 do
+  update(0.05)
+  if not state.autoLoad and not state.loadNeedsContinue then break end
+end
+assert(repeatedA.currIndex == 1 and repeatedB.currIndex == 2,
+  "repeated option occurrences were not applied independently")
+assert(state.loadNeedsContinue == false,
+  "the repeated option fixture did not finish")
+customOptions = nil
 
 state.overlayOpen = true
 state.windowOpen = true

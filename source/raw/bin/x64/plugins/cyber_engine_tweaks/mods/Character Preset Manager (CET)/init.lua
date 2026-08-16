@@ -25,11 +25,18 @@ local LOG_ARCHIVE_LIMIT = 10
 local CURRENT_PRESET_FORMAT = 8
 local activitySequence = 0
 
-local AUTO_LOAD_INTERVAL = 0.15
+local AUTO_LOAD_TIMING = {
+  interval = 0.15,
+  pollInterval = 0.05,
+  settleTimeout = 0.45,
+  dependencyTimeout = 1.25,
+  dependencyStableTime = 0.20,
+  maximumAttempts = 3,
+}
 local PREFLIGHT_REFRESH_INTERVAL = 0.75
 local AUTO_LOAD_LIMITS = {
-  minimum = 400,
-  passesPerOption = 4,
+  minimumSeconds = 60,
+  secondsPerOption = 2,
   maximumScannedPresets = 8192,
   maximumScannedEntries = 1048576,
 }
@@ -118,8 +125,29 @@ local state = {
   loadResolvedChoiceIndexes = {},
   loadApplyAttempts = {},
   loadCleanupAttempts = {},
+  loadCleanupSkipped = {},
   loadLoggedWarnings = {},
   loadOptionIdentityCache = {},
+  loadMetadataCache = nil,
+  loadMetadataHits = 0,
+  loadMetadataMisses = 0,
+  loadPendingChange = nil,
+  loadPendingElapsed = 0,
+  loadPhase = "apply",
+  loadElapsed = 0,
+  loadOptionsSeconds = 0,
+  loadScanSeconds = 0,
+  loadChoiceSeconds = 0,
+  loadApplySeconds = 0,
+  loadWaitSeconds = 0,
+  loadOptionCalls = 0,
+  loadStructureChanges = 0,
+  loadLastStructureSignature = nil,
+  loadLastStructureDescriptors = nil,
+  loadMetadataDisabled = false,
+  loadReturnToCleanup = false,
+  loadDependencyKeys = {},
+  loadNextInterval = AUTO_LOAD_TIMING.interval,
   forceFullLoad = false,
   pendingOverwriteName = nil,
   pendingOverwriteFingerprint = nil,
@@ -277,8 +305,29 @@ local function resetLoadState()
   state.loadResolvedChoiceIndexes = {}
   state.loadApplyAttempts = {}
   state.loadCleanupAttempts = {}
+  state.loadCleanupSkipped = {}
   state.loadLoggedWarnings = {}
   state.loadOptionIdentityCache = {}
+  state.loadMetadataCache = nil
+  state.loadMetadataHits = 0
+  state.loadMetadataMisses = 0
+  state.loadPendingChange = nil
+  state.loadPendingElapsed = 0
+  state.loadPhase = "apply"
+  state.loadElapsed = 0
+  state.loadOptionsSeconds = 0
+  state.loadScanSeconds = 0
+  state.loadChoiceSeconds = 0
+  state.loadApplySeconds = 0
+  state.loadWaitSeconds = 0
+  state.loadOptionCalls = 0
+  state.loadStructureChanges = 0
+  state.loadLastStructureSignature = nil
+  state.loadLastStructureDescriptors = nil
+  state.loadMetadataDisabled = false
+  state.loadReturnToCleanup = false
+  state.loadDependencyKeys = {}
+  state.loadNextInterval = AUTO_LOAD_TIMING.interval
   state.autoLoad = false
   state.autoLoadTimer = 0
   state.autoLoadPasses = 0
@@ -2887,6 +2936,381 @@ state.loadOptionIdentity = function(option, key, occurrence)
   return identity
 end
 
+helpers.loadClock = function()
+  local ok, value = pcall(os.clock)
+  return ok and tonumber(value) or 0
+end
+
+helpers.loadChoiceShape = function(option)
+  local parts = {}
+  for _, field in ipairs({ "definitions", "options", "morphNames" }) do
+    local ok, size = pcall(function()
+      return option and option.info and #(option.info[field] or {}) or 0
+    end)
+    parts[#parts + 1] = field .. ":" .. tostring(ok and tonumber(size) or "?")
+  end
+  return table.concat(parts, ",")
+end
+
+helpers.loadStructureDelta = function(before, after)
+  local function fingerprint(descriptor)
+    return table.concat({
+      tostring(descriptor.label or ""), tostring(descriptor.occurrence or 0),
+      tostring(descriptor.slot or ""), tostring(descriptor.slotOccurrence or 0),
+      descriptor.editable and "1" or "0", descriptor.active and "1" or "0",
+      tostring(descriptor.choiceShape or ""),
+    }, "\29")
+  end
+  local function identity(descriptor)
+    return ("LocKey=%s occurrence=%s slot=%s active=%s editable=%s choices=%s")
+      :format(tostring(descriptor.label or "unknown"),
+        tostring(descriptor.occurrence or "none"), tostring(descriptor.slot or "none"),
+        tostring(descriptor.active), tostring(descriptor.editable),
+        tostring(descriptor.choiceShape or "unknown"))
+  end
+  local beforeCounts, afterCounts = {}, {}
+  for _, descriptor in ipairs(before or {}) do
+    local key = fingerprint(descriptor)
+    beforeCounts[key] = (beforeCounts[key] or 0) + 1
+  end
+  for _, descriptor in ipairs(after or {}) do
+    local key = fingerprint(descriptor)
+    afterCounts[key] = (afterCounts[key] or 0) + 1
+  end
+  local removed, added = {}, {}
+  for _, descriptor in ipairs(before or {}) do
+    local key = fingerprint(descriptor)
+    if (beforeCounts[key] or 0) > (afterCounts[key] or 0) then
+      if #removed < 12 then removed[#removed + 1] = identity(descriptor) end
+      beforeCounts[key] = beforeCounts[key] - 1
+    end
+  end
+  for _, descriptor in ipairs(after or {}) do
+    local key = fingerprint(descriptor)
+    if (afterCounts[key] or 0) > (beforeCounts[key] or 0) then
+      if #added < 12 then added[#added + 1] = identity(descriptor) end
+      afterCounts[key] = afterCounts[key] - 1
+    end
+  end
+  return #removed > 0 and table.concat(removed, " || ") or "none",
+    #added > 0 and table.concat(added, " || ") or "none"
+end
+
+helpers.scanLoadOptions = function(options)
+  local started = helpers.loadClock()
+  local result = {
+    exposed = {},
+    activeExposed = {},
+    activeByKey = {},
+    activeKeySet = {},
+    activeCounts = {},
+    exposedBySlot = {},
+    activeSlotCounts = {},
+    descriptors = {},
+  }
+  local occurrences, activeSlotCounts, signatureParts = {}, result.activeSlotCounts, {}
+  local cached = not state.loadMetadataDisabled and state.loadMetadataCache or nil
+  local cacheValid = cached ~= nil and type(cached.descriptors) == "table"
+  for position, option in ipairs(options) do
+    local label = optionKey(option)
+    local slot = optionSlot(option)
+    local editable = option and option.isEditable and true or false
+    local active = option and option.isActive and true or false
+    local occurrence, key, slotOccurrence
+    if label and editable and active then
+      occurrences[label] = (occurrences[label] or 0) + 1
+      occurrence = occurrences[label]
+      result.activeCounts[label] = occurrence
+      key = label .. "\31" .. tostring(occurrence)
+      if slot then
+        activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
+        slotOccurrence = activeSlotCounts[slot]
+      end
+    end
+    local choiceShape = helpers.loadChoiceShape(option)
+    local cachedDescriptor = cacheValid and cached.descriptors[position] or nil
+    local descriptorMatches = cachedDescriptor
+      and cachedDescriptor.label == label
+      and cachedDescriptor.key == key
+      and cachedDescriptor.occurrence == occurrence
+      and cachedDescriptor.slot == slot
+      and cachedDescriptor.slotOccurrence == slotOccurrence
+      and cachedDescriptor.editable == editable
+      and cachedDescriptor.active == active
+      and cachedDescriptor.choiceShape == choiceShape
+    local descriptor = descriptorMatches and cachedDescriptor or {
+        label = label,
+        key = key,
+        occurrence = occurrence,
+        slot = slot,
+        slotOccurrence = slotOccurrence,
+        editable = editable,
+        active = active,
+        choiceShape = choiceShape,
+      }
+    if not descriptorMatches then cacheValid = false end
+    local exposedOption = {
+      option = option,
+      label = label,
+      key = key,
+      occurrence = occurrence,
+      slot = slot,
+      slotOccurrence = slotOccurrence,
+      choiceShape = choiceShape,
+    }
+    result.descriptors[position] = descriptor
+    result.exposed[position] = exposedOption
+    if key then
+      result.activeKeySet[key] = true
+      result.activeByKey[key] = exposedOption
+      result.activeExposed[#result.activeExposed + 1] = exposedOption
+      if slot then
+        result.exposedBySlot[slot .. "\31" .. tostring(slotOccurrence)] = exposedOption
+      end
+    end
+    signatureParts[position] = table.concat({
+      tostring(label or ""), tostring(occurrence or 0), tostring(slot or ""),
+      tostring(slotOccurrence or 0), editable and "1" or "0", active and "1" or "0",
+      choiceShape,
+    }, "\29")
+  end
+  if cached and cached.descriptors[#options + 1] then cacheValid = false end
+  result.signature = table.concat(signatureParts, "\30")
+  local previousSignature = state.loadLastStructureSignature
+  local previousDescriptors = state.loadLastStructureDescriptors
+  if previousSignature and previousSignature ~= result.signature then
+    state.loadStructureChanges = state.loadStructureChanges + 1
+    state.loadMetadataCache = nil
+    state.loadMetadataDisabled = true
+    state.loadResolvedChoiceIndexes = {}
+    state.loadOptionIdentityCache = {}
+    local removed, added = helpers.loadStructureDelta(
+      previousDescriptors, result.descriptors)
+    local pending = state.loadPendingChange
+    if pending then
+      pending.longSettle = true
+      state.loadDependencyKeys[pending.trackingKey] = true
+      log(("[MEASURE] Option structure changed after %s '%s': exposed %d options.")
+        :format(pending.kind, pending.identity, #options), "info")
+    else
+      log(("[MEASURE] Option structure changed between load checks: exposed %d options; metadata reuse disabled for this load.")
+        :format(#options), "info")
+    end
+    log(("[MEASURE] Structure difference | removed: %s | added: %s")
+      :format(removed, added), "info")
+  end
+  state.loadLastStructureSignature = result.signature
+  state.loadLastStructureDescriptors = result.descriptors
+  if not state.loadMetadataDisabled then
+    if cacheValid and cached.signature == result.signature then
+      state.loadMetadataHits = state.loadMetadataHits + 1
+    else
+      state.loadMetadataMisses = state.loadMetadataMisses + 1
+      state.loadMetadataCache = {
+        signature = result.signature,
+        descriptors = result.descriptors,
+      }
+    end
+  else
+    state.loadMetadataMisses = state.loadMetadataMisses + 1
+  end
+  state.loadScanSeconds = state.loadScanSeconds + math.max(0, helpers.loadClock() - started)
+  return result
+end
+
+helpers.resolveLoadChoice = function(option, choice, cachedIndex)
+  local started = helpers.loadClock()
+  local resolved = not state.loadMetadataDisabled and cachedIndex or nil
+  if resolved == nil or not optionChoiceMatchesIndex(option, choice, resolved) then
+    resolved = optionChoiceIndex(option, choice)
+  end
+  state.loadChoiceSeconds = state.loadChoiceSeconds
+    + math.max(0, helpers.loadClock() - started)
+  return resolved
+end
+
+helpers.loadOptionNeedsLongSettle = function(exposedOption, trackingKey)
+  if state.loadDependencyKeys[trackingKey] then return true end
+  local text = table.concat({
+    tostring(exposedOption.label or ""),
+    tostring(exposedOption.slot or ""),
+    helpers.optionDisplayName(exposedOption.option, exposedOption.label),
+  }, " "):lower()
+  return text:find("hair", 1, true) ~= nil or text:find("beard", 1, true) ~= nil
+end
+
+helpers.beginPendingChange = function(system, exposedOption, target, kind, trackingKey, current)
+  local attempts = kind == "cleanup" and state.loadCleanupAttempts
+    or state.loadApplyAttempts
+  local started = helpers.loadClock()
+  local ok, applyError = pcall(
+    system.ApplyChangeToOption, system, exposedOption.option, target)
+  state.loadApplySeconds = state.loadApplySeconds
+    + math.max(0, helpers.loadClock() - started)
+  if not ok then return false, applyError end
+  attempts[trackingKey] = (attempts[trackingKey] or 0) + 1
+  local longSettle = helpers.loadOptionNeedsLongSettle(exposedOption, trackingKey)
+  state.loadPendingChange = {
+    kind = kind,
+    trackingKey = trackingKey,
+    optionKey = exposedOption.key,
+    label = exposedOption.label,
+    occurrence = exposedOption.occurrence,
+    slot = exposedOption.slot,
+    choiceShape = exposedOption.choiceShape,
+    target = target,
+    previous = current,
+    identity = state.loadOptionIdentity(
+      exposedOption.option, exposedOption.label, exposedOption.occurrence),
+    startedAt = state.loadElapsed,
+    attemptStartedAt = state.loadElapsed,
+    structureSignature = state.loadLastStructureSignature,
+    confirmedAt = nil,
+    confirmedSignature = nil,
+    longSettle = longSettle,
+  }
+  state.loadPendingElapsed = 0
+  state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+  state.loadNeedsContinue = true
+  state.previousUnresolvedSignature = nil
+  state.unresolvedRepeatCount = 0
+  return true
+end
+
+helpers.clearVisibleLoadSatisfaction = function(scan)
+  for key in pairs(scan.activeKeySet) do state.loadSatisfied[key] = nil end
+  state.loadApplyAttempts = {}
+  state.previousUnresolvedSignature = nil
+  state.unresolvedRepeatCount = 0
+end
+
+helpers.checkPendingChange = function(system, scan)
+  local pending = state.loadPendingChange
+  if not pending then return "none" end
+  local candidate = scan.activeByKey[pending.optionKey]
+  if candidate and (candidate.label ~= pending.label
+      or candidate.occurrence ~= pending.occurrence
+      or candidate.slot ~= pending.slot
+      or candidate.choiceShape ~= pending.choiceShape) then
+    candidate = nil
+    state.loadMetadataCache = nil
+    state.loadMetadataDisabled = true
+    state.loadResolvedChoiceIndexes = {}
+    state.loadOptionIdentityCache = {}
+    log(("[CACHE] Live option identity changed while waiting for %s; full scanning will be used for the rest of this load: %s")
+      :format(pending.kind, pending.identity), "warn")
+  end
+  local current = candidate and (tonumber(candidate.option.currIndex) or 0) or nil
+  local disappeared = candidate == nil
+  local reached = current == pending.target
+  local structureChanged = scan.signature ~= pending.structureSignature
+  if structureChanged then pending.longSettle = true end
+  if disappeared then pending.longSettle = true end
+  if reached or disappeared then
+    if pending.longSettle then
+      if pending.confirmedAt == nil
+          or pending.confirmedSignature ~= scan.signature then
+        pending.confirmedAt = state.loadElapsed
+        pending.confirmedSignature = scan.signature
+        state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+        setStatus("load", disappeared
+          and "A dependent option was replaced. Waiting for the editor to settle."
+          or "The option changed. Waiting for dependent options to settle.")
+        return "waiting"
+      end
+      if state.loadElapsed - pending.confirmedAt
+          < AUTO_LOAD_TIMING.dependencyStableTime then
+        state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+        return "waiting"
+      end
+    end
+    local waited = math.max(0, state.loadElapsed - pending.startedAt)
+    state.loadWaitSeconds = state.loadWaitSeconds + waited
+    state.loadPendingElapsed = waited
+    state.loadPendingChange = nil
+    state.loadNextInterval = AUTO_LOAD_TIMING.interval
+    if pending.kind == "apply" then
+      state.loadSatisfied[pending.trackingKey] = true
+      if pending.forced then state.loadForcedKeys[pending.trackingKey] = true end
+    else
+      state.loadPhase = "verify"
+      state.loadReturnToCleanup = true
+      helpers.clearVisibleLoadSatisfaction(scan)
+    end
+    log(("SETTLED | %s | %s | target=%s | result=%s | currIndex wait=%.3fs | structureChanged=%s")
+      :format(pending.kind, pending.identity, tostring(pending.target),
+        disappeared and "dependent option disappeared" or "value confirmed",
+        waited, tostring(structureChanged)), "info")
+    return "settled"
+  end
+  local timeout = pending.longSettle and AUTO_LOAD_TIMING.dependencyTimeout
+    or AUTO_LOAD_TIMING.settleTimeout
+  local sinceAttempt = state.loadElapsed - pending.attemptStartedAt
+  if sinceAttempt < timeout then
+    state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+    state.loadPendingElapsed = math.max(0, state.loadElapsed - pending.startedAt)
+    return "waiting"
+  end
+  local attempts = pending.kind == "cleanup" and state.loadCleanupAttempts
+    or state.loadApplyAttempts
+  local attemptCount = attempts[pending.trackingKey] or 0
+  if attemptCount >= AUTO_LOAD_TIMING.maximumAttempts then
+    local waited = math.max(0, state.loadElapsed - pending.startedAt)
+    state.loadWaitSeconds = state.loadWaitSeconds + waited
+    state.loadPendingChange = nil
+    state.loadNextInterval = AUTO_LOAD_TIMING.interval
+    if pending.kind == "cleanup" then
+      state.loadCleanupSkipped[pending.trackingKey] = true
+      state.logLoadOnce("cleanup-not-sticking:" .. pending.trackingKey,
+        ("[SKIPPED] A remaining option did not stay cleared after %d timed applications over %.3fs: %s")
+          :format(attemptCount, waited, pending.identity), "warn")
+    else
+      state.loadForcedKeys[pending.trackingKey] = nil
+      state.logLoadOnce("not-sticking:" .. pending.trackingKey,
+        ("[SKIPPED] Option did not retain its saved value after %d timed applications over %.3fs: %s targetIndex=%s")
+          :format(attemptCount, waited, pending.identity, tostring(pending.target)), "warn")
+    end
+    return "expired"
+  end
+  local started = helpers.loadClock()
+  local ok, applyError = pcall(
+    system.ApplyChangeToOption, system, candidate.option, pending.target)
+  state.loadApplySeconds = state.loadApplySeconds
+    + math.max(0, helpers.loadClock() - started)
+  if not ok then
+    state.loadPendingChange = nil
+    state.loadNeedsContinue = false
+    state.loadStalled = true
+    log(("FAILED | timed retry | %s | target index %s | %s")
+      :format(pending.identity, tostring(pending.target), tostring(applyError)), "error")
+    setStatus("load",
+      "Loading stopped because an option could not be applied safely. Close the editor without confirming, reopen it, and retry.",
+      true)
+    helpers.logLoadMeasurements("retry-failed")
+    return "failed"
+  end
+  attempts[pending.trackingKey] = attemptCount + 1
+  pending.previous = current
+  pending.attemptStartedAt = state.loadElapsed
+  pending.structureSignature = scan.signature
+  pending.confirmedAt = nil
+  pending.confirmedSignature = nil
+  state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+  log(("RETRY | %s | %s | attempt=%d | target=%s | deadline=%.2fs")
+    :format(pending.kind, pending.identity, attemptCount + 1,
+      tostring(pending.target), timeout), "info")
+  return "retried"
+end
+
+helpers.logLoadMeasurements = function(result)
+  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | GetUnitedOptions calls=%d time=%.6fs | scans=%.6fs | choice matching=%.6fs | ApplyChangeToOption=%.6fs | currIndex/dependency wait=%.3fs | structure changes=%d | metadata hits=%d misses=%d disabled=%s")
+    :format(tostring(result), tostring(state.loadPresetName or state.selected),
+      state.loadElapsed, state.loadOptionCalls, state.loadOptionsSeconds,
+      state.loadScanSeconds, state.loadChoiceSeconds, state.loadApplySeconds,
+      state.loadWaitSeconds, state.loadStructureChanges, state.loadMetadataHits,
+      state.loadMetadataMisses, tostring(state.loadMetadataDisabled)), "info")
+end
+
 local function loadPreset()
   if not state.selected or not state.presets[state.selected] then
     resetLoadState()
@@ -2899,7 +3323,11 @@ local function loadPreset()
     setStatus("load", "The selected preset could not be read safely.", true)
     return
   end
+  local optionsStarted = helpers.loadClock()
   local system, options, optionsError = getOptions()
+  state.loadOptionsSeconds = state.loadOptionsSeconds
+    + math.max(0, helpers.loadClock() - optionsStarted)
+  state.loadOptionCalls = state.loadOptionCalls + 1
   if not options then
     setStatus("load", "Open a customization screen before loading a preset.", true)
     log("[load] " .. tostring(optionsError), "warn")
@@ -2928,6 +3356,10 @@ local function loadPreset()
     state.loadForcedKeys = {}
     state.loadResolvedChoiceIndexes = {}
     state.loadApplyAttempts = {}
+    state.loadCleanupAttempts = {}
+    state.loadCleanupSkipped = {}
+    state.loadPhase = "apply"
+    state.loadReturnToCleanup = false
     values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey = {}, {}, {}, {}, 0, {}
     for _, entry in ipairs(preset.entries or {}) do
       local label = tostring(entry.key or "")
@@ -2970,100 +3402,69 @@ local function loadPreset()
       "load")
   end
 
-  if state.resetBeforeLoad then
-    local activeOccurrences = {}
-    for _, option in ipairs(options) do
-      local label = optionKey(option)
-      local current = tonumber(option.currIndex) or 0
-      local occurrence = nil
-      if label and option.isEditable and option.isActive then
-        activeOccurrences[label] = (activeOccurrences[label] or 0) + 1
-        occurrence = activeOccurrences[label]
-      end
-      if occurrence and occurrence > (savedCounts[label] or 0) and current ~= 0 then
-        local cleanupKey = label .. "\31" .. tostring(occurrence)
-        local attempts = state.loadCleanupAttempts[cleanupKey] or 0
-        if attempts >= STALL_CONFIRMATION_PASSES then
-          state.logLoadOnce("cleanup-not-sticking:" .. cleanupKey,
-            ("[SKIPPED] A remaining option did not stay cleared after %d attempts: %s")
-              :format(attempts, state.loadOptionIdentity(option, label, occurrence)),
-            "warn")
-        else
-          local ok, clearError = pcall(system.ApplyChangeToOption, system, option, 0)
-          if ok then
-            state.loadCleanupAttempts[cleanupKey] = attempts + 1
-            state.loadRemaining = valueCount
-            state.loadNeedsContinue = true
-            state.previousUnresolvedSignature = nil
-            state.unresolvedRepeatCount = 0
-            log(("CHANGE | pass=%d | %s | index %d -> 0 | reset leftover")
-              :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
-                current), "info")
-            setStatus("load", "Cleared a remaining option. Waiting for the editor.")
-          else
-            state.resetBeforeLoad = false
-            state.loadNeedsContinue = false
-            state.loadStalled = true
-            log(("FAILED | pass=%d | %s | index %d -> 0 | reset leftover | %s")
-              :format(state.loadPass, optionAuditIdentity(option, label, occurrence),
-                current, tostring(clearError)), "error")
-            setStatus("load",
-              "Loading stopped because a remaining option could not be cleared safely. " ..
-              "Close the editor without confirming, reopen it, and retry.",
-              true
-            )
-          end
-          return
-        end
-      end
-    end
-
-    state.resetBeforeLoad = false
-    state.loadRemaining = valueCount
-    state.loadNeedsContinue = true
-    state.previousUnresolvedSignature = nil
-    state.unresolvedRepeatCount = 0
-    log("CLEANUP | No additional leftover options require resetting.", "info")
-    setStatus("load", "Cleanup complete. Applying the preset.")
-    return
-  end
-
   local applied, missing, ambiguous, invalid = 0, 0, 0, 0
   local deferred = {}
   local unresolved = {}
   local seen = {}
-  local exposed, activeKeySet, activeCounts = {}, {}, {}
-  local occurrences, activeExposed, exposedBySlot, activeSlotCounts = {}, {}, {}, {}
-  for _, option in ipairs(options) do
-    local label = optionKey(option)
-    local slot = optionSlot(option)
-    local key = nil
-    local occurrence = nil
-    local slotOccurrence = nil
-    if label and option.isEditable and option.isActive then
-      occurrences[label] = (occurrences[label] or 0) + 1
-      activeCounts[label] = occurrences[label]
-      occurrence = occurrences[label]
-      key = label .. "\31" .. tostring(occurrence)
-      if slot then
-        activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
-        slotOccurrence = activeSlotCounts[slot]
+  local scan = helpers.scanLoadOptions(options)
+  local exposed = scan.exposed
+  local activeKeySet = scan.activeKeySet
+  local activeCounts = scan.activeCounts
+  local activeExposed = scan.activeExposed
+  local exposedBySlot = scan.exposedBySlot
+  local activeSlotCounts = scan.activeSlotCounts
+
+  local pendingResult = helpers.checkPendingChange(system, scan)
+  if pendingResult == "waiting" or pendingResult == "retried"
+      or pendingResult == "failed" then return end
+  if pendingResult == "settled" and state.loadPhase == "verify" then
+    state.loadRemaining = valueCount
+    state.loadNeedsContinue = true
+    setStatus("load", "A remaining option was cleared. Verifying the preset again.")
+    return
+  end
+
+  if state.loadPhase == "cleanup" then
+    for _, exposedOption in ipairs(exposed) do
+      local label = exposedOption.label
+      local occurrence = exposedOption.occurrence
+      local cleanupKey = exposedOption.key
+      local current = tonumber(exposedOption.option.currIndex) or 0
+      if cleanupKey and occurrence > (savedCounts[label] or 0)
+          and current ~= 0 and not state.loadCleanupSkipped[cleanupKey] then
+        local ok, clearError = helpers.beginPendingChange(
+          system, exposedOption, 0, "cleanup", cleanupKey, current)
+        if not ok then
+          state.resetBeforeLoad = false
+          state.loadNeedsContinue = false
+          state.loadStalled = true
+          log(("FAILED | pass=%d | %s | index %d -> 0 | reset leftover | %s")
+            :format(state.loadPass,
+              state.loadOptionIdentity(exposedOption.option, label, occurrence),
+              current, tostring(clearError)), "error")
+          setStatus("load",
+            "Loading stopped because a remaining option could not be cleared safely. Close the editor without confirming, reopen it, and retry.",
+            true)
+          helpers.logLoadMeasurements("cleanup-failed")
+        else
+          log(("CHANGE | pass=%d | %s | index %d -> 0 | post-apply leftover cleanup")
+            :format(state.loadPass,
+              state.loadOptionIdentity(exposedOption.option, label, occurrence),
+              current), "info")
+          setStatus("load", "Clearing one remaining option. Waiting for the editor.")
+        end
+        return
       end
     end
-    local exposedOption = {
-      option = option,
-      label = label,
-      key = key,
-      occurrence = occurrence,
-      slot = slot,
-      slotOccurrence = slotOccurrence,
-    }
-    table.insert(exposed, exposedOption)
-    if key then
-      activeKeySet[key] = true
-      table.insert(activeExposed, exposedOption)
-      if slot then exposedBySlot[slot .. "\31" .. tostring(slotOccurrence)] = exposedOption end
-    end
+    state.loadPhase = "verify"
+    state.loadReturnToCleanup = false
+    state.resetBeforeLoad = false
+    state.loadRemaining = valueCount
+    state.loadNeedsContinue = true
+    helpers.clearVisibleLoadSatisfaction(scan)
+    log("CLEANUP | No additional exposed leftover options require resetting. Verifying the preset.", "info")
+    setStatus("load", "Cleanup complete. Verifying the preset again.")
+    return
   end
 
   local satisfiedBefore = 0
@@ -3074,10 +3475,12 @@ local function loadPreset()
     local savedEntry = key and savedEntryByKey[key] or nil
     if wanted ~= nil and savedEntry and savedEntry.choice then
       local cachedIndex = state.loadResolvedChoiceIndexes[key]
-      if cachedIndex ~= nil
-          and optionChoiceMatchesIndex(exposedOption.option, savedEntry.choice, cachedIndex) then
-        wanted = cachedIndex
-        values[key] = cachedIndex
+      local resolvedIndex = helpers.resolveLoadChoice(
+        exposedOption.option, savedEntry.choice, cachedIndex)
+      if resolvedIndex ~= nil then
+        state.loadResolvedChoiceIndexes[key] = resolvedIndex
+        wanted = resolvedIndex
+        values[key] = resolvedIndex
       end
     end
     local countMatches = label
@@ -3102,11 +3505,8 @@ local function loadPreset()
     local savedEntry = key and savedEntryByKey[key] or nil
     local choiceUnavailable = false
     if wanted ~= nil and savedEntry and savedEntry.choice then
-      local resolvedIndex = state.loadResolvedChoiceIndexes[key]
-      if resolvedIndex == nil
-          or not optionChoiceMatchesIndex(option, savedEntry.choice, resolvedIndex) then
-        resolvedIndex = optionChoiceIndex(option, savedEntry.choice)
-      end
+      local resolvedIndex = helpers.resolveLoadChoice(
+        option, savedEntry.choice, state.loadResolvedChoiceIndexes[key])
       if resolvedIndex == nil then
         state.loadResolvedChoiceIndexes[key] = nil
         choiceUnavailable = true
@@ -3159,11 +3559,11 @@ local function loadPreset()
         unresolved["reverted:" .. tostring(key)] = true
       else
         local attempts = state.loadApplyAttempts[key] or 0
-        if attempts >= STALL_CONFIRMATION_PASSES then
+        if attempts >= AUTO_LOAD_TIMING.maximumAttempts then
           missing = missing + 1
           unresolved["not-sticking:" .. tostring(key)] = true
           state.logLoadOnce("not-sticking:" .. tostring(key),
-            ("[SKIPPED] Option did not retain its saved value after %d applications: %s targetIndex=%s")
+            ("[SKIPPED] Option did not retain its saved value after %d timed applications: %s targetIndex=%s")
               :format(attempts,
                 state.loadOptionIdentity(option, label, exposedOption.occurrence),
                 tostring(wanted)), "warn")
@@ -3175,19 +3575,15 @@ local function loadPreset()
                 tostring(savedEntry.index), tostring(wanted), tostring(savedEntry.choice)),
               "info")
           end
-          local ok, applyError = pcall(system.ApplyChangeToOption, system, option, wanted)
+          local ok, applyError = helpers.beginPendingChange(
+            system, exposedOption, wanted, "apply", key, current)
           if ok then
-            state.loadApplyAttempts[key] = attempts + 1
-            state.loadSatisfied[key] = true
             state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
-            state.loadNeedsContinue = true
-            state.previousUnresolvedSignature = nil
-            state.unresolvedRepeatCount = 0
             log(("CHANGE | pass=%d | %s | index %s -> %s")
               :format(state.loadPass,
                 state.loadOptionIdentity(option, label, exposedOption.occurrence),
                 tostring(current), tostring(wanted)), "info")
-            setStatus("load", ("Applied one option. %d %s remain%s to be checked.")
+            setStatus("load", ("Applied one option. Waiting for the editor; %d %s remain%s to be checked.")
               :format(state.loadRemaining,
                 state.loadRemaining == 1 and "option" or "options",
                 state.loadRemaining == 1 and "s" or ""))
@@ -3203,6 +3599,7 @@ local function loadPreset()
               "Close the editor without confirming, reopen it, and retry.",
               true
             )
+            helpers.logLoadMeasurements("apply-failed")
           end
           return
         end
@@ -3210,6 +3607,13 @@ local function loadPreset()
     end
   end
   if state.forceFullLoad then
+    if not state.loadMetadataDisabled then
+      state.loadMetadataCache = nil
+      state.loadMetadataDisabled = true
+      state.loadResolvedChoiceIndexes = {}
+      state.loadOptionIdentityCache = {}
+      log("[CACHE] Force Full Load fallback disabled metadata reuse for this load.", "info")
+    end
     local claimedOptions = {}
     for _, exposedOption in ipairs(exposed) do
       if exposedOption.key and values[exposedOption.key] ~= nil then
@@ -3243,7 +3647,8 @@ local function loadPreset()
         end
         if candidate and candidate.option.isEditable and candidate.option.isActive
             and not claimedOptions[candidate.option] then
-          local target = entry.choice and optionChoiceIndex(candidate.option, entry.choice)
+          local target = entry.choice and helpers.resolveLoadChoice(
+            candidate.option, entry.choice, nil)
             or entry.index
           if target ~= nil and optionIndexIsValid(target) then
             seen[savedKey] = true
@@ -3252,27 +3657,36 @@ local function loadPreset()
               state.loadSatisfied[savedKey] = true
               state.loadForcedKeys[savedKey] = true
             else
-              local ok, applyError = pcall(
-                system.ApplyChangeToOption, system, candidate.option, target)
-              if ok then
-                state.loadSatisfied[savedKey] = true
-                state.loadForcedKeys[savedKey] = true
-                state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
-                state.loadNeedsContinue = true
-                state.previousUnresolvedSignature = nil
-                state.unresolvedRepeatCount = 0
-                log(("FORCED | pass=%d | saved LocKey='%s' unavailable | %s fallback -> %s | index %s -> %s")
-                  :format(state.loadPass, entry.label, method,
-                    optionAuditIdentity(candidate.option, candidate.label, candidate.occurrence),
-                    tostring(current), tostring(target)), "warn")
-                setStatus("load",
-                  "Applied one unmatched option using Force Full Load. Verify the appearance manually.")
-                return
+              local attempts = state.loadApplyAttempts[savedKey] or 0
+              if attempts >= AUTO_LOAD_TIMING.maximumAttempts then
+                missing = missing + 1
+                unresolved["force-not-sticking:" .. tostring(savedKey)] = true
               else
-                state.loadForcedKeys[savedKey] = nil
-                log(("FORCE FAILED | pass=%d | saved LocKey='%s' | %s fallback target index %s | %s")
-                  :format(state.loadPass, entry.label, method, tostring(target),
-                    tostring(applyError)), "error")
+                local ok, applyError = helpers.beginPendingChange(
+                  system, candidate, target, "apply", savedKey, current)
+                if ok then
+                  state.loadPendingChange.forced = true
+                  state.loadRemaining = math.max(0, valueCount - satisfiedBefore - 1)
+                  log(("FORCED | pass=%d | saved LocKey='%s' unavailable | %s fallback -> %s | index %s -> %s")
+                    :format(state.loadPass, entry.label, method,
+                      optionAuditIdentity(candidate.option, candidate.label, candidate.occurrence),
+                      tostring(current), tostring(target)), "warn")
+                  setStatus("load",
+                    "Applied one unmatched option using Force Full Load. Waiting for the editor.")
+                  return
+                else
+                  state.loadForcedKeys[savedKey] = nil
+                  log(("FORCE FAILED | pass=%d | saved LocKey='%s' | %s fallback target index %s | %s")
+                    :format(state.loadPass, entry.label, method, tostring(target),
+                      tostring(applyError)), "error")
+                  state.loadNeedsContinue = false
+                  state.loadStalled = true
+                  helpers.logLoadMeasurements("force-failed")
+                  setStatus("load",
+                    "Loading stopped because Force Full Load could not apply an option safely. Close the editor without confirming, reopen it, and retry.",
+                    true)
+                  return
+                end
               end
             end
           elseif entry.choice then
@@ -3328,6 +3742,7 @@ local function loadPreset()
         :format(state.selected, applied, state.loadRemaining, state.loadPass), "warn")
       log(("Load stalled: preset='%s' pass=%d unresolved=%d signature='%s'")
         :format(state.selected, state.loadPass, state.loadRemaining, signature), "warn")
+      helpers.logLoadMeasurements("stopped")
       setStatus("load", (
         "Loading stopped because %d of %d options were still missing after %d checks. " ..
         "Adding, removing, updating, or changing the order of CCXL mods can move or rename options. " ..
@@ -3339,14 +3754,44 @@ local function loadPreset()
         :format(state.loadPass, applied, valueCount, state.loadRemaining))
     end
   else
+    if state.loadPhase == "apply" and state.resetBeforeLoad then
+      state.loadPhase = "cleanup"
+      state.loadRemaining = valueCount
+      state.loadNeedsContinue = true
+      state.previousUnresolvedSignature = nil
+      state.unresolvedRepeatCount = 0
+      log("APPLY | Saved preset options are confirmed. Checking for genuine leftovers next.", "info")
+      setStatus("load", "Preset options applied. Checking for remaining options.")
+      return
+    end
+    if state.loadPhase == "verify" and state.loadReturnToCleanup then
+      state.loadPhase = "cleanup"
+      state.loadReturnToCleanup = false
+      state.loadRemaining = valueCount
+      state.loadNeedsContinue = true
+      state.previousUnresolvedSignature = nil
+      state.unresolvedRepeatCount = 0
+      log("VERIFY | Preset still matches after cleanup. Checking for another leftover option.", "info")
+      setStatus("load", "Preset verified. Checking for another remaining option.")
+      return
+    end
+    local cleanupSkipped = 0
+    for _ in pairs(state.loadCleanupSkipped) do cleanupSkipped = cleanupSkipped + 1 end
     state.loadNeedsContinue = false
     state.loadStalled = false
     state.previousUnresolvedSignature = nil
     state.unresolvedRepeatCount = 0
     refreshCustomizationUi()
-    log(("SUMMARY | preset='%s' | applied=%d | forced=%d | skipped=0 | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=complete")
-      :format(state.selected, applied, forced, state.loadPass), "complete")
-    if forced > 0 then
+    log(("SUMMARY | preset='%s' | applied=%d | forced=%d | skipped=%d | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=%s")
+      :format(state.selected, applied, forced, cleanupSkipped, state.loadPass,
+        cleanupSkipped > 0 and "complete-with-cleanup-warning" or "complete"),
+      cleanupSkipped > 0 and "warn" or "complete")
+    helpers.logLoadMeasurements("complete")
+    if cleanupSkipped > 0 then
+      setStatus("load", ("Preset applied, but %d remaining option%s could not be cleared. Check the Activity Log and the appearance before confirming the editor.")
+        :format(cleanupSkipped, cleanupSkipped == 1 and "" or "s"),
+        false, "warning")
+    elseif forced > 0 then
       setStatus("load", (
         "Preset fully applied: %d options applied in %d pass%s. Force Full Load matched %d option%s. " ..
         "Check the hair, hair color, and other forced options."
@@ -3443,6 +3888,7 @@ end
 
 local function cancelLoading()
   local name = state.loadPresetName or state.selected
+  if state.loadPresetName then helpers.logLoadMeasurements("canceled") end
   resetLoadState()
   setStatus("load", name and ("Loading canceled for \"" .. name .. "\".")
     or "Loading canceled.")
@@ -5000,6 +5446,10 @@ local function refreshEditorState()
   local wasInCustomization = state.inCustomization
   state.inCustomization = isCustomizationActive()
   if state.inCustomization ~= wasInCustomization then
+    if state.loadPresetName and (state.loadNeedsContinue or state.loadPendingChange) then
+      helpers.logLoadMeasurements("editor-changed")
+    end
+    resetLoadState()
     state.invalidatePreflight()
     state.clothingCheckDirty = true
     state.clothingCheckNextAt = 0
@@ -5736,7 +6186,7 @@ draw = function()
         "4. Wait for Preset Fully Applied.")
       ImGui.TextWrapped("If you add, remove, or edit preset files outside CET, select Refresh under Load Preset before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "The mod may clear appearance options that are not saved in the preset.")
+        "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
 
       helpHeading("Save a Preset")
       ImGui.TextWrapped("1. Open a supported character editor.")
@@ -6368,6 +6818,10 @@ registerForEvent("onInit", function()
     "OnInitialize",
     function(menu)
       temporarilyDisableWardrobe()
+      if state.loadPresetName and (state.loadNeedsContinue or state.loadPendingChange) then
+        helpers.logLoadMeasurements("editor-opened")
+      end
+      resetLoadState()
       state.activeBodyMorphMenu = menu
       state.inCustomization = true
       state.invalidatePreflight()
@@ -6386,6 +6840,10 @@ registerForEvent("onInit", function()
     "characterCreationBodyMorphMenu",
     "OnUninitialize",
     function()
+      if state.loadPresetName and (state.loadNeedsContinue or state.loadPendingChange) then
+        helpers.logLoadMeasurements("editor-closed")
+      end
+      resetLoadState()
       state.activeBodyMorphMenu = nil
       state.inCustomization = false
       state.invalidatePreflight()
@@ -6579,6 +7037,12 @@ registerForEvent("onUpdate", function(delta)
   end
   if not state.autoLoad then return end
 
+  state.loadElapsed = state.loadElapsed + elapsed
+  if state.loadPendingChange then
+    state.loadPendingElapsed = math.max(0,
+      state.loadElapsed - state.loadPendingChange.startedAt)
+  end
+
   if not state.loadNeedsContinue then
     state.autoLoad = false
     state.autoLoadTimer = 0
@@ -6587,7 +7051,7 @@ registerForEvent("onUpdate", function(delta)
   end
 
   state.autoLoadTimer = state.autoLoadTimer + elapsed
-  if state.autoLoadTimer < AUTO_LOAD_INTERVAL then return end
+  if state.autoLoadTimer < state.loadNextInterval then return end
   state.autoLoadTimer = 0
 
   if not state.selected then
@@ -6598,12 +7062,12 @@ registerForEvent("onUpdate", function(delta)
   end
 
   state.autoLoadPasses = state.autoLoadPasses + 1
-  local maximumPasses = math.max(
-    AUTO_LOAD_LIMITS.minimum,
-    (tonumber(state.loadValueCount) or 0) * AUTO_LOAD_LIMITS.passesPerOption
-      + STALL_CONFIRMATION_PASSES + 8)
-  if state.autoLoadPasses > maximumPasses then
+  local maximumSeconds = math.max(
+    AUTO_LOAD_LIMITS.minimumSeconds,
+    (tonumber(state.loadValueCount) or 0) * AUTO_LOAD_LIMITS.secondsPerOption + 10)
+  if state.loadElapsed > maximumSeconds then
     state.autoLoad = false
+    helpers.logLoadMeasurements("safety-limit")
     setStatus("load",
       "Automatic loading reached its safety limit without stopping or finishing. " ..
       "This is unusual. Please report it and include the Activity Log.",

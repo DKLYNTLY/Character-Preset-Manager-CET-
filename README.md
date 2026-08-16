@@ -25,7 +25,7 @@
 - Opens the full game character editor during normal play.
 - Gives apartment mirrors the full set of character-creation options.
 - Loads a preset with one click and waits when the editor refreshes.
-- Can clear visible appearance options that are not part of the preset.
+- After applying a preset, can clear visible appearance options that are not part of it.
 - Finds presets with search and shows whether the current editor has the needed options.
 - Organizes presets in folders and folders inside folders, with no set limit.
 - Copies presets or complete folder groups.
@@ -104,15 +104,20 @@ If that name already exists, confirm **Replace Existing Preset** only when you w
 4. Select **Load Selected Preset** once.
 5. Wait for the green **Preset Fully Applied** message.
 
-Cyberpunk may refresh the editor several times. The mod waits and continues on its own. Select **Cancel Loading** if you need to stop.
+Cyberpunk may refresh the editor several times. The mod waits and continues on
+its own. It applies the saved appearance before clearing any remaining options,
+then checks the preset again. Select **Cancel Loading** if you need to stop.
 
 The compatibility summary refreshes while the mod and character editor are open.
 It updates after the editor changes without making you select a different preset
 and switch back. Other selected-preset details update at the same time.
 
-Automatic loading keeps a short work list between checks and uses a faster wait
-while the editor options remain stable. If a change adds, removes, or disables an
-option, the mod rebuilds that list before it continues.
+Automatic loading gets a fresh option list after every change. It reuses only
+checked names, positions, and saved-choice matches while the editor structure
+remains the same. If a change adds, removes, disables, or rearranges an option,
+the mod stops reusing that information for the rest of the load. It also checks
+quickly after ordinary changes and waits longer for hairstyles and other changes
+that rebuild related options.
 
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
 
@@ -392,6 +397,13 @@ and I do not plan to release it.
   full only when it is selected or used.
 - Makes automatic loading reuse safe work between checks and wait less between
   stable options.
+- Applies saved options before clearing remaining appearance choices, then checks
+  the preset again after every cleanup change.
+- Waits for each live option value to change or for a dependent option to
+  disappear before continuing. Retries now use elapsed time instead of rapid
+  pass counts.
+- Records option retrieval, scanning, choice matching, update waiting, structure
+  changes, and safe metadata reuse in the Activity Log for loader testing.
 - Refreshes the selected preset's compatibility text while the editor changes.
 - Streams shared-folder export and import one preset at a time.
 - Preserves the last good Trash list when the Trash folder cannot be read.
