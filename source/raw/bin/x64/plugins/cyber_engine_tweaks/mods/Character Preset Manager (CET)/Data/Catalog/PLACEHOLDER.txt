@@ -1,1 +1,1 @@
-Character Preset Manager stores virtual organization data in this folder.
+Character Preset Manager stores its folder and preset lists here.

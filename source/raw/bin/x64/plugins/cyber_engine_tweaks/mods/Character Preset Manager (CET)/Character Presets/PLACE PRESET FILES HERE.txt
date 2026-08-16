@@ -1,1 +1,1 @@
-Place .preset files here or in manually created folders inside this directory.
+Place .preset files here. You can also make Windows folders here to organize imported presets.

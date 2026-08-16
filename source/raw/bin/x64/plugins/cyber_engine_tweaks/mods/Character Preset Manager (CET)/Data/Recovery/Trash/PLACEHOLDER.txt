@@ -1,1 +1,1 @@
-Recoverable preset files are stored here by Character Preset Manager.
+Preset files moved to Trash stay here until you restore or permanently delete them.

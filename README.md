@@ -1,93 +1,279 @@
 <h1 align="center">Character Preset Manager (CET)</h1>
 
-<p align="center"><em>Save, load, organize, and share complete Cyberpunk 2077 character appearances directly through CET.</em></p>
+<p align="center"><em>Save, load, organize, and share complete Cyberpunk 2077 character appearances through CET.</em></p>
 
 <p align="center">
   <strong><a href="https://www.nexusmods.com/cyberpunk2077/mods/31886">Download on Nexus Mods</a></strong>
   ·
   <a href="https://discord.com/invite/mUGHmQxHG8">Discord and support</a>
   ·
-  <a href="CHANGELOG.md">Complete changelog</a>
+  <a href="CHANGELOG.md">Full changelog</a>
 </p>
 
 <p align="center"><strong>Current version: 3.0.3</strong></p>
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
-> Anywhere** before using Character Preset Manager. They change the same
-> customization screens and are not compatible. Fully restart Cyberpunk after
-> removing either mod.
+> Anywhere** before using this mod. They change the same character screens and
+> cannot be used with Character Preset Manager. Restart the game after removing
+> either mod.
 
 <details open>
-<summary><strong>Features</strong></summary>
+<summary><strong>What the mod does</strong></summary>
 
-- **Complete appearance presets** — Save and load full appearances, including
-  exposed CC and CCXL options.
-- **Full editor anywhere** — Open the vanilla appearance editor during normal
-  gameplay.
-- **Full apartment mirrors** — Use the complete character-creator option set
-  through ordinary apartment mirrors.
-- **One-click loading** — Select a preset once while the mod safely waits for
-  editor rebuilds.
-- **Cosmetic cleanup** — Clear exposed cosmetic choices that are absent from the
-  incoming preset.
-- **Search and compatibility summary** — Find presets, refresh imported files,
-  and review the current editor match before loading.
-- **Unlimited folder organization** — Create nested virtual folders and detect
-  manually created directories.
-- **Preset and folder duplication** — Copy one preset or a complete virtual
-  folder tree.
-- **Optional preset details** — Add notes and tags through the current format-7
-  preset metadata.
-- **Recoverable Trash** — Move presets, folder groups, or multi-selections to
-  Trash with confirmation.
-- **Easy sharing** — Share one appearance as a `.preset` file or a complete
-  virtual folder tree as one `.cpmfolder` bundle.
-- **Activity log** — Review actions, warnings, and errors inside CET.
+- Saves and loads complete character appearances, including visible CC and CCXL options.
+- Opens the full game character editor during normal play.
+- Gives apartment mirrors the full set of character-creation options.
+- Loads a preset with one click and waits when the editor refreshes.
+- Can clear visible appearance options that are not part of the preset.
+- Finds presets with search and shows whether the current editor has the needed options.
+- Organizes presets in folders and folders inside folders, with no set limit.
+- Copies presets or complete folder groups.
+- Stores optional notes and tags with new presets.
+- Moves presets and folders to Trash so they can be restored.
+- Shares one preset as a `.preset` file or a complete folder as a `.cpmfolder` file.
+- Shows actions, warnings, and errors in an activity log.
 
 </details>
 
 <details>
-<summary><strong>Requirements, Installation & Hotkeys</strong></summary>
+<summary><strong>Requirements and installation</strong></summary>
 
 ### Requirements
 
 - [Cyber Engine Tweaks 1.37.1 or newer](https://www.nexusmods.com/cyberpunk2077/mods/107)
-- No additional runtime dependency beyond CET
+- No other required mod or program
 
-### Installation
+### Install the mod
 
 1. [Download the latest release from Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
-2. Extract the release archive into your Cyberpunk 2077 game folder.
-3. Launch the game and open the Cyber Engine Tweaks overlay.
+2. Extract the downloaded archive into your Cyberpunk 2077 game folder.
+3. Start the game and open the Cyber Engine Tweaks overlay.
 4. Select **Character Preset Manager (CET)**.
 
-The window starts near the right side of the screen. CET remembers its position
-and size after you move or resize it.
+The window first opens near the right side of the screen. CET remembers its position and size after you move or resize it.
 
-### Optional hotkeys
+### Set optional keys
 
 1. Open CET and select **Bindings**.
 2. Find **Character Preset Manager (CET)**.
-3. Assign **Open Full Appearance Editor**.
-4. Optionally assign **Toggle Character Preset Manager (CET)**.
-5. Close the CET overlay before using the editor input during gameplay.
+3. Set a key for **Open Full Appearance Editor**.
+4. You can also set a key for **Toggle Character Preset Manager (CET)**.
+5. Close the CET overlay before using the editor key during play.
 
-The Help panel displays the assigned keys when CET can provide them. Otherwise,
-it falls back to detecting whether the input was used during the current session.
+The Help panel shows the assigned keys when CET makes that information available. If CET cannot show a key, the panel reports whether you used that input during the current game session.
 
-### Current preset system
+### Update from an older release
 
-New presets use format 7. Existing older and compatible ACU-format `.preset`
-files remain readable so established preset libraries are not lost, but all new
-presets and shared folders use the current system. Do not leave an older mod
-folder installed beside this one.
+New presets use format 7. Older Character Preset Manager presets and compatible ACU `.preset` files can still be loaded. New presets and shared folders use the current system.
 
-### Runtime data layout
+Do not keep an older copy of the mod beside the current one. Version 3.0.3 does not move loose files left by older releases. For a clean update:
 
-The install root contains only `init.lua`, `Character Presets`, and `Data` from
-this mod. Virtual folders never create physical directories. CPM-owned files
-are grouped under:
+1. Back up the presets and `.cpmfolder` files you want to keep from `Character Presets`.
+2. Remove the old Character Preset Manager folder.
+3. Install version 3.0.3.
+4. Put your saved presets and bundles back in `Character Presets`.
+
+</details>
+
+<details open>
+<summary><strong>Save and load presets</strong></summary>
+
+### Save a preset
+
+1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
+2. Open Character Preset Manager in CET.
+3. Under **Save Preset**, open **Choose Save Destination**.
+4. Choose a folder or **All Presets**.
+5. Enter a name and select **Save New Preset**.
+
+If that name already exists, confirm **Replace Existing Preset** only when you want to overwrite it.
+
+### Load a preset
+
+1. Open one of the supported character screens listed above.
+2. Choose a preset under **Load Preset**.
+3. Check its folder, number of saved options, source, details, and compatibility summary.
+4. Select **Load Selected Preset** once.
+5. Wait for the green **Preset Fully Applied** message.
+
+Cyberpunk may refresh the editor several times. The mod waits and continues on its own. Select **Cancel Loading** if you need to stop.
+
+Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
+
+### What a preset saves
+
+Format-7 presets store each visible option, its position in the editor, its selected choice when a stable name is available, and its number in the choice list. They can also store the source, date, notes, and tags.
+
+This information helps the mod find a saved choice after CCXL adds items to a list. **Force Full Load** can also try the saved editor position when a related option was renamed. Always check the result after changing option mods.
+
+Older presets only know the option name and number. If new hairstyles shift the list, an older preset may choose the wrong hairstyle because it cannot know the original choice. Correct it once and save the preset again in the current format.
+
+</details>
+
+<details>
+<summary><strong>Organize presets and folders</strong></summary>
+
+### Basic folder use
+
+- Select a folder row under **Load Preset** to open or close it.
+- Presets without a folder appear under **All Presets**.
+- Choose a folder or **All Presets** before saving or moving a preset.
+- To make a folder inside another folder, select the parent folder first.
+- Copies appear beside the original and use names such as `Copy` and `Copy 2`.
+- Copying a folder also copies every preset and folder inside it.
+- Renaming a preset also renames its `.preset` file.
+- Notes and tags are under **Rename & Copy > Optional Preset Details**.
+
+### Folders made in CET
+
+Folders made in CET organize presets only inside the mod. They do not create or rename Windows folders. There is no set limit. Their organization is stored in:
+
+```text
+Data/Catalog/Virtual Folders.txt
+```
+
+### Windows folders inside Character Presets
+
+The mod finds Windows folders placed inside `Character Presets`, including folders inside them. These folders have an **Imported** label. Their preset files stay where you placed them until an action must move a file.
+
+- Renaming an Imported folder changes only the name shown in the mod.
+- Moving one of its presets changes only where it appears in the mod.
+- **Remove Folder, Keep Presets** moves known `.preset` files to the main preset folder, keeps every preset, and removes only Windows folders that are empty.
+- Unknown files are never deleted, and any folder containing one stays in place.
+- The mod stops checking a folder if it cannot confirm that an entry is safe or if the folder is more than 12 levels deep.
+- Linked folders and Windows junctions are not supported.
+
+### Remove a folder but keep its contents
+
+After you confirm **Remove Folder, Keep Presets**, the selected folder is removed and everything inside it moves to the folder above. For an Imported folder, known preset files move to the main preset folder first. Its Windows folder is removed only when no unknown files remain.
+
+</details>
+
+<details>
+<summary><strong>Share and install presets</strong></summary>
+
+Preset files and shared folders go here:
+
+```text
+bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
+```
+
+### Share one preset
+
+- To share an appearance, send its `.preset` file.
+- To install a preset, place its file in `Character Presets` or in a Windows folder inside it.
+- Select **Refresh** under **Load Preset** after changing files outside the game.
+- A single `.preset` file does not include its CET folder assignment.
+
+For safety, an imported preset cannot be larger than 1 MB or contain more than 8,192 lines and 4,096 valid options. An option name cannot exceed 256 bytes, and an option number must fit in an unsigned 32-bit value.
+
+### Share a complete folder
+
+A `.cpmfolder` file contains the selected CET folder, all folders inside it, and every preset in that group. Notes, tags, and other supported preset details are included.
+
+#### Export a folder
+
+1. Open **Folders** and choose a non-empty folder.
+2. Select **Export Folder for Sharing**.
+3. Find the new `.cpmfolder` file in `Character Presets`.
+4. Send that one file.
+
+A shared folder can contain up to 512 presets and cannot be larger than 32 MB. An empty folder cannot be exported.
+
+To remove only the exported file, choose **All Presets**, open **Shared Folder Files**, select the file, and choose **Move Selected File to Trash**. This does not remove the original folder or its presets. You can restore the file under **Delete & Restore** or remove it with **Empty Trash Permanently**.
+
+#### Import a folder
+
+1. Put the downloaded `.cpmfolder` file in `Character Presets`.
+2. Open Character Preset Manager and expand **Folders**.
+3. Choose **All Presets**. The import button appears only here.
+4. Select **Install Shared Folders**.
+
+The mod rebuilds the complete folder group and leaves the `.cpmfolder` file in place. It remembers the filename, file contents, and imported folder in `Data/Catalog/Imported Bundles.txt`.
+
+An unchanged bundle is skipped while its imported folder still exists. You can import it again after deleting that folder. You can also import a changed bundle that uses the same filename. If a folder name is already in use, the new folder gets a safe `Copy` name. A failed import is not marked as complete, so you can fix the file and try again.
+
+After a successful import, **Shared Folder Files** can move the source file to Trash without removing the imported folder or presets. The list updates when the CET overlay opens, when you select **Refresh**, and after any shared-folder action.
+
+</details>
+
+<details>
+<summary><strong>Trash and restore</strong></summary>
+
+- Moving a preset to Trash keeps it available for recovery.
+- Under **Folders**, you can move a folder and everything inside it to Trash.
+- **More Trash Options** lets you select several presets from the current search results.
+- **Select All Visible** and **Clear Selection** make large selections easier.
+- Moving an Imported folder to Trash removes its Windows folder only when it is empty. Unknown files are never deleted.
+- **Restore Folder** rebuilds the whole folder group, including empty folders inside it, and restores every preset in that Trash group.
+- You can also restore presets one at a time.
+- If a name is already in use, the restored item gets a `Copy` name instead of overwriting anything.
+- **Empty Trash Permanently** is the only action that permanently deletes trashed files.
+- If the game closes during a Trash, restore, multi-move, or file-rename action, the mod finishes or safely rolls back that action the next time it starts.
+
+</details>
+
+<details>
+<summary><strong>Compatibility and known problems</strong></summary>
+
+### CC and CCXL character-option mods
+
+**Supported.** Custom options are saved when they appear in Cyberpunk's normal character screens. Repeated and linked options, including different eye colors, are supported.
+
+Keep the same option mods, versions, body and eye choices, and load order that were used to create the preset. Check the result whenever you change them.
+
+[EKT Custom Character Creator - FEMV ONLY](https://www.nexusmods.com/cyberpunk2077/mods/12807) is one supported example when it uses the game's normal character system. Character Preset Manager does not change body models, skeletons, archive files, or files owned by other mods.
+
+### Appearance Change Unlocker (ACU)
+
+**Not compatible.** Remove ACU and restart the game before using Character Preset Manager. The mod does not check for ACU because an automatic check could keep reporting it after removal.
+
+Compatible ACU preset files can still be loaded after ACU is removed. Save new presets with Character Preset Manager's current format.
+
+### Character Customization Anywhere
+
+**Not compatible.** This mod changes the same mirrors and character screens. Remove it and restart the game. Character Preset Manager does not check for it automatically.
+
+### Photo Mode and Appearance Menu Mod
+
+**Compatible with one limit.** These mods may stay installed, but Character Preset Manager cannot save or load inside their menus. Use the Full Appearance Editor, a mirror, a ripperdoc, or the new-game editor.
+
+### Loading screen after closing the editor
+
+Cyberpunk can sometimes stay on a loading screen after any character editor closes. This can happen without Character Preset Manager. Clothing, wardrobe outfits, Equipment-EX, and detailed outfits may make it more likely.
+
+If this happens, remove all clothing and choose **No Outfit** before opening the editor. Put everything back on afterward. The optional yellow clothing message does not mean that the mod failed.
+
+</details>
+
+<details>
+<summary><strong>Settings and files</strong></summary>
+
+### Settings
+
+- **Customization Reminder: Enabled/Disabled** turns the character-screen reminder on or off. It starts on and stays off after you disable it.
+- **Preset Sort** sorts presets by name or by the most recently changed preset.
+- **Reload Settings File** applies manual changes without restarting.
+
+The same choices are stored in:
+
+```text
+Data/Config/Config.txt
+```
+
+Available values:
+
+```text
+discoveryReminder=true
+presetSort=name
+```
+
+`presetSort` accepts `name` or `modified`. The mod creates this file when needed and does not replace an existing copy during installation. No separate settings mod is required.
+
+### Mod data folders
+
+The mod keeps its settings, folder lists, recovery files, Trash, and logs under `Data`:
 
 ```text
 Data/
@@ -99,484 +285,80 @@ Data/
     `-- Archive/
 ```
 
-Version 3.0.3 does not move loose files created by older releases. For the
-clean layout, remove the old mod installation before installing 3.0.3, while
-backing up and restoring only the presets or bundles you want to keep from
-`Character Presets`.
-
-</details>
-
-<details open>
-<summary><strong>Using Character Preset Manager</strong></summary>
-
-### Saving a preset
-
-1. Open the **Full Appearance Editor**, a mirror, a ripperdoc customization
-   screen, or the new-game editor.
-2. Open Character Preset Manager in CET.
-3. Under **Save Preset**, open **Choose Save Destination**.
-4. Select a folder or **All Presets**, then confirm the displayed location.
-5. Enter a name and select **Save New Preset**.
-
-If the name already exists, confirm the overwrite only if you want to replace
-that preset.
-
-### Loading a preset
-
-1. Open a supported character customization screen.
-2. Select a preset under **Load Preset**.
-3. Review its folder, option count, source, metadata, and compatibility summary.
-4. Select **Load Selected Preset** once.
-5. Wait for the green **Preset fully applied** message.
-
-Cyberpunk may rebuild the editor several times. Character Preset Manager waits
-and continues automatically. Select **Cancel Loading** if you need to stop.
-
-If the same options cannot be found after three checks, loading stops instead
-of guessing. This usually means character-option mods or their load order have
-changed. Fix the appearance and save the preset again.
-
-### Settings and config
-
-Settings includes:
-
-- **Customization Reminder: Enabled/Disabled:** Shows the current state. Select
-  it to switch the reminder on or off. It starts enabled on a clean install and
-  stays enabled until you turn it off in Settings.
-- **Preset Sort:** Sort alphabetically by name or by newest modified metadata.
-- **Reload Config from Disk:** Applies manual config edits without restarting.
-
-The same options are stored in:
-
-```text
-Data/Config/Config.txt
-```
-
-Supported values:
-
-```text
-discoveryReminder=true
-presetSort=name
-```
-
-`presetSort` accepts `name` or `modified`. The config is created automatically
-and is not packaged over an existing preference. CET's own Settings tab does
-not discover individual mod settings, so no additional settings-menu dependency
-is required.
+Folders made inside CET exist only in the mod's folder list. They do not create matching Windows folders.
 
 </details>
 
 <details>
-<summary><strong>Organizing Presets & Folders</strong></summary>
-
-### Folders & preset management
-
-- **Folder controls** — Folder rows use CET's native drawn arrow, so the open
-  and closed indicator works with every font.
-- **Root presets** — Presets without a folder appear below the folder list.
-- **Save and move destinations** — Select a folder or **All Presets** before
-  saving or moving a preset.
-- **Nested folders** — Create a folder while another folder is selected.
-- **Automatic copy names** — Copies sit beside the original and use names such
-  as `Copy` and `Copy 2`.
-- **Complete folder copies** — Duplicating a virtual folder includes its presets
-  and nested folders.
-- **Remove Folder, Keep Presets** — After confirmation, moves its presets and
-  nested folders to the parent. For an Imported folder, recognized `.preset`
-  files are safely relocated to the main preset folder first. Its physical
-  directory is removed only when no unknown files remain.
-- **Folder sharing** — Export a virtual folder and all of its nested presets as
-  one `.cpmfolder` bundle. Complete import instructions are under **Sharing and
-  importing** below.
-- **Shareable renames** — Renaming a preset also renames its physical `.preset`
-  file.
-- **Preset editing** — **Rename & Copy** remains compact until a preset is
-  selected. Rename and Duplicate stay visible, while the less-used tags and
-  notes remain behind **Optional Preset Details**.
-
-### Virtual folders
-
-Folders created through CET are virtual. They organize presets without creating
-or renaming directories in File Explorer. Their organization is stored in:
-
-```text
-Data/Catalog/Virtual Folders.txt
-```
-
-There is no fixed virtual-folder limit.
-
-### Imported folders
-
-Directories created manually inside `Character Presets` are discovered
-recursively and labeled **Imported**. Their files remain in their original
-physical locations until an operation explicitly needs to relocate them.
-
-- Renaming an Imported folder changes only its displayed virtual name.
-- Moving its presets changes only their catalog assignments.
-- **Remove Folder, Keep Presets** moves recognized `.preset` files out of the
-  selected Imported directory, keeps every preset, and removes only directories
-  that are empty afterward. Unknown files and any directory containing them are
-  always preserved.
-- Discovery stops when an entry cannot be verified or nesting exceeds 12 levels.
-- Linked folders and junctions are not supported.
-
-### Remove Folder, Keep Presets
-
-After confirmation, **Remove Folder, Keep Presets** moves a folder's presets
-and nested folders to its parent. For an Imported folder, recognized `.preset`
-files are safely relocated to the main preset folder first. The physical
-directory is removed only if no unknown files remain.
-
-</details>
-
-<details>
-<summary><strong>Sharing & Importing</strong></summary>
-
-### Sharing individual presets
-
-Preset folder:
-
-```text
-bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
-```
-
-- **Share:** Upload the individual `.preset` file.
-- **Install:** Place a downloaded preset in this folder or a directory inside it.
-- **Refresh:** Select **Refresh** under **Load Preset** after changing files
-  outside CET.
-- **Virtual organization:** Folder assignments are local catalog data and are
-  not embedded in an individual shared preset.
-- **Format:** New presets use format 7, which stores source, timestamps, notes,
-  tags, selector slots, and selected-choice identities. Existing older preset
-  files remain readable.
-- **Safety limits:** Imported presets are limited to 1 MB, 8,192 lines, 4,096
-  valid options, 256 bytes per option key, and unsigned 32-bit option indexes.
-
-### Sharing complete folders
-
-A `.cpmfolder` file contains one selected virtual folder, all nested virtual
-folders, and every preset inside that tree. Notes, tags, and other supported
-preset metadata travel with the preset files in the bundle.
-
-#### Export a folder
-
-1. Open **Folders** and select the folder you want to share.
-2. Select **Export Folder for Sharing**.
-3. Find the new `.cpmfolder` file in the same `Character Presets` folder used
-   for individual preset imports:
-
-   ```text
-   bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
-   ```
-
-4. Share that single `.cpmfolder` file.
-
-An empty folder cannot be exported. One bundle may contain up to 512 presets and
-may not exceed 32 MB. To remove an export after sharing it, select **All Presets
-(root)**, open **Folder Bundle Files**, select the exact `.cpmfolder` file, and
-select **Move Selected Bundle to Trash**. This moves only the
-bundle file; its source folder and presets remain available in Character Preset
-Manager. Restore it under **Delete & Restore**, or remove it permanently with
-**Empty Trash Permanently**.
-
-#### Import a folder
-
-1. Put each downloaded `.cpmfolder` file in `Character Presets`, beside current
-   `.preset` files:
-
-   ```text
-   bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets
-   ```
-
-2. Open Character Preset Manager and expand **Folders**.
-3. Select **All Presets (root)**. The import button is shown only at the root.
-4. Select **Import Folder Bundles**. Every `.cpmfolder` file currently in the
-   `Character Presets` folder is processed.
-
-A successful import recreates the complete folder tree as virtual folders and
-leaves its source `.cpmfolder` file untouched. Character Preset Manager records
-the bundle filename, content fingerprint, and created root folder in
-`Data/Catalog/Imported Bundles.txt`. An unchanged bundle is skipped while its
-imported folder still exists. After deleting that imported folder, the same
-bundle can be imported again. A changed bundle using the same filename can also
-be imported again.
-If that folder name already exists, the imported folder receives a safe `Copy`
-name. A failed bundle is not recorded, so the error can be corrected and the
-import tried again. Bundles are imported only from `Character Presets`.
-After a successful import, the same **Folder Bundle Files** menu can move the
-source bundle to Trash so it no longer appears in later import scans. It can be
-restored without deleting the imported virtual folder or any imported preset.
-The displayed bundle list is cached while the menu is open and refreshed when
-the overlay opens, **Refresh** is selected, or a bundle is imported, exported,
-moved to Trash, or restored.
-
-</details>
-
-<details>
-<summary><strong>Trash & Recovery</strong></summary>
-
-### Trash and recovery
-
-- Moving a selected preset to Trash keeps it recoverable.
-- A selected folder and all of its presets can be moved to Trash directly under
-  **Folders**. **More Trash Options** handles filtered multi-selection.
-- **Select All Visible** and **Clear Selection** help manage filtered results.
-- Folder Trash removes the logical tree and keeps all presets recoverable.
-  An imported physical directory is removed when it becomes empty; unknown
-  content keeps the directory in place and is never deleted.
-- **Restore Folder** rebuilds the complete logical folder tree, including empty
-  nested virtual folders, and restores every preset in that Trash group.
-  Restored files receive safe storage names in the main `Character Presets`
-  directory; their original folder paths are restored virtually.
-- Individual presets may also be restored separately.
-- Name conflicts receive a safe `Copy` name instead of overwriting an existing
-  preset.
-- Only **Empty Trash Permanently** destroys trashed preset files.
-- Interrupted Trash, restore, bulk-move, and physical-rename operations are
-  resolved through the recovery journal at startup.
-
-</details>
-
-<details>
-<summary><strong>Compatibility & Known Issues</strong></summary>
-
-### CC / CCXL CHARACTER OPTION MODS
-
-**Status: Supported**
-
-Custom options are saved when they appear in Cyberpunk's normal
-customization system. Repeated and linked options, including heterochromia, are
-supported.
-
-Format-7 presets retain each option's LocKey, UI slot, selected definition or
-choice name when exposed, and numeric index. LocKey remains the primary selector
-identity. When added CCXL content shifts a choice list, CPM can locate the saved
-choice at its new index. **Force Full Load** may match a renamed dependent
-selector, such as a hairstyle-specific color selector, through its saved UI
-slot. Always verify the result after changing character-option mods.
-
-Only stable names are stored as choice identities. Temporary runtime memory
-addresses are ignored and use the saved numeric index instead. Choice matching
-is spread across normal loading passes and cached, while an option that a mod
-immediately resets is deferred so it cannot block every option after it.
-
-Status messages remain visible while the CET overlay is open and clear when the
-overlay closes, so results and errors do not disappear while you are reading
-them.
-
-Older presets contain only LocKeys and numeric indexes. If adding hairs shifts
-the Hairstyle list, an old index may select a different hair and cannot reveal
-which hair was originally intended. Correct the hair and color manually once,
-then overwrite or re-save the preset in format 7 before changing the CCXL setup
-again.
-
-### CUSTOM CHARACTER CREATORS & CUSTOMIZATION FIXES
-
-**Status: Supported when using the vanilla customization system**
-
-Character Preset Manager does not modify meshes, rigs, archives, or another
-mod's assets.
-
-One compatible example is
-[EKT Custom Character Creator - FEMV ONLY](https://www.nexusmods.com/cyberpunk2077/mods/12807).
-Keep the same EKT version, body and eye variants, other option mods, and load
-order for reliable preset results.
-
-### APPEARANCE CHANGE UNLOCKER (ACU)
-
-**Status: Hard incompatible**
-
-Remove ACU and fully restart Cyberpunk before using this mod. Automatic checks
-were removed because they could continue reporting ACU after it had been
-uninstalled.
-
-Compatible ACU preset files remain readable after ACU itself is removed. New
-presets should be created and shared with Character Preset Manager's current
-system.
-
-### CHARACTER CUSTOMIZATION ANYWHERE
-
-**Status: Hard incompatible**
-
-[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
-changes the same mirrors and character customization screens. Remove it and
-fully restart Cyberpunk. Character Preset Manager does not check for it
-automatically.
-
-### PHOTO MODE & APPEARANCE MENU MOD (AMM)
-
-**Status: Compatible with a usage limitation**
-
-Both may remain installed, but Character Preset Manager cannot save or load from
-inside their interfaces. Use the Full Appearance Editor, a mirror, a ripperdoc,
-or the new-game editor instead.
-
-### LOADING SCREEN AFTER CUSTOMIZATION
-
-**Status: Cyberpunk game issue**
-
-Cyberpunk may sometimes remain on a loading screen after any character editor
-closes. This can happen without Character Preset Manager, especially while
-clothing or wardrobe outfits are active. Equipment-EX and detailed outfits may
-make it more likely.
-
-If this happens, unequip all clothing and select **No Outfit** before opening the
-editor. Put everything back on afterward. The optional yellow clothing notice
-does not mean the mod is broken and may be ignored.
-
-### Character Preset Manager compared with ACU
-
-| Area | Character Preset Manager | ACU |
-| --- | --- | --- |
-| Runtime | Uses CET with no additional runtime dependency. | Uses a separate implementation. |
-| Character editor | Opens the full vanilla editor through CET or an optional input. | Uses its own expanded-customization approach. |
-| Mirrors | Exposes the full creator through ordinary apartment mirrors. | Uses its own customization system. |
-| Organization | Includes unlimited nested virtual folders, copying, moving, Trash, and shareable files. | Uses its own preset-management system. |
-| Loading | Waits for editor rebuilds and continues automatically. | Uses its own loading implementation. |
-| Missing options | Stops instead of guessing when a safe match is unavailable. | Uses its own matching behavior. |
-| Troubleshooting | Includes an in-game Debug view and detailed activity logs. | Uses its own interface and diagnostics. |
-
-This comparison explains the different approaches. Do not install or run both
-mods together.
-
-</details>
-
-<details>
-<summary><strong>Troubleshooting & FAQ</strong></summary>
+<summary><strong>Help and common questions</strong></summary>
 
 ### Activity log
 
-Open **Help > Debug and Diagnostics**, then select **Open Debug Log** to view or
-copy the log.
+Open **Help > Activity Log**, then select **Open Activity Log**. You can read or copy the log from CET. The file is stored here:
 
 ```text
 bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
 ```
 
-Each full game launch starts a new log. The previous log is archived with its
-date and time, and the 10 newest archives are kept. The log records startup,
-preset operations, loading results, failures, inactive options, and unavailable
-saved options. Developer hook counters remain under **Advanced diagnostics**.
+Each full game launch starts a new log. The old log is saved with its date and time, and the 10 newest old logs are kept. The log includes startup details, preset actions, load results, warnings, errors, inactive options, and missing saved options. Developer information is under **Advanced Technical Details**.
 
-### Can I import ACU or older presets?
+### Can I use older Character Preset Manager or ACU presets?
 
-Yes. Compatible files remain readable to protect existing preset libraries. New
-presets use Character Preset Manager's current format-7 system.
+Yes. Compatible preset files can still be loaded. New presets use format 7.
 
-### Can ACU remain installed?
+### Can ACU or Character Customization Anywhere stay installed?
 
-No. Remove it and fully restart Cyberpunk.
+No. Remove them and restart the game.
 
-### Is Character Customization Anywhere compatible?
+### Can Photo Mode or Appearance Menu Mod stay installed?
 
-No. It changes the same mirrors and customization screens.
+Yes, but do not try to save or load inside their menus. Use a supported character screen.
 
-### Do Photo Mode and Appearance Menu Mod work?
+### Is the character shown in the screenshots included?
 
-They may remain installed, but presets cannot be saved or loaded from inside
-their interfaces. Use a supported character editor instead.
-
-### Why can the game stay on a loading screen after customization?
-
-This is a Cyberpunk issue that is more likely while clothing or wardrobe outfits
-are active. Unequip clothing and select **No Outfit** before opening the editor,
-then restore everything afterward.
-
-### Is the character preset shown in screenshots included?
-
-No. My personal character preset is not included or planned for release. The
-screenshots demonstrate Character Preset Manager itself.
+No. The screenshots show the mod. The creator's personal character preset is not included and is not planned for release.
 
 </details>
 
 <details>
-<summary><strong>Changelog</strong></summary>
+<summary><strong>Version 3.0.3 summary</strong></summary>
 
-### Version 3.0.3
+- New presets store stable information about editor options and selected choices. This helps them keep the correct CCXL choice when new items change a list.
+- **Force Full Load** can try a saved editor position when a related option was renamed. The mod warns when an older preset does not contain the information needed for this check.
+- The first window position now uses the usable screen area.
+- A preset no longer shows an unnecessary "already in this folder" message just after it was moved successfully.
+- Mod files are grouped under `Data`, while presets and shared folders stay in `Character Presets`.
+- Imported `.cpmfolder` files remain unchanged. The mod remembers finished imports and skips a bundle only when the file and imported folder are still the same.
+- Search, Refresh, folder counts, preset details, compatibility checks, loading cancellation, safe Trash recovery, folder sharing, notes, tags, settings, and clearer error reports are included in the current interface.
 
-- Saves stable selector-slot and selected-choice identities in format-7 presets
-  so newly inserted CCXL choices do not silently redirect a saved hairstyle to
-  the same outdated numeric index.
-- Adds an opt-in **Force Full Load** fallback for renamed dependent selectors,
-  with explicit warnings for legacy index-only presets.
-- Uses ImGui's usable work area for first-open placement and removes the
-  redundant already-in-destination message immediately after a successful move.
-
-- Groups CPM-owned configuration, catalog, recovery, Trash, and log data under
-  `Data` so the mod root and `Character Presets` stay focused.
-- Keeps imported `.cpmfolder` files unchanged and skips exact previously
-  imported bundles through a filename-and-fingerprint registry.
-- Keeps virtual folders entirely catalog-based without creating physical
-  directories.
-
-- Displays complete slash-qualified preset paths and lets CET retain the chosen
-  window size between game sessions.
-- Adds search, Refresh, folder counts, and native folder controls.
-- Shows each selected preset's folder, option count, source, format, modification
-  time, notes, tags, and compatibility summary.
-- Fixes the save-destination chooser, keeps its current location visible, and
-  presents it as a smaller nested control.
-- Disables unavailable actions with a short reason, standardizes primary button
-  sizes, and prevents the first-frame width shift when the window opens.
-- Adds Cancel Loading while automatic loading is active.
-- Places selected-folder Trash directly under **Folders**, while single-preset
-  Trash, filtered multi-selection, restoration, and permanent cleanup remain
-  under **Delete & Restore**.
-- Adds safe transaction recovery, complete folder-tree Trash records, and
-  one-action folder restoration.
-- Adds **Remove Folder, Keep Presets** with safe Imported-directory cleanup and
-  complete `.cpmfolder` export/import for sharing virtual folder trees.
-- Adds optional format-7 metadata and renames the physical file with its
-  preset.
-- Moves reminder and sorting preferences into Settings and a human-editable
-  config.
-- Keeps the discovery reminder enabled until it is turned off in Settings.
-- Moves Debug into Help and developer counters under Advanced diagnostics.
-- Improves caching, validation, failure reporting, and safe catalog writes.
-
-See [CHANGELOG.md](CHANGELOG.md) for the complete history of every release.
+See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
 
 </details>
 
 <details>
-<summary><strong>Credits & AI Disclosure</strong></summary>
+<summary><strong>Credits and AI disclosure</strong></summary>
 
 ### AI disclosure
 
-I used AI only to help plan and improve the CET menu's layout, style, and overall
-look. I made the final design choices and heavily changed the AI-assisted work
-to fit the mod. I manually tested preset saving, loading, folders, recovery, and
-gameplay features.
+AI was used only to help plan and improve the CET menu's layout and appearance. The creator made the final design choices, changed the AI-assisted work to fit the mod, and manually tested saving, loading, folders, recovery, and gameplay features.
 
 ### Credits
 
 - **Character Preset Manager (CET):** Created and maintained by **dklyntly**.
-- **[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850):**
-  Created by **PotatoOfDoom**. ACU gave me the original idea for this project. I
-  liked what it was trying to do, but I was disappointed by the bugs and errors
-  I experienced, so I decided to make my own version. Character Preset Manager
-  can read compatible ACU preset files so existing libraries are not lost, while
-  new presets use its own current format and workflow.
-- **[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930):**
-  Created by **keanuWheeze**. Its idea of opening character customization during
-  normal gameplay inspired me to include the Full Appearance Editor.
-- **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):**
-  Created by **yamashi** and maintained with its contributors. CET provides the
-  scripting and interface framework used by this mod.
-- **CD Projekt Red:** For Cyberpunk 2077 and its character customization system.
-- **Cyberpunk 2077 modding community:** For testing, technical research,
-  compatibility knowledge, and feedback.
+- **[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850):** Created by **PotatoOfDoom**. ACU inspired this project. Character Preset Manager can read compatible ACU presets so existing preset collections are not lost, but it uses its own current format and controls.
+- **[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930):** Created by **keanuWheeze**. Its way of opening character customization during normal play inspired the Full Appearance Editor.
+- **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):** Created by **yamashi** and maintained by its contributors. CET provides the scripting and menu system used by this mod.
+- **CD Projekt Red:** Creator of Cyberpunk 2077 and its character system.
+- **Cyberpunk 2077 modding community:** Testing, research, compatibility information, and feedback.
 
-The credited inspiration mods are not bundled dependencies. ACU and Character
-Customization Anywhere should not be installed alongside Character Preset
-Manager.
+The mods named as inspiration are not included or required. Do not install ACU or Character Customization Anywhere beside Character Preset Manager.
 
 ### Links
 
 - [Download on Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886)
 - [GitHub source code](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-)
 - [Discord community and support](https://discord.com/invite/mUGHmQxHG8)
-- [Complete changelog](CHANGELOG.md)
+- [Full changelog](CHANGELOG.md)
 - [MIT license](LICENSE)
 
 </details>

@@ -19,8 +19,8 @@ local LOG_ARCHIVE_PREFIX = "Activity "
 local WINDOW_POSITION_STATUS_FILE = CONFIG_DIR .. "/Window Position Status.txt"
 local CONFIG_FILE = CONFIG_DIR .. "/Config.txt"
 local DISCOVERY_NOTICE_TITLE = "OPEN CHARACTER PRESET MANAGER"
-local DISCOVERY_NOTICE_MESSAGE = "Press your assigned CET Overlay key to open its window."
-local DISCOVERY_NOTICE_SETTINGS_MESSAGE = "Turn this message off in Settings."
+local DISCOVERY_NOTICE_MESSAGE = "Press the key you assigned to the CET Overlay."
+local DISCOVERY_NOTICE_SETTINGS_MESSAGE = "You can turn off this message in Settings."
 local LOG_ARCHIVE_LIMIT = 10
 local activitySequence = 0
 
@@ -1140,7 +1140,7 @@ local function readCatalog()
   if not sizeOk or not size or size > MAX_CATALOG_BYTES
       or not rewindOk or rewindResult == nil then
     file:close()
-    log("[CATALOG] Virtual-folder catalog is unreadable or exceeds the safety limit.", "error")
+    log("[FOLDER LIST] The saved folder list cannot be read or is larger than the safety limit.", "error")
     return assignments, folders, ignored, false
   end
   local lineCount = 0
@@ -1148,7 +1148,7 @@ local function readCatalog()
     lineCount = lineCount + 1
     if lineCount > MAX_CATALOG_LINES then
       file:close()
-      log("[CATALOG] Virtual-folder catalog exceeds the line limit.", "error")
+      log("[FOLDER LIST] The saved folder list has too many lines.", "error")
       return {}, {}, {}, false
     end
     local kind, first, second = line:match("^([PFX])\t([^\t]+)\t?([^\t]*)$")
@@ -1162,7 +1162,7 @@ local function readCatalog()
       ignored[first] = true
     elseif line:match("%S") then
       file:close()
-      log(("[CATALOG] Invalid virtual-folder catalog line %d."):format(lineCount), "error")
+      log(("[FOLDER LIST] Line %d in the saved folder list is invalid."):format(lineCount), "error")
       return {}, {}, {}, false
     end
   end
@@ -1468,17 +1468,17 @@ local function writeCatalog(presets, folders, manualFolders, ignoredPhysicalFold
   end
   table.sort(lines, function(a, b) return a:lower() < b:lower() end)
   if #lines > MAX_CATALOG_LINES then
-    log("[CATALOG] Virtual-folder catalog exceeds the safe entry limit.", "error")
+    log("[FOLDER LIST] The folder list has more entries than the safety limit.", "error")
     return false
   end
   local catalogBytes = 0
   for _, line in ipairs(lines) do catalogBytes = catalogBytes + #line + 1 end
   if catalogBytes > MAX_CATALOG_BYTES then
-    log("[CATALOG] Virtual-folder catalog exceeds the safe size limit.", "error")
+    log("[FOLDER LIST] The folder list is larger than the safety limit.", "error")
     return false
   end
   local result, changed = writeLinesIfChanged(
-    CATALOG_FILE, lines, "virtual-folder catalog", MAX_CATALOG_BYTES)
+    CATALOG_FILE, lines, "folder list", MAX_CATALOG_BYTES)
   log(("[CATALOG] Saved presets=%d folders=%d ignoredPhysicalFolders=%d success=%s.")
     :format(
       (function() local count = 0; for _ in pairs(presets or {}) do count = count + 1 end; return count end)(),
@@ -1486,7 +1486,7 @@ local function writeCatalog(presets, folders, manualFolders, ignoredPhysicalFold
       (function() local count = 0; for _ in pairs(ignoredPhysicalFolders or {}) do count = count + 1 end; return count end)(),
       tostring(result)), result and "info" or "error")
   if result and not changed then
-    log("[CATALOG] Virtual-folder catalog was already current; write skipped.", "info")
+    log("[FOLDER LIST] The saved folder list is already current. No file update was needed.", "info")
   end
   return result
 end
@@ -1543,7 +1543,7 @@ local function writeInventory(presets, folders)
   for name in pairs(folders or {}) do table.insert(lines, "F:" .. name) end
   table.sort(lines, function(a, b) return a:lower() < b:lower() end)
   local result, changed = writeLinesIfChanged(
-    INVENTORY_FILE, lines, "inventory", MAX_CATALOG_BYTES)
+    INVENTORY_FILE, lines, "preset file list", MAX_CATALOG_BYTES)
   log(("[INVENTORY] Saved %d tracked path%s to '%s' success=%s.")
     :format(#lines, #lines == 1 and "" or "s", INVENTORY_FILE, tostring(result)),
     result and "info" or "error")
@@ -1698,7 +1698,7 @@ trashSelectedFolderBundle = function()
   local selected = state.selectedBundleFile
   if not isFolderBundleFilename(selected) then
     state.folderStatus, state.folderStatusError =
-      "Select a folder bundle file to move to Trash.", true
+      "Select a shared-folder file to move to Trash.", true
     return
   end
   local selectedPath = nil
@@ -1712,26 +1712,26 @@ trashSelectedFolderBundle = function()
   if not selectedPath then
     state.selectedBundleFile = nil
     state.folderStatus, state.folderStatusError =
-      "That folder bundle file is no longer available.", true
+      "That shared-folder file is no longer available.", true
     return
   end
   local fingerprint = fileFingerprint(selectedPath, MAX_FOLDER_BUNDLE_BYTES)
   if not fingerprint then
     state.folderStatus, state.folderStatusError =
-      "The selected folder bundle could not be verified safely.", true
+      "The selected shared-folder file could not be checked safely.", true
     return
   end
   local trashFilename = uniqueTrashedBundleFilename(selected)
   if not trashFilename then
     state.folderStatus, state.folderStatusError =
-      "A safe Trash filename could not be allocated for the folder bundle.", true
+      "The mod could not create a safe Trash file name for the shared folder.", true
     return
   end
   local trashPath = TRASH_DIR .. "/" .. trashFilename
   local moved, moveError = os.rename(selectedPath, trashPath)
   if not moved then
     state.folderStatus, state.folderStatusError =
-      ("The folder bundle could not be moved to Trash: %s"):format(tostring(moveError)), true
+      ("The shared-folder file could not be moved to Trash: %s"):format(tostring(moveError)), true
     return
   end
   if fileFingerprint(trashPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
@@ -1745,7 +1745,7 @@ trashSelectedFolderBundle = function()
   state.selectedBundleFile = nil
   state.folderBundleFilesDirty = true
   state.folderStatus, state.folderStatusError =
-    ("Moved folder bundle \"%s\" to Trash. Presets and folders were not changed.")
+    ("Moved shared-folder file \"%s\" to Trash. Presets and folders were not changed.")
       :format(selected), false
   log(("[FOLDER BUNDLE] Moved file='%s' to Trash as '%s'.")
     :format(selectedPath, trashFilename), "complete")
@@ -1825,7 +1825,7 @@ exportSelectedFolderBundle = function()
   end
   if #names > MAX_FOLDER_BUNDLE_PRESETS then
     state.folderStatus, state.folderStatusError =
-      ("The folder exceeds the %d-preset bundle limit."):format(MAX_FOLDER_BUNDLE_PRESETS), true; return
+      ("This folder has more than the %d presets allowed in one shared-folder file."):format(MAX_FOLDER_BUNDLE_PRESETS), true; return
   end
   local lines = { "CPMFOLDER\t1", "ROOT\t" .. catalogEncode(baseName(folder)) }
   local totalBytes = #lines[1] + #lines[2] + 2
@@ -1839,13 +1839,13 @@ exportSelectedFolderBundle = function()
   for _, relativeFolder in ipairs(folders) do
     if not validBundlePath(relativeFolder) then
       state.folderStatus, state.folderStatusError =
-        "The folder contains an unsafe nested path and cannot be exported.", true; return
+        "A folder or preset name inside this folder is not safe to export.", true; return
     end
     local line = "F\t" .. catalogEncode(relativeFolder)
     totalBytes = totalBytes + #line + 1
     if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
       state.folderStatus, state.folderStatusError =
-        "The folder bundle would exceed the 32 MB safety limit.", true; return
+        "The shared-folder file would be larger than the 32 MB limit.", true; return
     end
     table.insert(lines, line)
   end
@@ -1854,13 +1854,13 @@ exportSelectedFolderBundle = function()
     local contents = readBoundedFile(presetPath(name), MAX_PRESET_BYTES)
     if not contents or not validBundlePath(relativeName) then
       state.folderStatus, state.folderStatusError =
-        "A preset could not be read safely for export: " .. name, true; return
+        "This preset could not be read and was not exported: " .. name, true; return
     end
     local prefix = "P\t" .. catalogEncode(relativeName) .. "\t"
     local projectedBytes = totalBytes + #prefix + (#contents * 2) + 1
     if projectedBytes > MAX_FOLDER_BUNDLE_BYTES then
       state.folderStatus, state.folderStatusError =
-        "The folder bundle would exceed the 32 MB safety limit.", true; return
+        "The shared-folder file would be larger than the 32 MB limit.", true; return
     end
     local line = prefix .. hexEncode(contents)
     totalBytes = projectedBytes
@@ -1869,11 +1869,11 @@ exportSelectedFolderBundle = function()
   local filename = uniqueFolderBundleFilename(folder)
   if not filename then
     state.folderStatus, state.folderStatusError =
-      "A unique folder-bundle filename could not be allocated.", true; return
+      "The mod could not create an unused file name for the shared folder.", true; return
   end
   local wrote = writeLinesIfChanged(filename, lines, "folder bundle", MAX_FOLDER_BUNDLE_BYTES)
   if not wrote then
-    state.folderStatus, state.folderStatusError = "The folder bundle could not be written.", true; return
+    state.folderStatus, state.folderStatusError = "The shared-folder file could not be saved.", true; return
   end
   state.folderBundleFilesDirty = true
   state.folderStatus, state.folderStatusError =
@@ -1885,7 +1885,7 @@ end
 
 local function readFolderBundle(filename)
   local contents, readError = readBoundedFile(filename, MAX_FOLDER_BUNDLE_BYTES)
-  if not contents then return nil, "Bundle could not be read: " .. tostring(readError) end
+  if not contents then return nil, "The shared-folder file could not be read: " .. tostring(readError) end
   local bundle = { folders = {}, folderNames = {}, presets = {}, presetNames = {} }
   local lineNumber = 0
   for line in contents:gmatch("[^\n]+") do
@@ -1893,7 +1893,7 @@ local function readFolderBundle(filename)
     if line ~= "" then
       lineNumber = lineNumber + 1
       if lineNumber == 1 then
-        if line ~= "CPMFOLDER\t1" then return nil, "Bundle header is invalid." end
+        if line ~= "CPMFOLDER\t1" then return nil, "The shared-folder file has an invalid first line." end
       else
         local root = line:match("^ROOT\t([^\t]+)$")
         local folder = line:match("^F\t([^\t]+)$")
@@ -1901,14 +1901,14 @@ local function readFolderBundle(filename)
         if root then
           root = catalogDecode(root)
           if bundle.root or not validBundlePath(root) or parentFolder(root) ~= "" then
-            return nil, "Bundle root is invalid."
+            return nil, "The shared folder has an invalid main folder name."
           end
           bundle.root = root
         elseif folder then
           folder = catalogDecode(folder)
-          if not validBundlePath(folder) then return nil, "Bundle folder path is invalid." end
+          if not validBundlePath(folder) then return nil, "The shared folder contains an invalid folder name." end
           if bundle.folderNames[folder:lower()] then
-            return nil, "Bundle contains duplicate folder paths."
+            return nil, "The shared-folder file contains the same folder more than once."
           end
           bundle.folderNames[folder:lower()] = true
           bundle.folders[folder] = true
@@ -1917,20 +1917,20 @@ local function readFolderBundle(filename)
           local raw = hexDecode(encoded)
           if not raw or not validBundlePath(name) or #raw > MAX_PRESET_BYTES
               or #bundle.presets >= MAX_FOLDER_BUNDLE_PRESETS then
-            return nil, "Bundle preset entry is invalid."
+            return nil, "The shared-folder file contains an invalid preset."
           end
           if bundle.presetNames[name:lower()] then
-            return nil, "Bundle contains duplicate preset paths."
+            return nil, "The shared-folder file contains the same preset more than once."
           end
           bundle.presetNames[name:lower()] = true
           table.insert(bundle.presets, { name = name, contents = raw })
         else
-          return nil, ("Bundle line %d is invalid."):format(lineNumber)
+          return nil, ("Line %d in the shared-folder file is invalid."):format(lineNumber)
         end
       end
     end
   end
-  if not bundle.root or #bundle.presets == 0 then return nil, "Bundle is empty or incomplete." end
+  if not bundle.root or #bundle.presets == 0 then return nil, "The shared-folder file is empty or incomplete." end
   bundle.folderNames = nil
   bundle.presetNames = nil
   return bundle
@@ -1953,7 +1953,7 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   if not bundle then return nil, bundleError end
   local root = bundle.root
   if folderNameExists(root) then root = uniqueFolderCopyName(root) end
-  if not root then return nil, "A unique imported folder name could not be allocated." end
+  if not root then return nil, "The mod could not create an unused name for the imported folder." end
   local newPresets = cloneMap(state.presets)
   local newFolders = cloneMap(state.folders)
   local newManualFolders = cloneMap(state.manualFolders)
@@ -1963,18 +1963,18 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
     addFolderAncestors(newFolders, joinFolder(root, folder))
   end
   local reservedStorage = storageFilenamesInUse()
-  if not reservedStorage then return nil, "Preset storage could not be inspected safely." end
+  if not reservedStorage then return nil, "The existing preset file names could not be checked safely." end
   local createdFiles = {}
   for _, item in ipairs(bundle.presets) do
     local logicalName = joinFolder(root, item.name)
     if findPresetCollision(logicalName) then
       removeFileList(createdFiles)
-      return nil, "An imported preset name would collide with an existing preset."
+      return nil, "An imported preset has the same name as an existing preset."
     end
     local storage = uniqueStorageName(baseName(logicalName), reservedStorage)
     if not storage then
       removeFileList(createdFiles)
-      return nil, "A safe imported preset filename could not be allocated."
+      return nil, "The mod could not create a safe file name for an imported preset."
     end
     local path = PRESET_DIR .. "/" .. storage .. ".preset"
     if not writeRawPreset(path, item.contents) then
@@ -1993,14 +1993,14 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   end
   if not writeCatalog(newPresets, newFolders, newManualFolders, newIgnored) then
     removeFileList(createdFiles)
-    return nil, "The imported folder was rolled back because the catalog could not be saved."
+    return nil, "The imported folder was removed again because the folder list could not be saved."
   end
   local inventorySaved = writeInventory(newPresets, newFolders)
   if not inventorySaved then
     writeCatalog(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders)
     removeFileList(createdFiles)
-    return nil, "The imported folder was rolled back because the inventory could not be saved."
+    return nil, "The imported folder was removed again because the preset file list could not be saved."
   end
   local leaf = filename:match("([^/]+)$")
   local updatedImported = cloneMap(importedBundles)
@@ -2014,7 +2014,7 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
       state.ignoredPhysicalFolders)
     writeInventory(state.presets, state.folders)
     removeFileList(createdFiles)
-    return nil, "The imported folder was rolled back because its import record could not be saved."
+    return nil, "The imported folder was removed again because the completed import could not be recorded."
   end
   state.presets, state.folders = newPresets, newFolders
   state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
@@ -2033,7 +2033,7 @@ importAvailableFolderBundles = function()
   local files = folderBundleFiles(true)
   if #files == 0 then
     state.folderStatus, state.folderStatusError =
-      "Place a .cpmfolder file in Character Presets, then select Import Folder Bundles.", true; return
+      "Place a .cpmfolder file in Character Presets, then select Install Shared Folders.", true; return
   end
   local importedBundles, registryOk = readImportedBundles()
   if not registryOk then
@@ -2046,7 +2046,7 @@ importAvailableFolderBundles = function()
     local fingerprint = fileFingerprint(filename, MAX_FOLDER_BUNDLE_BYTES)
     local previousImport = importedBundles[leaf:lower()]
     if not fingerprint then
-      table.insert(failures, filename .. ": Bundle fingerprint could not be read safely.")
+      table.insert(failures, filename .. ": The file could not be checked safely.")
     elseif previousImport and previousImport.fingerprint == fingerprint
         and previousImport.root and folderNameExists(previousImport.root) then
       skipped = skipped + 1
@@ -2071,7 +2071,7 @@ importAvailableFolderBundles = function()
       :format(imported, imported == 1 and "" or "s", skipped, table.concat(failures, " | "))
     state.folderStatusError = true
   else
-    state.folderStatus = ("Imported %d folder bundle%s; skipped %d already imported.%s")
+    state.folderStatus = ("Installed %d shared folder%s; skipped %d already installed.%s")
       :format(imported, imported == 1 and "" or "s",
         skipped,
         #warnings > 0 and (" " .. table.concat(warnings, " | ")) or "")
@@ -2098,7 +2098,7 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   end
   local assignments, catalogFolders, ignoredPhysicalFolders, catalogStatus = readCatalog()
   if catalogStatus == false then
-    log("[CATALOG] Preset scan stopped because the existing virtual-folder catalog is invalid.", "error")
+    log("[FOLDER LIST] The preset scan stopped because the saved folder list is invalid.", "error")
     return currentPresets, false
   end
   for storage, logicalName in pairs(recoveryAssignments or {}) do
@@ -2146,7 +2146,7 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   end
 
   if not scan("", 0) then
-    log(("[FILES] Preset scan was incomplete; previous state and inventory were retained (reason=%s).")
+    log(("[FILES] The preset scan did not finish. The last good preset and file lists were kept (reason=%s).")
       :format(tostring(scanReason or "unspecified")), "error")
     return currentPresets, false
   end
@@ -2211,7 +2211,7 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   end
 
   if not writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders) then
-    log("[CATALOG] Preset scan retained the previous state because the virtual-folder catalog could not be updated.", "error")
+    log("[FOLDER LIST] The last good preset list was kept because the saved folder list could not be updated.", "error")
     return currentPresets, false
   end
 
@@ -2351,7 +2351,7 @@ local function savePreset(confirmOverwrite)
         log(("[SNAPSHOT] Rejected %s | keyBytes=%d maximum=%d")
           :format(identity, #key, MAX_PRESET_KEY_BYTES), "error")
         setStatus("create",
-          ("A customization option name exceeds the %d-byte preset limit. See Debug for the exact option.")
+          ("A character option name is longer than the %d-byte preset limit. Open the Activity Log to see which option caused this.")
             :format(MAX_PRESET_KEY_BYTES),
           true
         )
@@ -2361,7 +2361,7 @@ local function savePreset(confirmOverwrite)
         log(("[SNAPSHOT] Rejected %s | savedEntries=%d maximum=%d")
           :format(identity, #entries, MAX_PRESET_ENTRIES), "error")
         setStatus("create",
-          ("The editor exposes more than %d active options. See Debug for details.")
+          ("The editor contains more than %d active options. Open the Activity Log for details.")
             :format(MAX_PRESET_ENTRIES),
           true
         )
@@ -2372,7 +2372,7 @@ local function savePreset(confirmOverwrite)
         log(("[SNAPSHOT] Rejected %s | index=%s reason='%s' nativeMaximum=%d")
           :format(identity, tostring(currentIndex), indexError, MAX_OPTION_INDEX), "error")
         setStatus("create",
-          "A customization option returned an unsupported index. See Debug for the exact option and value.",
+          "A character option returned a number that the mod cannot use. Open the Activity Log to see which option caused this.",
           true
         )
         return
@@ -2400,7 +2400,7 @@ local function savePreset(confirmOverwrite)
   local storage = previousPreset and previousPreset.storage
     or uniqueStorageName(leafName)
   if not storage then
-    setStatus("create", "A safe storage filename could not be allocated.", true)
+    setStatus("create", "The mod could not create a safe file name for this preset.", true)
     return
   end
   local newPreset = {
@@ -2430,8 +2430,8 @@ local function savePreset(confirmOverwrite)
       state.presets[name] = nil
     end
     setStatus("create", rolledBack
-      and "The preset was not saved because its virtual folder could not be recorded."
-      or "The virtual-folder catalog failed, and the preset file could not be rolled back safely.", true)
+      and "The preset was not saved because its folder could not be recorded."
+      or "The folder list could not be saved, and the preset file could not be returned to its earlier state.", true)
     return
   end
   state.selected = name
@@ -2447,7 +2447,7 @@ local function savePreset(confirmOverwrite)
     setStatus("create", ("Saved \"%s\" with %d options.")
       :format(name, #entries))
   else
-    setStatus("create", ("Saved \"%s\", but the inventory could not be updated.")
+    setStatus("create", ("Saved \"%s\", but the preset file list could not be updated.")
       :format(name), false, "warning")
   end
 end
@@ -2880,10 +2880,9 @@ local function loadPreset()
       log(("Load stalled: preset='%s' pass=%d unresolved=%d signature='%s'")
         :format(state.selected, state.loadPass, state.loadRemaining, signature), "warn")
       setStatus("load", (
-        "Loading stopped: %d of %d options never resolved after %d identical checks. " ..
-        "Adding, removing, or reordering CCXL mods can change option keys, " ..
-        "counts, or indexes. Verify the CCXL setup and correct the appearance if " ..
-        "required, then save the preset again from the current editor."
+        "Loading stopped because %d of %d options were still missing after %d checks. " ..
+        "Adding, removing, updating, or changing the order of CCXL mods can move or rename options. " ..
+        "Check your option mods. Correct the appearance if needed, then save the preset again."
       ):format(state.loadRemaining, valueCount, STALL_CONFIRMATION_PASSES))
     else
       state.loadNeedsContinue = true
@@ -2900,9 +2899,10 @@ local function loadPreset()
       :format(state.selected, applied, forced, state.loadPass), "complete")
     if forced > 0 then
       setStatus("load", (
-        "Preset fully applied: %d options applied in %d pass%s (%d force-matched). " ..
-        "Verify hair, hair color, and other forced options manually."
-      ):format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es", forced))
+        "Preset fully applied: %d options applied in %d pass%s. Force Full Load matched %d option%s. " ..
+        "Check the hair, hair color, and other forced options."
+      ):format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es", forced,
+        forced == 1 and "" or "s"))
     else
       setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
         :format(valueCount, state.loadPass, state.loadPass == 1 and "" or "es"))
@@ -3009,13 +3009,13 @@ local function writeTrashCatalog(trash, groups)
   groups = groups or state.trashGroups
   local lines = trashCatalogLines(trash, groups)
   if not lines then
-    log("[TRASH] Trash catalog contains an unsafe or excessive entry.", "error")
+    log("[TRASH] The Trash list contains an unsafe entry or too many entries.", "error")
     return false
   end
   local result, changed = writeLinesIfChanged(
-    TRASH_CATALOG_FILE, lines, "trash catalog", MAX_CATALOG_BYTES)
+    TRASH_CATALOG_FILE, lines, "Trash list", MAX_CATALOG_BYTES)
   if result and not changed then
-    log("[TRASH] Trash catalog was already current; write skipped.", "info")
+    log("[TRASH] The saved Trash list is already current. No file update was needed.", "info")
   end
   return result
 end
@@ -3208,7 +3208,7 @@ end
 refreshTrash = function(recoveredOriginals)
   local originals, groups, catalogOk = readTrashCatalog()
   if not catalogOk then
-    log("[TRASH] Trash catalog is unreadable, unsafe, or exceeds its limits; previous Trash state was retained.", "error")
+    log("[TRASH] The Trash list cannot be read, contains unsafe data, or is too large. The last good Trash list was kept.", "error")
     return false
   end
   for filename, item in pairs(recoveredOriginals or {}) do originals[filename] = item end
@@ -3263,38 +3263,38 @@ end
 
 restoreTrashBundle = function(filename)
   if not state.trashBundles[filename] or not isFolderBundleFilename(filename) then
-    setStatus("delete", "The trashed folder bundle is no longer available.", true)
+    setStatus("delete", "The shared-folder file is no longer in Trash.", true)
     return
   end
   local sourcePath = TRASH_DIR .. "/" .. filename
   local fingerprint = fileFingerprint(sourcePath, MAX_FOLDER_BUNDLE_BYTES)
   local restoredFilename = fingerprint and uniqueRestoredBundleFilename(filename) or nil
   if not fingerprint then
-    setStatus("delete", "The trashed folder bundle could not be verified safely.", true)
+    setStatus("delete", "The shared-folder file in Trash could not be checked safely.", true)
     return
   end
   if not restoredFilename then
-    setStatus("delete", "A safe restored bundle filename could not be allocated.", true)
+    setStatus("delete", "The mod could not create a safe file name for the restored shared folder.", true)
     return
   end
   local destinationPath = PRESET_DIR .. "/" .. restoredFilename
   local moved, moveError = os.rename(sourcePath, destinationPath)
   if not moved then
-    setStatus("delete", "The folder bundle could not be restored: " ..
+    setStatus("delete", "The shared-folder file could not be restored: " ..
       tostring(moveError), true)
     return
   end
   if fileFingerprint(destinationPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
     local rolledBack = os.rename(destinationPath, sourcePath) ~= nil
     setStatus("delete", rolledBack
-      and "Folder bundle restore verification failed; the file was returned to Trash."
-      or "Folder bundle restore verification failed, and the file could not be returned to Trash.", true)
+      and "The restored shared-folder file could not be checked, so it was returned to Trash."
+      or "The restored shared-folder file could not be checked or returned to Trash.", true)
     return
   end
   state.trashBundles[filename] = nil
   state.selectedBundleFile = restoredFilename
   state.folderBundleFilesDirty = true
-  setStatus("delete", ("Restored folder bundle \"%s\" to Character Presets.")
+  setStatus("delete", ("Restored shared-folder file \"%s\" to Character Presets.")
     :format(restoredFilename))
   log(("[FOLDER BUNDLE] Restored Trash file='%s' as '%s'.")
     :format(filename, restoredFilename), "complete")
@@ -3336,7 +3336,7 @@ trashPreset = function()
   local oldPath = presetPath(old)
   local trashFilename = uniqueTrashFilename(old)
   if not trashFilename then
-    setStatus("delete", "A safe Trash filename could not be allocated.", true)
+    setStatus("delete", "The mod could not create a safe file name in Trash.", true)
     return
   end
   local trashPath = TRASH_DIR .. "/" .. trashFilename
@@ -3346,7 +3346,7 @@ trashPreset = function()
     name = old,
   }
   if not writeTransaction("prepared", "trash", { plan }) then
-    setStatus("delete", "The Trash recovery journal could not be created.", true)
+    setStatus("delete", "The recovery record for this Trash action could not be created.", true)
     return
   end
   local moved, moveError = os.rename(oldPath, trashPath)
@@ -3370,7 +3370,7 @@ trashPreset = function()
     writeTrashCatalog(state.trash)
     if restored then os.remove(TRANSACTION_FILE) end
     setStatus("delete", restored
-      and "The Trash operation was rolled back because its catalogs or recovery journal could not be finalized."
+      and "The preset was returned because the Trash records could not be saved."
       or "The Trash operation failed, and the preset file could not be restored.", true)
     return
   end
@@ -3385,7 +3385,7 @@ trashPreset = function()
   if writeInventory(state.presets, state.folders) then
     setStatus("delete", "Moved \"" .. old .. "\" to Trash.")
   else
-    setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the inventory could not be updated.",
+    setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the preset file list could not be updated.",
       false, "warning")
   end
 end
@@ -3398,11 +3398,11 @@ restoreTrashPreset = function(filename)
     logicalName = uniquePresetCopyName(logicalName)
   end
   if not logicalName then
-    setStatus("delete", "A unique restored preset name could not be allocated.", true); return
+    setStatus("delete", "The mod could not create an unused name for the restored preset.", true); return
   end
   local storage = uniqueStorageName(baseName(logicalName))
   if not storage then
-    setStatus("delete", "A safe restored filename could not be allocated.", true); return
+    setStatus("delete", "The mod could not create a safe file name for the restored preset.", true); return
   end
   local sourcePath = TRASH_DIR .. "/" .. filename
   local destinationPath = PRESET_DIR .. "/" .. storage .. ".preset"
@@ -3411,7 +3411,7 @@ restoreTrashPreset = function(filename)
     recoveryName = item.original,
   }
   if not writeTransaction("prepared", "restore", { plan }) then
-    setStatus("delete", "The restore recovery journal could not be created.", true); return
+    setStatus("delete", "The recovery record for this restore action could not be created.", true); return
   end
   local moved, moveError = os.rename(sourcePath, destinationPath)
   if not moved then
@@ -3442,8 +3442,8 @@ restoreTrashPreset = function(filename)
     writeTrashCatalog(state.trash)
     if restored then os.remove(TRANSACTION_FILE) end
     setStatus("delete", restored
-      and "Restore was rolled back because its catalogs or recovery journal could not be finalized."
-      or "Restore could not be finalized or rolled back; startup recovery will retry it.", true)
+      and "The preset was returned to Trash because the restore records could not be saved."
+      or "The restore could not finish or return the file to Trash. The mod will try to recover it at the next startup.", true)
     return
   end
   state.selected = logicalName
@@ -3452,7 +3452,7 @@ restoreTrashPreset = function(filename)
   invalidateViewCache()
   local inventorySaved = writeInventory(state.presets, state.folders)
   setStatus("delete", "Restored \"" .. logicalName .. "\" from Trash." ..
-    (inventorySaved and "" or " The inventory could not be updated."), false,
+    (inventorySaved and "" or " The preset file list could not be updated."), false,
     inventorySaved and "success" or "warning")
 end
 
@@ -3485,7 +3485,7 @@ restoreTrashGroup = function(groupId)
   table.sort(filenames, function(a, b) return a:lower() < b:lower() end)
   local reservedLogical, reservedStorage = {}, storageFilenamesInUse()
   if not reservedStorage then
-    setStatus("delete", "Storage filenames could not be checked safely.", true); return
+    setStatus("delete", "The existing preset file names could not be checked safely.", true); return
   end
   for name in pairs(state.presets) do reservedLogical[name:lower()] = true end
   local plans = {}
@@ -3494,7 +3494,7 @@ restoreTrashGroup = function(groupId)
     local logicalName = allocateRestoreLogicalName(item.original, reservedLogical)
     local storage = logicalName and uniqueStorageName(baseName(logicalName), reservedStorage)
     if not logicalName or not storage then
-      setStatus("delete", "A safe name could not be allocated for every folder preset.", true); return
+      setStatus("delete", "The mod could not create a safe name for every preset in this folder.", true); return
     end
     table.insert(plans, {
       filename = filename,
@@ -3509,7 +3509,7 @@ restoreTrashGroup = function(groupId)
   end
 
   if #plans > 0 and not writeTransaction("prepared", "restore", plans) then
-    setStatus("delete", "The folder restore recovery journal could not be created.", true); return
+    setStatus("delete", "The recovery record for this folder restore could not be created.", true); return
   end
   local moved = {}
   for _, plan in ipairs(plans) do
@@ -3521,7 +3521,7 @@ restoreTrashGroup = function(groupId)
       end
       if not rollbackFailed then os.remove(TRANSACTION_FILE) end
       setStatus("delete", rollbackFailed
-        and "Folder restore stopped and could not fully roll back; startup recovery will retry it."
+        and "The folder restore stopped, and some files could not be returned to Trash. The mod will try to recover them at the next startup."
         or "Folder restore stopped before all preset files could be moved.", true)
       return
     end
@@ -3535,7 +3535,7 @@ restoreTrashGroup = function(groupId)
       end
       if not rollbackFailed then os.remove(TRANSACTION_FILE) end
       setStatus("delete", rollbackFailed
-        and "Folder restore verification failed and could not fully roll back; startup recovery will retry it."
+        and "A restored preset could not be checked, and some files could not be returned to Trash. The mod will try to recover them at the next startup."
         or "Folder restore verification failed; moved files were returned to Trash.", true)
       return
     end
@@ -3576,8 +3576,8 @@ restoreTrashGroup = function(groupId)
     writeTrashCatalog(state.trash, state.trashGroups)
     if not rollbackFailed then os.remove(TRANSACTION_FILE) end
     setStatus("delete", rollbackFailed
-      and "Folder restore could not be finalized or fully rolled back; startup recovery will retry it."
-      or "Folder restore was rolled back because its catalogs could not be finalized.", true)
+      and "The folder restore could not finish, and some files could not be returned to Trash. The mod will try to recover them at the next startup."
+      or "The presets were returned to Trash because the folder or Trash lists could not be saved.", true)
     return
   end
 
@@ -3592,9 +3592,9 @@ restoreTrashGroup = function(groupId)
   invalidateViewCache()
   resetLoadState()
   local inventorySaved = writeInventory(newPresets, newFolders)
-  setStatus("delete", ("Restored folder \"%s\" with %d preset%s, including empty virtual folders.")
+  setStatus("delete", ("Restored folder \"%s\" with %d preset%s, including empty folders inside it.")
     :format(group.root, #plans, #plans == 1 and "" or "s") ..
-    (inventorySaved and "" or " The inventory could not be updated."), false,
+    (inventorySaved and "" or " The preset file list could not be updated."), false,
     inventorySaved and "success" or "warning")
 end
 
@@ -3611,7 +3611,7 @@ emptyTrash = function()
   if not state.pendingEmptyTrash then
     cancelConfirmations()
     state.pendingEmptyTrash = true
-    setStatus("delete", ("Permanently delete %d trashed preset%s, %d folder recovery record%s, and %d folder bundle%s? Select Empty Trash Permanently again.")
+    setStatus("delete", ("Permanently delete %d preset%s, %d saved folder record%s, and %d shared-folder file%s from Trash? Select Empty Trash Permanently again.")
       :format(count, count == 1 and "" or "s", groupCount,
         groupCount == 1 and "" or "s", bundleCount, bundleCount == 1 and "" or "s"))
     return
@@ -3639,7 +3639,7 @@ emptyTrash = function()
     setStatus("delete", ("Trash cleanup stopped with %d file%s remaining.")
       :format(failed, failed == 1 and "" or "s"), true)
   elseif not catalogSaved then
-    setStatus("delete", "Trash was emptied, but its catalog could not be updated.", true)
+    setStatus("delete", "Trash was emptied, but its list could not be updated.", true)
   else
     setStatus("delete", "Trash emptied permanently.")
   end
@@ -3703,7 +3703,7 @@ local function moveBulkPresetsToTrash(names, folder)
     local preset = state.presets[name]
     local trashFilename = uniqueTrashFilename(name, reserved)
     if not preset or not trashFilename then
-      setStatus("bulk", "A safe Trash filename could not be allocated.", true)
+      setStatus("bulk", "The mod could not create a safe file name in Trash.", true)
       return false
     end
     reserved[trashFilename] = true
@@ -3730,7 +3730,7 @@ local function moveBulkPresetsToTrash(names, folder)
   end
 
   if not writeTransaction("prepared", "trash", plans) then
-    setStatus("bulk", "The Bulk Trash recovery journal could not be created.", true)
+    setStatus("bulk", "The recovery record for moving these items to Trash could not be created.", true)
     return false
   end
 
@@ -3816,8 +3816,8 @@ local function moveBulkPresetsToTrash(names, folder)
       os.remove(TRANSACTION_FILE)
     end
     setStatus("bulk", rollbackFailed
-      and "Bulk Trash cataloging failed, and at least one preset could not be moved back. Refresh completed; review Trash."
-      or "Bulk Trash was rolled back because its catalogs or recovery journal could not be finalized.", true)
+      and "The Trash lists could not be saved, and at least one preset could not be returned. Refresh is complete; check Trash."
+      or "The presets were returned because the folder, Trash, or recovery lists could not be saved.", true)
     return false
   end
 
@@ -3844,15 +3844,15 @@ local function moveBulkPresetsToTrash(names, folder)
     physicalFolderRemoved = removeEmptyDirectoryTree(folderPath(folder), 0)
   end
   setStatus("bulk", (folder
-    and ("Moved folder \"%s\" and %d preset%s to recoverable Trash; removed %d nested folder entr%s. Restoring presets rebuilds their folder paths.%s")
+    and ("Moved folder \"%s\" and %d preset%s to Trash; removed %d folder%s inside it. Restoring the folder rebuilds this structure.%s")
       :format(folder, #names, #names == 1 and "" or "s", nestedFolderCount,
-        nestedFolderCount == 1 and "y" or "ies",
+        nestedFolderCount == 1 and "" or "s",
         physicalFolderWasImported and (physicalFolderRemoved
-          and " Its empty physical directory was removed."
-          or " Its physical directory was kept because other content remains or it could not be removed safely.") or "")
-    or ("Moved %d preset%s to recoverable Trash.")
+          and " Its empty Windows folder was removed."
+          or " Its Windows folder was kept because it contains other files or could not be removed safely.") or "")
+    or ("Moved %d preset%s to Trash. You can restore them later.")
       :format(#names, #names == 1 and "" or "s")) ..
-    (inventorySaved and "" or " The inventory could not be updated."), false,
+    (inventorySaved and "" or " The preset file list could not be updated."), false,
     inventorySaved and "success" or "warning")
   return true
 end
@@ -3872,9 +3872,9 @@ requestBulkTrash = function(names, folder)
     state.pendingBulkAction = action
     state.pendingBulkFingerprint = fingerprint
     setStatus("bulk", folder
-      and ("Move folder \"%s\" and %d preset%s to recoverable Trash? Select Confirm Move Folder & Presets to Trash.")
+      and ("Move folder \"%s\" and %d preset%s to Trash? Select Confirm Move Folder & Presets to Trash.")
         :format(folder, #names, #names == 1 and "" or "s")
-      or ("Move %d selected preset%s to recoverable Trash? Select Confirm Bulk Trash.")
+      or ("Move %d selected preset%s to Trash? Select Confirm Bulk Trash.")
         :format(#names, #names == 1 and "" or "s"))
     return
   end
@@ -3936,7 +3936,7 @@ local function renamePreset()
   }
   if physicalRenameNeeded then
     if not writeTransaction("prepared", "rename", { renamePlan }) then
-      setStatus("rename", "The rename recovery journal could not be created.", true)
+    setStatus("rename", "The recovery record for this rename could not be created.", true)
       return
     end
     local renamed, renameError = os.rename(oldPath, newPath)
@@ -3964,8 +3964,8 @@ local function renamePreset()
         local repaired = writeCatalog(state.presets, state.folders, state.manualFolders,
           state.ignoredPhysicalFolders)
         setStatus("rename", repaired
-          and "The display rename failed, and the physical file could not be moved back. The catalog now tracks the new physical filename."
-          or "The display rename failed, the physical file could not be moved back, and the catalog could not be repaired.", true)
+          and "The name shown in the mod could not be changed, and the file could not be moved back. The folder list now uses the new file name."
+          or "The name shown in the mod could not be changed, the file could not be moved back, and the folder list could not be repaired.", true)
         return
       end
       os.remove(TRANSACTION_FILE)
@@ -3975,7 +3975,7 @@ local function renamePreset()
         state.ignoredPhysicalFolders)
       writeInventory(state.presets, state.folders)
     end
-    setStatus("rename", "The preset could not be renamed because its catalog or recovery journal could not be finalized.", true)
+    setStatus("rename", "The preset could not be renamed because the folder list or recovery record could not be saved.", true)
     return
   end
   state.selected = newName
@@ -4011,7 +4011,7 @@ local function movePresetToSelectedFolder()
     state.presets[newName] = nil
     state.presets[old] = preset
     state.folderStatus, state.folderStatusError =
-      "The preset could not be moved because the virtual-folder catalog could not be saved.", true; return
+      "The preset could not be moved because the folder list could not be saved.", true; return
   end
   state.selected = newName
   invalidateViewCache()
@@ -4063,7 +4063,7 @@ local function duplicatePreset()
   local sourcePreset = state.presets[source]
   local storage = uniqueStorageName(baseName(destination))
   if not storage then
-    setStatus("rename", "A safe storage filename could not be allocated.", true); return
+    setStatus("rename", "The mod could not create a safe file name for the copy.", true); return
   end
   local destinationPath = PRESET_DIR .. "/" .. storage .. ".preset"
   if not copyFile(presetPath(source), destinationPath) then
@@ -4084,8 +4084,8 @@ local function duplicatePreset()
     state.presets[destination] = nil
     local cleaned = removeFileList({ destinationPath })
     setStatus("rename", cleaned
-      and "The duplicate was removed because the virtual-folder catalog could not be saved."
-      or "The catalog failed, and the duplicated file could not be removed.", true)
+      and "The copy was removed because the folder list could not be saved."
+      or "The folder list could not be saved, and the copied file could not be removed.", true)
     return
   end
   state.selected = destination
@@ -4113,13 +4113,13 @@ local function createFolder()
   if not persistVirtualState(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders) then
     state.folders[name] = nil
-    state.folderStatus, state.folderStatusError = "The virtual folder could not be saved.", true; return
+    state.folderStatus, state.folderStatusError = "The folder could not be saved.", true; return
   end
   state.selectedFolder = name
   invalidateViewCache()
   state.folderName = ""
   cancelConfirmations()
-  state.folderStatus, state.folderStatusError = "Created virtual folder \"" .. name .. "\".", false
+  state.folderStatus, state.folderStatusError = "Created folder \"" .. name .. "\".", false
   log(("[FOLDER] Created virtual folder '%s'."):format(name), "complete")
 end
 
@@ -4173,7 +4173,7 @@ local function renameFolder()
     end
   end
   if not persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored) then
-    state.folderStatus, state.folderStatusError = "The folder could not be renamed because the catalog could not be saved.", true; return
+    state.folderStatus, state.folderStatusError = "The folder could not be renamed because the folder list could not be saved.", true; return
   end
   local selectedPreset = state.selected
   if selectedPreset and isInFolderTree(parentFolder(selectedPreset), old) then
@@ -4190,7 +4190,7 @@ local function renameFolder()
   cancelConfirmations()
   resetLoadState()
   state.folderStatus, state.folderStatusError =
-    ("Renamed virtual folder \"%s\" to \"%s\"."):format(old, destination), false
+    ("Renamed folder \"%s\" to \"%s\"."):format(old, destination), false
   log(("[FOLDER] Virtual rename completed: '%s' -> '%s'."):format(old, destination), "complete")
 end
 
@@ -4233,7 +4233,7 @@ local function duplicateFolder()
       if not storage then
         local cleaned = removeFileList(createdFiles)
         state.folderStatus, state.folderStatusError = cleaned
-          and "A safe storage filename could not be allocated."
+          and "The mod could not create a safe file name for the copied preset."
           or "Storage allocation failed, and some partial files could not be removed.", true; return
       end
       local path = PRESET_DIR .. "/" .. storage .. ".preset"
@@ -4261,8 +4261,8 @@ local function duplicateFolder()
       state.ignoredPhysicalFolders) then
     local cleaned = removeFileList(createdFiles)
     state.folderStatus, state.folderStatusError = cleaned
-      and "Folder duplication was rolled back because the catalog could not be saved."
-      or "The catalog failed, and some duplicated files could not be removed.", true; return
+      and "The folder copy was removed because the folder list could not be saved."
+      or "The folder list could not be saved, and some copied files could not be removed.", true; return
   end
   state.presets = newPresets
   state.folders = newFolders
@@ -4271,7 +4271,7 @@ local function duplicateFolder()
   state.selectedFolder = destination
   cancelConfirmations()
   state.folderStatus, state.folderStatusError =
-    ("Duplicated virtual folder \"%s\" as \"%s\"."):format(source, destination), false
+    ("Copied folder \"%s\" as \"%s\"."):format(source, destination), false
   log(("[FOLDER] Virtual duplicate completed: source='%s' destination='%s' presets=%d.")
     :format(source, destination, #createdFiles), "complete")
 end
@@ -4342,7 +4342,7 @@ local function removeVirtualFolder()
         local destinationStorage = uniqueStorageName(baseName(preset.storage), reservedStorage)
         if not destinationStorage then
           state.folderStatus, state.folderStatusError =
-            "A safe destination filename could not be allocated for an imported preset.", true; return
+            "The mod could not create a safe destination file name for an imported preset.", true; return
         end
         table.insert(relocationPlans, {
           storage = preset.storage,
@@ -4359,7 +4359,7 @@ local function removeVirtualFolder()
   if #relocationPlans > 0
       and not writeTransaction("prepared", "rename", relocationPlans) then
     state.folderStatus, state.folderStatusError =
-      "The imported-folder recovery journal could not be created.", true; return
+      "The recovery record for removing this imported folder could not be created.", true; return
   end
   local movedPlans = {}
   for _, plan in ipairs(relocationPlans) do
@@ -4376,8 +4376,8 @@ local function removeVirtualFolder()
       end
       if rolledBack then os.remove(TRANSACTION_FILE) end
       state.folderStatus, state.folderStatusError = rolledBack
-        and "The imported folder was unchanged because a preset file could not be relocated."
-        or "Preset relocation failed and could not be fully rolled back; startup recovery will retry it.", true
+        and "The imported folder was left unchanged because a preset file could not be moved."
+        or "A preset could not be moved, and some earlier moves could not be undone. The mod will try to recover them at the next startup.", true
       return
     end
     table.insert(movedPlans, plan)
@@ -4404,8 +4404,8 @@ local function removeVirtualFolder()
     if rolledBack then os.remove(TRANSACTION_FILE) end
     state.folderStatus, state.folderStatusError =
       rolledBack
-        and "The folder removal was rolled back because its catalog or recovery journal could not be finalized."
-        or "Folder removal could not be finalized or rolled back; startup recovery will retry it.", true
+        and "The folder was restored because the folder list or recovery record could not be saved."
+        or "The folder removal could not finish or be undone. The mod will try to recover it at the next startup.", true
     return
   end
   local selectedPreset = state.selected
@@ -4428,8 +4428,8 @@ local function removeVirtualFolder()
       (destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\"")) ..
       (wasManualFolder
         and (physicalFolderRemoved
-          and ". Its empty physical directory was also removed."
-          or ". Its physical directory was kept because other content remains or it could not be removed safely.")
+          and ". Its empty Windows folder was also removed."
+          or ". Its Windows folder was kept because it contains other files or could not be removed safely.")
         or "."), false
 end
 
@@ -4662,12 +4662,13 @@ end
 statusSuccess.bulk = function(text) return text:find("^Moved ") ~= nil end
 statusSuccess.editor = function(text) return text == "Full editor opened." end
 statusSuccess.folder = function(text)
-  return text:find("^Created virtual folder ") ~= nil
-    or text:find("^Renamed virtual folder ") ~= nil
-    or text:find("^Duplicated virtual folder ") ~= nil
+  return text:find("^Created folder ") ~= nil
+    or text:find("^Renamed folder ") ~= nil
+    or text:find("^Copied folder ") ~= nil
     or text:find("^Removed folder ") ~= nil
     or text:find("^Exported ") ~= nil
     or text:find("^Imported ") ~= nil
+    or text:find("^Installed ") ~= nil
     or text:find("^Moved ") ~= nil
 end
 
@@ -4749,7 +4750,7 @@ local function drawDebugPanel(height)
   end
   ImGui.SameLine()
   if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then state.debugOpen = false end
-  if ImGui.CollapsingHeader("Advanced diagnostics##advancedDiagnostics") then
+  if ImGui.CollapsingHeader("Advanced Technical Details##advancedDiagnostics") then
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
       :format(state.editorInputCount, state.editorControllerCaptureCount,
         state.editorPauseRedirectCount, state.editorPuppetReadyCount))
@@ -5119,10 +5120,10 @@ draw = function()
         else saved = restoreDiscoveryNotice() end
         local currentState = state.discoveryNoticeIgnored and "disabled" or "enabled"
         if saved then
-          state.settingsStatus = "Customization reminder " .. currentState .. ". Config saved."
+          state.settingsStatus = "Customization reminder " .. currentState .. ". Settings saved."
         else
           state.settingsStatus = "Customization reminder " .. currentState ..
-            " for this session; config could not be saved."
+            " for this session, but the settings file could not be saved."
         end
       end
       local sortLabel = state.sortMode == "modified"
@@ -5130,9 +5131,9 @@ draw = function()
       if fullWidthButton(sortLabel .. "##presetSort", actionButtonHeight) then
         state.sortMode = state.sortMode == "modified" and "name" or "modified"
         invalidateViewCache()
-        state.settingsStatus = writeConfig() and "Config saved." or "Config could not be saved."
+        state.settingsStatus = writeConfig() and "Settings saved." or "The settings file could not be saved."
       end
-      if fullWidthButton("Reload Config from Disk##reloadConfig", actionButtonHeight) then
+      if fullWidthButton("Reload Settings File##reloadConfig", actionButtonHeight) then
         local config, loaded = readConfig()
         if loaded then
           state.discoveryNoticeIgnored = not config.discoveryReminder
@@ -5140,9 +5141,9 @@ draw = function()
           state.discoveryNoticeLayout = nil
           state.sortMode = config.presetSort == "modified" and "modified" or "name"
           invalidateViewCache()
-          state.settingsStatus = "Config reloaded."
+          state.settingsStatus = "Settings file reloaded."
         else
-          state.settingsStatus = "Config could not be reloaded."
+          state.settingsStatus = "The settings file could not be reloaded."
         end
       end
       if state.settingsStatus ~= "" then
@@ -5161,66 +5162,60 @@ draw = function()
       ImGui.PushStyleColor(ImGuiCol.TextDisabled, 0.64, 0.67, 0.73, 1.0)
       ImGui.BeginChild("##help", 0, 230 + math.min(extraHeight * 0.20, 80), true)
 
-      helpHeading("Known Game Issue")
-      ImGui.TextWrapped("Cyberpunk may stay on a loading screen after any character editor closes. This can happen without this mod.")
-      coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "If this happens, unequip all clothing and select No Outfit before opening the editor. Put the items back on afterward.")
-
-      helpHeading("Incompatible Mods")
+      helpHeading("Before You Start")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Remove Appearance Change Unlocker (ACU) and Character Customization Anywhere. They change the same character editor screens. Restart the game after removing them.")
-
-      helpHeading("Character Option Mods")
-      ImGui.TextWrapped("Keep the same character option mods and load order used when the preset was made.")
-      ImGui.TextWrapped("If they changed, fix the appearance and save the preset again.")
-
-      helpHeading("Photo Mode and Appearance Menu Mod")
-      ImGui.TextWrapped("Both mods are compatible and may remain installed. Character Preset Manager cannot save or load presets from inside their interfaces. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
+        "Remove Appearance Change Unlocker (ACU) and Character Customization Anywhere, then restart the game. These mods change the same character screens and cannot be used with Character Preset Manager.")
+      ImGui.TextWrapped("Keep the same character option mods, versions, and load order that were used to make the preset. If they change, check the appearance and save the preset again.")
+      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod may stay installed, but you cannot save or load presets inside their menus. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
+      coloredWrapped(1.0, 0.8, 0.2, 1.0,
+        "If the game stays on a loading screen after you close an editor, remove all clothing and choose No Outfit before trying again. This is a Cyberpunk issue and can happen without this mod.")
 
       ImGui.Separator()
 
       helpHeading("Open the Editor")
-      ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. Mirrors, ripperdocs, and the new-game editor also work.")
-      ImGui.TextWrapped("Set or change these under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor input.")
+      ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. You can also use a mirror, a ripperdoc, or the new-game editor.")
+      ImGui.TextWrapped("Set these keys under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor key.")
       drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editorInputCount)
       drawBindingHelp("Toggle Character Preset Manager (CET)",
         "vanilla_character_presets_toggle", state.windowHotkeyCount)
 
       helpHeading("Load a Preset")
-      ImGui.TextWrapped("1. Select a preset under Load Preset.")
-      ImGui.TextWrapped("2. Select Load Selected Preset once.")
+      ImGui.TextWrapped("1. Open a supported character editor.")
+      ImGui.TextWrapped("2. Choose a preset under Load Preset.")
+      ImGui.TextWrapped("3. Select Load Selected Preset once.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
-        "3. Wait for Preset Fully Applied.")
+        "4. Wait for Preset Fully Applied.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Options not saved in the preset may be removed.")
+        "The mod may clear appearance options that are not saved in the preset.")
 
       helpHeading("Save a Preset")
-      ImGui.TextWrapped("1. Open Choose Save Destination and select a folder or All Presets.")
-      ImGui.TextWrapped("2. Enter a name under Save Preset.")
-      ImGui.TextWrapped("3. Select Save New Preset. Confirm only if replacing an existing preset.")
+      ImGui.TextWrapped("1. Open a supported character editor.")
+      ImGui.TextWrapped("2. Under Save Preset, open Choose Save Destination.")
+      ImGui.TextWrapped("3. Choose a folder or All Presets, then enter a name.")
+      ImGui.TextWrapped("4. Select Save New Preset. Only confirm Replace Existing Preset if you want to overwrite it.")
 
-      helpHeading("Folders")
-      ImGui.TextWrapped("Select a folder row under Load Preset to open or close it.")
-      ImGui.TextWrapped("To move a preset, select the preset, select a folder, then select Move Selected Preset Here. Select All Presets to move it out of a folder.")
-      ImGui.TextWrapped("Adding a folder creates it inside the selected folder. Select All Presets first to add a root folder.")
-      ImGui.TextWrapped("Folders created in CET are virtual and have no packaged slot limit. Renaming them or moving presets between them does not rename directories in File Explorer.")
-      ImGui.TextWrapped("Directories created manually inside Character Presets are discovered recursively and labeled Imported. Their preset files stay at those paths until an operation explicitly relocates them.")
+      helpHeading("Organize Presets")
+      ImGui.TextWrapped("Select a folder row under Load Preset to open or close it. Presets that are not in a folder appear under All Presets.")
+      ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
+      ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
+      ImGui.TextWrapped("Folders made in CET organize presets only inside the mod. They do not create matching Windows folders and have no set limit.")
+      ImGui.TextWrapped("Windows folders placed inside Character Presets appear with an Imported label. The mod keeps unknown files in those folders safe.")
 
       helpHeading("Rename, Copy, or Remove")
-      ImGui.TextWrapped("Select a preset or folder before using its rename or copy action. Renaming a preset also renames its shareable .preset file. Folder renames remain virtual.")
-      ImGui.TextWrapped("Copies are placed beside the original. Copying a virtual folder copies all presets and nested virtual folders.")
-      ImGui.TextWrapped("Remove Folder, Keep Presets moves its presets and nested folders to the parent after confirmation. For an Imported folder, recognized preset files are relocated first. Unknown files and any directory containing them are never deleted.")
+      ImGui.TextWrapped("Choose a preset or folder first. Renaming a preset also renames its .preset file. Renaming a folder changes only the name shown in the mod.")
+      ImGui.TextWrapped("A copy appears beside the original. Copying a folder also copies every preset and folder inside it.")
+      ImGui.TextWrapped("Remove Folder, Keep Presets removes the folder but moves everything inside it to the folder above. It never deletes unknown files.")
 
       helpHeading("Delete and Restore")
-      ImGui.TextWrapped("Use Folders to delete a selected folder safely by moving it and its presets to Trash. Use Delete & Restore for one selected preset, filtered multi-selection, restoration, and permanent cleanup. Trash actions require confirmation.")
-      ImGui.TextWrapped("Restore Folder recovers its complete logical tree, including empty nested virtual folders. Restored files receive safe names in Character Presets; a conflict receives a Copy name instead of overwriting an existing preset.")
+      ImGui.TextWrapped("Under Folders, you can move a folder and everything inside it to Trash. Use Delete & Restore to move one preset or several visible presets to Trash.")
+      ImGui.TextWrapped("You can restore presets and complete folders later. If a name is already in use, the restored item gets a Copy name instead of replacing anything.")
+      ImGui.TextWrapped("Empty Trash Permanently is the only action that permanently deletes files. All Trash actions ask for confirmation.")
 
       helpHeading("Share One Preset")
-      ImGui.TextWrapped("Place .preset files in the preset folder or a directory inside it. Copy one .preset file to share one appearance. A shared .preset does not contain its virtual folder assignment.")
-      ImGui.TextWrapped("New .preset imports follow the manual directory where they are placed.")
-      ImGui.TextWrapped("Select Refresh under Load Preset after changing files outside the game. Current format-7, older Character Preset Manager, and compatible ACU .preset files remain readable.")
-      ImGui.TextWrapped("Format-7 presets save each selector's LocKey, UI slot, and selected-choice identity. Force Full Load can recover a renamed dependent selector through that extra identity. Older index-only presets cannot identify the original hairstyle after added hairs shift the list; correct the appearance and re-save it in the current format.")
+      ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load Preset.")
+      ImGui.TextWrapped("A shared preset does not include its CET folder. Older Character Preset Manager and compatible ACU preset files can still be loaded.")
+      ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
       pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       if fullWidthButton("Copy Preset Folder Path##copyPresetPath", actionButtonHeight) then
@@ -5228,19 +5223,19 @@ draw = function()
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       end
 
-      helpHeading("Share or Import a Folder")
-      ImGui.TextWrapped("Export: select a non-empty folder under Folders, then select Export Folder for Sharing. The portable .cpmfolder file is saved in Character Presets and includes all nested folders and presets.")
-      ImGui.TextWrapped("Import: put the .cpmfolder file in Character Presets. Under Folders, select All Presets (root), then select Import Folder Bundles. New or changed bundles are processed; unchanged imported bundles are skipped.")
-      ImGui.TextWrapped("Trash a bundle file: under All Presets (root), open Folder Bundle Files, select one file, and select Move Selected Bundle to Trash. Restore it under Delete & Restore, or remove it with Empty Trash Permanently. Its source or imported folder and presets remain available.")
-      ImGui.TextWrapped("After a successful import, the bundle stays untouched and its filename, fingerprint, and imported folder are recorded in Data/Catalog/Imported Bundles.txt. An unchanged bundle is skipped while that folder still exists. If the imported folder is deleted, the same bundle can be imported again. Existing folder names receive a safe Copy name.")
+      helpHeading("Share a Folder")
+      ImGui.TextWrapped("To share a folder, choose a non-empty folder under Folders and select Export Folder for Sharing. The new .cpmfolder file appears in Character Presets and includes everything inside that folder.")
+      ImGui.TextWrapped("To install a shared folder, place its .cpmfolder file in Character Presets. Under Folders, choose All Presets, then select Install Shared Folders.")
+      ImGui.TextWrapped("The mod skips a bundle that was already imported and has not changed. If you deleted its imported folder, you can import the same bundle again.")
+      ImGui.TextWrapped("To remove only a .cpmfolder file, choose All Presets, open Shared Folder Files, and move the file to Trash. This does not remove the installed presets or the folder that was shared.")
 
-      helpHeading("Settings and Config")
-      ImGui.TextWrapped("Settings controls the customization reminder and preset sorting. The reminder stays enabled until you turn it off here.")
-      ImGui.TextWrapped("The same values can be edited in Data/Config/Config.txt, then applied with Reload Config from Disk.")
+      helpHeading("Settings")
+      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off and choose how presets are sorted. Your choices are saved.")
+      ImGui.TextWrapped("Advanced users can also change Data/Config/Config.txt, then select Reload Settings File.")
 
-      helpHeading("Debug and Diagnostics")
-      ImGui.TextWrapped("The activity log records preset actions, warnings, errors, and advanced editor diagnostics.")
-      if fullWidthButton("Open Debug Log##openDebugFromHelp", actionButtonHeight) then
+      helpHeading("Activity Log")
+      ImGui.TextWrapped("Open the activity log to see recent preset actions, warnings, and errors. You can copy the log when asking for help.")
+      if fullWidthButton("Open Activity Log##openDebugFromHelp", actionButtonHeight) then
         readDiagnosticLog()
         state.debugOpen = true
         state.helpOpen = false
@@ -5251,7 +5246,7 @@ draw = function()
     end
 
     if collapsibleSectionHeader("APPEARANCE EDITOR", "editor") then
-    ImGui.TextWrapped("Opens the full vanilla character editor. Apartment mirrors provide the same options.")
+    ImGui.TextWrapped("Opens the game's full character editor. Apartment mirrors offer the same options.")
     ImGui.Spacing()
     local editorUnavailable = state.editorOpenPending or state.inCustomization
       or not state.editorHooksAvailable
@@ -5378,7 +5373,7 @@ draw = function()
         local color = (check.ambiguous + check.invalid) > 0 and { 1.0, 0.4, 0.4 }
           or check.unavailable > 0 and { 1.0, 0.8, 0.2 } or { 0.3, 1.0, 0.4 }
         coloredWrapped(color[1], color[2], color[3], 1.0,
-          ("Compatibility: %d ready  |  %d hidden  |  %d ambiguous  |  %d invalid")
+          ("Option check: %d found  |  %d missing  |  %d repeated  |  %d invalid")
             :format(check.available, check.unavailable, check.ambiguous, check.invalid))
       else
         ImGui.TextDisabled("Open a customization screen to check compatibility.")
@@ -5387,7 +5382,7 @@ draw = function()
         ImGui.Indent(8)
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
           ("Source: %s\nModified: %s")
-            :format(tostring(preset.source or "Legacy or ACU-compatible"),
+            :format(tostring(preset.source or "Older or ACU preset"),
             tostring(preset.modified or "Unknown")))
         if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
         if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
@@ -5411,10 +5406,10 @@ draw = function()
         and tonumber(state.presets[state.selected].format) or 4
       if selectedFormat >= 7 then
         coloredWrapped(1.0, 0.8, 0.2, 1.0,
-          "Force matching is active. Verify the appearance after loading.")
+          "Force Full Load will try saved editor positions. Check the appearance after loading.")
       else
         coloredWrapped(1.0, 0.4, 0.4, 1.0,
-          "Legacy preset: shifted indexes may change hair or color. Verify after loading.")
+          "Older preset: added options may change the hair or color. Check the appearance after loading.")
       end
     end
 
@@ -5516,10 +5511,10 @@ draw = function()
       "Select how new or moved presets are organized")
     ImGui.TextWrapped("Selected destination: " .. breadcrumb(state.selectedFolder))
     coloredWrapped(0.64, 0.67, 0.73, 1.0,
-      "Virtual folders have no packaged slot limit. Imported folders come from File Explorer.")
+      "Folders made in CET have no set limit. Imported folders are Windows folders inside Character Presets.")
     ImGui.Spacing()
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
-    if ImGui.Selectable("All Presets (root)##rootFolder", state.selectedFolder == "")
+    if ImGui.Selectable("All Presets##rootFolder", state.selectedFolder == "")
         and state.selectedFolder ~= "" then
       log(("[UI] Folder selection changed: old='%s' new='<root>'.")
         :format(state.selectedFolder), "info")
@@ -5588,26 +5583,26 @@ draw = function()
       end
       if folderTrashUnavailable then ImGui.EndDisabled() end
       coloredWrapped(0.64, 0.67, 0.73, 1.0,
-        ("Folder Trash includes %d nested folder%s and remains recoverable.")
+        ("Trash will include %d folder%s inside this one. You can restore them later.")
           :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
       drawSectionStatus("bulk", "##folderBulkStatus", statusSuccess.bulk, statusHeight)
     else
       local rootMoveUnavailable = not state.selected or parentFolder(state.selected) == ""
       if rootMoveUnavailable then ImGui.BeginDisabled() end
-      if fullWidthButton("Move Selected Preset to Root", actionButtonHeight) then movePresetToSelectedFolder() end
+      if fullWidthButton("Move Selected Preset to All Presets", actionButtonHeight) then movePresetToSelectedFolder() end
       if rootMoveUnavailable then ImGui.EndDisabled() end
       if rootMoveUnavailable then ImGui.TextDisabled(not state.selected
         and "Select a preset under Load Preset before moving it."
         or "The selected preset is already in All Presets.")
       end
-      if fullWidthButton("Import Folder Bundles", actionButtonHeight) then
+      if fullWidthButton("Install Shared Folders", actionButtonHeight) then
         importAvailableFolderBundles()
       end
       coloredWrapped(0.64, 0.67, 0.73, 1.0,
-        "Imports .cpmfolder files from Character Presets. Already imported files are skipped.")
+        "Installs .cpmfolder files from Character Presets. Files that were already installed and have not changed are skipped.")
       local bundleFiles = folderBundleFiles()
-      local bundleLabel = ("Folder Bundle Files (%d)"):format(#bundleFiles)
-      if compactSubsectionButton(bundleLabel, "Hide Folder Bundle Files", "folderBundleFiles") then
+      local bundleLabel = ("Shared Folder Files (%d)"):format(#bundleFiles)
+      if compactSubsectionButton(bundleLabel, "Hide Shared Folder Files", "folderBundleFiles") then
         ImGui.Indent(8)
         if #bundleFiles == 0 then
           state.selectedBundleFile = nil
@@ -5635,12 +5630,12 @@ draw = function()
           end
           local bundleDeleteUnavailable = not state.selectedBundleFile
           if bundleDeleteUnavailable then ImGui.BeginDisabled() end
-          if dangerButton("Move Selected Bundle to Trash##trashFolderBundle",
+          if dangerButton("Move Selected File to Trash##trashFolderBundle",
               ImGui.GetContentRegionAvail(), actionButtonHeight) then
             trashSelectedFolderBundle()
           end
           if bundleDeleteUnavailable then ImGui.EndDisabled() end
-          ImGui.TextDisabled("Moves only the selected .cpmfolder file to recoverable Trash.")
+          ImGui.TextDisabled("Moves only the selected .cpmfolder file to Trash. You can restore it later.")
         end
         ImGui.Unindent(8)
       end
@@ -5694,7 +5689,7 @@ draw = function()
     end
 
     if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
-      ImGui.TextWrapped("Move presets, folders, and folder bundle files to recoverable Trash, or restore them later.")
+      ImGui.TextWrapped("Move presets, folders, and shared-folder files to Trash. You can restore them later.")
       if not state.selected then
         ImGui.TextDisabled("Select a preset under Load Preset to move one preset to Trash.")
       else
@@ -5731,7 +5726,7 @@ draw = function()
       if #trashNames == 0 and #trashGroupIds == 0 and #trashBundleNames == 0 then
         ImGui.TextDisabled("Trash is empty.")
       else
-        ImGui.TextWrapped(("%d recoverable preset%s  |  %d folder bundle%s")
+        ImGui.TextWrapped(("%d preset%s in Trash  |  %d shared-folder file%s")
           :format(#trashNames, #trashNames == 1 and "" or "s",
             #trashBundleNames, #trashBundleNames == 1 and "" or "s"))
         ImGui.BeginChild("##trashList", 0, ImGui.GetFontSize() * 6, true)
@@ -5768,7 +5763,7 @@ draw = function()
             ImGui.Separator()
           end
           for _, filename in ipairs(trashBundleNames) do
-            if fullWidthButton("Restore Bundle " .. filename ..
+            if fullWidthButton("Restore File " .. filename ..
                 "##trashBundle:" .. filename, actionButtonHeight) then
               restoreTrashBundle(filename)
               trashChanged = true
@@ -6054,8 +6049,8 @@ registerForEvent("onUpdate", function(delta)
   if state.autoLoadPasses > AUTO_LOAD_MAX_PASSES then
     state.autoLoad = false
     setStatus("load",
-      "Automatic loading hit the absolute safety limit without stalling or " ..
-      "finishing. This is unusual -- please report it.",
+      "Automatic loading reached its safety limit without stopping or finishing. " ..
+      "This is unusual. Please report it and include the Activity Log.",
       true
     )
     return

@@ -1,1 +1,1 @@
-Character Preset Manager stores its configuration in this folder.
+Character Preset Manager stores its settings here.
