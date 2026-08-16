@@ -80,6 +80,10 @@ used. See the README and in-game Help for current instructions.
   lightweight saved details for presets that were already known.
 - Loads lightweight source presets before duplicating a folder, so an untouched
   preset no longer causes copy verification to fail.
+- Shares repeated copy cleanup, preset hydration and verification, cache
+  invalidation, and panel status resets without weakening their safety checks.
+- Removes two shared-folder cleanup attempts that ran before any files had been
+  created and now reports if later partial files cannot be removed.
 
 </details>
 

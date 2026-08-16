@@ -526,11 +526,15 @@ local function setStatus(section, message, isError, kind)
   end
 end
 
+local function clearStatus(section)
+  state[section .. "Status"] = ""
+  state[section .. "StatusError"] = false
+  state.statusKinds[section] = nil
+end
+
 local function clearSectionStatuses()
   for _, section in ipairs(STATUS_SECTIONS) do
-    state[section .. "Status"] = ""
-    state[section .. "StatusError"] = false
-    state.statusKinds[section] = nil
+    clearStatus(section)
   end
   state.lastLoggedFolderStatus = nil
 end
@@ -1007,6 +1011,11 @@ local function invalidateViewCache()
   if state.invalidatePreflight then state.invalidatePreflight() end
 end
 
+local function invalidatePresetAndTrashCaches()
+  invalidateViewCache()
+  if state.invalidateTrashViewCache then state.invalidateTrashViewCache() end
+end
+
 local function rebuildViewCache()
   local presetNames = {}
   local folderNames = {}
@@ -1398,6 +1407,12 @@ state.hydratePreset = function(preset, path)
   return preset
 end
 
+local function hydrateNamedPreset(name)
+  local preset = name and state.presets[name]
+  if not preset then return nil end
+  return state.hydratePreset(preset, presetPath(name))
+end
+
 state.invalidatePreflight = function()
   state.preflight = nil
   state.preflightDirty = true
@@ -1684,6 +1699,13 @@ presetsMatch = function(expected, actual)
   return true
 end
 
+local function readVerifiedPresetCopy(expected, path)
+  local copy = readPresetFile(path)
+  if not copy or not presetsMatch(expected, copy) then return nil end
+  copy.fingerprint = fileFingerprint(path, MAX_PRESET_BYTES)
+  return copy
+end
+
 local function readInventory()
   local presets, folders = {}, {}
   local contents, readError = readBoundedFile(INVENTORY_FILE, MAX_CATALOG_BYTES)
@@ -1808,6 +1830,10 @@ local function removeFileList(paths)
     if fileExists(path) and not os.remove(path) then success = false end
   end
   return success
+end
+
+local function cleanupFailureMessage(paths, cleanedMessage, leftoverMessage)
+  return removeFileList(paths) and cleanedMessage or leftoverMessage
 end
 
 local function uniquePresetCopyName(sourceName)
@@ -2258,12 +2284,10 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   for _, item in ipairs(bundle.presets) do
     local logicalName = joinFolder(root, item.name)
     if findPresetCollision(logicalName) then
-      removeFileList(createdFiles)
       return nil, "An imported preset has the same name as an existing preset."
     end
     local storage = uniqueStorageName(baseName(logicalName), reservedStorage)
     if not storage then
-      removeFileList(createdFiles)
       return nil, "The mod could not create a safe file name for an imported preset."
     end
     item.logicalName = logicalName
@@ -2304,20 +2328,23 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   if importError or not closeOk or closeResult == nil
       or importedCount ~= #bundle.presets
       or fileFingerprint(filename, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
-    removeFileList(createdFiles)
-    return nil, importError
+    local message = importError
       or "The shared-folder file changed or could not be read completely during installation."
+    return nil, cleanupFailureMessage(createdFiles, message,
+      message .. " Some partial preset files could not be removed.")
   end
   if not writeCatalog(newPresets, newFolders, newManualFolders, newIgnored) then
-    removeFileList(createdFiles)
-    return nil, "The imported folder was removed again because the folder list could not be saved."
+    return nil, cleanupFailureMessage(createdFiles,
+      "The imported folder was removed again because the folder list could not be saved.",
+      "The folder list could not be saved, and some imported preset files could not be removed.")
   end
   local inventorySaved = writeInventory(newPresets, newFolders)
   if not inventorySaved then
     writeCatalog(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders)
-    removeFileList(createdFiles)
-    return nil, "The imported folder was removed again because the preset file list could not be saved."
+    return nil, cleanupFailureMessage(createdFiles,
+      "The imported folder was removed again because the preset file list could not be saved.",
+      "The preset file list could not be saved, and some imported preset files could not be removed.")
   end
   local leaf = filename:match("([^/]+)$")
   local updatedImported = cloneMap(importedBundles)
@@ -2330,8 +2357,9 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
     writeCatalog(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders)
     writeInventory(state.presets, state.folders)
-    removeFileList(createdFiles)
-    return nil, "The imported folder was removed again because the completed import could not be recorded."
+    return nil, cleanupFailureMessage(createdFiles,
+      "The imported folder was removed again because the completed import could not be recorded.",
+      "The completed import could not be recorded, and some imported preset files could not be removed.")
   end
   state.presets, state.folders = newPresets, newFolders
   state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
@@ -2789,7 +2817,7 @@ local function savePreset(confirmOverwrite)
   end
 
   local previousPreset = state.presets[name]
-  if previousPreset and not state.hydratePreset(previousPreset, presetPath(name)) then
+  if previousPreset and not hydrateNamedPreset(name) then
     setStatus("create", "The existing preset could not be read safely before replacement.", true)
     return
   end
@@ -2872,8 +2900,8 @@ local function loadPreset()
     setStatus("load", "Select a preset.", true)
     return
   end
-  local selectedPreset = state.presets[state.selected]
-  if not state.hydratePreset(selectedPreset, presetPath(state.selected)) then
+  local selectedPreset = hydrateNamedPreset(state.selected)
+  if not selectedPreset then
     resetLoadState()
     setStatus("load", "The selected preset could not be read safely.", true)
     return
@@ -2886,7 +2914,7 @@ local function loadPreset()
   end
   if state.loadPresetName ~= state.selected then refreshPreflight() end
 
-  local preset = state.presets[state.selected]
+  local preset = selectedPreset
   local values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
   if state.loadPresetName == state.selected then
     state.loadPass = state.loadPass + 1
@@ -3421,7 +3449,8 @@ refreshPreflight = function()
   local preset = state.selected and state.presets[state.selected]
   if not preset then return end
   local wasLazy = not preset.entries
-  if not state.hydratePreset(preset, presetPath(state.selected)) then return end
+  preset = hydrateNamedPreset(state.selected)
+  if not preset then return end
   if wasLazy then
     state.presetNotes = preset.notes or ""
     state.presetTags = preset.tags or ""
@@ -3966,12 +3995,10 @@ trashPreset = function()
   state.selected = nil
   state.presetNotes = ""
   state.presetTags = ""
-  invalidateViewCache()
-  state.invalidateTrashViewCache()
+  invalidatePresetAndTrashCaches()
   state.renameName = ""
   resetLoadState()
-  state.renameStatus = ""
-  state.renameStatusError = false
+  clearStatus("rename")
   if writeInventory(state.presets, state.folders) then
     setStatus("delete", "Moved \"" .. old .. "\" to Trash.", false, "success")
   else
@@ -4040,8 +4067,7 @@ restoreTrashPreset = function(filename)
   state.selected = logicalName
   state.presetNotes = preset.notes or ""
   state.presetTags = preset.tags or ""
-  invalidateViewCache()
-  state.invalidateTrashViewCache()
+  invalidatePresetAndTrashCaches()
   local inventorySaved = writeInventory(state.presets, state.folders)
   setStatus("delete", "Restored \"" .. logicalName .. "\" from Trash." ..
     (inventorySaved and "" or " The preset file list could not be updated."), false,
@@ -4183,8 +4209,7 @@ restoreTrashGroup = function(groupId)
     state.presetNotes = plans[1].preset.notes or ""
     state.presetTags = plans[1].preset.tags or ""
   end
-  invalidateViewCache()
-  state.invalidateTrashViewCache()
+  invalidatePresetAndTrashCaches()
   resetLoadState()
   local inventorySaved = writeInventory(newPresets, newFolders)
   setStatus("delete", ("Restored folder \"%s\" with %d preset%s, including empty folders inside it.")
@@ -4430,8 +4455,7 @@ local function moveBulkPresetsToTrash(names, folder)
     state.selectedFolder = newFolders[destination] and destination or ""
   end
   for _, name in ipairs(names) do state.bulkSelected[name] = nil end
-  invalidateViewCache()
-  state.invalidateTrashViewCache()
+  invalidatePresetAndTrashCaches()
   resetLoadState()
   cancelConfirmations()
   local inventorySaved = writeInventory(newPresets, newFolders)
@@ -4628,8 +4652,8 @@ local function savePresetMetadata()
   if not state.selected or not state.presets[state.selected] then
     setStatus("rename", "Select a preset before saving its details.", true); return
   end
-  local preset = state.presets[state.selected]
-  if not state.hydratePreset(preset, presetPath(state.selected)) then
+  local preset = hydrateNamedPreset(state.selected)
+  if not preset then
     setStatus("rename", "The selected preset could not be read safely.", true)
     return
   end
@@ -4668,8 +4692,8 @@ local function duplicatePreset()
   if not destination then
     setStatus("rename", "Could not find an available name for the duplicate.", true); return
   end
-  local sourcePreset = state.presets[source]
-  if not state.hydratePreset(sourcePreset, presetPath(source)) then
+  local sourcePreset = hydrateNamedPreset(source)
+  if not sourcePreset then
     setStatus("rename", "The selected preset could not be read safely.", true)
     return
   end
@@ -4679,26 +4703,24 @@ local function duplicatePreset()
   end
   local destinationPath = PRESET_DIR .. "/" .. storage .. ".preset"
   if not copyFile(presetPath(source), destinationPath) then
-    local cleaned = removeFileList({ destinationPath })
-    setStatus("rename", cleaned and "The duplicate could not be written."
-      or "The duplicate failed, and its partial file could not be removed.", true); return
+    setStatus("rename", cleanupFailureMessage({ destinationPath },
+      "The duplicate could not be written.",
+      "The duplicate failed, and its partial file could not be removed."), true); return
   end
-  local duplicate = readPresetFile(destinationPath)
-  if not duplicate or not presetsMatch(sourcePreset, duplicate) then
-    local cleaned = removeFileList({ destinationPath })
-    setStatus("rename", cleaned and "The duplicate could not be verified."
-      or "Duplicate verification failed, and its file could not be removed.", true); return
+  local duplicate = readVerifiedPresetCopy(sourcePreset, destinationPath)
+  if not duplicate then
+    setStatus("rename", cleanupFailureMessage({ destinationPath },
+      "The duplicate could not be verified.",
+      "Duplicate verification failed, and its file could not be removed."), true); return
   end
-  duplicate.fingerprint = fileFingerprint(destinationPath, MAX_PRESET_BYTES)
   duplicate.storage = storage
   state.presets[destination] = duplicate
   if not persistVirtualState(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders) then
     state.presets[destination] = nil
-    local cleaned = removeFileList({ destinationPath })
-    setStatus("rename", cleaned
-      and "The copy was removed because the folder list could not be saved."
-      or "The folder list could not be saved, and the copied file could not be removed.", true)
+    setStatus("rename", cleanupFailureMessage({ destinationPath },
+      "The copy was removed because the folder list could not be saved.",
+      "The folder list could not be saved, and the copied file could not be removed."), true)
     return
   end
   state.selected = destination
@@ -4841,43 +4863,38 @@ local function duplicateFolder()
   newFolders[destination] = true
   for name, preset in pairs(state.presets) do
     if isInFolderTree(parentFolder(name), source) then
-      if not state.hydratePreset(preset, presetPath(name)) then
-        local cleaned = removeFileList(createdFiles)
-        state.folderStatus, state.folderStatusError = cleaned
-          and "Folder duplication stopped because a source preset could not be read."
-          or "A source preset could not be read, and some partial files could not be removed.", true; return
+      preset = hydrateNamedPreset(name)
+      if not preset then
+        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+          "Folder duplication stopped because a source preset could not be read.",
+          "A source preset could not be read, and some partial files could not be removed."), true; return
       end
       local mapped = remapFolderTreePath(name, source, destination)
       if findPresetCollision(mapped) or newPresets[mapped] then
-        local cleaned = removeFileList(createdFiles)
-        state.folderStatus, state.folderStatusError = cleaned
-          and "The copied folder would contain duplicate preset names."
-          or "Folder duplication found duplicate names, and some partial files could not be removed.", true; return
+        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+          "The copied folder would contain duplicate preset names.",
+          "Folder duplication found duplicate names, and some partial files could not be removed."), true; return
       end
       local storage = uniqueStorageName(baseName(mapped), reservedStorage)
       if not storage then
-        local cleaned = removeFileList(createdFiles)
-        state.folderStatus, state.folderStatusError = cleaned
-          and "The mod could not create a safe file name for the copied preset."
-          or "Storage allocation failed, and some partial files could not be removed.", true; return
+        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+          "The mod could not create a safe file name for the copied preset.",
+          "Storage allocation failed, and some partial files could not be removed."), true; return
       end
       local path = PRESET_DIR .. "/" .. storage .. ".preset"
       if not copyFile(presetPath(name), path) then
         table.insert(createdFiles, path)
-        local cleaned = removeFileList(createdFiles)
-        state.folderStatus, state.folderStatusError = cleaned
-          and "Folder duplication failed; partial preset copies were removed."
-          or "Folder duplication failed, and some partial files could not be removed.", true; return
+        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+          "Folder duplication failed; partial preset copies were removed.",
+          "Folder duplication failed, and some partial files could not be removed."), true; return
       end
-      local copy = readPresetFile(path)
-      if not copy or not presetsMatch(preset, copy) then
+      local copy = readVerifiedPresetCopy(preset, path)
+      if not copy then
         table.insert(createdFiles, path)
-        local cleaned = removeFileList(createdFiles)
-        state.folderStatus, state.folderStatusError = cleaned
-          and "Folder duplication verification failed; partial copies were removed."
-          or "Folder duplication verification failed, and some partial files could not be removed.", true; return
+        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+          "Folder duplication verification failed; partial copies were removed.",
+          "Folder duplication verification failed, and some partial files could not be removed."), true; return
       end
-      copy.fingerprint = fileFingerprint(path, MAX_PRESET_BYTES)
       copy.storage = storage
       newPresets[mapped] = copy
       table.insert(createdFiles, path)
@@ -4885,10 +4902,9 @@ local function duplicateFolder()
   end
   if not persistVirtualState(newPresets, newFolders, newManualFolders,
       state.ignoredPhysicalFolders) then
-    local cleaned = removeFileList(createdFiles)
-    state.folderStatus, state.folderStatusError = cleaned
-      and "The folder copy was removed because the folder list could not be saved."
-      or "The folder list could not be saved, and some copied files could not be removed.", true; return
+    state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+      "The folder copy was removed because the folder list could not be saved.",
+      "The folder list could not be saved, and some copied files could not be removed."), true; return
   end
   state.presets = newPresets
   state.folders = newFolders
@@ -5601,8 +5617,7 @@ ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
     for _, name in ipairs(visibleNames) do state.bulkSelected[name] = true end
     invalidateBulkSelectionCache()
     cancelConfirmations()
-    state.bulkStatus = ""
-    state.bulkStatusError = false
+    clearStatus("bulk")
   end
   ImGui.SameLine()
   if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
@@ -5611,8 +5626,7 @@ ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
     state.bulkSelected = {}
     invalidateBulkSelectionCache()
     cancelConfirmations()
-    state.bulkStatus = ""
-    state.bulkStatusError = false
+    clearStatus("bulk")
   end
   if #selectedBulkNames == 0 then ImGui.EndDisabled() end
   ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
@@ -5626,8 +5640,7 @@ ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
         state.bulkSelected[name] = selectedForBulk and nil or true
         invalidateBulkSelectionCache()
         cancelConfirmations()
-        state.bulkStatus = ""
-        state.bulkStatusError = false
+        clearStatus("bulk")
       end
     end
   end
@@ -5929,10 +5942,8 @@ draw = function()
           cancelConfirmations()
           state.renameName = ""
           resetLoadState()
-          state.renameStatus = ""
-          state.renameStatusError = false
-          state.deleteStatus = ""
-          state.deleteStatusError = false
+          clearStatus("rename")
+          clearStatus("delete")
           refreshPreflight()
         end
       end

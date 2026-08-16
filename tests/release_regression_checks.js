@@ -41,6 +41,8 @@ requireText("readPresetFile(path, metadataOnly)",
   "Preset files no longer support lightweight startup records.");
 requireText("state.hydratePreset",
   "Lightweight presets can no longer be loaded fully on demand.");
+requireText("hydrateNamedPreset",
+  "Named preset hydration is no longer shared by preset actions.");
 requireText('type(previousPresets[inventoryName]) == "table"',
   "Startup no longer reuses lightweight records for known presets.");
 requireText('preset = readPresetFile(path .. "/" .. filename, true)',
@@ -63,8 +65,20 @@ rejectText("readBoundedFile(filename, MAX_FOLDER_BUNDLE_BYTES)",
   "Shared-folder import reads the complete bundle into memory again.");
 requireText("state.ensureTrashViewCache()",
   "The Trash panel no longer uses its cached sorted view.");
+requireText("invalidatePresetAndTrashCaches",
+  "Preset and Trash cache invalidation is no longer consolidated.");
 requireText("state.hydratePreset(preset, presetPath(name))",
   "Folder duplication no longer loads lightweight source presets before checking copies.");
+requireText("readVerifiedPresetCopy",
+  "Copied presets no longer share full read-back verification.");
+requireText("cleanupFailureMessage",
+  "Partial-copy cleanup no longer shares its result handling.");
+requireText("clearStatus(section)",
+  "Repeated panel status resets are no longer consolidated.");
+rejectText('invalidateViewCache()\n  state.invalidateTrashViewCache()',
+  "Preset and Trash caches are invalidated separately again.");
+rejectText('state.bulkStatus = ""\n    state.bulkStatusError = false',
+  "Bulk panel status resets are duplicated again.");
 requireText("local _, refreshed, changes = refreshPresets(\"external\")",
   "Refresh no longer reuses the scan's change counts.");
 requireText("PREFLIGHT_REFRESH_INTERVAL",
