@@ -53,9 +53,11 @@ requireText('state.logLoadOnce("apply-not-confirmed:" .. pending.trackingKey',
 requireText("helpers.checkPendingChange(system, scan)",
   "Loading no longer confirms changes against a fresh option list.");
 requireText("helpers.pollPendingOption(options)",
-  "Pending ordinary changes no longer use targeted checks between full scans.");
+  "Confirmed dependency changes no longer use small stability checks.");
+requireMatch(/not pending or not pending\.longSettle[\s\S]*not pending\.confirmedAt then\s+return "full"/,
+  "Targeted polling is no longer limited to confirmed dependency changes.");
 requireText("state.loadTargetFallbacks = state.loadTargetFallbacks + 1",
-  "A failed targeted identity check no longer disables unsafe reuse.");
+  "A failed dependency identity check no longer disables targeted polling.");
 requireText("or (pendingOption and pendingOption.label == label)",
   "A pending option can disappear from the reduced live scan.");
 requireText('log(("DEPENDENCY REMAP |',
@@ -66,8 +68,10 @@ requireText("current == remap.target",
   "Cleanup can preserve a remapped option without confirming its applied value.");
 requireText("scan.structureChanged",
   "Cleanup can run immediately after an unverified structure change.");
-requireText("state.loadElapsed - pending.attemptStartedAt",
-  "Option settling is no longer based on elapsed time.");
+requireMatch(/pending\.longSettle and sinceAttempt < AUTO_LOAD_TIMING\.dependencyTimeout/,
+  "Dependency settling is no longer based on elapsed time.");
+rejectText("settleTimeout",
+  "Ordinary options wait for the removed settling timeout.");
 requireText("relevantLabels[label]",
   "Every polling pass can inspect every option's full choice structure again.");
 requireText('state.loadPhase = "cleanup"',
@@ -76,16 +80,22 @@ requireText("post-apply leftover cleanup",
   "Leftover cleanup can run before the preset is applied again.");
 requireText('state.loadPhase = "verify"',
   "Preset verification no longer follows cleanup changes.");
-requireText("state.loadMetadataCache",
-  "Validated stable option metadata reuse is missing.");
-requireText("state.loadMetadataDisabled = true",
-  "Unsafe metadata reuse can no longer fall back to full scanning.");
-requireText("GetUnitedOptions calls=%d time=%.6fs",
-  "Loader retrieval timing is missing from the Activity Log.");
-requireText("currIndex/dependency wait=%.3fs",
-  "Loader settling timing is missing from the Activity Log.");
-requireText("targeted polls=%d time=%.6fs fallbacks=%d",
-  "Targeted polling timing is missing from the Activity Log.");
+rejectText("state.loadMetadataCache",
+  "The removed loader metadata cache returned.");
+rejectText("state.loadMetadataDisabled",
+  "The removed loader metadata-cache switch returned.");
+rejectText("loadLastStructureDescriptors",
+  "Full option-structure descriptors are being retained again.");
+rejectText("Structure difference |",
+  "Verbose full structure-difference logging returned.");
+requireText("state.loadTargetPollingDisabled = true",
+  "Unsafe targeted dependency polling can no longer fall back to full scanning.");
+requireText("option checks=%d time=%.6fs",
+  "Loader option-check timing is missing from the Activity Log.");
+requireText("waiting=%.3fs",
+  "Loader waiting time is missing from the Activity Log.");
+requireText("dependency polls=%d time=%.6fs fallbacks=%d",
+  "Dependency polling timing is missing from the Activity Log.");
 requireText('state.logLoadOnce("cleanup-not-confirmed:" .. pending.trackingKey',
   "Cleanup no longer reports an option whose cleared value cannot be confirmed.");
 requireText("state.logLoadOnce",

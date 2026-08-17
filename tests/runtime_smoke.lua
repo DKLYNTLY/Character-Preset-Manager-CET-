@@ -136,12 +136,8 @@ assert(extraAttempts == 0,
 assert(state.loadNeedsContinue == false, "the loader did not finish")
 assert(state.loadStructureChanges > 0,
   "the dependent option disappearance was not measured")
-assert(state.loadMetadataDisabled == false,
-  "a measured option-structure change disabled safe metadata for the whole load")
-for _, descriptor in ipairs(state.loadLastStructureDescriptors) do
-  assert(descriptor.option == nil,
-    "structure measurement retained a live option object")
-end
+assert(state.loadLastStructureSignature ~= nil,
+  "the compact option-structure signature was not retained")
 
 resetLoadState()
 saved.currIndex = 0
@@ -172,14 +168,6 @@ assert(extraAttempts == 1,
 assert(saved.currIndex == 2,
   "preset verification did not preserve the saved option")
 assert(state.loadNeedsContinue == false, "the timed cleanup fixture did not finish")
-assert(state.loadMetadataHits > 0,
-  "stable option metadata was never reused")
-assert(state.loadMetadataDisabled == false,
-  "stable option metadata was disabled without a structural difference")
-for _, descriptor in ipairs(state.loadMetadataCache.descriptors) do
-  assert(descriptor.option == nil,
-    "the metadata cache retained a live option object")
-end
 
 resetLoadState()
 saved.currIndex = 0
@@ -215,10 +203,10 @@ assert(state.loadStatus:find("could not be confirmed", 1, true) ~= nil,
   "the final status claimed an unconfirmed option was fully applied")
 assert(state.loadNeedsContinue == false,
   "the stale currIndex fixture did not finish")
-assert(state.loadTargetPolls > 0,
-  "ordinary pending changes were not checked with targeted polling")
-assert(staleFullScans < state.loadOptionCalls,
-  "every targeted polling pass still performed a full option scan")
+assert(state.loadTargetPolls == 0,
+  "an ordinary option used dependency-only targeted polling")
+assert(staleFullScans == state.loadOptionCalls,
+  "an ordinary option check skipped the fresh full scan")
 helpers.scanLoadOptions = originalScanLoadOptions
 keepSavedStale = false
 saved.info.name = "hairstyle"
@@ -256,8 +244,8 @@ for _ = 1, 100 do
 end
 assert(movedOrdinary.currIndex == 1 and state.loadNeedsContinue == false,
   "the full-scan fallback did not finish a moved ordinary option")
-assert(state.loadTargetFallbacks == 1 and state.loadMetadataDisabled == true,
-  "a targeted position mismatch did not disable metadata reuse")
+assert(state.loadTargetFallbacks == 0 and state.loadTargetPollingDisabled == false,
+  "an ordinary position change entered dependency-only targeted polling")
 applyHook = nil
 customOptions = nil
 
@@ -498,8 +486,8 @@ assert(newHairColor.currIndex == 1,
   "full scanning produced a different dependency replacement result")
 assert(state.loadNeedsContinue == false and state.loadStalled == false,
   "the full-scan dependency fixture did not finish")
-assert(state.loadMetadataDisabled == true,
-  "Force Full Load did not keep metadata reuse disabled")
+assert(state.loadTargetPolls == 0,
+  "Force Full Load did not keep dependency polling disabled")
 state.forceFullLoad = false
 applyHook = nil
 customOptions = nil

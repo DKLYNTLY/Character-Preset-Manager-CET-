@@ -104,14 +104,14 @@ used. See the README and in-game Help for current instructions.
 - Replaces rapid three-pass applications with elapsed-time deadlines and fresh
   option lists. If the game keeps returning an old `currIndex`, the change is
   reported as unconfirmed and is not applied repeatedly.
-- Polls ordinary changes quickly and gives hairstyles and other option-list
-  rebuilds a longer stable period.
-- Reuses only validated text identities, editor positions, choice shapes, and
-  saved-choice matches. It never keeps game option objects between passes and
-  rebuilds stable metadata after an ordinary structure change. A failed identity
-  check or Force Full Load use returns to full scanning for the rest of the load.
-- Adds Activity Log measurements for option retrieval, scanning, choice matching,
-  applied calls, live-value waiting, option-structure changes, and metadata reuse.
+- Advances an ordinary option on the next normal check instead of targeted
+  polling or a separate 0.20-second settling period. Hairstyles and other
+  option-list rebuilds still receive a longer stable period.
+- Removes the loader's general option-metadata cache. It keeps fresh game option
+  lists, compact dependency state, and saved-choice matches that are checked
+  against the current option before reuse.
+- Adds Activity Log measurements for option checks, full scanning, dependency
+  checks, choice matching, applied calls, waiting, and dependency changes.
 - Limits full choice-structure inspection to preset-related options. The first
   instrumented game test spent 65.1 of 70.2 seconds scanning all 1,496 exposed
   options, which caused continuous lag.
@@ -120,10 +120,9 @@ used. See the README and in-game Help for current instructions.
   applied message.
 - Treats a hidden dependent option saved as zero as already clear. It no longer
   appears as missing in the option check or stops an otherwise complete load.
-- Keeps retrieving a fresh game option list but checks only the pending ordinary
-  option between full safety passes. It returns to a full pass before applying
-  another option and disables reuse if the pending option no longer matches its
-  position, name, occurrence, slot, active state, or choice structure.
+- Keeps retrieving a fresh game option list after each applied change. Small
+  targeted checks are reserved for a confirmed dependency wait and fall back to
+  normal full checks if the option no longer matches its current identity.
 - Avoids building temporary loader records for unrelated options during normal
   application and verification. Full option exposure remains available for
   cleanup and Force Full Load.
@@ -135,6 +134,8 @@ used. See the README and in-game Help for current instructions.
 - Uses targeted checks between the first and final full dependency-stability
   checks. This reduces the remaining full-scan stutters without allowing another
   option to start before the final structure check.
+- Replaces full option-structure difference reports with one short dependency
+  message when the editor adds, removes, disables, or rearranges options.
 - Fixes formats below 7 losing a hair color after Force Full Load applied it.
   Cleanup now revalidates and protects the exact forced selector instead of
   resetting it to zero and then incorrectly reporting the preset as complete.

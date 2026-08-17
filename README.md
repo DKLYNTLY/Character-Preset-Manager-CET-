@@ -113,16 +113,13 @@ The compatibility summary refreshes while the mod and character editor are open.
 It updates after the editor changes without making you select a different preset
 and switch back. Other selected-preset details update at the same time.
 
-Automatic loading gets a fresh option list after every change. It reuses only
-checked names, positions, and saved-choice matches while the editor structure
-remains the same. If a change adds, removes, disables, or rearranges an option,
-the mod discards and rebuilds that information. It also checks quickly after
-ordinary changes and waits longer for hairstyles and other changes that rebuild
-related options. While an ordinary change is still pending, it checks only that
-option until the value changes or the time limit is reached. A full check always
-runs before the next option is applied. After the first full dependency check,
-the stable waiting period also uses the smaller check and finishes with another
-full check.
+Automatic loading gets a fresh option list after every applied change. An
+ordinary option advances on the next normal check instead of waiting through a
+separate settling period. If a change adds, removes, disables, or rearranges an
+option, the mod waits longer for the editor to settle. Small targeted checks are
+used only after a full check has confirmed a dependency-changing option, and a
+final full check always runs before another option is applied. Saved-choice
+matches are reused only after the current option still proves that they match.
 
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
 
@@ -409,8 +406,9 @@ and I do not plan to release it.
 - Strengthens file checks, backup recovery, and startup file limits.
 - Keeps lightweight preset and Trash records at startup, then reads a preset in
   full only when it is selected or used.
-- Makes automatic loading reuse safe work between checks and wait less between
-  stable options.
+- Removes the loader's general option-metadata cache. It retains only compact
+  dependency state and saved-choice matches that are checked against the current
+  option before reuse.
 - Applies saved options before clearing remaining appearance choices, then checks
   the preset again after every cleanup change.
 - Waits for each live option value to change or for a dependent option to
@@ -419,20 +417,20 @@ and I do not plan to release it.
   later claiming that every option was confirmed.
 - Limits full choice-list checks to options used by the preset. This avoids the
   continuous slowdown found during the first instrumented 3.0.4 game test.
-- Checks only the pending ordinary option between full safety checks, and avoids
-  building temporary loader records for unrelated options. A full check still
-  runs before another option is applied.
-- Uses the same smaller checks during the stable part of a hairstyle dependency
-  wait, with a full structure check at both ends.
+- Advances ordinary options on the next normal check instead of targeted polling
+  or a separate 0.20-second settling period.
+- Uses smaller checks only during the confirmed stable part of a hairstyle or
+  other dependency wait, with a full structure check at both ends.
 - Matches a renamed hairstyle-dependent option automatically only when its
   editor slot and unique saved choice both identify the replacement.
 - Keeps an older preset's Force Full Load match through cleanup only while the
   exact selector and applied number remain valid.
 - Treats a hidden dependent option saved as zero as already clear instead of
   reporting it as missing.
-- Records option retrieval, full scanning, targeted checks, choice matching,
-  update waiting, structure changes, and safe metadata reuse in the Activity Log
-  for loader testing.
+- Records option checks, full scanning, dependency checks, choice matching,
+  update waiting, and dependency changes in the Activity Log for loader testing.
+- Replaces full option-structure difference reports with a short dependency
+  message when the editor's option list changes.
 - Refreshes the selected preset's compatibility text while the editor changes.
 - Streams shared-folder export and import one preset at a time.
 - Preserves the last good Trash list when the Trash folder cannot be read.

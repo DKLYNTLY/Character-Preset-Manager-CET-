@@ -28,7 +28,6 @@ local activitySequence = 0
 local AUTO_LOAD_TIMING = {
   interval = 0.10,
   pollInterval = 0.05,
-  settleTimeout = 0.20,
   dependencyTimeout = 1.25,
   dependencyStableTime = 0.20,
 }
@@ -128,9 +127,6 @@ local state = {
   loadCleanupSkipped = {},
   loadLoggedWarnings = {},
   loadOptionIdentityCache = {},
-  loadMetadataCache = nil,
-  loadMetadataHits = 0,
-  loadMetadataMisses = 0,
   loadTargetPolls = 0,
   loadTargetPollSeconds = 0,
   loadTargetFallbacks = 0,
@@ -146,8 +142,7 @@ local state = {
   loadOptionCalls = 0,
   loadStructureChanges = 0,
   loadLastStructureSignature = nil,
-  loadLastStructureDescriptors = nil,
-  loadMetadataDisabled = false,
+  loadTargetPollingDisabled = false,
   loadReturnToCleanup = false,
   loadDependencyKeys = {},
   loadDependencyRemaps = {},
@@ -313,9 +308,6 @@ local function resetLoadState()
   state.loadCleanupSkipped = {}
   state.loadLoggedWarnings = {}
   state.loadOptionIdentityCache = {}
-  state.loadMetadataCache = nil
-  state.loadMetadataHits = 0
-  state.loadMetadataMisses = 0
   state.loadTargetPolls = 0
   state.loadTargetPollSeconds = 0
   state.loadTargetFallbacks = 0
@@ -331,8 +323,7 @@ local function resetLoadState()
   state.loadOptionCalls = 0
   state.loadStructureChanges = 0
   state.loadLastStructureSignature = nil
-  state.loadLastStructureDescriptors = nil
-  state.loadMetadataDisabled = false
+  state.loadTargetPollingDisabled = false
   state.loadReturnToCleanup = false
   state.loadDependencyKeys = {}
   state.loadDependencyRemaps = {}
@@ -2961,49 +2952,6 @@ helpers.loadChoiceShape = function(option)
   return table.concat(parts, ",")
 end
 
-helpers.loadStructureDelta = function(before, after)
-  local function fingerprint(descriptor)
-    return table.concat({
-      tostring(descriptor.label or ""), tostring(descriptor.occurrence or 0),
-      tostring(descriptor.slot or ""), tostring(descriptor.slotOccurrence or 0),
-      descriptor.editable and "1" or "0", descriptor.active and "1" or "0",
-    }, "\29")
-  end
-  local function identity(descriptor)
-    return ("LocKey=%s occurrence=%s slot=%s active=%s editable=%s choices=%s")
-      :format(tostring(descriptor.label or "unknown"),
-        tostring(descriptor.occurrence or "none"), tostring(descriptor.slot or "none"),
-        tostring(descriptor.active), tostring(descriptor.editable),
-        tostring(descriptor.choiceShape or "unknown"))
-  end
-  local beforeCounts, afterCounts = {}, {}
-  for _, descriptor in ipairs(before or {}) do
-    local key = fingerprint(descriptor)
-    beforeCounts[key] = (beforeCounts[key] or 0) + 1
-  end
-  for _, descriptor in ipairs(after or {}) do
-    local key = fingerprint(descriptor)
-    afterCounts[key] = (afterCounts[key] or 0) + 1
-  end
-  local removed, added = {}, {}
-  for _, descriptor in ipairs(before or {}) do
-    local key = fingerprint(descriptor)
-    if (beforeCounts[key] or 0) > (afterCounts[key] or 0) then
-      if #removed < 12 then removed[#removed + 1] = identity(descriptor) end
-      beforeCounts[key] = beforeCounts[key] - 1
-    end
-  end
-  for _, descriptor in ipairs(after or {}) do
-    local key = fingerprint(descriptor)
-    if (afterCounts[key] or 0) > (beforeCounts[key] or 0) then
-      if #added < 12 then added[#added + 1] = identity(descriptor) end
-      afterCounts[key] = afterCounts[key] - 1
-    end
-  end
-  return #removed > 0 and table.concat(removed, " || ") or "none",
-    #added > 0 and table.concat(added, " || ") or "none"
-end
-
 helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
   local started = helpers.loadClock()
   relevantLabels = relevantLabels or {}
@@ -3016,12 +2964,9 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
     activeCounts = {},
     exposedBySlot = {},
     activeSlotCounts = {},
-    descriptors = {},
     structureChanged = false,
   }
   local occurrences, activeSlotCounts, signatureParts = {}, result.activeSlotCounts, {}
-  local cached = not state.loadMetadataDisabled and state.loadMetadataCache or nil
-  local cacheValid = cached ~= nil and type(cached.descriptors) == "table"
   local fullExposure = state.forceFullLoad or state.loadPhase == "cleanup"
   for position, option in ipairs(options) do
     local label = optionKey(option)
@@ -3043,28 +2988,6 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
     local choiceShape = label and (relevantLabels[label]
       or (pending and pending.label == label))
         and helpers.loadChoiceShape(option) or "not-checked"
-    local cachedDescriptor = cacheValid and cached.descriptors[position] or nil
-    local descriptorMatches = cachedDescriptor
-      and cachedDescriptor.label == label
-      and cachedDescriptor.key == key
-      and cachedDescriptor.occurrence == occurrence
-      and cachedDescriptor.slot == slot
-      and cachedDescriptor.slotOccurrence == slotOccurrence
-      and cachedDescriptor.editable == editable
-      and cachedDescriptor.active == active
-      and cachedDescriptor.choiceShape == choiceShape
-    local descriptor = descriptorMatches and cachedDescriptor or {
-        label = label,
-        key = key,
-        occurrence = occurrence,
-        slot = slot,
-        slotOccurrence = slotOccurrence,
-        editable = editable,
-        active = active,
-        choiceShape = choiceShape,
-      }
-    if not descriptorMatches then cacheValid = false end
-    result.descriptors[position] = descriptor
     local pendingOption = state.loadPendingChange
     local includeOption = key and (fullExposure or relevantLabels[label]
       or (slot and relevantSlots[slot])
@@ -3093,54 +3016,33 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
       tostring(slotOccurrence or 0), editable and "1" or "0", active and "1" or "0",
     }, "\29")
   end
-  if cached and cached.descriptors[#options + 1] then cacheValid = false end
   result.signature = table.concat(signatureParts, "\30")
   local previousSignature = state.loadLastStructureSignature
-  local previousDescriptors = state.loadLastStructureDescriptors
   if previousSignature and previousSignature ~= result.signature then
     result.structureChanged = true
     state.loadStructureChanges = state.loadStructureChanges + 1
-    state.loadMetadataCache = nil
     state.loadResolvedChoiceIndexes = {}
     state.loadOptionIdentityCache = {}
     state.loadDependencyRemaps = {}
-    local removed, added = helpers.loadStructureDelta(
-      previousDescriptors, result.descriptors)
     local pending = state.loadPendingChange
     if pending then
       pending.longSettle = true
       state.loadDependencyKeys[pending.trackingKey] = true
-      log(("[MEASURE] Option structure changed after %s '%s': exposed %d options.")
-        :format(pending.kind, pending.identity, #options), "info")
+      log(("DEPENDENCY | The editor option list changed after %s '%s'; waiting for it to settle.")
+        :format(pending.kind, pending.identity), "info")
     else
-      log(("[MEASURE] Option structure changed between load checks: exposed %d options; stable metadata was rebuilt.")
+      log(("DEPENDENCY | The editor option list changed between checks; %d options are now exposed.")
         :format(#options), "info")
     end
-    log(("[MEASURE] Structure difference | removed: %s | added: %s")
-      :format(removed, added), "info")
   end
   state.loadLastStructureSignature = result.signature
-  state.loadLastStructureDescriptors = result.descriptors
-  if not state.loadMetadataDisabled then
-    if cacheValid and cached.signature == result.signature then
-      state.loadMetadataHits = state.loadMetadataHits + 1
-    else
-      state.loadMetadataMisses = state.loadMetadataMisses + 1
-      state.loadMetadataCache = {
-        signature = result.signature,
-        descriptors = result.descriptors,
-      }
-    end
-  else
-    state.loadMetadataMisses = state.loadMetadataMisses + 1
-  end
   state.loadScanSeconds = state.loadScanSeconds + math.max(0, helpers.loadClock() - started)
   return result
 end
 
 helpers.resolveLoadChoice = function(option, choice, cachedIndex)
   local started = helpers.loadClock()
-  local resolved = not state.loadMetadataDisabled and cachedIndex or nil
+  local resolved = cachedIndex
   if resolved == nil or not optionChoiceMatchesIndex(option, choice, resolved) then
     resolved = optionChoiceIndex(option, choice)
   end
@@ -3161,9 +3063,9 @@ end
 
 helpers.pollPendingOption = function(options)
   local pending = state.loadPendingChange
-  if not pending or state.forceFullLoad or state.loadMetadataDisabled
-      or not pending.position or pending.confirmedDisappeared
-      or (pending.longSettle and not pending.confirmedAt) then
+  if not pending or not pending.longSettle or state.forceFullLoad
+      or state.loadTargetPollingDisabled or not pending.position
+      or pending.confirmedDisappeared or not pending.confirmedAt then
     return "full"
   end
   local started = helpers.loadClock()
@@ -3189,30 +3091,18 @@ helpers.pollPendingOption = function(options)
     + math.max(0, helpers.loadClock() - started)
   if not valid then
     state.loadTargetFallbacks = state.loadTargetFallbacks + 1
-    state.loadMetadataCache = nil
-    state.loadMetadataDisabled = true
+    state.loadTargetPollingDisabled = true
     state.loadResolvedChoiceIndexes = {}
     state.loadOptionIdentityCache = {}
     state.loadDependencyRemaps = {}
-    log(("[CACHE] The pending option no longer matches its saved position; full scanning will be used for the rest of this load: %s")
+    log(("[FALLBACK] A dependency no longer matches its saved position; normal full checks will be used for the rest of this load: %s")
       :format(pending.identity), "warn")
     return "fallback"
   end
   local current = tonumber(candidate.currIndex) or 0
-  if pending.confirmedAt then
-    if current ~= pending.target
-        or state.loadElapsed - pending.confirmedAt
-          >= AUTO_LOAD_TIMING.dependencyStableTime then
-      return "full"
-    end
-    state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
-    state.loadPendingElapsed = math.max(0, state.loadElapsed - pending.startedAt)
-    return "waiting"
-  end
-  local timeout = pending.longSettle and AUTO_LOAD_TIMING.dependencyTimeout
-    or AUTO_LOAD_TIMING.settleTimeout
-  if current == pending.target
-      or state.loadElapsed - pending.attemptStartedAt >= timeout then
+  if current ~= pending.target
+      or state.loadElapsed - pending.confirmedAt
+        >= AUTO_LOAD_TIMING.dependencyStableTime then
     return "full"
   end
   state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
@@ -3254,7 +3144,7 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
     longSettle = longSettle,
   }
   state.loadPendingElapsed = 0
-  state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+  state.loadNextInterval = AUTO_LOAD_TIMING.interval
   state.loadNeedsContinue = true
   state.previousUnresolvedSignature = nil
   state.unresolvedRepeatCount = 0
@@ -3278,23 +3168,21 @@ helpers.checkPendingChange = function(system, scan)
       or candidate.occurrence ~= pending.occurrence
       or candidate.slot ~= pending.slot) then
     candidate = nil
-    state.loadMetadataCache = nil
-    state.loadMetadataDisabled = true
+    state.loadTargetPollingDisabled = true
     state.loadResolvedChoiceIndexes = {}
     state.loadOptionIdentityCache = {}
     state.loadDependencyRemaps = {}
-    log(("[CACHE] Live option identity changed while waiting for %s; full scanning will be used for the rest of this load: %s")
+    log(("[FALLBACK] Live option identity changed while waiting for %s; normal full checks will be used for the rest of this load: %s")
       :format(pending.kind, pending.identity), "warn")
   elseif candidate and candidate.choiceShape ~= pending.choiceShape then
     if not pending.choiceStructureChanged then
-      state.loadMetadataCache = nil
-      state.loadMetadataDisabled = true
+      state.loadTargetPollingDisabled = true
       state.loadResolvedChoiceIndexes = {}
       state.loadOptionIdentityCache = {}
       state.loadDependencyRemaps = {}
       pending.longSettle = true
       pending.choiceStructureChanged = true
-      log(("[CACHE] Choice structure changed while waiting for %s; the result will require manual confirmation: %s")
+      log(("[FALLBACK] Choice structure changed while waiting for %s; the result will require manual confirmation: %s")
         :format(pending.kind, pending.identity), "warn")
     end
   end
@@ -3344,11 +3232,9 @@ helpers.checkPendingChange = function(system, scan)
         waited, tostring(structureChanged)), "info")
     return "settled"
   end
-  local timeout = pending.longSettle and AUTO_LOAD_TIMING.dependencyTimeout
-    or AUTO_LOAD_TIMING.settleTimeout
   local sinceAttempt = state.loadElapsed - pending.attemptStartedAt
-  if sinceAttempt < timeout then
-    state.loadNextInterval = AUTO_LOAD_TIMING.pollInterval
+  if pending.longSettle and sinceAttempt < AUTO_LOAD_TIMING.dependencyTimeout then
+    state.loadNextInterval = AUTO_LOAD_TIMING.interval
     state.loadPendingElapsed = math.max(0, state.loadElapsed - pending.startedAt)
     return "waiting"
   end
@@ -3376,13 +3262,12 @@ helpers.checkPendingChange = function(system, scan)
 end
 
 helpers.logLoadMeasurements = function(result)
-  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | GetUnitedOptions calls=%d time=%.6fs | scans=%.6fs | targeted polls=%d time=%.6fs fallbacks=%d | choice matching=%.6fs | ApplyChangeToOption=%.6fs | currIndex/dependency wait=%.3fs | structure changes=%d | metadata hits=%d misses=%d disabled=%s")
+  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | option checks=%d time=%.6fs | full scans=%.6fs | dependency polls=%d time=%.6fs fallbacks=%d | choice matching=%.6fs | applied calls=%.6fs | waiting=%.3fs | dependency changes=%d")
     :format(tostring(result), tostring(state.loadPresetName or state.selected),
       state.loadElapsed, state.loadOptionCalls, state.loadOptionsSeconds,
       state.loadScanSeconds, state.loadTargetPolls, state.loadTargetPollSeconds,
       state.loadTargetFallbacks, state.loadChoiceSeconds, state.loadApplySeconds,
-      state.loadWaitSeconds, state.loadStructureChanges, state.loadMetadataHits,
-      state.loadMetadataMisses, tostring(state.loadMetadataDisabled)), "info")
+      state.loadWaitSeconds, state.loadStructureChanges), "info")
 end
 
 local function loadPreset()
@@ -3481,14 +3366,6 @@ local function loadPreset()
   local deferred = {}
   local unresolved = {}
   local seen = {}
-  if state.forceFullLoad and not state.loadMetadataDisabled then
-    state.loadMetadataCache = nil
-    state.loadMetadataDisabled = true
-    state.loadResolvedChoiceIndexes = {}
-    state.loadOptionIdentityCache = {}
-    state.loadDependencyRemaps = {}
-    log("[CACHE] Force Full Load fallback disabled metadata reuse for this load.", "info")
-  end
   if helpers.pollPendingOption(options) == "waiting" then return end
   local scan = helpers.scanLoadOptions(options, savedCounts, savedSlotCounts)
   local exposed = scan.exposed
