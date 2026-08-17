@@ -36,6 +36,23 @@
 
 </details>
 
+## See it in action
+
+### Load a complete preset
+
+Character Preset Manager applies the saved appearance for you and waits while
+the game refreshes the editor. This example shows a complete preset changing the
+character's appearance, including body type and other character options.
+
+![A complete character preset loading in Cyberpunk 2077](images/Preset%20Loading.gif)
+
+### Use the full editor from a mirror
+
+Apartment mirrors include the full set of character-creation options, rather
+than the smaller selection normally available during play.
+
+![The full character editor opened from an apartment mirror](images/Mirror.gif)
+
 <details>
 <summary><strong>Requirements and installation</strong></summary>
 
