@@ -12,49 +12,56 @@
 
 <p align="center"><strong>Current version: 3.0.4</strong></p>
 
+<p align="center">
+  <img src="images/Character%20Preset%20Manager%20%28CET%29%20v3.0.3.png" alt="Character Preset Manager feature overview" width="900">
+</p>
+
+## Interface and feature previews
+
+<details open>
+<summary><strong>Character Preset Manager interface</strong></summary>
+
+![Character Preset Manager's CET interface for saving, loading, and organizing presets](images/UI%20v3.0.4.gif)
+
+The main CET interface keeps saving, loading, folders, sharing, Trash, settings,
+and help in one window.
+
+</details>
+
+<details open>
+<summary><strong>Full apartment mirror options</strong></summary>
+
+![The full character editor opened from an apartment mirror](images/Mirror.gif)
+
+Apartment mirrors include the full set of character-creation options, rather
+than the smaller selection normally available during play.
+
+</details>
+
+## Features
+
+- **Complete appearance presets** — Save and load complete character appearances, including visible CC and CCXL options.
+- **Full Appearance Editor anywhere** — Open the full game character editor during normal play from CET or an optional key.
+- **Full apartment mirror options** — Use the complete character-creation option set through normal apartment mirrors.
+- **One-click loading** — Select a preset once while the mod waits for Cyberpunk to refresh the editor.
+- **Cosmetic cleanup** — After applying a preset, clear visible appearance options that were not part of it.
+- **Search and compatibility checks** — Find presets and see whether the current editor has the options they need.
+- **Unlimited nested folders** — Organize presets in folders and folders inside folders, with no set limit.
+- **Preset and folder copies** — Copy one preset or a complete folder group.
+- **Readable format-8 files** — Keep current preset details in a clear text layout while retaining older-format support.
+- **Notes and tags** — Store optional details with current presets.
+- **Recoverable Trash** — Move presets and folders to Trash and restore them later.
+- **Preset sharing** — Share one `.preset` file or a complete folder as a `.cpmfolder` file.
+- **Activity log** — Review actions, loading results, warnings, and errors inside CET.
+
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
 > Anywhere** before using this mod. They change the same character screens and
 > cannot be used with Character Preset Manager. Restart the game after removing
 > either mod.
 
-<details open>
-<summary><strong>What the mod does</strong></summary>
-
-- Saves and loads complete character appearances, including visible CC and CCXL options.
-- Opens the full game character editor during normal play.
-- Gives apartment mirrors the full set of character-creation options.
-- Loads a preset with one click and waits when the editor refreshes.
-- After applying a preset, can clear visible appearance options that are not part of it.
-- Finds presets with search and shows whether the current editor has the needed options.
-- Organizes presets in folders and folders inside folders, with no set limit.
-- Copies presets or complete folder groups.
-- Stores optional notes and tags with new presets.
-- Moves presets and folders to Trash so they can be restored.
-- Shares one preset as a `.preset` file or a complete folder as a `.cpmfolder` file.
-- Shows actions, warnings, and errors in an activity log.
-
-</details>
-
-## See it in action
-
-### Load a complete preset
-
-Character Preset Manager applies the saved appearance for you and waits while
-the game refreshes the editor. This example shows a complete preset changing the
-character's appearance, including body type and other character options.
-
-![A complete character preset loading in Cyberpunk 2077](images/Preset%20Loading.gif)
-
-### Use the full editor from a mirror
-
-Apartment mirrors include the full set of character-creation options, rather
-than the smaller selection normally available during play.
-
-![The full character editor opened from an apartment mirror](images/Mirror.gif)
-
 <details>
-<summary><strong>Requirements and installation</strong></summary>
+<summary><strong>Requirements, installation, and optional keys</strong></summary>
 
 ### Requirements
 
@@ -101,7 +108,7 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.4 does 
 </details>
 
 <details open>
-<summary><strong>Save and load presets</strong></summary>
+<summary><strong>Using Character Preset Manager</strong></summary>
 
 ### Save a preset
 
@@ -114,6 +121,11 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.4 does 
 If that name already exists, confirm **Replace Existing Preset** only when you want to overwrite it.
 
 ### Load a preset
+
+![A complete character preset loading in Cyberpunk 2077](images/Preset%20Loading.gif)
+
+This example shows the complete loading process, including automatic editor
+refreshes and the final appearance.
 
 1. Open one of the supported character screens listed above.
 2. Choose a preset under **Load Preset**.
@@ -183,7 +195,7 @@ easy to inspect without treating its headings as damaged data.
 </details>
 
 <details>
-<summary><strong>Organize presets and folders</strong></summary>
+<summary><strong>Organizing presets and folders</strong></summary>
 
 ### Basic folder use
 
@@ -222,7 +234,7 @@ After you confirm **Remove Folder, Keep Presets**, the selected folder is remove
 </details>
 
 <details>
-<summary><strong>Share and install presets</strong></summary>
+<summary><strong>Sharing and importing</strong></summary>
 
 Preset files and shared folders go here:
 
@@ -280,7 +292,7 @@ After a successful import, **Shared Folder Files** can move the source file to T
 </details>
 
 <details>
-<summary><strong>Trash and restore</strong></summary>
+<summary><strong>Trash and recovery</strong></summary>
 
 - Moving a preset to Trash keeps it available for recovery.
 - Under **Folders**, you can move a folder and everything inside it to Trash.
@@ -298,7 +310,7 @@ After a successful import, **Shared Folder Files** can move the source file to T
 </details>
 
 <details>
-<summary><strong>Compatibility and known problems</strong></summary>
+<summary><strong>Compatibility and known issues</strong></summary>
 
 ### CC and CCXL character-option mods
 
@@ -373,7 +385,7 @@ Folders made inside CET exist only in the mod's folder list. They do not create 
 </details>
 
 <details>
-<summary><strong>Help and common questions</strong></summary>
+<summary><strong>Troubleshooting and FAQ</strong></summary>
 
 ### Activity log
 
