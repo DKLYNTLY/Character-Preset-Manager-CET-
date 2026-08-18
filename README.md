@@ -400,7 +400,14 @@ either of the other two panels. The file is stored here:
 bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
 ```
 
-Each full game launch starts a new log. The old log is saved with its date and time, and the 10 newest old logs are kept. The log includes startup details, preset actions, load results, warnings, errors, inactive options, and missing saved options. Developer information is under **Advanced Technical Details**.
+Each full game launch starts a new log. The old log is saved with its date and
+time, and the 10 newest old logs are kept. The log includes startup details,
+preset actions, load results, warnings, errors, inactive options, and missing
+saved options. Developer information is under **More Technical Details**.
+
+If the game does not confirm a saved change, the log shows the preset's saved
+LocKey, editor slot, choice, and index for format-7 and format-8 presets. Older
+formats did not store the slot and choice, so the exact option may be unknown.
 
 ### Can I use older Character Preset Manager or ACU presets?
 

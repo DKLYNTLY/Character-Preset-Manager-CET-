@@ -2889,6 +2889,20 @@ state.loadOptionIdentity = function(option, key, occurrence)
   return identity
 end
 
+local function savedEntryAuditIdentity(entry)
+  local preset = state.presets[state.loadPresetName or state.selected]
+  local format = tonumber(preset and preset.format) or 4
+  if format < 7 then
+    return (" | preset format=%s | exact saved identity unknown because formats below 7 do not store an editor slot or saved choice")
+      :format(tostring(format))
+  end
+  entry = entry or {}
+  return (" | preset format=%s | saved LocKey='%s' | editor slot='%s' | saved choice='%s' | saved index=%s")
+    :format(tostring(format), tostring(entry.label or "not recorded"),
+      tostring(entry.slot or "not recorded"), tostring(entry.choice or "not recorded"),
+      tostring(entry.index or "not recorded"))
+end
+
 helpers.loadClock = function()
   local ok, value = pcall(os.clock)
   return ok and tonumber(value) or 0
@@ -3075,6 +3089,12 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
   attempts[trackingKey] = (attempts[trackingKey] or 0) + 1
   local longSettle = helpers.loadOptionNeedsLongSettle(exposedOption, trackingKey)
   exposedOption.choiceShape = helpers.loadChoiceShape(exposedOption.option)
+  local identity = state.loadOptionIdentity(
+    exposedOption.option, exposedOption.label, exposedOption.occurrence)
+  if kind == "apply" then
+    identity = identity .. savedEntryAuditIdentity(
+      state.loadSavedEntryByKey and state.loadSavedEntryByKey[trackingKey])
+  end
   state.loadPendingChange = {
     kind = kind,
     trackingKey = trackingKey,
@@ -3086,8 +3106,7 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
     choiceShape = exposedOption.choiceShape,
     target = target,
     previous = current,
-    identity = state.loadOptionIdentity(
-      exposedOption.option, exposedOption.label, exposedOption.occurrence),
+    identity = identity,
     startedAt = state.loadElapsed,
     attemptStartedAt = state.loadElapsed,
     structureSignature = state.loadLastStructureSignature,

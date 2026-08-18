@@ -20,6 +20,10 @@ used. See the README and in-game Help for current instructions.
 - Shows a preset's tags on the same line as its name in the preset list.
 - Uses the same compact **More Technical Details** control in the Activity Log
   as the other optional detail areas.
+- Identifies an unconfirmed format-7 or format-8 option with the preset's saved
+  LocKey, editor slot, choice, and index in the Activity Log. Older presets now
+  clearly explain that they did not store enough details to identify the exact
+  option.
 - Keeps the selected preset's folder and its parent folders open after a search
   is cleared.
 - Adds **Copy File Path** under **Rename & Copy** for the selected preset.
