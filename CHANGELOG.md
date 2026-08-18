@@ -23,6 +23,8 @@ used. See the README and in-game Help for current instructions.
 - Fixes the CET window failing to register after the module split. Module paths
   now use CET's required slash format, allowing every module and window callback
   to load correctly.
+- Fixes the 3.0.5 menu opening as an empty window because its version label was
+  unavailable to the interface after the Phase 3 internal reorganization.
 - Adds a **Log** button beside **Settings** and **Help**, so the Activity Log is
   available without scrolling through Help.
 - Makes Settings, Help, and the Activity Log close one another when a different
