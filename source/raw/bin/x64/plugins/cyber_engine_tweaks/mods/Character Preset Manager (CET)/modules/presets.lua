@@ -155,16 +155,16 @@ state.hydratePreset = function(preset, path)
 end
 
 function hydrateNamedPreset(name)
-  local preset = name and state.presets[name]
+  local preset = name and state.library.presets[name]
   if not preset then return nil end
   return state.hydratePreset(preset, presetPath(name))
 end
 
 state.invalidatePreflight = function()
-  state.preflight = nil
-  state.preflightDirty = true
-  state.preflightPresetName = nil
-  state.preflightTimer = 0
+  state.load.preflight = nil
+  state.load.preflightDirty = true
+  state.load.preflightPresetName = nil
+  state.load.preflightTimer = 0
 end
 
 function writePresetContents(path, preset)
@@ -221,8 +221,8 @@ writeConfig = function()
   local result = atomicReplace(CONFIG_FILE, function(temporary)
     return writeFileSafely(temporary, "wb", function(file)
       return file:write(
-        "discoveryReminder=" .. tostring(not state.discoveryNoticeIgnored) .. "\n" ..
-        "presetSort=" .. (state.sortMode == "modified" and "modified" or "name") .. "\n"
+        "discoveryReminder=" .. tostring(not state.ui.discoveryNoticeIgnored) .. "\n" ..
+        "presetSort=" .. (state.library.sortMode == "modified" and "modified" or "name") .. "\n"
       ) ~= nil and file:flush() ~= nil
     end)
   end, "config")
@@ -323,7 +323,7 @@ end
 
 function findExistingFolderName(name, excludeName)
   local lowered = name:lower()
-  for existing in pairs(state.folders) do
+  for existing in pairs(state.library.folders) do
     if existing:lower() == lowered and existing ~= excludeName then return existing end
   end
   return nil
@@ -347,24 +347,24 @@ end
 function savePreset(confirmOverwrite)
   helpers.auditSection("CREATE PRESET")
   log(("[PRESET] Create requested: enteredName='%s' overwriteConfirmed=%s")
-    :format(tostring(state.newName), tostring(confirmOverwrite == true)), "info")
+    :format(tostring(state.library.newName), tostring(confirmOverwrite == true)), "info")
   local _, options, optionsError = getOptions()
   if not options then
     setStatus("create", "Open the character creator, a mirror, or a ripperdoc.", true)
     log("[create] " .. tostring(optionsError), "warn")
     return
   end
-  local leafName, nameError = validatedPresetName(state.newName)
+  local leafName, nameError = validatedPresetName(state.library.newName)
   if not leafName then setStatus("create", nameError, true); return end
-  local name = joinFolder(state.selectedFolder, leafName)
-  local armedOverwriteName = state.pendingOverwriteName
-  local armedOverwriteFingerprint = state.pendingOverwriteFingerprint
+  local name = joinFolder(state.library.selectedFolder, leafName)
+  local armedOverwriteName = state.library.pendingOverwriteName
+  local armedOverwriteFingerprint = state.library.pendingOverwriteFingerprint
   cancelConfirmations()
   resetLoadState()
 
   local collision = findPresetCollision(name)
   if collision and collision ~= name then
-    state.pendingOverwriteName = nil
+    state.library.pendingOverwriteName = nil
     setStatus("create", ("\"%s\" conflicts with \"%s\" because Windows treats them as the same name. Enter another name.")
       :format(name, collision), true)
     return
@@ -378,8 +378,8 @@ function savePreset(confirmOverwrite)
     if not confirmOverwrite
         or armedOverwriteName ~= name
         or armedOverwriteFingerprint ~= currentFingerprint then
-      state.pendingOverwriteName = name
-      state.pendingOverwriteFingerprint = currentFingerprint
+      state.library.pendingOverwriteName = name
+      state.library.pendingOverwriteFingerprint = currentFingerprint
       local message = confirmOverwrite and armedOverwriteName == name
         and ("\"%s\" changed after confirmation. Review it and select Confirm Overwrite again.")
           :format(name)
@@ -389,8 +389,8 @@ function savePreset(confirmOverwrite)
       return
     end
   end
-  state.pendingOverwriteName = nil
-  state.pendingOverwriteFingerprint = nil
+  state.library.pendingOverwriteName = nil
+  state.library.pendingOverwriteFingerprint = nil
 
   local entries = {}
   local savedOccurrences = {}
@@ -452,7 +452,7 @@ function savePreset(confirmOverwrite)
     return
   end
 
-  local previousPreset = state.presets[name]
+  local previousPreset = state.library.presets[name]
   if previousPreset and not hydrateNamedPreset(name) then
     setStatus("create", "The existing preset could not be read safely before replacement.", true)
     return
@@ -479,32 +479,32 @@ function savePreset(confirmOverwrite)
     setStatus("create", "Could not write " .. storagePath .. ".", true)
     return
   end
-  state.presets[name] = newPreset
-  if not writeCatalog(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) then
+  state.library.presets[name] = newPreset
+  if not writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders) then
     local rolledBack = true
     if previousPreset then
       rolledBack = writePresetPath(storagePath, previousPreset)
-      state.presets[name] = previousPreset
+      state.library.presets[name] = previousPreset
     else
       rolledBack = removeFileList({ storagePath })
-      state.presets[name] = nil
+      state.library.presets[name] = nil
     end
     setStatus("create", rolledBack
       and "The preset was not saved because its folder could not be recorded."
       or "The folder list could not be saved, and the preset file could not be returned to its earlier state.", true)
     return
   end
-  state.selected = name
-  state.presetNotes = newPreset.notes or ""
-  state.presetTags = newPreset.tags or ""
+  state.library.selected = name
+  state.library.presetNotes = newPreset.notes or ""
+  state.library.presetTags = newPreset.tags or ""
   invalidateViewCache()
-  state.renameName = ""
-  state.newName = ""
+  state.library.renameName = ""
+  state.library.newName = ""
   resetLoadState()
   log(("Created preset '%s': format=%d orderedOptions=%d")
     :format(name, CURRENT_PRESET_FORMAT, #entries), "info")
-  if writeInventory(state.presets, state.folders) then
+  if writeInventory(state.library.presets, state.library.folders) then
     setStatus("create", ("Saved \"%s\" with %d options.")
       :format(name, #entries), false, "success")
   else
@@ -515,13 +515,13 @@ end
 
 function renamePreset()
   helpers.auditSection("RENAME PRESET")
-  if not state.selected or not state.presets[state.selected] then
+  if not state.library.selected or not state.library.presets[state.library.selected] then
     setStatus("rename", "Select a preset before renaming it.", true)
     return
   end
-  local newLeafName, nameError = validatedPresetName(state.renameName)
+  local newLeafName, nameError = validatedPresetName(state.library.renameName)
   if not newLeafName then setStatus("rename", nameError, true); return end
-  local old = state.selected
+  local old = state.library.selected
   local newName = joinFolder(parentFolder(old), newLeafName)
   if newName == old then setStatus("rename", "The preset already has this name."); return end
   if newName:lower() == old:lower() then
@@ -533,7 +533,7 @@ function renamePreset()
     setStatus("rename", ("A preset named \"%s\" already exists."):format(collision), true)
     return
   end
-  local preset = state.presets[old]
+  local preset = state.library.presets[old]
   local oldStorage = preset.storage
   local newStorage = joinFolder(parentFolder(oldStorage), newLeafName)
   local oldPath = PRESET_DIR .. "/" .. oldStorage .. ".preset"
@@ -562,21 +562,21 @@ function renamePreset()
     end
     preset.storage = newStorage
   end
-  state.presets[old] = nil
-  state.presets[newName] = preset
-  local persisted = persistVirtualState(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders)
+  state.library.presets[old] = nil
+  state.library.presets[newName] = preset
+  local persisted = persistVirtualState(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders)
   local transactionCompleted = persisted and (not physicalRenameNeeded
     or completeTransaction("rename", { renamePlan }))
   if not transactionCompleted then
-    state.presets[newName] = nil
-    state.presets[old] = preset
+    state.library.presets[newName] = nil
+    state.library.presets[old] = preset
     if physicalRenameNeeded then
       local rolledBack = os.rename(newPath, oldPath) ~= nil
       preset.storage = rolledBack and oldStorage or newStorage
       if not rolledBack then
-        local repaired = writeCatalog(state.presets, state.folders, state.manualFolders,
-          state.ignoredPhysicalFolders)
+        local repaired = writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
+          state.library.ignoredPhysicalFolders)
         setStatus("rename", repaired
           and "The name shown in the mod could not be changed, and the file could not be moved back. The folder list now uses the new file name."
           or "The name shown in the mod could not be changed, the file could not be moved back, and the folder list could not be repaired.", true)
@@ -585,16 +585,16 @@ function renamePreset()
       os.remove(TRANSACTION_FILE)
     end
     if persisted then
-      writeCatalog(state.presets, state.folders, state.manualFolders,
-        state.ignoredPhysicalFolders)
-      writeInventory(state.presets, state.folders)
+      writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
+        state.library.ignoredPhysicalFolders)
+      writeInventory(state.library.presets, state.library.folders)
     end
     setStatus("rename", "The preset could not be renamed because the folder list or recovery record could not be saved.", true)
     return
   end
-  state.selected = newName
+  state.library.selected = newName
   invalidateViewCache()
-  state.renameName = ""
+  state.library.renameName = ""
   cancelConfirmations()
   resetLoadState()
   setStatus("rename", "Renamed \"" .. old .. "\" to \"" .. newName .. "\".",
@@ -606,11 +606,11 @@ end
 function movePresetToSelectedFolder()
   clearStatus("folder")
   helpers.auditSection("MOVE PRESET")
-  if not state.selected or not state.presets[state.selected] then
+  if not state.library.selected or not state.library.presets[state.library.selected] then
     setStatus("folder", "Select a preset before moving it.", true); return
   end
-  local old = state.selected
-  local newName = joinFolder(state.selectedFolder, baseName(old))
+  local old = state.library.selected
+  local newName = joinFolder(state.library.selectedFolder, baseName(old))
   if newName == old then
     setStatus("folder", "The preset is already in the selected folder."); return
   end
@@ -619,32 +619,32 @@ function movePresetToSelectedFolder()
     setStatus("folder",
       ("A preset named \"%s\" already exists there."):format(baseName(collision)), true); return
   end
-  local preset = state.presets[old]
-  state.presets[old] = nil
-  state.presets[newName] = preset
-  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) then
-    state.presets[newName] = nil
-    state.presets[old] = preset
+  local preset = state.library.presets[old]
+  state.library.presets[old] = nil
+  state.library.presets[newName] = preset
+  if not persistVirtualState(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders) then
+    state.library.presets[newName] = nil
+    state.library.presets[old] = preset
     setStatus("folder",
       "The preset could not be moved because the folder list could not be saved.", true); return
   end
-  state.selected = newName
+  state.library.selected = newName
   invalidateViewCache()
   cancelConfirmations()
   resetLoadState()
   setStatus("folder",
     ("Moved \"%s\" to %s."):format(baseName(newName),
-      state.selectedFolder == "" and "All Presets" or state.selectedFolder), false, "success")
+      state.library.selectedFolder == "" and "All Presets" or state.library.selectedFolder), false, "success")
   log(("[PRESET] Virtual move completed: '%s' -> '%s' storage='%s'.")
     :format(old, newName, preset.storage), "complete")
 end
 
 function savePresetMetadata()
-  if not state.selected or not state.presets[state.selected] then
+  if not state.library.selected or not state.library.presets[state.library.selected] then
     setStatus("rename", "Select a preset before saving its details.", true); return
   end
-  local preset = hydrateNamedPreset(state.selected)
+  local preset = hydrateNamedPreset(state.library.selected)
   if not preset then
     setStatus("rename", "The selected preset could not be read safely.", true)
     return
@@ -652,34 +652,34 @@ function savePresetMetadata()
   local previousNotes, previousTags = preset.notes, preset.tags
   local previousModified, previousFormat = preset.modified, preset.format
   local previousSource = preset.source
-  preset.notes = sanitizeMetadata(state.presetNotes, 512)
-  preset.tags = sanitizeMetadata(state.presetTags, 128)
+  preset.notes = sanitizeMetadata(state.library.presetNotes, 512)
+  preset.tags = sanitizeMetadata(state.library.presetTags, 128)
   preset.modified = logTimestamp()
   preset.created = preset.created or preset.modified
   preset.source = MOD_NAME
   preset.format = math.max(CURRENT_PRESET_FORMAT, tonumber(preset.format) or 4)
-  if not writePresetPath(presetPath(state.selected), preset) then
+  if not writePresetPath(presetPath(state.library.selected), preset) then
     preset.notes, preset.tags = previousNotes, previousTags
     preset.modified, preset.format = previousModified, previousFormat
     preset.source = previousSource
     setStatus("rename", "Preset details could not be saved safely.", true)
     return
   end
-  state.presetNotes = preset.notes
-  state.presetTags = preset.tags
+  state.library.presetNotes = preset.notes
+  state.library.presetTags = preset.tags
   invalidateViewCache()
-  local inventorySaved = writeInventory(state.presets, state.folders)
-  setStatus("rename", "Saved details for \"" .. state.selected .. "\"." ..
+  local inventorySaved = writeInventory(state.library.presets, state.library.folders)
+  setStatus("rename", "Saved details for \"" .. state.library.selected .. "\"." ..
     (inventorySaved and "" or " The preset file list could not be updated."),
     false, inventorySaved and "success" or "warning")
 end
 
 function duplicatePreset()
   helpers.auditSection("DUPLICATE PRESET")
-  if not state.selected or not state.presets[state.selected] then
+  if not state.library.selected or not state.library.presets[state.library.selected] then
     setStatus("rename", "Select a preset before duplicating it.", true); return
   end
-  local source = state.selected
+  local source = state.library.selected
   local destination = uniquePresetCopyName(source)
   if not destination then
     setStatus("rename", "Could not find an available name for the duplicate.", true); return
@@ -706,18 +706,18 @@ function duplicatePreset()
       "Duplicate verification failed, and its file could not be removed."), true); return
   end
   duplicate.storage = storage
-  state.presets[destination] = duplicate
-  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) then
-    state.presets[destination] = nil
+  state.library.presets[destination] = duplicate
+  if not persistVirtualState(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders) then
+    state.library.presets[destination] = nil
     setStatus("rename", cleanupFailureMessage({ destinationPath },
       "The copy was removed because the folder list could not be saved.",
       "The folder list could not be saved, and the copied file could not be removed."), true)
     return
   end
-  state.selected = destination
+  state.library.selected = destination
   invalidateViewCache()
-  state.renameName = ""
+  state.library.renameName = ""
   cancelConfirmations()
   resetLoadState()
   setStatus("rename", ("Duplicated \"%s\" as \"%s\"."):format(source, destination),

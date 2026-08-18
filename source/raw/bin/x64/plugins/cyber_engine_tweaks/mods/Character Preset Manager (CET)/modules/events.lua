@@ -22,16 +22,16 @@ events.onInit = function()
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
   local config, configLoaded = readConfig()
-  state.discoveryNoticeIgnored = not config.discoveryReminder
-  state.sortMode = config.presetSort == "modified" and "modified" or "name"
+  state.ui.discoveryNoticeIgnored = not config.discoveryReminder
+  state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
   if not configLoaded then writeConfig() end
-  log(state.discoveryNoticeIgnored
+  log(state.ui.discoveryNoticeIgnored
     and "[UI] Character-customization discovery reminder is disabled by user preference."
     or "[UI] Character-customization discovery reminder is enabled.", "info")
   log(("[CONFIG] Loaded '%s': discoveryReminder=%s presetSort=%s.")
-    :format(CONFIG_FILE, tostring(not state.discoveryNoticeIgnored), state.sortMode), "info")
-  state.initialWindowPlacementPending = not fileExists(WINDOW_POSITION_STATUS_FILE)
-  if state.initialWindowPlacementPending then
+    :format(CONFIG_FILE, tostring(not state.ui.discoveryNoticeIgnored), state.library.sortMode), "info")
+  state.ui.initialWindowPlacementPending = not fileExists(WINDOW_POSITION_STATUS_FILE)
+  if state.ui.initialWindowPlacementPending then
     log(("[UI] Window position status '%s' not found; right-side default will be applied once.")
       :format(WINDOW_POSITION_STATUS_FILE), "info")
   else
@@ -44,19 +44,19 @@ events.onInit = function()
     "OnInitialize",
     function(menu)
       temporarilyDisableWardrobe()
-      if state.loadPresetName and (state.loadNeedsContinue or state.loadPendingChange) then
+      if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
         helpers.logLoadMeasurements("editor-opened")
       end
       resetLoadState()
-      state.activeBodyMorphMenu = menu
-      state.inCustomization = true
+      state.editor.activeBodyMorphMenu = menu
+      state.app.inCustomization = true
       state.invalidatePreflight()
-      state.clothingCheckDirty = true
-      state.cachedClothingLabels = nil
-      state.clothingCheckNextAt = 0
-      state.discoveryNoticePending = not state.discoveryNoticeIgnored
-      state.discoveryNoticeLayout = nil
-      log(state.discoveryNoticeIgnored
+      state.ui.clothingCheckDirty = true
+      state.ui.cachedClothingLabels = nil
+      state.ui.clothingCheckNextAt = 0
+      state.ui.discoveryNoticePending = not state.ui.discoveryNoticeIgnored
+      state.ui.discoveryNoticeLayout = nil
+      log(state.ui.discoveryNoticeIgnored
         and "[UI] Character customization opened; discovery reminder is ignored."
         or "[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
     end
@@ -66,19 +66,19 @@ events.onInit = function()
     "characterCreationBodyMorphMenu",
     "OnUninitialize",
     function()
-      if state.loadPresetName and (state.loadNeedsContinue or state.loadPendingChange) then
+      if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
         helpers.logLoadMeasurements("editor-closed")
       end
       resetLoadState()
-      state.activeBodyMorphMenu = nil
-      state.inCustomization = false
+      state.editor.activeBodyMorphMenu = nil
+      state.app.inCustomization = false
       state.invalidatePreflight()
-      state.clothingCheckDirty = true
-      state.cachedClothingLabels = nil
-      state.clothingCheckNextAt = 0
-      state.discoveryNoticePending = false
-      state.discoveryNoticeLayout = nil
-      state.editorOpenedByLauncher = false
+      state.ui.clothingCheckDirty = true
+      state.ui.cachedClothingLabels = nil
+      state.ui.clothingCheckNextAt = 0
+      state.ui.discoveryNoticePending = false
+      state.ui.discoveryNoticeLayout = nil
+      state.editor.openedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
     end
   )
@@ -95,7 +95,7 @@ events.onInit = function()
     "MenuScenario_CharacterCustomization",
     "OnEnterScenario",
     function()
-      state.newGameCharacterCreator = true
+      state.editor.newGameCharacterCreator = true
     end
   )
   local newGameExitOk, newGameExitError = pcall(
@@ -103,7 +103,7 @@ events.onInit = function()
     "MenuScenario_CharacterCustomization",
     "OnLeaveScenario",
     function()
-      state.newGameCharacterCreator = false
+      state.editor.newGameCharacterCreator = false
     end
   )
   if not newGameEnterOk or not newGameExitOk then
@@ -116,10 +116,10 @@ events.onInit = function()
     "gameuiInGameMenuGameController",
     "RegisterGlobalBlackboards",
     function(controller)
-      state.inGameMenuController = controller
-      state.editorControllerCaptureCount = state.editorControllerCaptureCount + 1
+      state.editor.inGameMenuController = controller
+      state.editor.controllerCaptureCount = state.editor.controllerCaptureCount + 1
       log(("[editor diagnostic] in-game menu controller captured via blackboards (%d)")
-        :format(state.editorControllerCaptureCount), "info")
+        :format(state.editor.controllerCaptureCount), "info")
     end
   )
   local menuInitializeObserverOk, menuInitializeObserverError = pcall(
@@ -127,10 +127,10 @@ events.onInit = function()
     "gameuiInGameMenuGameController",
     "OnInitialize",
     function(controller)
-      state.inGameMenuController = controller
-      state.editorControllerCaptureCount = state.editorControllerCaptureCount + 1
+      state.editor.inGameMenuController = controller
+      state.editor.controllerCaptureCount = state.editor.controllerCaptureCount + 1
       log(("[editor diagnostic] in-game menu controller captured via initialize (%d)")
-        :format(state.editorControllerCaptureCount), "info")
+        :format(state.editor.controllerCaptureCount), "info")
     end
   )
 
@@ -140,14 +140,14 @@ events.onInit = function()
     "OnEnterScenario",
     function(scenario, previousScenario, userData, wrappedMethod)
       log(("[editor diagnostic] pause scenario entered: pending=%s")
-        :format(tostring(state.editorOpenPending)), "info")
-      if not state.editorOpenPending then
+        :format(tostring(state.editor.openPending)), "info")
+      if not state.editor.openPending then
         return wrappedMethod(previousScenario, userData)
       end
-      state.editorPauseRedirectCount = state.editorPauseRedirectCount + 1
-      state.editorOpenPending = false
-      state.editorOpenTimer = 0
-      state.editorOpenedByLauncher = true
+      state.editor.pauseRedirectCount = state.editor.pauseRedirectCount + 1
+      state.editor.openPending = false
+      state.editor.openTimer = 0
+      state.editor.openedByLauncher = true
       setEditorOpenStatus("Preparing the full editor...", false)
       return scenario:SwitchToScenario("MenuScenario_CharacterCustomizationMirror")
     end
@@ -158,9 +158,9 @@ events.onInit = function()
     "MenuScenario_CharacterCustomizationMirror",
     "OnCCOPuppetReady",
     function(scenario, wrappedMethod)
-      state.editorPuppetReadyCount = state.editorPuppetReadyCount + 1
+      state.editor.puppetReadyCount = state.editor.puppetReadyCount + 1
       log(("[editor diagnostic] customization puppet ready (%d)")
-        :format(state.editorPuppetReadyCount), "info")
+        :format(state.editor.puppetReadyCount), "info")
       local opened, editorError = pcall(function()
         local userData = MorphMenuUserData.new()
         userData.optionsListInitialized = false
@@ -174,7 +174,7 @@ events.onInit = function()
       if not opened then
         setEditorOpenStatus("Full editor setup failed: " ..
           tostring(editorError), true)
-        state.editorOpenedByLauncher = false
+        state.editor.openedByLauncher = false
         restoreTemporarilyDisabledWardrobe()
         return wrappedMethod()
       end
@@ -182,9 +182,9 @@ events.onInit = function()
     end
   )
 
-  state.editorHooksAvailable = (menuObserverOk or menuInitializeObserverOk)
+  state.editor.hooksAvailable = (menuObserverOk or menuInitializeObserverOk)
     and pauseOverrideOk and editorOverrideOk
-  if not state.editorHooksAvailable then
+  if not state.editor.hooksAvailable then
     log(("Full-editor hooks unavailable: controller=%s initialize=%s pause=%s editor=%s")
       :format(tostring(menuObserverError), tostring(menuInitializeObserverError),
         tostring(pauseOverrideError), tostring(editorOverrideError)), "error")
@@ -203,10 +203,10 @@ events.onInit = function()
     setStatus("load", "Preset recovery is incomplete. Restart CET after checking file permissions; no preset files were changed further.", true)
   end
   local presetCount = 0
-  for _ in pairs(state.presets) do presetCount = presetCount + 1 end
+  for _ in pairs(state.library.presets) do presetCount = presetCount + 1 end
   log(("Preset files loaded: presets=%d directory='%s'")
     :format(presetCount, PRESET_DIR), "info")
-  state.ready = true
+  state.app.ready = true
   refreshEditorState()
   if recovered then
     setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.",
@@ -217,82 +217,82 @@ end
 events.onShutdown = function()
   helpers.auditSection("SESSION END")
   log(("[SUMMARY] inputs=%d controllerCaptures=%d pauseRedirects=%d editorPuppets=%d")
-    :format(state.editorInputCount, state.editorControllerCaptureCount,
-      state.editorPauseRedirectCount, state.editorPuppetReadyCount), "info")
+    :format(state.editor.inputCount, state.editor.controllerCaptureCount,
+      state.editor.pauseRedirectCount, state.editor.puppetReadyCount), "info")
   restoreTemporarilyDisabledWardrobe()
-  state.ready = false
-  state.inCustomization = false
-  state.newGameCharacterCreator = false
-  state.clothingCheckDirty = true
-  state.cachedClothingLabels = nil
+  state.app.ready = false
+  state.app.inCustomization = false
+  state.editor.newGameCharacterCreator = false
+  state.ui.clothingCheckDirty = true
+  state.ui.cachedClothingLabels = nil
   cancelConfirmations()
   resetLoadState()
-  state.activeBodyMorphMenu = nil
-  state.inGameMenuController = nil
-  state.editorOpenPending = false
-  state.editorOpenTimer = 0
-  state.editorOpenedByLauncher = false
-  state.editorHooksAvailable = false
-  state.discoveryNoticePending = false
-  state.discoveryNoticeLayout = nil
+  state.editor.activeBodyMorphMenu = nil
+  state.editor.inGameMenuController = nil
+  state.editor.openPending = false
+  state.editor.openTimer = 0
+  state.editor.openedByLauncher = false
+  state.editor.hooksAvailable = false
+  state.ui.discoveryNoticePending = false
+  state.ui.discoveryNoticeLayout = nil
   closeActivityLog()
 end
 
 events.onUpdate = function(delta)
   local elapsed = tonumber(delta) or 0
-  local monitorPreflight = state.overlayOpen and state.windowOpen
-    and state.selected ~= nil and not state.autoLoad
-  if not state.editorOpenPending
-      and not state.autoLoad and not monitorPreflight then
+  local monitorPreflight = state.app.overlayOpen and state.app.windowOpen
+    and state.library.selected ~= nil and not state.load.auto
+  if not state.editor.openPending
+      and not state.load.auto and not monitorPreflight then
     return
   end
   if monitorPreflight then
-    state.preflightTimer = state.preflightTimer + elapsed
-    if state.preflightTimer >= PREFLIGHT_REFRESH_INTERVAL then
+    state.load.preflightTimer = state.load.preflightTimer + elapsed
+    if state.load.preflightTimer >= PREFLIGHT_REFRESH_INTERVAL then
       state.invalidatePreflight()
     end
   end
-  if state.editorOpenPending then
-    state.editorOpenTimer = state.editorOpenTimer + elapsed
-    if state.editorOpenTimer >= EDITOR_OPEN_TIMEOUT then
-      state.editorOpenPending = false
-      state.editorOpenTimer = 0
+  if state.editor.openPending then
+    state.editor.openTimer = state.editor.openTimer + elapsed
+    if state.editor.openTimer >= EDITOR_OPEN_TIMEOUT then
+      state.editor.openPending = false
+      state.editor.openTimer = 0
       restoreTemporarilyDisabledWardrobe()
       setEditorOpenStatus("The editor did not open. Return to normal gameplay and retry.", true)
     end
   end
-  if not state.autoLoad then return end
+  if not state.load.auto then return end
 
-  state.loadElapsed = state.loadElapsed + elapsed
-  if state.loadPendingChange then
-    state.loadPendingElapsed = math.max(0,
-      state.loadElapsed - state.loadPendingChange.startedAt)
+  state.load.elapsed = state.load.elapsed + elapsed
+  if state.load.pendingChange then
+    state.load.pendingElapsed = math.max(0,
+      state.load.elapsed - state.load.pendingChange.startedAt)
   end
 
-  if not state.loadNeedsContinue then
-    state.autoLoad = false
-    state.autoLoadTimer = 0
-    state.autoLoadPasses = 0
+  if not state.load.needsContinue then
+    state.load.auto = false
+    state.load.autoTimer = 0
+    state.load.autoPasses = 0
     return
   end
 
-  state.autoLoadTimer = state.autoLoadTimer + elapsed
-  if state.autoLoadTimer < state.loadNextInterval then return end
-  state.autoLoadTimer = 0
+  state.load.autoTimer = state.load.autoTimer + elapsed
+  if state.load.autoTimer < state.load.nextInterval then return end
+  state.load.autoTimer = 0
 
-  if not state.selected then
-    state.autoLoad = false
-    state.autoLoadTimer = 0
-    state.autoLoadPasses = 0
+  if not state.library.selected then
+    state.load.auto = false
+    state.load.autoTimer = 0
+    state.load.autoPasses = 0
     return
   end
 
-  state.autoLoadPasses = state.autoLoadPasses + 1
+  state.load.autoPasses = state.load.autoPasses + 1
   local maximumSeconds = math.max(
     AUTO_LOAD_LIMITS.minimumSeconds,
-    (tonumber(state.loadValueCount) or 0) * AUTO_LOAD_LIMITS.secondsPerOption + 10)
-  if state.loadElapsed > maximumSeconds then
-    state.autoLoad = false
+    (tonumber(state.load.valueCount) or 0) * AUTO_LOAD_LIMITS.secondsPerOption + 10)
+  if state.load.elapsed > maximumSeconds then
+    state.load.auto = false
     helpers.logLoadMeasurements("safety-limit")
     setStatus("load",
       "Automatic loading reached its safety limit without stopping or finishing. " ..
@@ -304,25 +304,25 @@ events.onUpdate = function(delta)
 
   loadPreset()
 
-  if not state.loadNeedsContinue then
-    state.autoLoad = false
-    state.autoLoadPasses = 0
+  if not state.load.needsContinue then
+    state.load.auto = false
+    state.load.autoPasses = 0
   end
 end
 
 events.onOverlayOpen = function()
   log("[UI] CET overlay opened; showing Character Preset Manager. Use Refresh after changing preset files outside CET.", "info")
-  if state.discoveryNoticePending then
-    state.discoveryNoticePending = false
-    state.discoveryNoticeLayout = nil
+  if state.ui.discoveryNoticePending then
+    state.ui.discoveryNoticePending = false
+    state.ui.discoveryNoticeLayout = nil
     log("[UI] Character-customization CET discovery notification acknowledged.", "info")
   end
-  state.overlayOpen = true
-  state.windowOpen = true
-  state.bindingCache = {}
-  state.windowPositionCached = false
-  state.cachedWindowX = nil
-  state.cachedDisplayWidth = nil
+  state.app.overlayOpen = true
+  state.app.windowOpen = true
+  state.ui.bindingCache = {}
+  state.ui.windowPositionCached = false
+  state.ui.cachedWindowX = nil
+  state.ui.cachedDisplayWidth = nil
   refreshEditorState()
   refreshPreflight()
 end
@@ -330,41 +330,41 @@ end
 events.onOverlayClose = function()
   log("[UI] CET overlay closed.", "info")
   closeActivityLog()
-  state.overlayOpen = false
+  state.app.overlayOpen = false
   helpers.clearSectionStatuses()
   cancelConfirmations()
 end
 
 events.onDraw = function()
-  if state.discoveryNoticePending and not state.discoveryNoticeIgnored
-      and not state.overlayOpen then
+  if state.ui.discoveryNoticePending and not state.ui.discoveryNoticeIgnored
+      and not state.app.overlayOpen then
     local noticeOk, noticeError = pcall(drawDiscoveryHudNotice)
     if not noticeOk then
-      state.discoveryNoticePending = false
-      state.discoveryNoticeLayout = nil
+      state.ui.discoveryNoticePending = false
+      state.ui.discoveryNoticeLayout = nil
       log("[UI] Discovery notification rendering disabled after an error: " ..
         tostring(noticeError), "error")
     end
   end
-  if state.overlayOpen and state.windowOpen then draw() end
+  if state.app.overlayOpen and state.app.windowOpen then draw() end
 end
 
 events.toggleWindow = function()
-  state.windowHotkeyCount = state.windowHotkeyCount + 1
-  state.windowOpen = not state.windowOpen
+  state.editor.windowHotkeyCount = state.editor.windowHotkeyCount + 1
+  state.app.windowOpen = not state.app.windowOpen
   log(("[UI] Character Preset Manager window visibility changed to %s.")
-    :format(tostring(state.windowOpen)), "info")
+    :format(tostring(state.app.windowOpen)), "info")
 end
 
 events.openEditor = function(keyDown)
   if not keyDown then return end
-  state.editorInputCount = state.editorInputCount + 1
+  state.editor.inputCount = state.editor.inputCount + 1
   log(("[editor diagnostic] input binding pressed (%d)")
-    :format(state.editorInputCount), "info")
+    :format(state.editor.inputCount), "info")
   local launchOk, launchError = pcall(openFullAppearanceEditor)
   if not launchOk then
-    state.editorOpenPending = false
-    state.editorOpenTimer = 0
+    state.editor.openPending = false
+    state.editor.openTimer = 0
     restoreTemporarilyDisabledWardrobe()
     setEditorOpenStatus("Editor hotkey failed before the menu request: " ..
       tostring(launchError), true)

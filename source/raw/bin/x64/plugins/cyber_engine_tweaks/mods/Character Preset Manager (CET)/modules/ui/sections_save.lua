@@ -7,24 +7,24 @@ drawSaveSection = function(presetListHeight, statusHeight, actionButtonHeight, e
 if collapsibleSectionHeader("SAVE PRESET", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
-    ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.selectedFolder))
+    ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.library.selectedFolder))
     if compactSubsectionButton("Choose Save Destination", "Hide Save Destinations",
         "saveDestination") then
       ImGui.Indent(8)
       ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)
-      if ImGui.Selectable("All Presets##saveDestinationRoot", state.selectedFolder == "")
-          and state.selectedFolder ~= "" then
-        state.selectedFolder = ""
+      if ImGui.Selectable("All Presets##saveDestinationRoot", state.library.selectedFolder == "")
+          and state.library.selectedFolder ~= "" then
+        state.library.selectedFolder = ""
         cancelConfirmations()
         setStatus("create", "Save destination changed to All Presets.")
         log("[UI] Save destination changed to '<root>'.", "info")
       end
       for _, folder in ipairs(sortedFolderNames()) do
         local label = string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
-          (state.manualFolders[folder] and " (imported)" or "")
+          (state.library.manualFolders[folder] and " (imported)" or "")
         if ImGui.Selectable(label .. "##saveDestination:" .. folder,
-            state.selectedFolder == folder) and state.selectedFolder ~= folder then
-          state.selectedFolder = folder
+            state.library.selectedFolder == folder) and state.library.selectedFolder ~= folder then
+          state.library.selectedFolder = folder
           cancelConfirmations()
           setStatus("create", "Save destination changed to " .. helpers.breadcrumb(folder) .. ".")
           log(("[UI] Save destination changed to '%s'."):format(folder), "info")
@@ -35,28 +35,28 @@ if collapsibleSectionHeader("SAVE PRESET", "create") then
     end
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
-    local previousNewName = state.newName
-    state.newName = ImGui.InputTextWithHint("##newPreset", "Name", state.newName, 65)
+    local previousNewName = state.library.newName
+    state.library.newName = ImGui.InputTextWithHint("##newPreset", "Name", state.library.newName, 65)
     ImGui.PopItemWidth()
-    if state.newName ~= previousNewName then
-      state.pendingOverwriteName = nil
-      state.pendingOverwriteFingerprint = nil
+    if state.library.newName ~= previousNewName then
+      state.library.pendingOverwriteName = nil
+      state.library.pendingOverwriteFingerprint = nil
     end
     local saveLabel = "Save New Preset"
-    local pendingCreateName = joinFolder(state.selectedFolder, sanitizeName(state.newName))
-    if state.pendingOverwriteName == pendingCreateName then
+    local pendingCreateName = joinFolder(state.library.selectedFolder, sanitizeName(state.library.newName))
+    if state.library.pendingOverwriteName == pendingCreateName then
       saveLabel = "Confirm Overwrite"
     end
     ImGui.Spacing()
-    local saveUnavailable = not state.inCustomization
-      or validatedPresetName(state.newName) == nil
+    local saveUnavailable = not state.app.inCustomization
+      or validatedPresetName(state.library.newName) == nil
     if saveUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton(saveLabel, actionButtonHeight) then
-      savePreset(state.pendingOverwriteName == pendingCreateName)
+      savePreset(state.library.pendingOverwriteName == pendingCreateName)
     end
     if saveUnavailable then ImGui.EndDisabled() end
     if saveUnavailable then
-      ImGui.TextDisabled(not state.inCustomization
+      ImGui.TextDisabled(not state.app.inCustomization
         and "Open a customization screen to enable saving."
         or "Enter a valid preset name to enable saving.")
     end

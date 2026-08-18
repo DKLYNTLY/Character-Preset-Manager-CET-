@@ -38,11 +38,11 @@ end
 
 ui.drawBindingHelp = function(label, slug, receivedCount)
   ImGui.TextWrapped(label)
-  local binding = state.bindingCache[slug]
+  local binding = state.ui.bindingCache[slug]
   if not binding then
     local status, assignedKey = ui.readCETBinding(slug)
     binding = { status = status, assignedKey = assignedKey }
-    state.bindingCache[slug] = binding
+    state.ui.bindingCache[slug] = binding
   end
   local status, assignedKey = binding.status, binding.assignedKey
   if status == "bound" and assignedKey then
@@ -132,9 +132,9 @@ ui.discoveryViewport = function()
 end
 
 drawDiscoveryHudNotice = function()
-  if not state.discoveryNoticePending or state.discoveryNoticeIgnored
-      or state.overlayOpen then return end
-  local layout = state.discoveryNoticeLayout
+  if not state.ui.discoveryNoticePending or state.ui.discoveryNoticeIgnored
+      or state.app.overlayOpen then return end
+  local layout = state.ui.discoveryNoticeLayout
   if not layout then
     local viewportX, viewportY, viewportWidth = ui.discoveryViewport()
     local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE)
@@ -161,7 +161,7 @@ drawDiscoveryHudNotice = function()
         ImGuiWindowFlags.NoInputs
       ),
     }
-    state.discoveryNoticeLayout = layout
+    state.ui.discoveryNoticeLayout = layout
   end
   ImGui.SetNextWindowPos(layout.x, layout.y, ImGuiCond.Always)
   ImGui.SetNextWindowSize(layout.width, layout.height, ImGuiCond.Always)
@@ -187,13 +187,13 @@ drawDiscoveryHudNotice = function()
 end
 
 drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if state.settingsOpen then
+if state.ui.settingsOpen then
       ImGui.Spacing()
       ImGui.BeginChild("##settings", 0, 226, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
       ImGui.TextDisabled(CONFIG_FILE)
       ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
-      local reminderEnabled = not state.discoveryNoticeIgnored
+      local reminderEnabled = not state.ui.discoveryNoticeIgnored
       local reminderLabel = reminderEnabled
         and "Customization Reminder: Enabled"
         or "Customization Reminder: Disabled"
@@ -201,43 +201,43 @@ if state.settingsOpen then
         local saved
         if reminderEnabled then saved = helpers.ignoreDiscoveryNotice()
         else saved = helpers.restoreDiscoveryNotice() end
-        local currentState = state.discoveryNoticeIgnored and "disabled" or "enabled"
+        local currentState = state.ui.discoveryNoticeIgnored and "disabled" or "enabled"
         if saved then
-          state.settingsStatus = "Customization reminder " .. currentState .. ". Settings saved."
+          state.status.settings = "Customization reminder " .. currentState .. ". Settings saved."
         else
-          state.settingsStatus = "Customization reminder " .. currentState ..
+          state.status.settings = "Customization reminder " .. currentState ..
             " for this session, but the settings file could not be saved."
         end
       end
-      local sortLabel = state.sortMode == "modified"
+      local sortLabel = state.library.sortMode == "modified"
         and "Preset Sort: Last Modified" or "Preset Sort: Name"
       if fullWidthButton(sortLabel .. "##presetSort", actionButtonHeight) then
-        state.sortMode = state.sortMode == "modified" and "name" or "modified"
+        state.library.sortMode = state.library.sortMode == "modified" and "name" or "modified"
         invalidateViewCache()
-        state.settingsStatus = writeConfig() and "Settings saved." or "The settings file could not be saved."
+        state.status.settings = writeConfig() and "Settings saved." or "The settings file could not be saved."
       end
       if fullWidthButton("Reload Settings File##reloadConfig", actionButtonHeight) then
         local config, loaded = readConfig()
         if loaded then
-          state.discoveryNoticeIgnored = not config.discoveryReminder
-          if state.discoveryNoticeIgnored then state.discoveryNoticePending = false end
-          state.discoveryNoticeLayout = nil
-          state.sortMode = config.presetSort == "modified" and "modified" or "name"
+          state.ui.discoveryNoticeIgnored = not config.discoveryReminder
+          if state.ui.discoveryNoticeIgnored then state.ui.discoveryNoticePending = false end
+          state.ui.discoveryNoticeLayout = nil
+          state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
           invalidateViewCache()
-          state.settingsStatus = "Settings file reloaded."
+          state.status.settings = "Settings file reloaded."
         else
-          state.settingsStatus = "The settings file could not be reloaded."
+          state.status.settings = "The settings file could not be reloaded."
         end
       end
-      if state.settingsStatus ~= "" then
-        coloredWrapped(0.64, 0.67, 0.73, 1.0, state.settingsStatus)
+      if state.status.settings ~= "" then
+        coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.settings)
       end
       ImGui.EndChild()
     end
 end
 
 drawHelpPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if state.helpOpen then
+if state.ui.helpOpen then
       ImGui.Spacing()
       ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
       ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
@@ -259,9 +259,9 @@ if state.helpOpen then
       ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. You can also use a mirror, a ripperdoc, or the new-game editor.")
       ImGui.TextWrapped("Set these keys under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor key.")
       ui.drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
-        state.editorInputCount)
+        state.editor.inputCount)
       ui.drawBindingHelp("Toggle Character Preset Manager (CET)",
-        "vanilla_character_presets_toggle", state.windowHotkeyCount)
+        "vanilla_character_presets_toggle", state.editor.windowHotkeyCount)
 
       helpHeading("Load a Preset")
       ImGui.TextWrapped("1. Open a supported character editor.")
@@ -322,9 +322,9 @@ if state.helpOpen then
       ImGui.TextWrapped("Open the activity log to see recent preset actions, warnings, and errors. You can copy the log when asking for help.")
       if fullWidthButton("Open Activity Log##openDebugFromHelp", actionButtonHeight) then
         ui.readDiagnosticLog()
-        state.debugOpen = true
-        state.helpOpen = false
-        state.settingsOpen = false
+        state.ui.debugOpen = true
+        state.ui.helpOpen = false
+        state.ui.settingsOpen = false
       end
 
       ImGui.EndChild()

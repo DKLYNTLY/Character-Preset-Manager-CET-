@@ -52,12 +52,12 @@ local function writeHexFile(output, path)
 end
 
 folderBundleFiles = function(forceRefresh)
-  if not forceRefresh and not state.folderBundleFilesDirty then
-    return state.cachedFolderBundleFiles
+  if not forceRefresh and not state.cache.folderBundleFilesDirty then
+    return state.cache.folderBundleFiles
   end
   local bundles = {}
   local entries = safeDirectoryEntries(PRESET_DIR, 0)
-  if not entries then return state.cachedFolderBundleFiles end
+  if not entries then return state.cache.folderBundleFiles end
   for _, entry in ipairs(entries) do
     if entry.type == "file"
         and entry.name:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION then
@@ -65,9 +65,9 @@ folderBundleFiles = function(forceRefresh)
     end
   end
   table.sort(bundles, function(a, b) return a:lower() < b:lower() end)
-  state.cachedFolderBundleFiles = bundles
-  state.folderBundleFilesDirty = false
-  return state.cachedFolderBundleFiles
+  state.cache.folderBundleFiles = bundles
+  state.cache.folderBundleFilesDirty = false
+  return state.cache.folderBundleFiles
 end
 
 local function uniqueTrashedBundleFilename(filename)
@@ -84,7 +84,7 @@ end
 trashSelectedFolderBundle = function()
   clearStatus("folder")
   helpers.auditSection("TRASH FOLDER BUNDLE")
-  local selected = state.selectedBundleFile
+  local selected = state.library.selectedBundleFile
   if not isFolderBundleFilename(selected) then
     setStatus("folder", "Select a shared-folder file to move to Trash.", true)
     return
@@ -98,7 +98,7 @@ trashSelectedFolderBundle = function()
     end
   end
   if not selectedPath then
-    state.selectedBundleFile = nil
+    state.library.selectedBundleFile = nil
     setStatus("folder", "That shared-folder file is no longer available.", true)
     return
   end
@@ -126,10 +126,10 @@ trashSelectedFolderBundle = function()
       or "Folder bundle verification failed, and the file could not be returned from Trash.", true)
     return
   end
-  state.trashBundles[trashFilename] = true
-  state.trashViewDirty = true
-  state.selectedBundleFile = nil
-  state.folderBundleFilesDirty = true
+  state.trash.bundles[trashFilename] = true
+  state.trash.viewDirty = true
+  state.library.selectedBundleFile = nil
+  state.cache.folderBundleFilesDirty = true
   setStatus("folder",
     ("Moved shared-folder file \"%s\" to Trash. Presets and folders were not changed.")
       :format(selected), false, "success")
@@ -205,12 +205,12 @@ end
 exportSelectedFolderBundle = function()
   clearStatus("folder")
   helpers.auditSection("EXPORT FOLDER BUNDLE")
-  local folder = state.selectedFolder
-  if folder == "" or not state.folders[folder] then
+  local folder = state.library.selectedFolder
+  if folder == "" or not state.library.folders[folder] then
     setStatus("folder", "Select a folder to export.", true); return
   end
   local names = {}
-  for name in pairs(state.presets) do
+  for name in pairs(state.library.presets) do
     if isInFolderTree(parentFolder(name), folder) then table.insert(names, name) end
   end
   table.sort(names, function(a, b) return a:lower() < b:lower() end)
@@ -222,7 +222,7 @@ exportSelectedFolderBundle = function()
       ("This folder has more than the %d presets allowed in one shared-folder file."):format(MAX_FOLDER_BUNDLE_PRESETS), true); return
   end
   local folders = {}
-  for candidate in pairs(state.folders) do
+  for candidate in pairs(state.library.folders) do
     if candidate ~= folder and isInFolderTree(candidate, folder) then
       table.insert(folders, candidate:sub(#folder + 2))
     end
@@ -287,7 +287,7 @@ exportSelectedFolderBundle = function()
   if not wrote then
     setStatus("folder", bundleError or "The shared-folder file could not be saved.", true); return
   end
-  state.folderBundleFilesDirty = true
+  state.cache.folderBundleFilesDirty = true
   setStatus("folder",
     ("Exported %d preset%s to %s. Share this one file.")
       :format(#names, #names == 1 and "" or "s", filename), false, "success")
@@ -381,10 +381,10 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   local root = bundle.root
   if folderNameExists(root) then root = uniqueFolderCopyName(root) end
   if not root then return nil, "The mod could not create an unused name for the imported folder." end
-  local newPresets = cloneMap(state.presets)
-  local newFolders = cloneMap(state.folders)
-  local newManualFolders = cloneMap(state.manualFolders)
-  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  local newPresets = cloneMap(state.library.presets)
+  local newFolders = cloneMap(state.library.folders)
+  local newManualFolders = cloneMap(state.library.manualFolders)
+  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
   addFolderAncestors(newFolders, root)
   for folder in pairs(bundle.folders) do
     addFolderAncestors(newFolders, joinFolder(root, folder))
@@ -451,8 +451,8 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   end
   local inventorySaved = writeInventory(newPresets, newFolders)
   if not inventorySaved then
-    writeCatalog(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders)
+    writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders)
     return nil, cleanupFailureMessage(createdFiles,
       "The imported folder was removed again because the preset file list could not be saved.",
       "The preset file list could not be saved, and some imported preset files could not be removed.")
@@ -465,16 +465,16 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
     root = root,
   }
   if not writeImportedBundles(updatedImported) then
-    writeCatalog(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders)
-    writeInventory(state.presets, state.folders)
+    writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders)
+    writeInventory(state.library.presets, state.library.folders)
     return nil, cleanupFailureMessage(createdFiles,
       "The imported folder was removed again because the completed import could not be recorded.",
       "The completed import could not be recorded, and some imported preset files could not be removed.")
   end
-  state.presets, state.folders = newPresets, newFolders
-  state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
-  state.selectedFolder = root
+  state.library.presets, state.library.folders = newPresets, newFolders
+  state.library.manualFolders, state.library.ignoredPhysicalFolders = newManualFolders, newIgnored
+  state.library.selectedFolder = root
   invalidateViewCache()
   resetLoadState()
   cancelConfirmations()

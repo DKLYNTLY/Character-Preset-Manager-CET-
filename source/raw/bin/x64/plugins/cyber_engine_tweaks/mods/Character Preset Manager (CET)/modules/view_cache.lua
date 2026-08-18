@@ -38,16 +38,16 @@ function validModifiedTimestamp(value)
 end
 
 function invalidateFilteredViewCache()
-  state.filteredViewDirty = true
-  state.cachedBulkFolder = nil
+  state.cache.filteredViewDirty = true
+  state.trash.cachedBulkFolder = nil
 end
 
 function invalidateBulkSelectionCache()
-  state.bulkSelectionDirty = true
+  state.trash.bulkSelectionDirty = true
 end
 
 function invalidateViewCache()
-  state.viewCacheDirty = true
+  state.cache.viewDirty = true
   invalidateFilteredViewCache()
   invalidateBulkSelectionCache()
   if state.invalidatePreflight then state.invalidatePreflight() end
@@ -63,7 +63,7 @@ helpers.rebuildViewCache = function()
   local folderNames = {}
   local presetsByFolder = {}
   local folderPresetCounts = {}
-  for name in pairs(state.presets) do
+  for name in pairs(state.library.presets) do
     table.insert(presetNames, name)
     local folder = parentFolder(name)
     presetsByFolder[folder] = presetsByFolder[folder] or {}
@@ -74,11 +74,11 @@ helpers.rebuildViewCache = function()
       current = parentFolder(current)
     end
   end
-  for name in pairs(state.folders) do table.insert(folderNames, name) end
+  for name in pairs(state.library.folders) do table.insert(folderNames, name) end
   local function presetLess(a, b)
-    if state.sortMode == "modified" then
-      local aValue = tostring((state.presets[a] or {}).modified or "")
-      local bValue = tostring((state.presets[b] or {}).modified or "")
+    if state.library.sortMode == "modified" then
+      local aValue = tostring((state.library.presets[a] or {}).modified or "")
+      local bValue = tostring((state.library.presets[b] or {}).modified or "")
       local aModified = validModifiedTimestamp(aValue) and aValue or ""
       local bModified = validModifiedTimestamp(bValue) and bValue or ""
       if aModified ~= bModified then return aModified > bModified end
@@ -90,43 +90,43 @@ helpers.rebuildViewCache = function()
   for _, names in pairs(presetsByFolder) do
     table.sort(names, presetLess)
   end
-  state.cachedPresetNames = presetNames
-  state.cachedFolderNames = folderNames
-  state.cachedPresetsByFolder = presetsByFolder
-  state.cachedFolderPresetCounts = folderPresetCounts
-  state.viewCacheDirty = false
+  state.cache.presetNames = presetNames
+  state.cache.folderNames = folderNames
+  state.cache.presetsByFolder = presetsByFolder
+  state.cache.folderPresetCounts = folderPresetCounts
+  state.cache.viewDirty = false
 end
 
 function ensureViewCache()
-  if state.viewCacheDirty then helpers.rebuildViewCache() end
+  if state.cache.viewDirty then helpers.rebuildViewCache() end
 end
 
 EMPTY_LIST = {}
 
 helpers.sortedPresetNames = function()
   ensureViewCache()
-  return state.cachedPresetNames
+  return state.cache.presetNames
 end
 
 function sortedFolderNames()
   ensureViewCache()
-  return state.cachedFolderNames
+  return state.cache.folderNames
 end
 
 helpers.presetsInFolder = function(folder)
   ensureViewCache()
-  return state.cachedPresetsByFolder[folder] or EMPTY_LIST
+  return state.cache.presetsByFolder[folder] or EMPTY_LIST
 end
 
 helpers.rebuildFilteredViewCache = function()
   ensureViewCache()
-  local query = normalizeSearch(state.searchText)
+  local query = normalizeSearch(state.library.searchText)
   local visibleNames = {}
   local matchedFolders = {}
   local folderMatches = {}
   local matchingByFolder = {}
-  for _, name in ipairs(state.cachedPresetNames) do
-    local preset = state.presets[name]
+  for _, name in ipairs(state.cache.presetNames) do
+    local preset = state.library.presets[name]
     if textMatches(name, query) or textMatches(preset and preset.tags, query) then
       table.insert(visibleNames, name)
       local directFolder = parentFolder(name)
@@ -139,28 +139,28 @@ helpers.rebuildFilteredViewCache = function()
       end
     end
   end
-  for _, folder in ipairs(state.cachedFolderNames) do
+  for _, folder in ipairs(state.cache.folderNames) do
     if textMatches(folder, query) then folderMatches[folder] = true end
   end
-  state.cachedSearchText = query
-  state.cachedQueryActive = query ~= ""
-  state.cachedFilteredPresetNames = visibleNames
-  state.cachedMatchedFolders = matchedFolders
-  state.cachedFolderMatches = folderMatches
-  state.cachedMatchingPresetsByFolder = matchingByFolder
-  state.filteredViewDirty = false
+  state.cache.searchText = query
+  state.cache.queryActive = query ~= ""
+  state.cache.filteredPresetNames = visibleNames
+  state.cache.matchedFolders = matchedFolders
+  state.cache.folderMatches = folderMatches
+  state.cache.matchingPresetsByFolder = matchingByFolder
+  state.cache.filteredViewDirty = false
 end
 
 function ensureFilteredViewCache()
-  local query = normalizeSearch(state.searchText)
-  if state.filteredViewDirty or state.cachedSearchText ~= query then
+  local query = normalizeSearch(state.library.searchText)
+  if state.cache.filteredViewDirty or state.cache.searchText ~= query then
     helpers.rebuildFilteredViewCache()
   end
 end
 
 helpers.filteredPresetNames = function()
   ensureFilteredViewCache()
-  return state.cachedFilteredPresetNames
+  return state.cache.filteredPresetNames
 end
 
 function joinFolder(folder, name)
@@ -182,7 +182,7 @@ end
 
 function findPresetCollision(name, excludeName)
   local lowered = name:lower()
-  for existing in pairs(state.presets) do
+  for existing in pairs(state.library.presets) do
     if existing:lower() == lowered and existing ~= excludeName then
       return existing
     end

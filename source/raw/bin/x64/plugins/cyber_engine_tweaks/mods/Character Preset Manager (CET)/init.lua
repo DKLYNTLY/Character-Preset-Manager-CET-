@@ -1,5 +1,6 @@
 local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
+runtime.VERSION = "3.0.5"
 require("modules/constants")
 require("modules/state")
 require("modules/filesystem")

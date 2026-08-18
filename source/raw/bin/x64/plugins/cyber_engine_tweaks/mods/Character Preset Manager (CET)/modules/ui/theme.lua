@@ -73,7 +73,7 @@ function collapsibleSectionHeader(label, key)
   ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.12, 0.09, 0.04, 0.98)
   ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.18, 0.12, 0.04, 1.0)
   ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
-  local defaultFlag = state.openSections[key] ~= false and 32 or 0
+  local defaultFlag = state.ui.openSections[key] ~= false and 32 or 0
   local open = ImGui.CollapsingHeader(label .. "##CPMSectionV2:" .. key, defaultFlag)
   ImGui.PopStyleColor(4)
   if open then ImGui.Spacing() end
@@ -87,7 +87,7 @@ end
 
 function compactSubsectionButton(closedLabel, openLabel, key)
   ImGui.Spacing()
-  local open = state.openSubsections[key] == true
+  local open = state.ui.openSubsections[key] == true
   local closedWidth = ImGui.CalcTextSize(closedLabel)
   local openWidth = ImGui.CalcTextSize(openLabel)
   local availableWidth = ImGui.GetContentRegionAvail()
@@ -99,7 +99,7 @@ function compactSubsectionButton(closedLabel, openLabel, key)
   if ImGui.Button((open and openLabel or closedLabel) ..
       "##CPMSubsection:" .. key, width, 26) then
     open = not open
-    state.openSubsections[key] = open
+    state.ui.openSubsections[key] = open
   end
   ImGui.PopStyleVar(1)
   ImGui.PopStyleColor(3)
@@ -123,28 +123,29 @@ function coloredWrapped(r, g, b, a, text)
 end
 
 function drawSectionStatus(section, childId, height)
-  local text = state[section .. "Status"]
+  local sectionStatus = state.status.sections[section]
+  local text = sectionStatus.message
   if not text or text == "" then return end
-  local kind = state.statusKinds[section]
-  local isError = state[section .. "StatusError"] or kind == "error"
+  local kind = state.status.kinds[section]
+  local isError = sectionStatus.error or kind == "error"
   local checkClothing = section == "load"
     and not isError
-    and state.inCustomization
-    and not state.newGameCharacterCreator
-    and not state.autoLoad
-    and not state.loadNeedsContinue
+    and state.app.inCustomization
+    and not state.editor.newGameCharacterCreator
+    and not state.load.auto
+    and not state.load.needsContinue
     and kind == "ready"
   if checkClothing then
     local clockOk, now = pcall(os.clock)
     now = clockOk and tonumber(now) or 0
-    if state.clothingCheckDirty or now >= (state.clothingCheckNextAt or 0) then
-      state.cachedClothingLabels = helpers.equippedClothingLabels()
-      state.clothingCheckDirty = false
-      state.clothingCheckNextAt = now + 1
+    if state.ui.clothingCheckDirty or now >= (state.ui.clothingCheckNextAt or 0) then
+      state.ui.cachedClothingLabels = helpers.equippedClothingLabels()
+      state.ui.clothingCheckDirty = false
+      state.ui.clothingCheckNextAt = now + 1
     end
   end
   local clothingLabels = {}
-  if checkClothing then clothingLabels = state.cachedClothingLabels end
+  if checkClothing then clothingLabels = state.ui.cachedClothingLabels end
   local clothingCheckUnavailable = checkClothing and clothingLabels == nil
   clothingLabels = clothingLabels or {}
   local clothingWarning = #clothingLabels > 0
@@ -157,10 +158,10 @@ function drawSectionStatus(section, childId, height)
   local success = not isError and (kind == "success" or kind == "ready")
   local warning = not isError and kind == "warning"
   local destructiveWarning = (section == "delete"
-      and (state.pendingEmptyTrash == true
-        or (state.pendingDeleteName ~= nil
-          and state.pendingDeleteName == state.selected)))
-    or (section == "bulk" and state.pendingBulkAction ~= nil)
+      and (state.trash.pendingEmpty == true
+        or (state.trash.pendingDeleteName ~= nil
+          and state.trash.pendingDeleteName == state.library.selected)))
+    or (section == "bulk" and state.trash.pendingBulkAction ~= nil)
   local customColors = false
   ImGui.Spacing()
   if isError or destructiveWarning then
@@ -191,10 +192,10 @@ function drawSectionStatus(section, childId, height)
   elseif clothingWarning or clothingCheckUnavailable then
     ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "OPTIONAL CLOTHING NOTICE")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
-  elseif section == "load" and state.loadStalled then
+  elseif section == "load" and state.load.stalled then
     ImGui.TextColored(1.0, 0.55, 0.15, 1.0, "ATTENTION")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
-  elseif section == "load" and state.loadRemaining > 0 then
+  elseif section == "load" and state.load.remaining > 0 then
     ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "LOADING")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   elseif success then

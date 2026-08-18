@@ -17,6 +17,9 @@ used. See the README and in-game Help for current instructions.
 - Splits the mod into smaller, focused files so Lua compiles each part
   separately. The menu sections and preset loader are also divided into
   shorter functions without changing controls, preset files, or loading rules.
+- Organizes the mod's internal working data into focused groups for presets,
+  loading, Trash, the interface, cached lists, the editor, and status messages.
+  This does not change controls, preset files, or loading behavior.
 - Fixes the CET window failing to register after the module split. Module paths
   now use CET's required slash format, allowing every module and window callback
   to load correctly.

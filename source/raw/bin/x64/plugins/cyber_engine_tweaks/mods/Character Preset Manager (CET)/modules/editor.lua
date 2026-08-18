@@ -4,9 +4,9 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 function setEditorOpenStatus(message, isError, kind)
-  state.editorStatus = message
-  state.editorStatusError = isError == true
-  state.statusKinds.editor = kind or (isError and "error" or "info")
+  state.status.sections.editor.message = message
+  state.status.sections.editor.error = isError == true
+  state.status.kinds.editor = kind or (isError and "error" or "info")
   log("[editor] " .. tostring(message), isError and "error" or "info")
 end
 
@@ -52,7 +52,7 @@ function equipmentSystem()
 end
 
 function temporarilyDisableWardrobe()
-  if state.wardrobeTemporarilyDisabled then return true end
+  if state.editor.wardrobeTemporarilyDisabled then return true end
   local active, player = helpers.activeWardrobeSetEquipped()
   if not active then return true end
   local system = equipmentSystem()
@@ -71,13 +71,13 @@ function temporarilyDisableWardrobe()
       tostring(disableError), "warn")
     return false
   end
-  state.wardrobeTemporarilyDisabled = true
+  state.editor.wardrobeTemporarilyDisabled = true
   log("[wardrobe] Active outfit temporarily removed for character customization.", "info")
   return true
 end
 
 function restoreTemporarilyDisabledWardrobe()
-  if not state.wardrobeTemporarilyDisabled then return true end
+  if not state.editor.wardrobeTemporarilyDisabled then return true end
   local playerOk, player = pcall(Game.GetPlayer)
   local system = equipmentSystem()
   if not playerOk or not player or not system then
@@ -94,20 +94,20 @@ function restoreTemporarilyDisabledWardrobe()
       tostring(restoreError), "warn")
     return false
   end
-  state.wardrobeTemporarilyDisabled = false
+  state.editor.wardrobeTemporarilyDisabled = false
   log("[wardrobe] Restored the outfit used before character customization.", "info")
   return true
 end
 
 function openFullAppearanceEditor()
   log(("[editor diagnostic] launch requested: controller=%s pending=%s customization=%s")
-    :format(tostring(state.inGameMenuController ~= nil),
-      tostring(state.editorOpenPending), tostring(helpers.isCustomizationActive())), "info")
-  if state.editorOpenPending then
+    :format(tostring(state.editor.inGameMenuController ~= nil),
+      tostring(state.editor.openPending), tostring(helpers.isCustomizationActive())), "info")
+  if state.editor.openPending then
     setEditorOpenStatus("The editor is already opening.", true)
     return false
   end
-  if not state.editorHooksAvailable then
+  if not state.editor.hooksAvailable then
     setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
     return false
   end
@@ -115,21 +115,21 @@ function openFullAppearanceEditor()
     setEditorOpenStatus("A customization screen is already open.", true)
     return false
   end
-  if not state.inGameMenuController then
+  if not state.editor.inGameMenuController then
     setEditorOpenStatus("Load or reload a save.", true)
     return false
   end
 
-  state.editorOpenTimer = 0
-  state.editorOpenPending = true
+  state.editor.openTimer = 0
+  state.editor.openPending = true
   temporarilyDisableWardrobe()
   local ok, openError = pcall(
-    state.inGameMenuController.SpawnMenuInstanceEvent,
-    state.inGameMenuController,
+    state.editor.inGameMenuController.SpawnMenuInstanceEvent,
+    state.editor.inGameMenuController,
     "OnOpenPauseMenu"
   )
   if not ok then
-    state.editorOpenPending = false
+    state.editor.openPending = false
     restoreTemporarilyDisabledWardrobe()
     setEditorOpenStatus("The game rejected the request: " ..
       tostring(openError), true)
@@ -146,18 +146,18 @@ helpers.isCustomizationActive = function()
 end
 
 function refreshEditorState()
-  local wasInCustomization = state.inCustomization
-  state.inCustomization = helpers.isCustomizationActive()
-  if state.inCustomization ~= wasInCustomization then
-    if state.loadPresetName and (state.loadNeedsContinue or state.loadPendingChange) then
+  local wasInCustomization = state.app.inCustomization
+  state.app.inCustomization = helpers.isCustomizationActive()
+  if state.app.inCustomization ~= wasInCustomization then
+    if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
       helpers.logLoadMeasurements("editor-changed")
     end
     resetLoadState()
     state.invalidatePreflight()
-    state.clothingCheckDirty = true
-    state.clothingCheckNextAt = 0
+    state.ui.clothingCheckDirty = true
+    state.ui.clothingCheckNextAt = 0
   end
-  if not state.inCustomization then state.activeBodyMorphMenu = nil end
+  if not state.app.inCustomization then state.editor.activeBodyMorphMenu = nil end
 end
 
 return _ENV

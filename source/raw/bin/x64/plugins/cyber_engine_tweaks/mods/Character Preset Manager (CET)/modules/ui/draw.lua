@@ -4,25 +4,25 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 draw = function()
-if not state.overlayOpen or not state.windowOpen then return end
+if not state.app.overlayOpen or not state.app.windowOpen then return end
 
   pushTheme()
-  if not state.windowPositionCached then
-    state.cachedWindowX, state.cachedWindowY, state.cachedDisplayWidth = ui.defaultWindowPosition()
-    state.windowPositionCached = true
+  if not state.ui.windowPositionCached then
+    state.ui.cachedWindowX, state.ui.cachedWindowY, state.ui.cachedDisplayWidth = ui.defaultWindowPosition()
+    state.ui.windowPositionCached = true
   end
-  local initialX = state.cachedWindowX
-  local initialY = state.cachedWindowY or 40
-  local displayWidth = state.cachedDisplayWidth
+  local initialX = state.ui.cachedWindowX
+  local initialY = state.ui.cachedWindowY or 40
+  local displayWidth = state.ui.cachedDisplayWidth
   if initialX then
-    local positionCondition = state.initialWindowPlacementPending
+    local positionCondition = state.ui.initialWindowPlacementPending
       and ImGuiCond.Always or ImGuiCond.FirstUseEver
     ImGui.SetNextWindowPos(initialX, initialY, positionCondition)
   end
   ImGui.SetNextWindowSize(420, 700, ImGuiCond.FirstUseEver)
   local visible = ImGui.Begin("Character Preset Manager (CET)##CPM2")
-  if state.initialWindowPlacementPending and initialX then
-    state.initialWindowPlacementPending = false
+  if state.ui.initialWindowPlacementPending and initialX then
+    state.ui.initialWindowPlacementPending = false
     log(("[UI] Initial window position forced to the right: displayWidth=%s x=%s y=%s.")
       :format(tostring(displayWidth), tostring(initialX), tostring(initialY)), "info")
     local wrote = writeFileSafely(WINDOW_POSITION_STATUS_FILE, "w", function(status)
@@ -53,7 +53,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local topControlsWidth = topButtonWidth * 3 + 16
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
-    if state.inCustomization then
+    if state.app.inCustomization then
       ImGui.TextColored(0.35, 0.9, 0.45, 1.0,
         narrowTopRow and "Editor ready" or "Customization editor open")
     else
@@ -63,32 +63,32 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     ImGui.SameLine()
     ImGui.SetCursorPosX(topRowStartX + topRowWidth - topControlsWidth)
     if ImGui.Button("Settings##settings", topButtonWidth, actionButtonHeight) then
-      state.settingsOpen = not state.settingsOpen
-      if state.settingsOpen then
-        state.helpOpen = false
-        state.debugOpen = false
+      state.ui.settingsOpen = not state.ui.settingsOpen
+      if state.ui.settingsOpen then
+        state.ui.helpOpen = false
+        state.ui.debugOpen = false
       end
     end
     ImGui.SameLine()
     if ImGui.Button("Help##help", topButtonWidth, actionButtonHeight) then
-      state.helpOpen = not state.helpOpen
-      if state.helpOpen then
-        state.settingsOpen = false
-        state.debugOpen = false
-        state.bindingCache = {}
+      state.ui.helpOpen = not state.ui.helpOpen
+      if state.ui.helpOpen then
+        state.ui.settingsOpen = false
+        state.ui.debugOpen = false
+        state.ui.bindingCache = {}
       end
     end
     ImGui.SameLine()
     if ImGui.Button("Log##debug", topButtonWidth, actionButtonHeight) then
-      state.debugOpen = not state.debugOpen
-      if state.debugOpen then
-        state.settingsOpen = false
-        state.helpOpen = false
+      state.ui.debugOpen = not state.ui.debugOpen
+      if state.ui.debugOpen then
+        state.ui.settingsOpen = false
+        state.ui.helpOpen = false
         ui.readDiagnosticLog()
       end
     end
     drawSettingsPanel(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-    if state.debugOpen then
+    if state.ui.debugOpen then
       ui.drawDebugPanel(extraHeight)
     end
     drawHelpPanel(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)

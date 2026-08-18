@@ -5,12 +5,12 @@ local _ENV = runtime
 
 function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
     recoveryManualFolders)
-  state.folderBundleFilesDirty = true
-  local currentPresets = state.presets or {}
-  local currentFolders = state.folders or {}
+  state.cache.folderBundleFilesDirty = true
+  local currentPresets = state.library.presets or {}
+  local currentFolders = state.library.folders or {}
   local previousPresets = currentPresets
   local previousFolders = currentFolders
-  local baselineAvailable = state.ready
+  local baselineAvailable = state.app.ready
   if scanReason == "startup" then
     previousPresets, previousFolders, baselineAvailable = helpers.readInventory()
     log(("[INVENTORY] Startup baseline available=%s presets=%d folders=%d.")
@@ -244,27 +244,27 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
     end
   end
 
-  state.presets = presets
-  state.folders = folders
-  state.manualFolders = manualFolders
-  state.ignoredPhysicalFolders = ignoredPhysicalFolders
+  state.library.presets = presets
+  state.library.folders = folders
+  state.library.manualFolders = manualFolders
+  state.library.ignoredPhysicalFolders = ignoredPhysicalFolders
   invalidateViewCache()
   resetLoadState()
-  for folder in pairs(state.expandedLoadFolders) do
-    if not folders[folder] then state.expandedLoadFolders[folder] = nil end
+  for folder in pairs(state.library.expandedLoadFolders) do
+    if not folders[folder] then state.library.expandedLoadFolders[folder] = nil end
   end
   writeInventory(presets, folders)
-  if state.selectedFolder ~= "" and not folders[state.selectedFolder] then
-    state.selectedFolder = ""
+  if state.library.selectedFolder ~= "" and not folders[state.library.selectedFolder] then
+    state.library.selectedFolder = ""
     cancelConfirmations()
   end
-  if state.selected and not presets[state.selected] then
-    state.selected = nil
+  if state.library.selected and not presets[state.library.selected] then
+    state.library.selected = nil
     resetLoadState()
     cancelConfirmations()
   end
-  for name in pairs(state.bulkSelected) do
-    if not presets[name] then state.bulkSelected[name] = nil end
+  for name in pairs(state.trash.bulkSelected) do
+    if not presets[name] then state.trash.bulkSelected[name] = nil end
   end
   local count = 0
   for _ in pairs(presets) do count = count + 1 end
@@ -284,7 +284,7 @@ function folderDepth(name)
 end
 
 function presetPath(name)
-  local preset = state.presets[name]
+  local preset = state.library.presets[name]
   local storage = preset and preset.storage or name
   return PRESET_DIR .. "/" .. storage .. ".preset"
 end

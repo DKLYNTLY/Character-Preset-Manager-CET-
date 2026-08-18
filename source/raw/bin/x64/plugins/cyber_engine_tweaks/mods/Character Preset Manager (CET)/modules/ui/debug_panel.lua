@@ -4,9 +4,9 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 ui.setDebugLogText = function(text)
-  state.debugLogText = tostring(text or "")
+  state.ui.debugLogText = tostring(text or "")
   local lines = {}
-  for line in (state.debugLogText .. "\n"):gmatch("(.-)\n") do
+  for line in (state.ui.debugLogText .. "\n"):gmatch("(.-)\n") do
     local lowerLine = line:lower()
     local kind = "disabled"
     if line == "" then
@@ -30,7 +30,7 @@ ui.setDebugLogText = function(text)
     end
     table.insert(lines, { text = line, kind = kind })
   end
-  state.debugLogLines = lines
+  state.ui.debugLogLines = lines
 end
 
 ui.readDiagnosticLog = function()
@@ -78,16 +78,16 @@ ui.drawDebugPanel = function(height)
   if ImGui.Button("Refresh##debugRefresh", logButtonWidth, logButtonHeight) then ui.readDiagnosticLog() end
   ImGui.SameLine()
   if ImGui.Button("Copy##debugCopy", logButtonWidth, logButtonHeight) then
-    ImGui.SetClipboardText(state.debugLogText or "")
+    ImGui.SetClipboardText(state.ui.debugLogText or "")
   end
   ImGui.SameLine()
-  if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then state.debugOpen = false end
+  if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then state.ui.debugOpen = false end
   if compactSubsectionButton(
       "More Technical Details", "Hide Technical Details", "advancedDiagnostics") then
     ImGui.Indent(8)
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
-      :format(state.editorInputCount, state.editorControllerCaptureCount,
-        state.editorPauseRedirectCount, state.editorPuppetReadyCount))
+      :format(state.editor.inputCount, state.editor.controllerCaptureCount,
+        state.editor.pauseRedirectCount, state.editor.puppetReadyCount))
     coloredWrapped(0.64, 0.67, 0.73, 1.0,
       "After one successful input launch, all four values should be at least 1.")
     ImGui.Unindent(8)
@@ -103,7 +103,7 @@ ui.drawDebugPanel = function(height)
   ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "Red = error")
   ImGui.Spacing()
   ImGui.BeginChild("##debugLog", 0, height or 200, true)
-  for _, entry in ipairs(state.debugLogLines) do
+  for _, entry in ipairs(state.ui.debugLogLines) do
     local line = entry.text
     if entry.kind == "blank" then
       ImGui.Spacing()

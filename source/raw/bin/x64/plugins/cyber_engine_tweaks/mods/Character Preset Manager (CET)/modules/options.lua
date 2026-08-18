@@ -173,9 +173,9 @@ assert(optionIndexIsValid(0)
   MOD_NAME .. " option-index validation contract failed")
 
 helpers.ignoreDiscoveryNotice = function()
-  state.discoveryNoticeIgnored = true
-  state.discoveryNoticePending = false
-  state.discoveryNoticeLayout = nil
+  state.ui.discoveryNoticeIgnored = true
+  state.ui.discoveryNoticePending = false
+  state.ui.discoveryNoticeLayout = nil
   local saved = writeConfig and writeConfig()
   log(saved and "[UI] Discovery reminder disabled by the user."
     or "[UI] Discovery reminder disabled for this session; config could not be saved.",
@@ -184,8 +184,8 @@ helpers.ignoreDiscoveryNotice = function()
 end
 
 helpers.restoreDiscoveryNotice = function()
-  state.discoveryNoticeIgnored = false
-  state.discoveryNoticeLayout = nil
+  state.ui.discoveryNoticeIgnored = false
+  state.ui.discoveryNoticeLayout = nil
   local saved = writeConfig and writeConfig()
   log(saved and "[UI] Discovery reminder restored by the user."
     or "[UI] Discovery reminder restored for this session; config could not be saved.",
@@ -200,7 +200,7 @@ function occurrenceKeyParts(value)
 end
 
 function refreshCustomizationUi()
-  local menu = state.activeBodyMorphMenu
+  local menu = state.editor.activeBodyMorphMenu
   if not menu then
     log("UI refresh skipped: no active characterCreationBodyMorphMenu controller", "warn")
     return false

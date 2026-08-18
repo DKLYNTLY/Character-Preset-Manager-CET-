@@ -7,8 +7,8 @@ drawEditorSection = function(presetListHeight, statusHeight, actionButtonHeight,
 if collapsibleSectionHeader("APPEARANCE EDITOR", "editor") then
     ImGui.TextWrapped("Opens the game's full character editor. Apartment mirrors offer the same options.")
     ImGui.Spacing()
-    local editorUnavailable = state.editorOpenPending or state.inCustomization
-      or not state.editorHooksAvailable
+    local editorUnavailable = state.editor.openPending or state.app.inCustomization
+      or not state.editor.hooksAvailable
     if editorUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
       openFullAppearanceEditor()

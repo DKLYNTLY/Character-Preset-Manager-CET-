@@ -22,23 +22,23 @@ end
 function createFolder()
   clearStatus("folder")
   helpers.auditSection("CREATE FOLDER")
-  local leaf, nameError = validatedFolderName(state.folderName)
+  local leaf, nameError = validatedFolderName(state.library.folderName)
   if not leaf then setStatus("folder", nameError, true); return end
-  local name = joinFolder(state.selectedFolder, leaf)
+  local name = joinFolder(state.library.selectedFolder, leaf)
   local existing = findExistingFolderName(name)
   if existing then
     setStatus("folder", ("A folder named \"%s\" already exists."):format(existing), true); return
   end
-  state.folders[name] = true
-  state.manualFolders[name] = nil
-  if not persistVirtualState(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders) then
-    state.folders[name] = nil
+  state.library.folders[name] = true
+  state.library.manualFolders[name] = nil
+  if not persistVirtualState(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders) then
+    state.library.folders[name] = nil
     setStatus("folder", "The folder could not be saved.", true); return
   end
-  state.selectedFolder = name
+  state.library.selectedFolder = name
   invalidateViewCache()
-  state.folderName = ""
+  state.library.folderName = ""
   cancelConfirmations()
   setStatus("folder", "Created folder \"" .. name .. "\".", false, "success")
   log(("[FOLDER] Created virtual folder '%s'."):format(name), "complete")
@@ -47,11 +47,11 @@ end
 function renameFolder()
   clearStatus("folder")
   helpers.auditSection("RENAME FOLDER")
-  local old = state.selectedFolder
-  if old == "" or not state.folders[old] then
+  local old = state.library.selectedFolder
+  if old == "" or not state.library.folders[old] then
     setStatus("folder", "Select a folder to rename.", true); return
   end
-  local newLeaf, nameError = validatedFolderName(state.folderRenameName)
+  local newLeaf, nameError = validatedFolderName(state.library.folderRenameName)
   if not newLeaf then setStatus("folder", nameError, true); return end
   local destination = joinFolder(parentFolder(old), newLeaf)
   if destination == old then
@@ -67,9 +67,9 @@ function renameFolder()
 
   local newPresets, newFolders = {}, {}
   local newManualFolders = {}
-  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
   local usedPresetNames = {}
-  for name, preset in pairs(state.presets) do
+  for name, preset in pairs(state.library.presets) do
     local mapped = isInFolderTree(parentFolder(name), old)
       and remapFolderTreePath(name, old, destination) or name
     if usedPresetNames[mapped:lower()] then
@@ -79,16 +79,16 @@ function renameFolder()
     newPresets[mapped] = preset
   end
   local usedFolders = {}
-  for folder in pairs(state.folders) do
+  for folder in pairs(state.library.folders) do
     local mapped = remapFolderTreePath(folder, old, destination)
     if usedFolders[mapped:lower()] then
       setStatus("folder", "The rename would create duplicate folders.", true); return
     end
     usedFolders[mapped:lower()] = true
     newFolders[mapped] = true
-    if mapped == folder and state.manualFolders[folder] then
+    if mapped == folder and state.library.manualFolders[folder] then
       newManualFolders[mapped] = true
-    elseif mapped ~= folder and state.manualFolders[folder] then
+    elseif mapped ~= folder and state.library.manualFolders[folder] then
       newIgnored[folder] = true
     end
   end
@@ -96,18 +96,18 @@ function renameFolder()
     setStatus("folder",
       "The folder could not be renamed because the folder list could not be saved.", true); return
   end
-  local selectedPreset = state.selected
+  local selectedPreset = state.library.selected
   if selectedPreset and isInFolderTree(parentFolder(selectedPreset), old) then
     selectedPreset = remapFolderTreePath(selectedPreset, old, destination)
   end
-  state.presets = newPresets
-  state.folders = newFolders
-  state.manualFolders = newManualFolders
-  state.ignoredPhysicalFolders = newIgnored
+  state.library.presets = newPresets
+  state.library.folders = newFolders
+  state.library.manualFolders = newManualFolders
+  state.library.ignoredPhysicalFolders = newIgnored
   invalidateViewCache()
-  state.selectedFolder = destination
-  state.selected = selectedPreset
-  state.folderRenameName = ""
+  state.library.selectedFolder = destination
+  state.library.selected = selectedPreset
+  state.library.folderRenameName = ""
   cancelConfirmations()
   resetLoadState()
   setStatus("folder", ("Renamed folder \"%s\" to \"%s\"."):format(old, destination),
@@ -118,23 +118,23 @@ end
 function duplicateFolder()
   clearStatus("folder")
   helpers.auditSection("DUPLICATE FOLDER")
-  local source = state.selectedFolder
-  if source == "" or not state.folders[source] then
+  local source = state.library.selectedFolder
+  if source == "" or not state.library.folders[source] then
     setStatus("folder", "Select a folder to duplicate.", true); return
   end
   local destination = uniqueFolderCopyName(source)
   if not destination then
     setStatus("folder", "Could not find an available name for the duplicate folder.", true); return
   end
-  local newPresets = cloneMap(state.presets)
-  local newFolders = cloneMap(state.folders)
-  local newManualFolders = cloneMap(state.manualFolders)
+  local newPresets = cloneMap(state.library.presets)
+  local newFolders = cloneMap(state.library.folders)
+  local newManualFolders = cloneMap(state.library.manualFolders)
   local reservedStorage = storageFilenamesInUse()
   if not reservedStorage then
     setStatus("folder", "Storage filenames could not be checked safely.", true); return
   end
   local createdFiles = {}
-  for folder in pairs(state.folders) do
+  for folder in pairs(state.library.folders) do
     if isInFolderTree(folder, source) then
       local mapped = remapFolderTreePath(folder, source, destination)
       newFolders[mapped] = true
@@ -142,7 +142,7 @@ function duplicateFolder()
     end
   end
   newFolders[destination] = true
-  for name, preset in pairs(state.presets) do
+  for name, preset in pairs(state.library.presets) do
     if isInFolderTree(parentFolder(name), source) then
       preset = hydrateNamedPreset(name)
       if not preset then
@@ -182,16 +182,16 @@ function duplicateFolder()
     end
   end
   if not persistVirtualState(newPresets, newFolders, newManualFolders,
-      state.ignoredPhysicalFolders) then
+      state.library.ignoredPhysicalFolders) then
     setStatus("folder", cleanupFailureMessage(createdFiles,
       "The folder copy was removed because the folder list could not be saved.",
       "The folder list could not be saved, and some copied files could not be removed."), true); return
   end
-  state.presets = newPresets
-  state.folders = newFolders
-  state.manualFolders = newManualFolders
+  state.library.presets = newPresets
+  state.library.folders = newFolders
+  state.library.manualFolders = newManualFolders
   invalidateViewCache()
-  state.selectedFolder = destination
+  state.library.selectedFolder = destination
   cancelConfirmations()
   setStatus("folder", ("Copied folder \"%s\" as \"%s\"."):format(source, destination),
     false, "success")
@@ -202,25 +202,25 @@ end
 function removeVirtualFolder()
   clearStatus("folder")
   helpers.auditSection("REMOVE VIRTUAL FOLDER")
-  local folder = state.selectedFolder
-  if folder == "" or not state.folders[folder] then
+  local folder = state.library.selectedFolder
+  if folder == "" or not state.library.folders[folder] then
     setStatus("folder", "Select a folder to remove.", true); return
   end
   local destinationParent = parentFolder(folder)
-  local wasManualFolder = state.manualFolders[folder] == true
-  if state.pendingRemoveFolder ~= folder then
-    state.pendingRemoveFolder = folder
+  local wasManualFolder = state.library.manualFolders[folder] == true
+  if state.library.pendingRemoveFolder ~= folder then
+    state.library.pendingRemoveFolder = folder
     setStatus("folder",
       ("Remove folder \"%s\" and keep its presets? Its presets and nested folders will move to %s. No preset files will be deleted. Select Confirm Remove Folder, Keep Presets.")
         :format(folder, destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\"")))
     return
   end
-  state.pendingRemoveFolder = nil
+  state.library.pendingRemoveFolder = nil
   local newPresets, newFolders = {}, {}
   local newManualFolders = {}
-  local newIgnored = cloneMap(state.ignoredPhysicalFolders)
+  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
   local usedPresets, usedFolders = {}, {}
-  for name, preset in pairs(state.presets) do
+  for name, preset in pairs(state.library.presets) do
     local mapped = name
     if isInFolderTree(parentFolder(name), folder) then
       mapped = joinFolder(destinationParent, name:sub(#folder + 2))
@@ -231,7 +231,7 @@ function removeVirtualFolder()
     usedPresets[mapped:lower()] = true
     newPresets[mapped] = preset
   end
-  for candidate in pairs(state.folders) do
+  for candidate in pairs(state.library.folders) do
     if candidate ~= folder then
       local mapped = candidate
       if isInFolderTree(candidate, folder) then
@@ -242,12 +242,12 @@ function removeVirtualFolder()
       end
       usedFolders[mapped:lower()] = true
       newFolders[mapped] = true
-      if mapped == candidate and state.manualFolders[candidate] then
+      if mapped == candidate and state.library.manualFolders[candidate] then
         newManualFolders[mapped] = true
-      elseif mapped ~= candidate and state.manualFolders[candidate] then
+      elseif mapped ~= candidate and state.library.manualFolders[candidate] then
         newIgnored[candidate] = true
       end
-    elseif state.manualFolders[candidate] then
+    elseif state.library.manualFolders[candidate] then
       newIgnored[candidate] = true
     end
   end
@@ -257,7 +257,7 @@ function removeVirtualFolder()
     if not reservedStorage then
       setStatus("folder", "The imported folder could not be inspected safely.", true); return
     end
-    for logicalName, preset in pairs(state.presets) do
+    for logicalName, preset in pairs(state.library.presets) do
       local storageFolder = parentFolder(preset.storage or "")
       if storageFolder ~= "" and isInFolderTree(storageFolder, folder) then
         local destinationStorage = uniqueStorageName(baseName(preset.storage), reservedStorage)
@@ -320,21 +320,21 @@ function removeVirtualFolder()
         rolledBack = false
       end
     end
-    persistVirtualState(state.presets, state.folders, state.manualFolders,
-      state.ignoredPhysicalFolders)
+    persistVirtualState(state.library.presets, state.library.folders, state.library.manualFolders,
+      state.library.ignoredPhysicalFolders)
     if rolledBack then os.remove(TRANSACTION_FILE) end
     setStatus("folder", rolledBack
         and "The folder was restored because the folder list or recovery record could not be saved."
         or "The folder removal could not finish or be undone. The mod will try to recover it at the next startup.", true)
     return
   end
-  local selectedPreset = state.selected
+  local selectedPreset = state.library.selected
   if selectedPreset and isInFolderTree(parentFolder(selectedPreset), folder) then
     selectedPreset = joinFolder(destinationParent, selectedPreset:sub(#folder + 2))
   end
-  state.presets, state.folders = newPresets, newFolders
-  state.manualFolders, state.ignoredPhysicalFolders = newManualFolders, newIgnored
-  state.selected, state.selectedFolder = selectedPreset, destinationParent
+  state.library.presets, state.library.folders = newPresets, newFolders
+  state.library.manualFolders, state.library.ignoredPhysicalFolders = newManualFolders, newIgnored
+  state.library.selected, state.library.selectedFolder = selectedPreset, destinationParent
   invalidateViewCache()
   cancelConfirmations()
   resetLoadState()

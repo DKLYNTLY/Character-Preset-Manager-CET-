@@ -48,63 +48,63 @@ function fileFingerprint(path, maximumBytes)
 end
 
 function cancelConfirmations()
-  state.pendingOverwriteName = nil
-  state.pendingOverwriteFingerprint = nil
-  state.pendingDeleteName = nil
-  state.pendingDeleteFingerprint = nil
-  state.pendingRemoveFolder = nil
-  state.pendingEmptyTrash = false
-  state.pendingBulkAction = nil
-  state.pendingBulkFingerprint = nil
+  state.library.pendingOverwriteName = nil
+  state.library.pendingOverwriteFingerprint = nil
+  state.trash.pendingDeleteName = nil
+  state.trash.pendingDeleteFingerprint = nil
+  state.library.pendingRemoveFolder = nil
+  state.trash.pendingEmpty = false
+  state.trash.pendingBulkAction = nil
+  state.trash.pendingBulkFingerprint = nil
 end
 
 function resetLoadState()
-  state.loadPresetName = nil
-  state.loadPass = 0
-  state.loadRemaining = 0
-  state.loadNeedsContinue = false
-  state.loadStalled = false
-  state.previousUnresolvedSignature = nil
-  state.unresolvedRepeatCount = 0
-  state.loadSatisfied = {}
-  state.loadValues = nil
-  state.loadSavedCounts = nil
-  state.loadOrderedEntries = nil
-  state.loadSavedEntryByKey = nil
-  state.loadSavedSlotCounts = nil
-  state.loadValueCount = 0
-  state.loadForcedKeys = {}
-  state.loadResolvedChoiceIndexes = {}
-  state.loadApplyAttempts = {}
-  state.loadUnconfirmed = {}
-  state.loadCleanupAttempts = {}
-  state.loadCleanupSkipped = {}
-  state.loadLoggedWarnings = {}
-  state.loadOptionIdentityCache = {}
-  state.loadTargetPolls = 0
-  state.loadTargetPollSeconds = 0
-  state.loadTargetFallbacks = 0
-  state.loadPendingChange = nil
-  state.loadPendingElapsed = 0
-  state.loadPhase = "apply"
-  state.loadElapsed = 0
-  state.loadOptionsSeconds = 0
-  state.loadScanSeconds = 0
-  state.loadChoiceSeconds = 0
-  state.loadApplySeconds = 0
-  state.loadWaitSeconds = 0
-  state.loadOptionCalls = 0
-  state.loadStructureChanges = 0
-  state.loadLastStructureSignature = nil
-  state.loadTargetPollingDisabled = false
-  state.loadReturnToCleanup = false
-  state.loadDependencyKeys = {}
-  state.loadDependencyRemaps = {}
-  state.loadNextInterval = AUTO_LOAD_TIMING.interval
-  state.autoLoad = false
-  state.autoLoadTimer = 0
-  state.autoLoadPasses = 0
-  state.resetBeforeLoad = false
+  state.load.presetName = nil
+  state.load.pass = 0
+  state.load.remaining = 0
+  state.load.needsContinue = false
+  state.load.stalled = false
+  state.load.previousUnresolvedSignature = nil
+  state.load.unresolvedRepeatCount = 0
+  state.load.satisfied = {}
+  state.load.values = nil
+  state.load.savedCounts = nil
+  state.load.orderedEntries = nil
+  state.load.savedEntryByKey = nil
+  state.load.savedSlotCounts = nil
+  state.load.valueCount = 0
+  state.load.forcedKeys = {}
+  state.load.resolvedChoiceIndexes = {}
+  state.load.applyAttempts = {}
+  state.load.unconfirmed = {}
+  state.load.cleanupAttempts = {}
+  state.load.cleanupSkipped = {}
+  state.load.loggedWarnings = {}
+  state.load.optionIdentityCache = {}
+  state.load.targetPolls = 0
+  state.load.targetPollSeconds = 0
+  state.load.targetFallbacks = 0
+  state.load.pendingChange = nil
+  state.load.pendingElapsed = 0
+  state.load.phase = "apply"
+  state.load.elapsed = 0
+  state.load.optionsSeconds = 0
+  state.load.scanSeconds = 0
+  state.load.choiceSeconds = 0
+  state.load.applySeconds = 0
+  state.load.waitSeconds = 0
+  state.load.optionCalls = 0
+  state.load.structureChanges = 0
+  state.load.lastStructureSignature = nil
+  state.load.targetPollingDisabled = false
+  state.load.returnToCleanup = false
+  state.load.dependencyKeys = {}
+  state.load.dependencyRemaps = {}
+  state.load.nextInterval = AUTO_LOAD_TIMING.interval
+  state.load.auto = false
+  state.load.autoTimer = 0
+  state.load.autoPasses = 0
+  state.load.resetBefore = false
 end
 
 function cloneMap(source)
@@ -317,9 +317,10 @@ end
 
 function setStatus(section, message, isError, kind)
   local effectiveError = isError == true
-  state[section .. "Status"] = message
-  state[section .. "StatusError"] = effectiveError
-  state.statusKinds[section] = kind or (effectiveError and "error" or "info")
+  local sectionStatus = state.status.sections[section]
+  sectionStatus.message = message
+  sectionStatus.error = effectiveError
+  state.status.kinds[section] = kind or (effectiveError and "error" or "info")
   if section == "load" then
     local transient = message:find("Applied one option.", 1, true) == 1
       or message:find("Cleared a remaining option.", 1, true) == 1
@@ -341,16 +342,17 @@ function setStatus(section, message, isError, kind)
 end
 
 function clearStatus(section)
-  state[section .. "Status"] = ""
-  state[section .. "StatusError"] = false
-  state.statusKinds[section] = nil
+  local sectionStatus = state.status.sections[section]
+  sectionStatus.message = ""
+  sectionStatus.error = false
+  state.status.kinds[section] = nil
 end
 
 helpers.clearSectionStatuses = function()
   for _, section in ipairs(STATUS_SECTIONS) do
     clearStatus(section)
   end
-  state.lastLoggedFolderStatus = nil
+  state.status.lastLoggedFolder = nil
 end
 
 function sanitizeName(value)
