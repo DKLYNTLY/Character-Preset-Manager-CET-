@@ -1,4 +1,6 @@
-local _ENV = require("modules.runtime")
+local runtime = require("modules.runtime") or CPMRuntime
+if setfenv then setfenv(1, runtime) end
+local _ENV = runtime
 
 draw = function()
 if not state.overlayOpen or not state.windowOpen then return end

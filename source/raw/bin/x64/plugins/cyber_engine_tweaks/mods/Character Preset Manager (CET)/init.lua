@@ -1,4 +1,5 @@
-local runtime = require("modules.runtime")
+require("modules.runtime")
+local runtime = assert(CPMRuntime, "Character Preset Manager runtime did not load")
 require("modules.constants")
 require("modules.state")
 require("modules.filesystem")

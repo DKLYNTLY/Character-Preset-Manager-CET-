@@ -17,8 +17,9 @@ used. See the README and in-game Help for current instructions.
 - Splits the mod into smaller, focused files so Lua compiles each part
   separately. The menu sections and preset loader are also divided into
   shorter functions without changing controls, preset files, or loading rules.
-- Fixes the CET window failing to register after the module split when CET did
-  not return the event table expected by the main file.
+- Fixes the CET window failing to register after the module split by using
+  CET-compatible module environments and reading callbacks from shared module
+  state instead of expecting CET to return them from a loaded file.
 - Adds a **Log** button beside **Settings** and **Help**, so the Activity Log is
   available without scrolling through Help.
 - Makes Settings, Help, and the Activity Log close one another when a different

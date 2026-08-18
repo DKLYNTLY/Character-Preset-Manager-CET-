@@ -1,4 +1,6 @@
-local _ENV = require("modules.runtime")
+local runtime = require("modules.runtime") or CPMRuntime
+if setfenv then setfenv(1, runtime) end
+local _ENV = runtime
 
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("RENAME & COPY", "manage") then

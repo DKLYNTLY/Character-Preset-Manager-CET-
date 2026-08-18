@@ -1,4 +1,6 @@
-local _ENV = require("modules.runtime")
+local runtime = require("modules.runtime") or CPMRuntime
+if setfenv then setfenv(1, runtime) end
+local _ENV = runtime
 
 function remapFolderTreePath(path, source, destination)
   if path == source then return destination end

@@ -1,4 +1,6 @@
-local _ENV = require("modules.runtime")
+local runtime = require("modules.runtime") or CPMRuntime
+if setfenv then setfenv(1, runtime) end
+local _ENV = runtime
 
 ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
