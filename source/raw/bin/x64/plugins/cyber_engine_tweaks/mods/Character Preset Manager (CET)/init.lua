@@ -57,6 +57,7 @@ local FOLDER_BUNDLE_EXTENSION = ".cpmfolder"
 local log
 local readConfig
 local writeConfig
+local writeFileSafely
 
 local state = {
   overlayOpen = false,
@@ -501,10 +502,8 @@ helpers.archiveLogForNewSession = function()
       return false, "a unique dated activity-log archive name could not be found"
     end
 
-    local archive = io.open(archiveName, "wb")
-    if not archive then file:close(); return false, "the dated activity-log archive could not be created" end
     local archivedBytes = 0
-    local writeOk, writeResult = pcall(function()
+    local archived, archiveFailure = writeFileSafely(archiveName, "wb", function(archive)
       while true do
         local chunk = file:read(FILE_COPY_CHUNK_SIZE)
         if not chunk then break end
@@ -514,23 +513,24 @@ helpers.archiveLogForNewSession = function()
       return archivedBytes == size and archive:flush() ~= nil
     end)
     file:close()
-    local closeOk, closeResult = pcall(archive.close, archive)
-    if not writeOk or writeResult ~= true or not closeOk or closeResult == nil then
-      return false, "the dated activity-log archive could not be written"
+    if not archived then
+      return false, archiveFailure == "open"
+        and "the dated activity-log archive could not be created"
+        or "the dated activity-log archive could not be written"
     end
 
     local deleted, pruneError = helpers.pruneLogArchives()
 
-    local fresh = io.open(LOG_FILE, "w")
-    if not fresh then return false, "the activity log could not be cleared" end
-    fresh:close()
+    if not writeFileSafely(LOG_FILE, "w", function() return true end) then
+      return false, "the activity log could not be cleared"
+    end
     return true, archiveName, pruneError, deleted
   end
 
   file:close()
-  local fresh = io.open(LOG_FILE, "w")
-  if not fresh then return false, "the empty activity log could not be refreshed" end
-  fresh:close()
+  if not writeFileSafely(LOG_FILE, "w", function() return true end) then
+    return false, "the empty activity log could not be refreshed"
+  end
   return true, nil
 end
 
@@ -1126,7 +1126,8 @@ helpers.rebuildFilteredViewCache = function()
   local folderMatches = {}
   local matchingByFolder = {}
   for _, name in ipairs(state.cachedPresetNames) do
-    if textMatches(name, query) then
+    local preset = state.presets[name]
+    if textMatches(name, query) or textMatches(preset and preset.tags, query) then
       table.insert(visibleNames, name)
       local directFolder = parentFolder(name)
       matchingByFolder[directFolder] = matchingByFolder[directFolder] or {}
@@ -1462,76 +1463,52 @@ state.invalidatePreflight = function()
   state.preflightTimer = 0
 end
 
+writeFileSafely = function(path, mode, writerFn)
+  local file = io.open(path, mode)
+  if not file then return false, "open" end
+  local wrote, writeResult = pcall(writerFn, file)
+  local closed, closeResult = pcall(file.close, file)
+  if not wrote or writeResult ~= true or not closed or closeResult == nil then
+    return false, "write"
+  end
+  return true
+end
+
 local function writePresetContents(path, preset)
-  local file = io.open(path, "w")
-  if not file then return false end
-  local wrote, writeResult = pcall(function()
-    local format = tonumber(preset.format) or 5
-    if format >= CURRENT_PRESET_FORMAT then
-      local header = {
-        "# Character Preset Manager (CET) preset",
-        "# Format: " .. tostring(format),
-        "# Source: " .. sanitizeMetadata(preset.source or MOD_NAME, 128),
-        "# Created: " .. sanitizeMetadata(preset.created or "", 64),
-        "# Modified: " .. sanitizeMetadata(preset.modified or "", 64),
-        "# Notes: " .. sanitizeMetadata(preset.notes, 512),
-        "# Tags: " .. sanitizeMetadata(preset.tags, 128),
-        "#",
-        "# Appearance options",
-        "# Each main line is OptionKey:SavedNumber.",
-        "# Editor slot and Saved choice lines describe the option above them.",
-        "",
-      }
-      for _, line in ipairs(header) do
-        if not file:write(line .. "\n") then return false end
-      end
-      for _, entry in ipairs(preset.entries or {}) do
-        if not file:write(("%s:%d\n"):format(
-            tostring(entry.key), tonumber(entry.index) or 0)) then return false end
-        if entry.slot and entry.slot ~= "" then
-          if not file:write("# Editor slot: " ..
-              sanitizeMetadata(entry.slot, MAX_PRESET_KEY_BYTES) .. "\n") then return false end
-        end
-        if entry.choice and entry.choice ~= "" then
-          if not file:write("# Saved choice: " ..
-              sanitizeMetadata(entry.choice, MAX_PRESET_KEY_BYTES * 4) .. "\n") then return false end
-        end
-        if not file:write("\n") then return false end
-      end
-      return file:flush() ~= nil
-    end
-    local metadata = {
-      { "format", tostring(format) },
-      { "source", preset.source or MOD_NAME },
-      { "created", preset.created or "" },
-      { "modified", preset.modified or "" },
-      { "notes", sanitizeMetadata(preset.notes, 512) },
-      { "tags", sanitizeMetadata(preset.tags, 128) },
+  return writeFileSafely(path, "w", function(file)
+    local format = tonumber(preset.format) or CURRENT_PRESET_FORMAT
+    local header = {
+      "# Character Preset Manager (CET) preset",
+      "# Format: " .. tostring(format),
+      "# Source: " .. sanitizeMetadata(preset.source or MOD_NAME, 128),
+      "# Created: " .. sanitizeMetadata(preset.created or "", 64),
+      "# Modified: " .. sanitizeMetadata(preset.modified or "", 64),
+      "# Notes: " .. sanitizeMetadata(preset.notes, 512),
+      "# Tags: " .. sanitizeMetadata(preset.tags, 128),
+      "#",
+      "# Appearance options",
+      "# Each main line is OptionKey:SavedNumber.",
+      "# Editor slot and Saved choice lines describe the option above them.",
+      "",
     }
-    for _, item in ipairs(metadata) do
-      local result = file:write(("# CPM\t%s\t%s\n"):format(
-        item[1], item[1] == "format" and item[2] or catalogEncode(item[2])))
-      if not result then return false end
+    for _, line in ipairs(header) do
+      if not file:write(line .. "\n") then return false end
     end
     for _, entry in ipairs(preset.entries or {}) do
+      if not file:write(("%s:%d\n"):format(
+          tostring(entry.key), tonumber(entry.index) or 0)) then return false end
       if entry.slot and entry.slot ~= "" then
-        local slotResult = file:write("# CPM\tslot\t" .. catalogEncode(entry.slot) .. "\n")
-        if not slotResult then return false end
+        if not file:write("# Editor slot: " ..
+            sanitizeMetadata(entry.slot, MAX_PRESET_KEY_BYTES) .. "\n") then return false end
       end
       if entry.choice and entry.choice ~= "" then
-        local choiceResult = file:write("# CPM\tchoice\t" .. catalogEncode(entry.choice) .. "\n")
-        if not choiceResult then return false end
+        if not file:write("# Saved choice: " ..
+            sanitizeMetadata(entry.choice, MAX_PRESET_KEY_BYTES * 4) .. "\n") then return false end
       end
-      local result = file:write(("%s:%d\n"):format(
-        tostring(entry.key),
-        tonumber(entry.index) or 0
-      ))
-      if not result then return false end
+      if not file:write("\n") then return false end
     end
     return file:flush() ~= nil
   end)
-  local closed, closeResult = pcall(file.close, file)
-  return wrote and writeResult == true and closed and closeResult ~= nil
 end
 
 local function atomicReplace(path, writeTemporary, description)
@@ -1600,29 +1577,21 @@ local function writeLinesIfChanged(path, lines, description, maximumBytes)
   local existing = readBoundedFile(path, maximumBytes)
   if existing == contents then return true, false end
   local result = atomicReplace(path, function(temporary)
-    local file = io.open(temporary, "wb")
-    if not file then return false end
-    local wrote, writeResult = pcall(function()
+    return writeFileSafely(temporary, "wb", function(file)
       return file:write(contents) ~= nil and file:flush() ~= nil
     end)
-    local closeOk, closeResult = pcall(file.close, file)
-    return wrote and writeResult == true and closeOk and closeResult ~= nil
   end, description)
   return result, result
 end
 
 writeConfig = function()
   local result = atomicReplace(CONFIG_FILE, function(temporary)
-    local file = io.open(temporary, "wb")
-    if not file then return false end
-    local wrote, writeResult = pcall(function()
+    return writeFileSafely(temporary, "wb", function(file)
       return file:write(
         "discoveryReminder=" .. tostring(not state.discoveryNoticeIgnored) .. "\n" ..
         "presetSort=" .. (state.sortMode == "modified" and "modified" or "name") .. "\n"
       ) ~= nil and file:flush() ~= nil
     end)
-    local closeOk, closeResult = pcall(file.close, file)
-    return wrote and writeResult == true and closeOk and closeResult ~= nil
   end, "config")
   return result
 end
@@ -1996,12 +1965,11 @@ local function uniqueTrashedBundleFilename(filename)
 end
 
 trashSelectedFolderBundle = function()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("TRASH FOLDER BUNDLE")
   local selected = state.selectedBundleFile
   if not isFolderBundleFilename(selected) then
-    state.folderStatus, state.folderStatusError =
-      "Select a shared-folder file to move to Trash.", true
+    setStatus("folder", "Select a shared-folder file to move to Trash.", true)
     return
   end
   local selectedPath = nil
@@ -2014,44 +1982,40 @@ trashSelectedFolderBundle = function()
   end
   if not selectedPath then
     state.selectedBundleFile = nil
-    state.folderStatus, state.folderStatusError =
-      "That shared-folder file is no longer available.", true
+    setStatus("folder", "That shared-folder file is no longer available.", true)
     return
   end
   local fingerprint = fileFingerprint(selectedPath, MAX_FOLDER_BUNDLE_BYTES)
   if not fingerprint then
-    state.folderStatus, state.folderStatusError =
-      "The selected shared-folder file could not be checked safely.", true
+    setStatus("folder", "The selected shared-folder file could not be checked safely.", true)
     return
   end
   local trashFilename = uniqueTrashedBundleFilename(selected)
   if not trashFilename then
-    state.folderStatus, state.folderStatusError =
-      "The mod could not create a safe Trash file name for the shared folder.", true
+    setStatus("folder", "The mod could not create a safe Trash file name for the shared folder.", true)
     return
   end
   local trashPath = TRASH_DIR .. "/" .. trashFilename
   local moved, moveError = os.rename(selectedPath, trashPath)
   if not moved then
-    state.folderStatus, state.folderStatusError =
-      ("The shared-folder file could not be moved to Trash: %s"):format(tostring(moveError)), true
+    setStatus("folder",
+      ("The shared-folder file could not be moved to Trash: %s"):format(tostring(moveError)), true)
     return
   end
   if fileFingerprint(trashPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
     local rolledBack = os.rename(trashPath, selectedPath) ~= nil
-    state.folderStatus, state.folderStatusError = rolledBack
+    setStatus("folder", rolledBack
       and "Folder bundle verification failed; the file was returned to Character Presets."
-      or "Folder bundle verification failed, and the file could not be returned from Trash.", true
+      or "Folder bundle verification failed, and the file could not be returned from Trash.", true)
     return
   end
   state.trashBundles[trashFilename] = true
   state.trashViewDirty = true
   state.selectedBundleFile = nil
   state.folderBundleFilesDirty = true
-  state.folderStatus, state.folderStatusError =
+  setStatus("folder",
     ("Moved shared-folder file \"%s\" to Trash. Presets and folders were not changed.")
-      :format(selected), false
-  state.statusKinds.folder = "success"
+      :format(selected), false, "success")
   log(("[FOLDER BUNDLE] Moved file='%s' to Trash as '%s'.")
     :format(selectedPath, trashFilename), "complete")
 end
@@ -2122,11 +2086,11 @@ local function uniqueFolderBundleFilename(folder)
 end
 
 exportSelectedFolderBundle = function()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("EXPORT FOLDER BUNDLE")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
-    state.folderStatus, state.folderStatusError = "Select a folder to export.", true; return
+    setStatus("folder", "Select a folder to export.", true); return
   end
   local names = {}
   for name in pairs(state.presets) do
@@ -2134,12 +2098,11 @@ exportSelectedFolderBundle = function()
   end
   table.sort(names, function(a, b) return a:lower() < b:lower() end)
   if #names == 0 then
-    state.folderStatus, state.folderStatusError =
-      "The selected folder contains no presets to share.", true; return
+    setStatus("folder", "The selected folder contains no presets to share.", true); return
   end
   if #names > MAX_FOLDER_BUNDLE_PRESETS then
-    state.folderStatus, state.folderStatusError =
-      ("This folder has more than the %d presets allowed in one shared-folder file."):format(MAX_FOLDER_BUNDLE_PRESETS), true; return
+    setStatus("folder",
+      ("This folder has more than the %d presets allowed in one shared-folder file."):format(MAX_FOLDER_BUNDLE_PRESETS), true); return
   end
   local folders = {}
   for candidate in pairs(state.folders) do
@@ -2150,14 +2113,11 @@ exportSelectedFolderBundle = function()
   table.sort(folders, function(a, b) return a:lower() < b:lower() end)
   local filename = uniqueFolderBundleFilename(folder)
   if not filename then
-    state.folderStatus, state.folderStatusError =
-      "The mod could not create an unused file name for the shared folder.", true; return
+    setStatus("folder", "The mod could not create an unused file name for the shared folder.", true); return
   end
   local bundleError = nil
   local wrote = atomicReplace(filename, function(temporary)
-    local file = io.open(temporary, "wb")
-    if not file then return false end
-    local wroteOk, writeResult = pcall(function()
+    return writeFileSafely(temporary, "wb", function(file)
       local header = "CPMFOLDER\t1\nROOT\t" .. catalogEncode(baseName(folder)) .. "\n"
       local totalBytes = #header
       if not file:write(header) then return false end
@@ -2206,18 +2166,14 @@ exportSelectedFolderBundle = function()
       end
       return file:flush() ~= nil
     end)
-    local closeOk, closeResult = pcall(file.close, file)
-    return wroteOk and writeResult == true and closeOk and closeResult ~= nil
   end, "folder bundle")
   if not wrote then
-    state.folderStatus, state.folderStatusError = bundleError
-      or "The shared-folder file could not be saved.", true; return
+    setStatus("folder", bundleError or "The shared-folder file could not be saved.", true); return
   end
   state.folderBundleFilesDirty = true
-  state.folderStatus, state.folderStatusError =
+  setStatus("folder",
     ("Exported %d preset%s to %s. Share this one file.")
-      :format(#names, #names == 1 and "" or "s", filename), false
-  state.statusKinds.folder = "success"
+      :format(#names, #names == 1 and "" or "s", filename), false, "success")
   log(("[FOLDER BUNDLE] Exported folder='%s' presets=%d file='%s'.")
     :format(folder, #names, filename), "complete")
 end
@@ -2296,13 +2252,9 @@ end
 
 local function writeRawPreset(path, contents)
   return atomicReplace(path, function(temporary)
-    local file = io.open(temporary, "wb")
-    if not file then return false end
-    local wrote, writeResult = pcall(function()
+    return writeFileSafely(temporary, "wb", function(file)
       return file:write(contents) ~= nil and file:flush() ~= nil
     end)
-    local closeOk, closeResult = pcall(file.close, file)
-    return wrote and writeResult == true and closeOk and closeResult ~= nil
   end, "imported folder preset")
 end
 
@@ -2416,17 +2368,17 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
 end
 
 importAvailableFolderBundles = function()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("IMPORT FOLDER BUNDLES")
   local files = folderBundleFiles(true)
   if #files == 0 then
-    state.folderStatus, state.folderStatusError =
-      "Place a .cpmfolder file in Character Presets, then select Install Shared Folders.", true; return
+    setStatus("folder",
+      "Place a .cpmfolder file in Character Presets, then select Install Shared Folders.", true); return
   end
   local importedBundles, registryOk = readImportedBundles()
   if not registryOk then
-    state.folderStatus, state.folderStatusError =
-      "Imported Bundles.txt is unreadable or unsafe. No bundles were changed.", true; return
+    setStatus("folder",
+      "Imported Bundles.txt is unreadable or unsafe. No bundles were changed.", true); return
   end
   local imported, skipped, failures, warnings = 0, 0, {}, {}
   for _, filename in ipairs(files) do
@@ -2465,16 +2417,16 @@ importAvailableFolderBundles = function()
     end
   end
   if #failures > 0 then
-    state.folderStatus = ("Imported %d bundle%s; skipped %d already imported. Failed: %s")
-      :format(imported, imported == 1 and "" or "s", skipped, table.concat(failures, " | "))
-    state.folderStatusError = true
+    setStatus("folder",
+      ("Imported %d bundle%s; skipped %d already imported. Failed: %s")
+        :format(imported, imported == 1 and "" or "s", skipped, table.concat(failures, " | ")), true)
   else
-    state.folderStatus = ("Installed %d shared folder%s; skipped %d already installed.%s")
-      :format(imported, imported == 1 and "" or "s",
-        skipped,
-        #warnings > 0 and (" " .. table.concat(warnings, " | ")) or "")
-    state.folderStatusError = false
-    state.statusKinds.folder = "success"
+    setStatus("folder",
+      ("Installed %d shared folder%s; skipped %d already installed.%s")
+        :format(imported, imported == 1 and "" or "s",
+          skipped,
+          #warnings > 0 and (" " .. table.concat(warnings, " | ")) or ""),
+      false, "success")
   end
 end
 
@@ -5059,20 +5011,20 @@ local function renamePreset()
 end
 
 local function movePresetToSelectedFolder()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("MOVE PRESET")
   if not state.selected or not state.presets[state.selected] then
-    state.folderStatus, state.folderStatusError = "Select a preset before moving it.", true; return
+    setStatus("folder", "Select a preset before moving it.", true); return
   end
   local old = state.selected
   local newName = joinFolder(state.selectedFolder, baseName(old))
   if newName == old then
-    state.folderStatus, state.folderStatusError = "The preset is already in the selected folder.", false; return
+    setStatus("folder", "The preset is already in the selected folder."); return
   end
   local collision = findPresetCollision(newName, old)
   if collision then
-    state.folderStatus, state.folderStatusError =
-      ("A preset named \"%s\" already exists there."):format(baseName(collision)), true; return
+    setStatus("folder",
+      ("A preset named \"%s\" already exists there."):format(baseName(collision)), true); return
   end
   local preset = state.presets[old]
   state.presets[old] = nil
@@ -5081,17 +5033,16 @@ local function movePresetToSelectedFolder()
       state.ignoredPhysicalFolders) then
     state.presets[newName] = nil
     state.presets[old] = preset
-    state.folderStatus, state.folderStatusError =
-      "The preset could not be moved because the folder list could not be saved.", true; return
+    setStatus("folder",
+      "The preset could not be moved because the folder list could not be saved.", true); return
   end
   state.selected = newName
   invalidateViewCache()
   cancelConfirmations()
   resetLoadState()
-  state.folderStatus, state.folderStatusError =
+  setStatus("folder",
     ("Moved \"%s\" to %s."):format(baseName(newName),
-      state.selectedFolder == "" and "All Presets" or state.selectedFolder), false
-  state.statusKinds.folder = "success"
+      state.selectedFolder == "" and "All Presets" or state.selectedFolder), false, "success")
   log(("[PRESET] Virtual move completed: '%s' -> '%s' storage='%s'.")
     :format(old, newName, preset.storage), "complete")
 end
@@ -5183,53 +5134,49 @@ local function duplicatePreset()
 end
 
 local function createFolder()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("CREATE FOLDER")
   local leaf, nameError = validatedFolderName(state.folderName)
-  if not leaf then state.folderStatus, state.folderStatusError = nameError, true; return end
+  if not leaf then setStatus("folder", nameError, true); return end
   local name = joinFolder(state.selectedFolder, leaf)
   local existing = findExistingFolderName(name)
   if existing then
-    state.folderStatus, state.folderStatusError =
-      ("A folder named \"%s\" already exists."):format(existing), true; return
+    setStatus("folder", ("A folder named \"%s\" already exists."):format(existing), true); return
   end
   state.folders[name] = true
   state.manualFolders[name] = nil
   if not persistVirtualState(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders) then
     state.folders[name] = nil
-    state.folderStatus, state.folderStatusError = "The folder could not be saved.", true; return
+    setStatus("folder", "The folder could not be saved.", true); return
   end
   state.selectedFolder = name
   invalidateViewCache()
   state.folderName = ""
   cancelConfirmations()
-  state.folderStatus, state.folderStatusError = "Created folder \"" .. name .. "\".", false
-  state.statusKinds.folder = "success"
+  setStatus("folder", "Created folder \"" .. name .. "\".", false, "success")
   log(("[FOLDER] Created virtual folder '%s'."):format(name), "complete")
 end
 
 local function renameFolder()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("RENAME FOLDER")
   local old = state.selectedFolder
   if old == "" or not state.folders[old] then
-    state.folderStatus, state.folderStatusError = "Select a folder to rename.", true; return
+    setStatus("folder", "Select a folder to rename.", true); return
   end
   local newLeaf, nameError = validatedFolderName(state.folderRenameName)
-  if not newLeaf then state.folderStatus, state.folderStatusError = nameError, true; return end
+  if not newLeaf then setStatus("folder", nameError, true); return end
   local destination = joinFolder(parentFolder(old), newLeaf)
   if destination == old then
-    state.folderStatus, state.folderStatusError = "The folder already has this name.", false; return
+    setStatus("folder", "The folder already has this name."); return
   end
   if destination:lower() == old:lower() then
-    state.folderStatus, state.folderStatusError =
-      "Folder names cannot differ only by capitalization.", true; return
+    setStatus("folder", "Folder names cannot differ only by capitalization.", true); return
   end
   local existing = findExistingFolderName(destination, old)
   if existing then
-    state.folderStatus, state.folderStatusError =
-      ("A folder named \"%s\" already exists."):format(existing), true; return
+    setStatus("folder", ("A folder named \"%s\" already exists."):format(existing), true); return
   end
 
   local newPresets, newFolders = {}, {}
@@ -5240,7 +5187,7 @@ local function renameFolder()
     local mapped = isInFolderTree(parentFolder(name), old)
       and remapFolderTreePath(name, old, destination) or name
     if usedPresetNames[mapped:lower()] then
-      state.folderStatus, state.folderStatusError = "The rename would create duplicate preset names.", true; return
+      setStatus("folder", "The rename would create duplicate preset names.", true); return
     end
     usedPresetNames[mapped:lower()] = true
     newPresets[mapped] = preset
@@ -5249,7 +5196,7 @@ local function renameFolder()
   for folder in pairs(state.folders) do
     local mapped = remapFolderTreePath(folder, old, destination)
     if usedFolders[mapped:lower()] then
-      state.folderStatus, state.folderStatusError = "The rename would create duplicate folders.", true; return
+      setStatus("folder", "The rename would create duplicate folders.", true); return
     end
     usedFolders[mapped:lower()] = true
     newFolders[mapped] = true
@@ -5260,7 +5207,8 @@ local function renameFolder()
     end
   end
   if not persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored) then
-    state.folderStatus, state.folderStatusError = "The folder could not be renamed because the folder list could not be saved.", true; return
+    setStatus("folder",
+      "The folder could not be renamed because the folder list could not be saved.", true); return
   end
   local selectedPreset = state.selected
   if selectedPreset and isInFolderTree(parentFolder(selectedPreset), old) then
@@ -5276,29 +5224,28 @@ local function renameFolder()
   state.folderRenameName = ""
   cancelConfirmations()
   resetLoadState()
-  state.folderStatus, state.folderStatusError =
-    ("Renamed folder \"%s\" to \"%s\"."):format(old, destination), false
-  state.statusKinds.folder = "success"
+  setStatus("folder", ("Renamed folder \"%s\" to \"%s\"."):format(old, destination),
+    false, "success")
   log(("[FOLDER] Virtual rename completed: '%s' -> '%s'."):format(old, destination), "complete")
 end
 
 local function duplicateFolder()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("DUPLICATE FOLDER")
   local source = state.selectedFolder
   if source == "" or not state.folders[source] then
-    state.folderStatus, state.folderStatusError = "Select a folder to duplicate.", true; return
+    setStatus("folder", "Select a folder to duplicate.", true); return
   end
   local destination = uniqueFolderCopyName(source)
   if not destination then
-    state.folderStatus, state.folderStatusError = "Could not find an available name for the duplicate folder.", true; return
+    setStatus("folder", "Could not find an available name for the duplicate folder.", true); return
   end
   local newPresets = cloneMap(state.presets)
   local newFolders = cloneMap(state.folders)
   local newManualFolders = cloneMap(state.manualFolders)
   local reservedStorage = storageFilenamesInUse()
   if not reservedStorage then
-    state.folderStatus, state.folderStatusError = "Storage filenames could not be checked safely.", true; return
+    setStatus("folder", "Storage filenames could not be checked safely.", true); return
   end
   local createdFiles = {}
   for folder in pairs(state.folders) do
@@ -5313,35 +5260,35 @@ local function duplicateFolder()
     if isInFolderTree(parentFolder(name), source) then
       preset = hydrateNamedPreset(name)
       if not preset then
-        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+        setStatus("folder", cleanupFailureMessage(createdFiles,
           "Folder duplication stopped because a source preset could not be read.",
-          "A source preset could not be read, and some partial files could not be removed."), true; return
+          "A source preset could not be read, and some partial files could not be removed."), true); return
       end
       local mapped = remapFolderTreePath(name, source, destination)
       if findPresetCollision(mapped) or newPresets[mapped] then
-        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+        setStatus("folder", cleanupFailureMessage(createdFiles,
           "The copied folder would contain duplicate preset names.",
-          "Folder duplication found duplicate names, and some partial files could not be removed."), true; return
+          "Folder duplication found duplicate names, and some partial files could not be removed."), true); return
       end
       local storage = uniqueStorageName(baseName(mapped), reservedStorage)
       if not storage then
-        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+        setStatus("folder", cleanupFailureMessage(createdFiles,
           "The mod could not create a safe file name for the copied preset.",
-          "Storage allocation failed, and some partial files could not be removed."), true; return
+          "Storage allocation failed, and some partial files could not be removed."), true); return
       end
       local path = PRESET_DIR .. "/" .. storage .. ".preset"
       if not copyFile(presetPath(name), path) then
         table.insert(createdFiles, path)
-        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+        setStatus("folder", cleanupFailureMessage(createdFiles,
           "Folder duplication failed; partial preset copies were removed.",
-          "Folder duplication failed, and some partial files could not be removed."), true; return
+          "Folder duplication failed, and some partial files could not be removed."), true); return
       end
       local copy = readVerifiedPresetCopy(preset, path)
       if not copy then
         table.insert(createdFiles, path)
-        state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+        setStatus("folder", cleanupFailureMessage(createdFiles,
           "Folder duplication verification failed; partial copies were removed.",
-          "Folder duplication verification failed, and some partial files could not be removed."), true; return
+          "Folder duplication verification failed, and some partial files could not be removed."), true); return
       end
       copy.storage = storage
       newPresets[mapped] = copy
@@ -5350,9 +5297,9 @@ local function duplicateFolder()
   end
   if not persistVirtualState(newPresets, newFolders, newManualFolders,
       state.ignoredPhysicalFolders) then
-    state.folderStatus, state.folderStatusError = cleanupFailureMessage(createdFiles,
+    setStatus("folder", cleanupFailureMessage(createdFiles,
       "The folder copy was removed because the folder list could not be saved.",
-      "The folder list could not be saved, and some copied files could not be removed."), true; return
+      "The folder list could not be saved, and some copied files could not be removed."), true); return
   end
   state.presets = newPresets
   state.folders = newFolders
@@ -5360,27 +5307,26 @@ local function duplicateFolder()
   invalidateViewCache()
   state.selectedFolder = destination
   cancelConfirmations()
-  state.folderStatus, state.folderStatusError =
-    ("Copied folder \"%s\" as \"%s\"."):format(source, destination), false
-  state.statusKinds.folder = "success"
+  setStatus("folder", ("Copied folder \"%s\" as \"%s\"."):format(source, destination),
+    false, "success")
   log(("[FOLDER] Virtual duplicate completed: source='%s' destination='%s' presets=%d.")
     :format(source, destination, #createdFiles), "complete")
 end
 
 local function removeVirtualFolder()
-  state.statusKinds.folder = nil
+  clearStatus("folder")
   auditSection("REMOVE VIRTUAL FOLDER")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
-    state.folderStatus, state.folderStatusError = "Select a folder to remove.", true; return
+    setStatus("folder", "Select a folder to remove.", true); return
   end
   local destinationParent = parentFolder(folder)
   local wasManualFolder = state.manualFolders[folder] == true
   if state.pendingRemoveFolder ~= folder then
     state.pendingRemoveFolder = folder
-    state.folderStatus = ("Remove folder \"%s\" and keep its presets? Its presets and nested folders will move to %s. No preset files will be deleted. Select Confirm Remove Folder, Keep Presets.")
-      :format(folder, destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\""))
-    state.folderStatusError = false
+    setStatus("folder",
+      ("Remove folder \"%s\" and keep its presets? Its presets and nested folders will move to %s. No preset files will be deleted. Select Confirm Remove Folder, Keep Presets.")
+        :format(folder, destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\"")))
     return
   end
   state.pendingRemoveFolder = nil
@@ -5394,8 +5340,7 @@ local function removeVirtualFolder()
       mapped = joinFolder(destinationParent, name:sub(#folder + 2))
     end
     if usedPresets[mapped:lower()] then
-      state.folderStatus, state.folderStatusError =
-        "The folder cannot be removed because preset names would collide.", true; return
+      setStatus("folder", "The folder cannot be removed because preset names would collide.", true); return
     end
     usedPresets[mapped:lower()] = true
     newPresets[mapped] = preset
@@ -5407,8 +5352,7 @@ local function removeVirtualFolder()
         mapped = joinFolder(destinationParent, candidate:sub(#folder + 2))
       end
       if usedFolders[mapped:lower()] then
-        state.folderStatus, state.folderStatusError =
-          "The folder cannot be removed because folder names would collide.", true; return
+        setStatus("folder", "The folder cannot be removed because folder names would collide.", true); return
       end
       usedFolders[mapped:lower()] = true
       newFolders[mapped] = true
@@ -5425,16 +5369,15 @@ local function removeVirtualFolder()
   if wasManualFolder then
     local reservedStorage = storageFilenamesInUse()
     if not reservedStorage then
-      state.folderStatus, state.folderStatusError =
-        "The imported folder could not be inspected safely.", true; return
+      setStatus("folder", "The imported folder could not be inspected safely.", true); return
     end
     for logicalName, preset in pairs(state.presets) do
       local storageFolder = parentFolder(preset.storage or "")
       if storageFolder ~= "" and isInFolderTree(storageFolder, folder) then
         local destinationStorage = uniqueStorageName(baseName(preset.storage), reservedStorage)
         if not destinationStorage then
-          state.folderStatus, state.folderStatusError =
-            "The mod could not create a safe destination file name for an imported preset.", true; return
+          setStatus("folder",
+            "The mod could not create a safe destination file name for an imported preset.", true); return
         end
         table.insert(relocationPlans, {
           storage = preset.storage,
@@ -5450,8 +5393,8 @@ local function removeVirtualFolder()
   end)
   if #relocationPlans > 0
       and not writeTransaction("prepared", "rename", relocationPlans) then
-    state.folderStatus, state.folderStatusError =
-      "The recovery record for removing this imported folder could not be created.", true; return
+    setStatus("folder",
+      "The recovery record for removing this imported folder could not be created.", true); return
   end
   local movedPlans = {}
   for _, plan in ipairs(relocationPlans) do
@@ -5467,9 +5410,9 @@ local function removeVirtualFolder()
         if not os.rename(movedPath, originalPath) then rolledBack = false end
       end
       if rolledBack then os.remove(TRANSACTION_FILE) end
-      state.folderStatus, state.folderStatusError = rolledBack
+      setStatus("folder", rolledBack
         and "The imported folder was left unchanged because a preset file could not be moved."
-        or "A preset could not be moved, and some earlier moves could not be undone. The mod will try to recover them at the next startup.", true
+        or "A preset could not be moved, and some earlier moves could not be undone. The mod will try to recover them at the next startup.", true)
       return
     end
     table.insert(movedPlans, plan)
@@ -5494,10 +5437,9 @@ local function removeVirtualFolder()
     persistVirtualState(state.presets, state.folders, state.manualFolders,
       state.ignoredPhysicalFolders)
     if rolledBack then os.remove(TRANSACTION_FILE) end
-    state.folderStatus, state.folderStatusError =
-      rolledBack
+    setStatus("folder", rolledBack
         and "The folder was restored because the folder list or recovery record could not be saved."
-        or "The folder removal could not finish or be undone. The mod will try to recover it at the next startup.", true
+        or "The folder removal could not finish or be undone. The mod will try to recover it at the next startup.", true)
     return
   end
   local selectedPreset = state.selected
@@ -5515,15 +5457,14 @@ local function removeVirtualFolder()
       and directoryTreeContainsFiles(folderPath(folder), 0) == false then
     physicalFolderRemoved = removeEmptyDirectoryTree(folderPath(folder), 0)
   end
-  state.folderStatus, state.folderStatusError =
+  setStatus("folder",
     "Removed folder \"" .. folder .. "\", kept all presets, and moved them to " ..
       (destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\"")) ..
       (wasManualFolder
         and (physicalFolderRemoved
           and ". Its empty Windows folder was also removed."
           or ". Its Windows folder was kept because it contains other files or could not be removed safely.")
-        or "."), false
-  state.statusKinds.folder = "success"
+        or "."), false, "success")
 end
 
 local function refreshEditorState()
@@ -6139,17 +6080,16 @@ draw = function()
     state.initialWindowPlacementPending = false
     log(("[UI] Initial window position forced to the right: displayWidth=%s x=%s y=%s.")
       :format(tostring(displayWidth), tostring(initialX), tostring(initialY)), "info")
-    local status = io.open(WINDOW_POSITION_STATUS_FILE, "w")
-    if status then
-      local wrote = status:write((
+    local wrote = writeFileSafely(WINDOW_POSITION_STATUS_FILE, "w", function(status)
+      return status:write((
         "Character Preset Manager (CET) initial right-side position applied.\n" ..
         "Applied: %s\nDisplay width: %s\nInitial X: %s\nInitial Y: %s\n"
       ):format(logTimestamp(), tostring(displayWidth), tostring(initialX),
-        tostring(initialY)))
-      status:close()
+        tostring(initialY))) ~= nil
+    end)
+    if wrote then
       log(("[UI] Window position status written: file='%s' success=%s.")
-        :format(WINDOW_POSITION_STATUS_FILE, tostring(wrote ~= nil)),
-        wrote and "info" or "error")
+        :format(WINDOW_POSITION_STATUS_FILE, tostring(wrote)), "info")
     else
       log(("[UI] Could not write window position status '%s'; startup placement will retry next launch.")
         :format(WINDOW_POSITION_STATUS_FILE), "error")
@@ -6165,7 +6105,7 @@ draw = function()
     local topRowStartX = ImGui.GetCursorPosX()
     local topRowWidth = ImGui.GetContentRegionAvail()
     local topButtonWidth = 72
-    local topControlsWidth = topButtonWidth * 2 + 8
+    local topControlsWidth = topButtonWidth * 3 + 16
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
     if state.inCustomization then
@@ -6179,12 +6119,28 @@ draw = function()
     ImGui.SetCursorPosX(topRowStartX + topRowWidth - topControlsWidth)
     if ImGui.Button("Settings##settings", topButtonWidth, actionButtonHeight) then
       state.settingsOpen = not state.settingsOpen
+      if state.settingsOpen then
+        state.helpOpen = false
+        state.debugOpen = false
+      end
     end
     ImGui.SameLine()
     if ImGui.Button("Help##help", topButtonWidth, actionButtonHeight) then
       state.helpOpen = not state.helpOpen
-      if state.helpOpen then state.debugOpen = false end
-      if state.helpOpen then state.bindingCache = {} end
+      if state.helpOpen then
+        state.settingsOpen = false
+        state.debugOpen = false
+        state.bindingCache = {}
+      end
+    end
+    ImGui.SameLine()
+    if ImGui.Button("Log##debug", topButtonWidth, actionButtonHeight) then
+      state.debugOpen = not state.debugOpen
+      if state.debugOpen then
+        state.settingsOpen = false
+        state.helpOpen = false
+        ui.readDiagnosticLog()
+      end
     end
     if state.settingsOpen then
       ImGui.Spacing()
@@ -6323,6 +6279,7 @@ draw = function()
         ui.readDiagnosticLog()
         state.debugOpen = true
         state.helpOpen = false
+        state.settingsOpen = false
       end
 
       ImGui.EndChild()
@@ -6346,10 +6303,11 @@ draw = function()
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
-    local searchButtonWidth = 64
+    local searchButtonWidth = narrowTopRow and 48 or 64
     ImGui.PushItemWidth(math.max(80, searchRowWidth - searchButtonWidth * 2 - 16))
     local previousSearchText = state.searchText
-    state.searchText = ImGui.InputTextWithHint("##presetSearch", "Search presets or folders", state.searchText, 65)
+    state.searchText = ImGui.InputTextWithHint(
+      "##presetSearch", "Search presets, folders, or tags", state.searchText, 65)
     if state.searchText ~= previousSearchText then invalidateFilteredViewCache() end
     ImGui.PopItemWidth()
     ImGui.SameLine()
@@ -6391,6 +6349,7 @@ draw = function()
           log(("[UI] Preset selection changed: old='%s' new='%s'.")
             :format(tostring(state.selected), name), "info")
           state.selected = name
+          addFolderAncestors(state.expandedLoadFolders, parentFolder(name))
           state.invalidatePreflight()
           local selectedPreset = state.presets[name]
           state.presetNotes = selectedPreset and selectedPreset.notes or ""
@@ -6401,6 +6360,15 @@ draw = function()
           clearStatus("rename")
           clearStatus("delete")
           refreshPreflight()
+        end
+        local preset = state.presets[name]
+        local tags = tostring(preset and preset.tags or "")
+        if tags ~= "" then
+          local maximumTagLength = narrowTopRow and 42 or 68
+          if #tags > maximumTagLength then
+            tags = tags:sub(1, maximumTagLength - 3) .. "..."
+          end
+          ImGui.TextDisabled("  " .. tags)
         end
       end
       for _, folder in ipairs(sortedFolderNames()) do
@@ -6496,7 +6464,6 @@ draw = function()
     end
 
     local loadUnavailable = not state.selected or not state.inCustomization
-    if loadUnavailable then ImGui.BeginDisabled() end
     local loadLabel
     if state.autoLoad then
       loadLabel = ("Loading... (pass %d)"):format(state.loadPass)
@@ -6505,7 +6472,8 @@ draw = function()
     else
       loadLabel = "Load Selected Preset"
     end
-    if state.autoLoad then ImGui.BeginDisabled() end
+    local loadButtonDisabled = loadUnavailable or state.autoLoad
+    if loadButtonDisabled then ImGui.BeginDisabled() end
     if fullWidthButton(loadLabel .. "##loadPreset", actionButtonHeight) then
       if not state.loadNeedsContinue then
         resetLoadState()
@@ -6516,8 +6484,7 @@ draw = function()
       loadPreset()
       if state.loadNeedsContinue then state.autoLoad = true end
     end
-    if state.autoLoad then ImGui.EndDisabled() end
-    if loadUnavailable then ImGui.EndDisabled() end
+    if loadButtonDisabled then ImGui.EndDisabled() end
     if state.autoLoad or state.loadNeedsContinue then
       if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), actionButtonHeight) then
         cancelLoading()
@@ -6740,6 +6707,12 @@ draw = function()
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")
         ImGui.TextWrapped(state.selected)
+        ImGui.Spacing()
+        local selectedPresetPath = presetPath(state.selected)
+        ui.pathCallout("##selectedPresetPath", "Preset File", selectedPresetPath)
+        if fullWidthButton("Copy File Path##copyPresetPath", actionButtonHeight) then
+          ImGui.SetClipboardText(selectedPresetPath)
+        end
         ImGui.Spacing()
         ImGui.PushItemWidth(-1)
         state.renameName = ImGui.InputTextWithHint(
