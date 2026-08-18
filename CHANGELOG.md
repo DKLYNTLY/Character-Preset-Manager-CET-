@@ -11,6 +11,9 @@ used. See the README and in-game Help for current instructions.
 
 *Faster access to useful details and more consistent controls.*
 
+- Prevents the Lua 200-local-variable startup failure from returning by keeping
+  the affected shared functions in one stable helper namespace. This also
+  prevents missing-function errors in preset, folder, log, and session actions.
 - Adds a **Log** button beside **Settings** and **Help**, so the Activity Log is
   available without scrolling through Help.
 - Makes Settings, Help, and the Activity Log close one another when a different

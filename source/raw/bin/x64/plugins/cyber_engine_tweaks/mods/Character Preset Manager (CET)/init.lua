@@ -540,7 +540,7 @@ log = function(message, level)
   writeLog(message, level)
 end
 
-local function auditSection(title)
+helpers.auditSection = function(title)
   log(("---------------- %s ----------------"):format(tostring(title)), "info")
 end
 
@@ -614,7 +614,6 @@ local function validatedPresetName(value)
   return name
 end
 
-local isCustomizationActive
 local refreshPreflight
 
 local function setEditorOpenStatus(message, isError, kind)
@@ -716,7 +715,7 @@ end
 local function openFullAppearanceEditor()
   log(("[editor diagnostic] launch requested: controller=%s pending=%s customization=%s")
     :format(tostring(state.inGameMenuController ~= nil),
-      tostring(state.editorOpenPending), tostring(isCustomizationActive())), "info")
+      tostring(state.editorOpenPending), tostring(helpers.isCustomizationActive())), "info")
   if state.editorOpenPending then
     setEditorOpenStatus("The editor is already opening.", true)
     return false
@@ -725,7 +724,7 @@ local function openFullAppearanceEditor()
     setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
     return false
   end
-  if isCustomizationActive() then
+  if helpers.isCustomizationActive() then
     setEditorOpenStatus("A customization screen is already open.", true)
     return false
   end
@@ -776,7 +775,7 @@ local function getOptions()
   return system, options
 end
 
-isCustomizationActive = function()
+helpers.isCustomizationActive = function()
   local _, options = getOptions()
   return options ~= nil
 end
@@ -1015,7 +1014,7 @@ local function folderDepth(name)
   return depth
 end
 
-local function breadcrumb(name)
+helpers.breadcrumb = function(name)
   if not name or name == "" then return "All Presets" end
   return (name:gsub("/", " > "))
 end
@@ -1104,7 +1103,7 @@ end
 
 local EMPTY_LIST = {}
 
-local function sortedPresetNames()
+helpers.sortedPresetNames = function()
   ensureViewCache()
   return state.cachedPresetNames
 end
@@ -1967,7 +1966,7 @@ end
 
 trashSelectedFolderBundle = function()
   clearStatus("folder")
-  auditSection("TRASH FOLDER BUNDLE")
+  helpers.auditSection("TRASH FOLDER BUNDLE")
   local selected = state.selectedBundleFile
   if not isFolderBundleFilename(selected) then
     setStatus("folder", "Select a shared-folder file to move to Trash.", true)
@@ -2088,7 +2087,7 @@ end
 
 exportSelectedFolderBundle = function()
   clearStatus("folder")
-  auditSection("EXPORT FOLDER BUNDLE")
+  helpers.auditSection("EXPORT FOLDER BUNDLE")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
     setStatus("folder", "Select a folder to export.", true); return
@@ -2370,7 +2369,7 @@ end
 
 importAvailableFolderBundles = function()
   clearStatus("folder")
-  auditSection("IMPORT FOLDER BUNDLES")
+  helpers.auditSection("IMPORT FOLDER BUNDLES")
   local files = folderBundleFiles(true)
   if #files == 0 then
     setStatus("folder",
@@ -2704,7 +2703,7 @@ local function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
 end
 
 local function savePreset(confirmOverwrite)
-  auditSection("CREATE PRESET")
+  helpers.auditSection("CREATE PRESET")
   log(("[PRESET] Create requested: enteredName='%s' overwriteConfirmed=%s")
     :format(tostring(state.newName), tostring(confirmOverwrite == true)), "info")
   local _, options, optionsError = getOptions()
@@ -3277,7 +3276,7 @@ local function loadPreset()
     savedSlotCounts = state.loadSavedSlotCounts
     valueCount = state.loadValueCount
   else
-    auditSection("LOAD PRESET")
+    helpers.auditSection("LOAD PRESET")
     log(("[PRESET] Load requested: name='%s'"):format(tostring(state.selected)), "load")
     state.loadPresetName = state.selected
     state.loadPass = 1
@@ -4339,7 +4338,7 @@ restoreTrashBundle = function(filename)
 end
 
 trashPreset = function()
-  auditSection("TRASH PRESET")
+  helpers.auditSection("TRASH PRESET")
   log(("[PRESET] Trash requested: selected='%s' confirmed=%s")
     :format(tostring(state.selected),
       tostring(state.pendingDeleteName == state.selected)), "info")
@@ -4941,7 +4940,7 @@ local function persistVirtualState(presets, folders, manualFolders, ignoredPhysi
 end
 
 local function renamePreset()
-  auditSection("RENAME PRESET")
+  helpers.auditSection("RENAME PRESET")
   if not state.selected or not state.presets[state.selected] then
     setStatus("rename", "Select a preset before renaming it.", true)
     return
@@ -5032,7 +5031,7 @@ end
 
 local function movePresetToSelectedFolder()
   clearStatus("folder")
-  auditSection("MOVE PRESET")
+  helpers.auditSection("MOVE PRESET")
   if not state.selected or not state.presets[state.selected] then
     setStatus("folder", "Select a preset before moving it.", true); return
   end
@@ -5102,7 +5101,7 @@ local function savePresetMetadata()
 end
 
 local function duplicatePreset()
-  auditSection("DUPLICATE PRESET")
+  helpers.auditSection("DUPLICATE PRESET")
   if not state.selected or not state.presets[state.selected] then
     setStatus("rename", "Select a preset before duplicating it.", true); return
   end
@@ -5155,7 +5154,7 @@ end
 
 local function createFolder()
   clearStatus("folder")
-  auditSection("CREATE FOLDER")
+  helpers.auditSection("CREATE FOLDER")
   local leaf, nameError = validatedFolderName(state.folderName)
   if not leaf then setStatus("folder", nameError, true); return end
   local name = joinFolder(state.selectedFolder, leaf)
@@ -5180,7 +5179,7 @@ end
 
 local function renameFolder()
   clearStatus("folder")
-  auditSection("RENAME FOLDER")
+  helpers.auditSection("RENAME FOLDER")
   local old = state.selectedFolder
   if old == "" or not state.folders[old] then
     setStatus("folder", "Select a folder to rename.", true); return
@@ -5251,7 +5250,7 @@ end
 
 local function duplicateFolder()
   clearStatus("folder")
-  auditSection("DUPLICATE FOLDER")
+  helpers.auditSection("DUPLICATE FOLDER")
   local source = state.selectedFolder
   if source == "" or not state.folders[source] then
     setStatus("folder", "Select a folder to duplicate.", true); return
@@ -5335,7 +5334,7 @@ end
 
 local function removeVirtualFolder()
   clearStatus("folder")
-  auditSection("REMOVE VIRTUAL FOLDER")
+  helpers.auditSection("REMOVE VIRTUAL FOLDER")
   local folder = state.selectedFolder
   if folder == "" or not state.folders[folder] then
     setStatus("folder", "Select a folder to remove.", true); return
@@ -5489,7 +5488,7 @@ end
 
 local function refreshEditorState()
   local wasInCustomization = state.inCustomization
-  state.inCustomization = isCustomizationActive()
+  state.inCustomization = helpers.isCustomizationActive()
   if state.inCustomization ~= wasInCustomization then
     if state.loadPresetName and (state.loadNeedsContinue or state.loadPendingChange) then
       helpers.logLoadMeasurements("editor-changed")
@@ -6052,7 +6051,7 @@ ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
     for _, name in ipairs(visibleNames) do
       local selectedForBulk = state.bulkSelected[name] == true
       if ImGui.Selectable((selectedForBulk and "[x] " or "[ ] ") ..
-          breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
+          helpers.breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
         if selectedForBulk then
           state.bulkSelected[name] = nil
         else
@@ -6355,11 +6354,11 @@ draw = function()
       local updated = changes and changes.modified or 0
       setStatus("load", refreshed
         and ("Refreshed: %d added, %d updated, %d removed; %d available.")
-          :format(added, updated, removed, #sortedPresetNames())
+          :format(added, updated, removed, #helpers.sortedPresetNames())
         or "Refresh failed; the previous list was kept.", not refreshed)
     end
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
-    local names = sortedPresetNames()
+    local names = helpers.sortedPresetNames()
     ensureFilteredViewCache()
     local queryActive = state.cachedQueryActive
     local matchedFolders = state.cachedMatchedFolders
@@ -6439,7 +6438,7 @@ draw = function()
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, baseName(state.selected))
       coloredWrapped(0.64, 0.67, 0.73, 1.0,
         ("%s  |  %d options  |  Format %s")
-        :format(breadcrumb(parentFolder(state.selected)), state.presetEntryCount(preset),
+        :format(helpers.breadcrumb(parentFolder(state.selected)), state.presetEntryCount(preset),
           tostring(preset.format or 4)))
       if state.preflight then
         local check = state.preflight
@@ -6524,7 +6523,7 @@ draw = function()
     if collapsibleSectionHeader("SAVE PRESET", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
-    ImGui.TextWrapped("Save location: " .. breadcrumb(state.selectedFolder))
+    ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.selectedFolder))
     if compactSubsectionButton("Choose Save Destination", "Hide Save Destinations",
         "saveDestination") then
       ImGui.Indent(8)
@@ -6543,7 +6542,7 @@ draw = function()
             state.selectedFolder == folder) and state.selectedFolder ~= folder then
           state.selectedFolder = folder
           cancelConfirmations()
-          setStatus("create", "Save destination changed to " .. breadcrumb(folder) .. ".")
+          setStatus("create", "Save destination changed to " .. helpers.breadcrumb(folder) .. ".")
           log(("[UI] Save destination changed to '%s'."):format(folder), "info")
         end
       end
@@ -6583,7 +6582,7 @@ draw = function()
     if collapsibleSectionHeader("FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Select how new or moved presets are organized")
-    ImGui.TextWrapped("Selected destination: " .. breadcrumb(state.selectedFolder))
+    ImGui.TextWrapped("Selected destination: " .. helpers.breadcrumb(state.selectedFolder))
     coloredWrapped(0.64, 0.67, 0.73, 1.0,
       "Folders made in CET have no set limit. Imported folders are Windows folders inside Character Presets.")
     ImGui.Spacing()
@@ -6811,7 +6810,7 @@ draw = function()
           local stats = state.cachedTrashGroupStats[groupId] or { presets = 0, folders = 0 }
           local groupPresetCount, folderCount = stats.presets, stats.folders
           if fullWidthButton(("Restore Folder %s (%d presets, %d folders)")
-              :format(breadcrumb(group.root), groupPresetCount, folderCount) ..
+              :format(helpers.breadcrumb(group.root), groupPresetCount, folderCount) ..
               "##trashGroup:" .. groupId, actionButtonHeight) then
             restoreTrashGroup(groupId)
             trashChanged = true
@@ -7073,7 +7072,7 @@ registerForEvent("onInit", function()
 end)
 
 registerForEvent("onShutdown", function()
-  auditSection("SESSION END")
+  helpers.auditSection("SESSION END")
   log(("[SUMMARY] inputs=%d controllerCaptures=%d pauseRedirects=%d editorPuppets=%d")
     :format(state.editorInputCount, state.editorControllerCaptureCount,
       state.editorPauseRedirectCount, state.editorPuppetReadyCount), "info")
