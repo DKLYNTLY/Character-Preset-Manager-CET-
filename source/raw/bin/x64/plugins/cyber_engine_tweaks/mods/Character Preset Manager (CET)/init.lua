@@ -1,6 +1,6 @@
 
 local MOD_NAME = "Character Preset Manager (CET)"
-local VERSION = "3.0.4"
+local VERSION = "3.0.5"
 local PRESET_DIR = "Character Presets"
 local DATA_DIR = "Data"
 local CONFIG_DIR = DATA_DIR .. "/Config"

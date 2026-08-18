@@ -5,7 +5,35 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.4</strong></summary>
+<summary><strong>Latest release — 3.0.5</strong></summary>
+
+## 3.0.5
+
+*Faster access to useful details and more consistent controls.*
+
+- Adds a **Log** button beside **Settings** and **Help**, so the Activity Log is
+  available without scrolling through Help.
+- Makes Settings, Help, and the Activity Log close one another when a different
+  panel opens.
+- Keeps the search controls usable in a narrow CET window.
+- Searches preset tags as well as preset and folder names.
+- Shows a preset's tags beneath its name in the preset list.
+- Keeps the selected preset's folder and its parent folders open after a search
+  is cleared.
+- Adds **Copy File Path** under **Rename & Copy** for the selected preset.
+- Uses the same status handling for every folder action, keeping message colors
+  consistent.
+- Uses one shared safe-writing path for preset, settings, catalog, bundle, log,
+  and window-position files.
+- Removes an unused older-format writer. Older Character Preset Manager and
+  compatible ACU preset files remain fully readable.
+- Simplifies the Load button's disabled state without changing when it can be
+  used.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.4</strong></summary>
 
 ## 3.0.4
 

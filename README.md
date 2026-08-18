@@ -10,7 +10,7 @@
   <a href="CHANGELOG.md">Full changelog</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.4</strong></p>
+<p align="center"><strong>Current version: 3.0.5</strong></p>
 
 <p align="center">
   <img src="images/Character%20Preset%20Manager%20%28CET%29%20v3.0.3.png" alt="Character Preset Manager feature overview" width="900">
@@ -45,7 +45,7 @@ than the smaller selection normally available during play.
 - **Full apartment mirror options** — Use the complete character-creation option set through normal apartment mirrors.
 - **One-click loading** — Select a preset once while the mod waits for Cyberpunk to refresh the editor.
 - **Cosmetic cleanup** — After applying a preset, clear visible appearance options that were not part of it.
-- **Search and compatibility checks** — Find presets and see whether the current editor has the options they need.
+- **Search and compatibility checks** — Find presets by name, folder, or tag and see whether the current editor has the options they need.
 - **Unlimited nested folders** — Organize presets in folders and folders inside folders, with no set limit.
 - **Preset and folder copies** — Copy one preset or a complete folder group.
 - **Readable format-8 files** — Keep current preset details in a clear text layout while retaining older-format support.
@@ -98,11 +98,11 @@ over an older preset updates it to format 8. Saving its optional notes or tags
 also updates that file. Keep a backup before replacing any preset you may still
 want to use with an older mod version.
 
-Do not keep an older copy of the mod beside the current one. Version 3.0.4 does not move loose files left by older releases. For a clean update:
+Do not keep an older copy of the mod beside the current one. Version 3.0.5 does not move loose files left by older releases. For a clean update:
 
 1. Back up the presets and `.cpmfolder` files you want to keep from `Character Presets`.
 2. Remove the old Character Preset Manager folder.
-3. Install version 3.0.4.
+3. Install version 3.0.5.
 4. Put your saved presets and bundles back in `Character Presets`.
 
 </details>
@@ -207,6 +207,9 @@ easy to inspect without treating its headings as damaged data.
 - Copying a folder also copies every preset and folder inside it.
 - Renaming a preset also renames its `.preset` file.
 - Notes and tags are under **Rename & Copy > Optional Preset Details**.
+- Search checks preset names, folder names, and tags. Tags also appear below
+  preset names in the list.
+- **Copy File Path** under **Rename & Copy** copies the selected preset's path.
 
 ### Folders made in CET
 
@@ -389,7 +392,9 @@ Folders made inside CET exist only in the mod's folder list. They do not create 
 
 ### Activity log
 
-Open **Help > Activity Log**, then select **Open Activity Log**. You can read or copy the log from CET. The file is stored here:
+Select **Log** at the top of the window. You can also open it from Help. You can
+read or copy the log from CET. Opening Settings, Help, or the Activity Log closes
+either of the other two panels. The file is stored here:
 
 ```text
 bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
@@ -399,7 +404,7 @@ Each full game launch starts a new log. The old log is saved with its date and t
 
 ### Can I use older Character Preset Manager or ACU presets?
 
-Yes. Version 3.0.4 can load older Character Preset Manager formats and compatible
+Yes. Version 3.0.5 can load older Character Preset Manager formats and compatible
 ACU presets. New and updated presets use format 8.
 
 ### Can ACU or Character Customization Anywhere stay installed?
