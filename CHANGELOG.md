@@ -26,7 +26,8 @@ used. See the README and in-game Help for current instructions.
   option.
 - Keeps the selected preset's folder and its parent folders open after a search
   is cleared.
-- Adds **Copy File Path** under **Rename & Copy** for the selected preset.
+- Adds **Copy File Path** under **Rename & Copy** for the selected preset. It
+  copies the complete path from the Cyberpunk 2077 game folder.
 - Uses the same status handling for every folder action, keeping message colors
   consistent.
 - Uses one shared safe-writing path for preset, settings, catalog, bundle, log,

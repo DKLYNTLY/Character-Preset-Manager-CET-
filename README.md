@@ -209,7 +209,8 @@ easy to inspect without treating its headings as damaged data.
 - Notes and tags are under **Rename & Copy > Optional Preset Details**.
 - Search checks preset names, folder names, and tags. Tags also appear beside
   preset names in the list.
-- **Copy File Path** under **Rename & Copy** copies the selected preset's path.
+- **Copy File Path** under **Rename & Copy** copies the selected preset's
+  complete path from the Cyberpunk 2077 game folder.
 
 ### Folders made in CET
 

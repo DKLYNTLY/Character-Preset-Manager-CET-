@@ -6733,7 +6733,9 @@ draw = function()
           "Selected preset")
         ImGui.TextWrapped(state.selected)
         ImGui.Spacing()
-        local selectedPresetPath = presetPath(state.selected)
+        local selectedPresetPath =
+          "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/" ..
+          presetPath(state.selected)
         ui.pathCallout("##selectedPresetPath", "Preset File", selectedPresetPath)
         if fullWidthButton("Copy File Path##copyPresetPath", actionButtonHeight) then
           ImGui.SetClipboardText(selectedPresetPath)
