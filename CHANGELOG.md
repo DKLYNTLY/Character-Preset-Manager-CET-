@@ -17,7 +17,9 @@ used. See the README and in-game Help for current instructions.
   panel opens.
 - Keeps the search controls usable in a narrow CET window.
 - Searches preset tags as well as preset and folder names.
-- Shows a preset's tags beneath its name in the preset list.
+- Shows a preset's tags on the same line as its name in the preset list.
+- Uses the same compact **More Technical Details** control in the Activity Log
+  as the other optional detail areas.
 - Keeps the selected preset's folder and its parent folders open after a search
   is cleared.
 - Adds **Copy File Path** under **Rename & Copy** for the selected preset.

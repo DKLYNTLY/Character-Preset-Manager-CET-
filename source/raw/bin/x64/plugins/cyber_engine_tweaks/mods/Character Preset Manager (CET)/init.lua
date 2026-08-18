@@ -89,6 +89,7 @@ local state = {
     folderBundleFiles = false,
     presetDetails = false,
     bulkTrash = false,
+    advancedDiagnostics = false,
   },
   selectedFolder = "",
   folderName = "",
@@ -5772,12 +5773,15 @@ ui.drawDebugPanel = function(height)
   end
   ImGui.SameLine()
   if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then state.debugOpen = false end
-  if ImGui.CollapsingHeader("Advanced Technical Details##advancedDiagnostics") then
+  if compactSubsectionButton(
+      "More Technical Details", "Hide Technical Details", "advancedDiagnostics") then
+    ImGui.Indent(8)
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
       :format(state.editorInputCount, state.editorControllerCaptureCount,
         state.editorPauseRedirectCount, state.editorPuppetReadyCount))
     coloredWrapped(0.64, 0.67, 0.73, 1.0,
       "After one successful input launch, all four values should be at least 1.")
+    ImGui.Unindent(8)
   end
   ImGui.TextColored(0.3, 1.0, 0.4, 1.0, "Green = complete")
   ImGui.SameLine()
@@ -6344,7 +6348,18 @@ draw = function()
       ImGui.TextDisabled("No presets saved.")
     else
       local function drawPresetChoice(name, label)
-        if ImGui.Selectable(label .. "##preset:" .. name, state.selected == name)
+        local preset = state.presets[name]
+        local tags = tostring(preset and preset.tags or "")
+        local displayLabel = label
+        if tags ~= "" then
+          local maximumRowLength = narrowTopRow and 46 or 72
+          local availableTagLength = math.max(8, maximumRowLength - #label - 5)
+          if #tags > availableTagLength then
+            tags = tags:sub(1, availableTagLength - 3) .. "..."
+          end
+          displayLabel = label .. "  -  " .. tags
+        end
+        if ImGui.Selectable(displayLabel .. "##preset:" .. name, state.selected == name)
             and state.selected ~= name then
           log(("[UI] Preset selection changed: old='%s' new='%s'.")
             :format(tostring(state.selected), name), "info")
@@ -6360,15 +6375,6 @@ draw = function()
           clearStatus("rename")
           clearStatus("delete")
           refreshPreflight()
-        end
-        local preset = state.presets[name]
-        local tags = tostring(preset and preset.tags or "")
-        if tags ~= "" then
-          local maximumTagLength = narrowTopRow and 42 or 68
-          if #tags > maximumTagLength then
-            tags = tags:sub(1, maximumTagLength - 3) .. "..."
-          end
-          ImGui.TextDisabled("  " .. tags)
         end
       end
       for _, folder in ipairs(sortedFolderNames()) do

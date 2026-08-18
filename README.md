@@ -207,7 +207,7 @@ easy to inspect without treating its headings as damaged data.
 - Copying a folder also copies every preset and folder inside it.
 - Renaming a preset also renames its `.preset` file.
 - Notes and tags are under **Rename & Copy > Optional Preset Details**.
-- Search checks preset names, folder names, and tags. Tags also appear below
+- Search checks preset names, folder names, and tags. Tags also appear beside
   preset names in the list.
 - **Copy File Path** under **Rename & Copy** copies the selected preset's path.
 
