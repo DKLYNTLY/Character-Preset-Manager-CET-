@@ -14,6 +14,9 @@ used. See the README and in-game Help for current instructions.
 - Prevents the Lua 200-local-variable startup failure from returning by keeping
   the affected shared functions in one stable helper namespace. This also
   prevents missing-function errors in preset, folder, log, and session actions.
+- Splits the mod into smaller, focused files so Lua compiles each part
+  separately. The menu sections and preset loader are also divided into
+  shorter functions without changing controls, preset files, or loading rules.
 - Adds a **Log** button beside **Settings** and **Help**, so the Activity Log is
   available without scrolling through Help.
 - Makes Settings, Help, and the Activity Log close one another when a different

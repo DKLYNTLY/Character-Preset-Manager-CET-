@@ -1,0 +1,18 @@
+local _ENV = require("modules.runtime")
+
+drawEditorSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
+if collapsibleSectionHeader("APPEARANCE EDITOR", "editor") then
+    ImGui.TextWrapped("Opens the game's full character editor. Apartment mirrors offer the same options.")
+    ImGui.Spacing()
+    local editorUnavailable = state.editorOpenPending or state.inCustomization
+      or not state.editorHooksAvailable
+    if editorUnavailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
+      openFullAppearanceEditor()
+    end
+    if editorUnavailable then ImGui.EndDisabled() end
+    drawSectionStatus("editor", "##editorStatus", statusHeight)
+    end
+end
+
+return _ENV
