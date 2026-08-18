@@ -1,3 +1,3 @@
-CPMRuntime = CPMRuntime or {}
-setmetatable(CPMRuntime, { __index = _G })
-return CPMRuntime
+local runtime = {}
+setmetatable(runtime, { __index = _G })
+return runtime
