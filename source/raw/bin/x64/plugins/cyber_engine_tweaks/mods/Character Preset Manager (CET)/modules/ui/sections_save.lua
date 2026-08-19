@@ -8,7 +8,7 @@ if collapsibleSectionHeader("SAVE PRESET", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
     ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.library.selectedFolder))
-    if compactSubsectionButton("Choose Save Destination", "Hide Save Destinations",
+    if compactSubsectionButton("Save Folder Choices", "Hide Save Folders",
         "saveDestination") then
       ImGui.Indent(8)
       ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)

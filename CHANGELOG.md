@@ -68,7 +68,7 @@ used. See the README and in-game Help for current instructions.
   are still removed temporarily and restored afterward.
 - Places **Clear** and **Refresh** on a full-width row below preset search in a
   narrow window, so neither label is cut off.
-- Expands **More Bulk Actions** so one selection can be moved to a chosen folder,
+- Adds **Bulk: Move / Export / Trash** so one selection can be moved to a chosen folder,
   exported as one shared-folder file, or moved to Trash.
 - Adds persistent Favorites. Favorite presets stay in their folders and also
   appear in a pinned group above the regular preset tree.
@@ -78,6 +78,13 @@ used. See the README and in-game Help for current instructions.
 - Saves a hidden recovery snapshot before each new preset load and adds a
   Settings action to restore the appearance that was active before that load.
   Snapshot failure is logged and never delays or blocks loading.
+- Adds Help search with topic keywords and common terms such as **share**,
+  **bug**, **clothing**, **ACU**, **backup**, **Trash**, and **favorite**.
+- Replaces vague expandable labels with labels that name the controls inside,
+  including folder actions, preset details, bulk actions, and backup tools.
+- Keeps `.cpmfolder` install, export, and file-removal controls visible under
+  **Folders** for every folder selection. Removing a sharing file clearly states
+  that installed presets and folders are not deleted.
 
 </details>
 

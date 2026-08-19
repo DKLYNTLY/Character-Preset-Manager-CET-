@@ -34,7 +34,7 @@ if collapsibleSectionHeader("RENAME & COPY", "manage") then
         ImGui.SameLine()
         if ImGui.Button("Duplicate Preset##duplicateSelected",
             manageButtonWidth, actionButtonHeight) then duplicatePreset() end
-        if compactSubsectionButton("Optional Preset Details", "Hide Preset Details",
+        if compactSubsectionButton("Edit Tags & Notes", "Hide Tags & Notes",
             "presetDetails") then
           ImGui.Indent(8)
           ImGui.PushItemWidth(-1)

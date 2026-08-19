@@ -154,7 +154,7 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
       else
         ImGui.TextDisabled("Open a customization screen to check compatibility.")
       end
-      if compactSubsectionButton("More Preset Info", "Hide Preset Info", "loadDetails") then
+      if compactSubsectionButton("Favorite, Tags, Notes & File", "Hide Preset Details", "loadDetails") then
         ImGui.Indent(8)
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
           ("Source: %s\nModified: %s")

@@ -41,6 +41,9 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
     if addFolderUnavailable then ImGui.EndDisabled() end
     if addFolderUnavailable then ImGui.TextDisabled("Enter a valid folder name to enable adding.") end
     if state.library.selectedFolder ~= "" then
+      if compactSubsectionButton("Folder: Rename / Copy / Move / Delete",
+          "Hide Selected Folder Actions", "selectedFolderActions") then
+      ImGui.Indent(8)
       ImGui.PushItemWidth(-1)
       state.library.folderRenameName = ImGui.InputTextWithHint("##renameFolder", "Rename selected folder", state.library.folderRenameName, 65)
       ImGui.PopItemWidth()
@@ -56,9 +59,6 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
       if moveUnavailable then ImGui.EndDisabled() end
       if moveUnavailable and not state.library.selected then
         ImGui.TextDisabled("Select a preset under Load Preset before moving it.")
-      end
-      if fullWidthButton("Export Folder for Sharing", actionButtonHeight) then
-        exportSelectedFolderBundle()
       end
       local removeFolderLabel = state.library.pendingRemoveFolder == state.library.selectedFolder
         and "Confirm Remove Folder, Keep Presets"
@@ -84,6 +84,8 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
         ("Trash will include %d folder%s inside this one. You can restore them later.")
           :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
       drawSectionStatus("bulk", "##folderBulkStatus", statusHeight)
+      ImGui.Unindent(8)
+      end
     else
       local rootMoveUnavailable = not state.library.selected or parentFolder(state.library.selected) == ""
       if rootMoveUnavailable then ImGui.BeginDisabled() end
@@ -93,50 +95,63 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
         and "Select a preset under Load Preset before moving it."
         or "The selected preset is already in All Presets.")
       end
-      if fullWidthButton("Install Shared Folders", actionButtonHeight) then
-        importAvailableFolderBundles()
-      end
-      coloredWrapped(0.64, 0.67, 0.73, 1.0,
-        "Installs .cpmfolder files from Character Presets. Files that were already installed and have not changed are skipped.")
-      local bundleFiles = folderBundleFiles()
-      local bundleLabel = ("Shared Folder Files (%d)"):format(#bundleFiles)
-      if compactSubsectionButton(bundleLabel, "Hide Shared Folder Files", "folderBundleFiles") then
-        ImGui.Indent(8)
-        if #bundleFiles == 0 then
-          state.library.selectedBundleFile = nil
-          ImGui.TextDisabled("No .cpmfolder files found.")
-        else
-          ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
-          local selectedStillExists = false
-          for _, path in ipairs(bundleFiles) do
-            local leaf = path:match("([^/]+)$") or path
-            if state.library.selectedBundleFile
-                and state.library.selectedBundleFile:lower() == leaf:lower() then
-              state.library.selectedBundleFile = leaf
-              selectedStillExists = true
-            end
-            if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
-                state.library.selectedBundleFile == leaf) then
-              state.library.selectedBundleFile = leaf
-              cancelConfirmations()
-              selectedStillExists = true
-            end
+    end
+    ImGui.Spacing()
+    ImGui.Separator()
+    ImGui.Spacing()
+    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Shared Folder Files")
+    ImGui.TextWrapped("Install, export, or remove .cpmfolder sharing files. These controls do not delete the presets already installed from them.")
+    local folderExportUnavailable = state.library.selectedFolder == ""
+    if folderExportUnavailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Export Selected Folder as a .cpmfolder File", actionButtonHeight) then
+      exportSelectedFolderBundle()
+    end
+    if folderExportUnavailable then ImGui.EndDisabled() end
+    if folderExportUnavailable then
+      ImGui.TextDisabled("Choose a folder above to export it for sharing.")
+    end
+    if fullWidthButton("Install .cpmfolder Files from Character Presets", actionButtonHeight) then
+      importAvailableFolderBundles()
+    end
+    local bundleFiles = folderBundleFiles()
+    local bundleLabel = (".cpmfolder Files: Manage / Remove (%d)"):format(#bundleFiles)
+    if compactSubsectionButton(bundleLabel, "Hide .cpmfolder File Manager", "folderBundleFiles") then
+      ImGui.Indent(8)
+      if #bundleFiles == 0 then
+        state.library.selectedBundleFile = nil
+        ImGui.TextDisabled("No .cpmfolder files found in Character Presets.")
+      else
+        ImGui.TextWrapped("Choose a sharing file below, then move only that file to Trash.")
+        ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
+        local selectedStillExists = false
+        for _, path in ipairs(bundleFiles) do
+          local leaf = path:match("([^/]+)$") or path
+          if state.library.selectedBundleFile
+              and state.library.selectedBundleFile:lower() == leaf:lower() then
+            state.library.selectedBundleFile = leaf
+            selectedStillExists = true
           end
-          ImGui.EndChild()
-          if state.library.selectedBundleFile and not selectedStillExists then
-            state.library.selectedBundleFile = nil
+          if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
+              state.library.selectedBundleFile == leaf) then
+            state.library.selectedBundleFile = leaf
+            cancelConfirmations()
+            selectedStillExists = true
           end
-          local bundleDeleteUnavailable = not state.library.selectedBundleFile
-          if bundleDeleteUnavailable then ImGui.BeginDisabled() end
-          if dangerButton("Move Selected File to Trash##trashFolderBundle",
-              ImGui.GetContentRegionAvail(), actionButtonHeight) then
-            trashSelectedFolderBundle()
-          end
-          if bundleDeleteUnavailable then ImGui.EndDisabled() end
-          ImGui.TextDisabled("Moves only the selected .cpmfolder file to Trash. You can restore it later.")
         end
-        ImGui.Unindent(8)
+        ImGui.EndChild()
+        if state.library.selectedBundleFile and not selectedStillExists then
+          state.library.selectedBundleFile = nil
+        end
+        local bundleDeleteUnavailable = not state.library.selectedBundleFile
+        if bundleDeleteUnavailable then ImGui.BeginDisabled() end
+        if dangerButton("Move Selected .cpmfolder File to Trash##trashFolderBundle",
+            ImGui.GetContentRegionAvail(), actionButtonHeight) then
+          trashSelectedFolderBundle()
+        end
+        if bundleDeleteUnavailable then ImGui.EndDisabled() end
+        ImGui.TextDisabled("You can restore the file later under Delete & Restore.")
       end
+      ImGui.Unindent(8)
     end
     if state.status.sections.folder.message ~= "" then
       if state.status.lastLoggedFolder ~= state.status.sections.folder.message then

@@ -114,7 +114,7 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.5 does 
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
-3. Under **Save Preset**, open **Choose Save Destination**.
+3. Under **Save Preset**, open **Choose Save Folder**.
 4. Choose a folder or **All Presets**.
 5. Enter a name and select **Save New Preset**.
 
@@ -210,7 +210,7 @@ easy to inspect without treating its headings as damaged data.
 - Copies appear beside the original and use names such as `Copy` and `Copy 2`.
 - Copying a folder also copies every preset and folder inside it.
 - Renaming a preset also renames its `.preset` file.
-- Notes and tags are under **Rename & Copy > Optional Preset Details**.
+- Notes and tags are under **Rename & Copy > Edit Tags & Notes**.
 - Search checks preset names, folder names, and tags. Tags also appear beside
   preset names in the list.
 - **Copy File Path** under **Rename & Copy** copies the selected preset's
@@ -273,7 +273,7 @@ A `.cpmfolder` file contains the selected CET folder, all folders inside it, and
 #### Export a folder
 
 1. Open **Folders** and choose a non-empty folder.
-2. Select **Export Folder for Sharing**.
+2. Select **Export Selected Folder as a .cpmfolder File**.
 3. Find the new `.cpmfolder` file in `Character Presets`.
 4. Send that one file.
 
@@ -282,24 +282,28 @@ A shared folder can contain up to 512 presets and cannot be larger than 32 MB. A
 The mod writes and installs shared folders one preset at a time. Large bundles
 do not need to be held in memory all at once.
 
-To remove only the exported file, choose **All Presets**, open **Shared Folder Files**, select the file, and choose **Move Selected File to Trash**. This does not remove the original folder or its presets. You can restore the file under **Delete & Restore** or remove it with **Empty Trash Permanently**.
+To remove only the exported file, open **.cpmfolder Files: Manage / Remove**,
+select the file, and choose **Move Selected .cpmfolder File to Trash**. This does
+not remove the original folder or its presets. You can restore the file under
+**Delete & Restore** or remove it with **Empty Trash Permanently**.
 
 #### Import a folder
 
 1. Put the downloaded `.cpmfolder` file in `Character Presets`.
 2. Open Character Preset Manager and expand **Folders**.
-3. Choose **All Presets**. The import button appears only here.
-4. Select **Install Shared Folders**.
+3. Select **Install .cpmfolder Files from Character Presets**.
 
 The mod rebuilds the complete folder group and leaves the `.cpmfolder` file in place. It remembers the filename, file contents, and imported folder in `Data/Catalog/Imported Bundles.txt`.
 
 An unchanged bundle is skipped while its imported folder still exists. You can import it again after deleting that folder. You can also import a changed bundle that uses the same filename. If a folder name is already in use, the new folder gets a safe `Copy` name. A failed import is not marked as complete, so you can fix the file and try again.
 
-After a successful import, **Shared Folder Files** can move the source file to Trash without removing the imported folder or presets. The list updates when you select **Refresh** and after any shared-folder action.
+After a successful import, **.cpmfolder Files: Manage / Remove** can move the
+source file to Trash without removing the imported folder or presets. This file
+manager is always visible under **Folders**, regardless of the selected folder.
 
 ### Export selected presets
 
-Open **Delete & Restore**, then open **More Bulk Actions**. Select presets from
+Open **Delete & Restore**, then open **Bulk: Move / Export / Trash**. Select presets from
 any folders and choose **Export Selected**. The new `.cpmfolder` file keeps their
 folder paths inside a single **Selected Presets** group when it is installed.
 
@@ -319,7 +323,7 @@ nothing is overwritten. A backup cannot be larger than 256 MB.
 
 - Moving a preset to Trash keeps it available for recovery.
 - Under **Folders**, you can move a folder and everything inside it to Trash.
-- **More Bulk Actions** lets you select several presets from the current search results.
+- **Bulk: Move / Export / Trash** lets you select several presets from the current search results.
 - **Select All Visible** and **Clear Selection** make large selections easier.
 - The selected presets can be moved to one folder, exported together, or moved to Trash.
 - Moving an Imported folder to Trash removes its Windows folder only when it is empty. Unknown files are never deleted.
@@ -379,7 +383,7 @@ equipped clothing while its window is open.
 - **Export Everything** and **Import Library Backup** create or restore a complete `.cpmbackup` file.
 - **Restore Appearance from Before Last Load** loads the hidden recovery snapshot made before the newest normal preset load. A failed snapshot never stops the requested load.
 
-Use **More Preset Info** under **Load Preset** to add or remove a favorite.
+Use **Favorite, Tags, Notes & File** under **Load Preset** to add or remove a favorite.
 Favorites remain in their original folders and also appear in a pinned group above
 the regular folder list. This choice is stored inside the readable `.preset` file.
 
@@ -418,6 +422,13 @@ Folders made inside CET exist only in the mod's folder list. They do not create 
 
 <details>
 <summary><strong>Troubleshooting and FAQ</strong></summary>
+
+### Search Help
+
+Open **Help** and enter a word or short phrase. The panel shows only matching
+topics. Searches such as `share`, `bug`, `clothing`, `ACU`, `backup`, `Trash`,
+and `favorite` include common related terms, so the required instructions and
+known problems are easier to find.
 
 ### Activity log
 

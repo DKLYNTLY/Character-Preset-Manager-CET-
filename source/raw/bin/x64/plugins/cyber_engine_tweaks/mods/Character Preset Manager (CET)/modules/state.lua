@@ -134,6 +134,7 @@ state = {
       advancedDiagnostics = false,
     },
     helpOpen = false,
+    helpSearchText = "",
     debugOpen = false,
     settingsOpen = false,
     debugLogText = "",

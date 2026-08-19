@@ -534,7 +534,7 @@ importAvailableFolderBundles = function()
   local files = folderBundleFiles(true)
   if #files == 0 then
     setStatus("folder",
-      "Place a .cpmfolder file in Character Presets, then select Install Shared Folders.", true); return
+      "Place a .cpmfolder file in Character Presets, then select Install .cpmfolder Files from Character Presets.", true); return
   end
   local importedBundles, registryOk = readImportedBundles()
   if not registryOk then

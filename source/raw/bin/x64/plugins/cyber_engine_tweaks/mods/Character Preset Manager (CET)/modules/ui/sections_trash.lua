@@ -105,7 +105,7 @@ if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
         end
       end
 
-      if compactSubsectionButton("More Bulk Actions", "Hide Bulk Actions",
+      if compactSubsectionButton("Bulk: Move / Export / Trash", "Hide Bulk Actions",
           "bulkTrash") then
         ImGui.Indent(8)
         ui.drawBulkTrashOptions(actionButtonHeight, statusHeight)
