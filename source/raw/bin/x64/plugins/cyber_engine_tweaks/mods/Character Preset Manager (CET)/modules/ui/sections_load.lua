@@ -78,6 +78,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           cancelConfirmations()
           state.library.renameName = ""
           resetLoadState()
+          clearStatus("load")
           clearStatus("rename")
           clearStatus("delete")
           refreshPreflight()
@@ -144,14 +145,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         ("%s  |  %d options  |  Format %s")
         :format(helpers.breadcrumb(parentFolder(state.library.selected)), state.presetEntryCount(preset),
           tostring(preset.format or 4)))
-      if state.load.preflight then
-        local check = state.load.preflight
-        local color = (check.ambiguous + check.invalid) > 0 and { 1.0, 0.4, 0.4 }
-          or check.unavailable > 0 and { 1.0, 0.8, 0.2 } or { 0.3, 1.0, 0.4 }
-        coloredWrapped(color[1], color[2], color[3], 1.0,
-          ("Option check: %d found  |  %d missing  |  %d repeated  |  %d invalid")
-            :format(check.available, check.unavailable, check.ambiguous, check.invalid))
-      end
     end
 
     if compactSubsectionButton("Favorites & Details",
@@ -182,16 +175,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       ImGui.Unindent(8)
     end
 
-    local restoreFileAvailable = fileExists(LAST_APPEARANCE_FILE)
-    local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
-      or state.load.auto or state.load.needsContinue
-    if restoreUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Restore Previous Appearance##restoreAppearance",
-        actionButtonHeight) then
-      restoreLastAppearance()
-    end
-    if restoreUnavailable then ImGui.EndDisabled() end
-
     if state.load.auto then ImGui.BeginDisabled() end
     local forceLoadLabel = state.load.forceFull
       and "Force Full Load: On##forceFullLoad"
@@ -201,23 +184,11 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       resetLoadState()
       state.invalidatePreflight()
       refreshPreflight()
+      clearStatus("load")
       log(("[UI] Force Full Load toggled %s.")
         :format(state.load.forceFull and "on" or "off"), "info")
     end
     if state.load.auto then ImGui.EndDisabled() end
-    if state.load.forceFull then
-      local selectedPreset = state.library.selected
-        and state.library.presets[state.library.selected]
-      local selectedFormat = selectedPreset and tonumber(selectedPreset.format) or 4
-      if selectedFormat >= 7 then
-        coloredWrapped(1.0, 0.8, 0.2, 1.0,
-          "Force Full Load will try saved editor positions. Check the appearance after loading.")
-      else
-        coloredWrapped(1.0, 0.4, 0.4, 1.0,
-          "Older preset: added options may change the hair or color. Check the appearance after loading.")
-      end
-    end
-
     local loadUnavailable = not state.library.selected or not state.app.inCustomization
     local loadLabel
     if state.load.auto then
@@ -245,15 +216,58 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         cancelLoading()
       end
     end
-    local loadStatus = #names == 0
-      and "Save a preset before trying to load an appearance."
-      or (not state.library.selected
-        and "Select a preset to enable loading."
-        or (not state.app.inCustomization
-          and "Open the character creator, a mirror, or a ripperdoc to load the selected preset."
-          or ("Ready to load %s."):format(state.library.selected)))
+    local restoreFileAvailable = fileExists(LAST_APPEARANCE_FILE)
+    local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
+      or state.load.auto or state.load.needsContinue
+    if restoreUnavailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Restore Previous Appearance##restoreAppearance",
+        actionButtonHeight) then
+      restoreLastAppearance()
+    end
+    if restoreUnavailable then ImGui.EndDisabled() end
+
+    local selectedPreset = state.library.selected
+      and state.library.presets[state.library.selected]
+    local loadStatus, loadStatusKind
+    if #names == 0 then
+      loadStatus = "Save a preset before trying to load an appearance."
+      loadStatusKind = "info"
+    elseif not state.library.selected then
+      loadStatus = "Select a preset to enable loading."
+      loadStatusKind = "info"
+    elseif not state.app.inCustomization then
+      loadStatus = "Open the character creator, a mirror, or a ripperdoc to load the selected preset."
+      loadStatusKind = "info"
+    else
+      local messages = {}
+      local check = state.load.preflight
+      if check then
+        messages[#messages + 1] =
+          ("Option check: %d found, %d missing, %d repeated, %d invalid.")
+            :format(check.available, check.unavailable, check.ambiguous, check.invalid)
+        if check.ambiguous + check.invalid > 0 then
+          loadStatusKind = "critical_warning"
+        elseif check.unavailable > 0 then
+          loadStatusKind = "warning"
+        else
+          loadStatusKind = "ready"
+        end
+      end
+      if state.load.forceFull then
+        local forceWarning, forceWarningKind = helpers.forceFullLoadWarning(selectedPreset)
+        messages[#messages + 1] = forceWarning
+        if forceWarningKind == "critical_warning" or loadStatusKind ~= "critical_warning" then
+          loadStatusKind = forceWarningKind
+        end
+      end
+      if #messages == 0 then
+        messages[1] = ("Ready to load %s."):format(state.library.selected)
+        loadStatusKind = "ready"
+      end
+      loadStatus = table.concat(messages, " ")
+    end
     drawSectionStatus("load", "##loadStatus", statusHeight, loadStatus,
-      state.library.selected and state.app.inCustomization and "ready" or "info")
+      loadStatusKind)
     end
 end
 

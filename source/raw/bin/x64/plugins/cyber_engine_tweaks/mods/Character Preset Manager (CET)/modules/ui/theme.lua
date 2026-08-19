@@ -131,6 +131,7 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
   local isError = hasCurrentStatus and (sectionStatus.error or kind == "error")
   local success = not isError and (kind == "success" or kind == "ready")
   local warning = not isError and kind == "warning"
+  local criticalWarning = not isError and kind == "critical_warning"
   local destructiveWarning = (section == "delete"
       and (state.trash.pendingEmpty == true
         or (state.trash.pendingDeleteName ~= nil
@@ -141,7 +142,7 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
     or (section == "backup" and state.backup.pendingDeleteFile ~= nil)
   local customColors = false
   ImGui.Spacing()
-  if isError or destructiveWarning then
+  if isError or destructiveWarning or criticalWarning then
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
     customColors = true
@@ -160,7 +161,7 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
   if isError then
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "ERROR")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
-  elseif destructiveWarning then
+  elseif destructiveWarning or criticalWarning then
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "WARNING")
     coloredWrapped(1.0, 0.4, 0.4, 1.0, text)
   elseif warning then

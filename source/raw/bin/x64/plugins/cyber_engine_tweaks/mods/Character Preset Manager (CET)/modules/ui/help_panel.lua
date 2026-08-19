@@ -363,8 +363,9 @@ if state.ui.helpOpen then
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
-      ImGui.TextWrapped("Restore Previous Appearance is under Load & Restore Appearance. It uses the recovery snapshot saved before the newest normal preset load.")
-      ImGui.TextWrapped("Refresh and Force Full Load remain visible because they directly affect loading. Open Favorites & Details for saved preset details and the favorite action.")
+      ImGui.TextWrapped("Force Full Load is directly above Load Selected Preset. Preset compatibility results and Force Full Load cautions appear in the Load status card.")
+      ImGui.TextWrapped("Restore Previous Appearance follows the normal loading controls. It uses the recovery snapshot saved before the newest normal preset load.")
+      ImGui.TextWrapped("Open Favorites & Details for saved preset details and the favorite action.")
       helpButton("Preset search", "Filters the preset list by preset name, folder name, or tag as you type.")
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")

@@ -445,6 +445,16 @@ helpers.releaseFinishedLoadWorkingData = function()
   state.load.autoPasses = 0
 end
 
+helpers.forceFullLoadWarning = function(preset)
+  local format = tonumber(preset and preset.format) or 4
+  if format >= FORCE_FULL_LOAD_FORMAT_THRESHOLD then
+    return "Force Full Load will try saved editor positions. Check the appearance after loading.",
+      "warning"
+  end
+  return "Older preset: added options may change the hair or color. Check the appearance after loading.",
+    "critical_warning"
+end
+
 helpers.syncForceFullLoadSelection = function()
   local selected = state.load.overrideName or state.library.selected
   if state.load.forceFullPresetName == selected then return end

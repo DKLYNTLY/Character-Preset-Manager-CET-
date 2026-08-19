@@ -23,6 +23,10 @@ used. See the README and in-game Help for current instructions.
   the section needs, when it is ready, whether an action succeeded, and any
   warning or error. Backup actions now use the same status colors, and folder
   actions no longer display a second Bulk status card.
+- Places **Force Full Load** directly above **Load Selected Preset**, moves
+  **Restore Previous Appearance** below the normal loading controls, and shows
+  Force Full Load and preset compatibility cautions in the Load status card
+  instead of loose colored text.
 - Labels new format-8 files as **CPM Preset** and records their preset name and
   CET library folder in readable text. If a preset has no saved folder-list
   entry, the mod can rebuild its name and folder from the preset file. Older

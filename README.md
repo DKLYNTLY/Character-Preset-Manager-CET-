@@ -70,6 +70,10 @@ than the smaller selection normally available during play.
   grey guidance with a clear ready, status, success, warning, or error message.
   Backup, folder, and preset actions all report their result in the card for the
   section where the action was started.
+- **Force Full Load** now sits directly above the normal Load button. Its caution
+  and preset compatibility results appear in the Load status card, and
+  **Restore Previous Appearance** follows the normal loading controls as a
+  separate recovery action.
 - Favorites, complete-library backups, previous-appearance recovery, bulk
   preset actions, Help search, and clearer section controls are part of the
   main interface.
