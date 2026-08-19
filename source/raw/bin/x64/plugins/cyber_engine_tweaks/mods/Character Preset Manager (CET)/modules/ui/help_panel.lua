@@ -189,7 +189,7 @@ end
 drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if state.ui.settingsOpen then
       ImGui.Spacing()
-      ImGui.BeginChild("##settings", 0, 226, true)
+      ImGui.BeginChild("##settings", 0, 360, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
       ImGui.TextDisabled(CONFIG_FILE)
       ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
@@ -229,6 +229,36 @@ if state.ui.settingsOpen then
           state.status.settings = "The settings file could not be reloaded."
         end
       end
+      if fullWidthButton("Export Everything##exportLibraryBackup", actionButtonHeight) then
+        exportLibraryBackup()
+      end
+      local backupFiles = libraryBackupFiles()
+      if #backupFiles > 0 and not state.backup.selectedFile then
+        state.backup.selectedFile = backupFiles[#backupFiles]
+      end
+      local selectedBackupLabel = state.backup.selectedFile
+        and state.backup.selectedFile:match("([^/]+)$") or "No library backup found"
+      if ImGui.BeginCombo("Library backup to import##libraryBackupFile", selectedBackupLabel) then
+        for _, backupPath in ipairs(backupFiles) do
+          local label = backupPath:match("([^/]+)$") or backupPath
+          if ImGui.Selectable(label .. "##backup:" .. backupPath,
+              state.backup.selectedFile == backupPath) then
+            state.backup.selectedFile = backupPath
+          end
+        end
+        ImGui.EndCombo()
+      end
+      if #backupFiles == 0 then ImGui.BeginDisabled() end
+      if fullWidthButton("Import Library Backup##importLibraryBackup", actionButtonHeight) then
+        importLibraryBackup()
+      end
+      if #backupFiles == 0 then ImGui.EndDisabled() end
+      if not fileExists(LAST_APPEARANCE_FILE) then ImGui.BeginDisabled() end
+      if fullWidthButton("Restore Appearance from Before Last Load##restoreAppearance", actionButtonHeight) then
+        restoreLastAppearance()
+        state.ui.settingsOpen = false
+      end
+      if not fileExists(LAST_APPEARANCE_FILE) then ImGui.EndDisabled() end
       if state.status.settings ~= "" then
         coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.settings)
       end
@@ -281,6 +311,7 @@ if state.ui.helpOpen then
 
       helpHeading("Organize Presets")
       ImGui.TextWrapped("Select a folder row under Load Preset to open or close it. Presets that are not in a folder appear under All Presets.")
+      ImGui.TextWrapped("Add frequently used presets to Favorites from More Preset Info. Favorites stay in their original folders and also appear together above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
       ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
       ImGui.TextWrapped("Folders made in CET organize presets only inside the mod. They do not create matching Windows folders and have no set limit.")
@@ -292,7 +323,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Remove Folder, Keep Presets removes the folder but moves everything inside it to the folder above. It never deletes unknown files.")
 
       helpHeading("Delete and Restore")
-      ImGui.TextWrapped("Under Folders, you can move a folder and everything inside it to Trash. Use Delete & Restore to move one preset or several visible presets to Trash.")
+      ImGui.TextWrapped("Under Folders, you can move a folder and everything inside it to Trash. More Bulk Actions can move, export, or trash several selected presets at once.")
       ImGui.TextWrapped("You can restore presets and complete folders later. If a name is already in use, the restored item gets a Copy name instead of replacing anything.")
       ImGui.TextWrapped("Empty Trash Permanently is the only action that permanently deletes files. All Trash actions ask for confirmation.")
 
@@ -315,7 +346,8 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("To remove only a .cpmfolder file, choose All Presets, open Shared Folder Files, and move the file to Trash. This does not remove the installed presets or the folder that was shared.")
 
       helpHeading("Settings")
-      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off and choose how presets are sorted. Your choices are saved.")
+      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off, choose how presets are sorted, or export and import a complete library backup.")
+      ImGui.TextWrapped("Before each normal preset load, the mod quietly saves the current appearance. Restore Appearance from Before Last Load uses the newest snapshot and does not add it to the preset list.")
       ImGui.TextWrapped("Advanced users can also change Data/Config/Config.txt, then select Reload Settings File.")
 
       helpHeading("Activity Log")

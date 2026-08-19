@@ -60,6 +60,8 @@ end
 
 function resetLoadState()
   state.load.presetName = nil
+  state.load.overridePreset = nil
+  state.load.overrideName = nil
   state.load.pass = 0
   state.load.remaining = 0
   state.load.needsContinue = false

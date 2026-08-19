@@ -52,7 +52,7 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
     if #names == 0 then
       ImGui.TextDisabled("No presets saved.")
     else
-      local function drawPresetChoice(name, label)
+      local function drawPresetChoice(name, label, idSuffix)
         local preset = state.library.presets[name]
         local tags = tostring(preset and preset.tags or "")
         local displayLabel = label
@@ -64,7 +64,8 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
           end
           displayLabel = label .. "  -  " .. tags
         end
-        if ImGui.Selectable(displayLabel .. "##preset:" .. name, state.library.selected == name)
+        if ImGui.Selectable(displayLabel .. "##preset:" .. name .. tostring(idSuffix or ""),
+            state.library.selected == name)
             and state.library.selected ~= name then
           log(("[UI] Preset selection changed: old='%s' new='%s'.")
             :format(tostring(state.library.selected), name), "info")
@@ -81,6 +82,22 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
           clearStatus("delete")
           refreshPreflight()
         end
+      end
+      local visibleNames = {}
+      for _, name in ipairs(helpers.filteredPresetNames()) do visibleNames[name] = true end
+      local favoriteNames = {}
+      for _, name in ipairs(names) do
+        local preset = state.library.presets[name]
+        if preset and preset.favorite == true and visibleNames[name] then
+          table.insert(favoriteNames, name)
+        end
+      end
+      if #favoriteNames > 0 then
+        ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Favorites")
+        for _, name in ipairs(favoriteNames) do
+          drawPresetChoice(name, helpers.breadcrumb(name), ":favorite")
+        end
+        ImGui.Separator()
       end
       for _, folder in ipairs(sortedFolderNames()) do
         local folderPresets = helpers.presetsInFolder(folder)
@@ -145,6 +162,12 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
             tostring(preset.modified or "Unknown")))
         if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
         if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
+        local favoriteLabel = preset.favorite == true
+          and "Remove from Favorites##favoritePreset"
+          or "Add to Favorites##favoritePreset"
+        if fullWidthButton(favoriteLabel, actionButtonHeight) then
+          toggleSelectedPresetFavorite()
+        end
         ImGui.Unindent(8)
       end
     end

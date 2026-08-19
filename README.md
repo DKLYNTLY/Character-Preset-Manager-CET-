@@ -297,6 +297,21 @@ An unchanged bundle is skipped while its imported folder still exists. You can i
 
 After a successful import, **Shared Folder Files** can move the source file to Trash without removing the imported folder or presets. The list updates when you select **Refresh** and after any shared-folder action.
 
+### Export selected presets
+
+Open **Delete & Restore**, then open **More Bulk Actions**. Select presets from
+any folders and choose **Export Selected**. The new `.cpmfolder` file keeps their
+folder paths inside a single **Selected Presets** group when it is installed.
+
+### Back up the complete library
+
+Open **Settings** and choose **Export Everything**. The new `.cpmbackup` file in
+`Character Presets` contains every preset, the CET folder layout, and the current
+settings file. Choose a backup in Settings, then select **Import Library Backup**.
+On an empty installation, the original layout is restored. If names are already
+in use, the imported library is placed in a new **Imported Library** folder so
+nothing is overwritten. A backup cannot be larger than 256 MB.
+
 </details>
 
 <details>
@@ -304,8 +319,9 @@ After a successful import, **Shared Folder Files** can move the source file to T
 
 - Moving a preset to Trash keeps it available for recovery.
 - Under **Folders**, you can move a folder and everything inside it to Trash.
-- **More Trash Options** lets you select several presets from the current search results.
+- **More Bulk Actions** lets you select several presets from the current search results.
 - **Select All Visible** and **Clear Selection** make large selections easier.
+- The selected presets can be moved to one folder, exported together, or moved to Trash.
 - Moving an Imported folder to Trash removes its Windows folder only when it is empty. Unknown files are never deleted.
 - **Restore Folder** rebuilds the whole folder group, including empty folders inside it, and restores every preset in that Trash group.
 - You can also restore presets one at a time.
@@ -360,6 +376,12 @@ equipped clothing while its window is open.
 - **Customization Reminder: Enabled/Disabled** turns the character-screen reminder on or off. It starts on and stays off after you disable it.
 - **Preset Sort** sorts presets by name or by the most recently changed preset.
 - **Reload Settings File** applies manual changes without restarting.
+- **Export Everything** and **Import Library Backup** create or restore a complete `.cpmbackup` file.
+- **Restore Appearance from Before Last Load** loads the hidden recovery snapshot made before the newest normal preset load. A failed snapshot never stops the requested load.
+
+Use **More Preset Info** under **Load Preset** to add or remove a favorite.
+Favorites remain in their original folders and also appear in a pinned group above
+the regular folder list. This choice is stored inside the readable `.preset` file.
 
 The same choices are stored in:
 

@@ -191,8 +191,8 @@ local function writeImportedBundles(imported)
     IMPORTED_BUNDLES_FILE, lines, "imported-bundle registry", MAX_CATALOG_BYTES) == true
 end
 
-local function uniqueFolderBundleFilename(folder)
-  local stem = "Character Preset Manager Folder - " .. baseName(folder)
+local function uniqueFolderBundleFilename(label)
+  local stem = "Character Preset Manager Folder - " .. baseName(label)
   for index = 1, 999 do
     local suffix = index == 1 and "" or (" Copy %d"):format(index)
     local filename = PRESET_DIR .. "/" .. stem .. suffix .. FOLDER_BUNDLE_EXTENSION
@@ -200,6 +200,62 @@ local function uniqueFolderBundleFilename(folder)
         and not fileExists(filename .. ".bak") then return filename end
   end
   return nil
+end
+
+local function writePresetBundle(filename, root, folders, names, relativeName)
+  local bundleError = nil
+  local wrote = atomicReplace(filename, function(temporary)
+    return writeFileSafely(temporary, "wb", function(file)
+      local header = "CPMFOLDER\t1\nROOT\t" .. catalogEncode(root) .. "\n"
+      local totalBytes = #header
+      if not file:write(header) then return false end
+      for _, relativeFolder in ipairs(folders) do
+        if not validBundlePath(relativeFolder) then
+          bundleError = "A folder or preset name inside this selection is not safe to export."
+          return false
+        end
+        local line = "F\t" .. catalogEncode(relativeFolder) .. "\n"
+        totalBytes = totalBytes + #line
+        if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
+          bundleError = "The shared-folder file would be larger than the 32 MB limit."
+          return false
+        end
+        if not file:write(line) then return false end
+      end
+      for _, name in ipairs(names) do
+        local exportedName = relativeName(name)
+        if not validBundlePath(exportedName) then
+          bundleError = "This preset could not be read and was not exported: " .. name
+          return false
+        end
+        local prefix = "P\t" .. catalogEncode(exportedName) .. "\t"
+        local source = io.open(presetPath(name), "rb")
+        if not source then
+          bundleError = "This preset could not be read and was not exported: " .. name
+          return false
+        end
+        local sizeOk, sourceBytes = pcall(source.seek, source, "end")
+        source:close()
+        if not sizeOk or not sourceBytes or sourceBytes > MAX_PRESET_BYTES then
+          bundleError = "This preset could not be read and was not exported: " .. name
+          return false
+        end
+        totalBytes = totalBytes + #prefix + (sourceBytes * 2) + 1
+        if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
+          bundleError = "The shared-folder file would be larger than the 32 MB limit."
+          return false
+        end
+        if not file:write(prefix) then return false end
+        local streamed, streamedBytes = writeHexFile(file, presetPath(name))
+        if not streamed or streamedBytes ~= sourceBytes or not file:write("\n") then
+          bundleError = "This preset could not be read and was not exported: " .. name
+          return false
+        end
+      end
+      return file:flush() ~= nil
+    end)
+  end, "folder bundle")
+  return wrote, bundleError
 end
 
 exportSelectedFolderBundle = function()
@@ -232,58 +288,8 @@ exportSelectedFolderBundle = function()
   if not filename then
     setStatus("folder", "The mod could not create an unused file name for the shared folder.", true); return
   end
-  local bundleError = nil
-  local wrote = atomicReplace(filename, function(temporary)
-    return writeFileSafely(temporary, "wb", function(file)
-      local header = "CPMFOLDER\t1\nROOT\t" .. catalogEncode(baseName(folder)) .. "\n"
-      local totalBytes = #header
-      if not file:write(header) then return false end
-      for _, relativeFolder in ipairs(folders) do
-        if not validBundlePath(relativeFolder) then
-          bundleError = "A folder or preset name inside this folder is not safe to export."
-          return false
-        end
-        local line = "F\t" .. catalogEncode(relativeFolder) .. "\n"
-        totalBytes = totalBytes + #line
-        if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
-          bundleError = "The shared-folder file would be larger than the 32 MB limit."
-          return false
-        end
-        if not file:write(line) then return false end
-      end
-      for _, name in ipairs(names) do
-        local relativeName = name:sub(#folder + 2)
-        if not validBundlePath(relativeName) then
-          bundleError = "This preset could not be read and was not exported: " .. name
-          return false
-        end
-        local prefix = "P\t" .. catalogEncode(relativeName) .. "\t"
-        local source = io.open(presetPath(name), "rb")
-        if not source then
-          bundleError = "This preset could not be read and was not exported: " .. name
-          return false
-        end
-        local sizeOk, sourceBytes = pcall(source.seek, source, "end")
-        source:close()
-        if not sizeOk or not sourceBytes or sourceBytes > MAX_PRESET_BYTES then
-          bundleError = "This preset could not be read and was not exported: " .. name
-          return false
-        end
-        totalBytes = totalBytes + #prefix + (sourceBytes * 2) + 1
-        if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
-          bundleError = "The shared-folder file would be larger than the 32 MB limit."
-          return false
-        end
-        if not file:write(prefix) then return false end
-        local streamed, streamedBytes = writeHexFile(file, presetPath(name))
-        if not streamed or streamedBytes ~= sourceBytes or not file:write("\n") then
-          bundleError = "This preset could not be read and was not exported: " .. name
-          return false
-        end
-      end
-      return file:flush() ~= nil
-    end)
-  end, "folder bundle")
+  local wrote, bundleError = writePresetBundle(filename, baseName(folder), folders, names,
+    function(name) return name:sub(#folder + 2) end)
   if not wrote then
     setStatus("folder", bundleError or "The shared-folder file could not be saved.", true); return
   end
@@ -293,6 +299,44 @@ exportSelectedFolderBundle = function()
       :format(#names, #names == 1 and "" or "s", filename), false, "success")
   log(("[FOLDER BUNDLE] Exported folder='%s' presets=%d file='%s'.")
     :format(folder, #names, filename), "complete")
+end
+
+exportSelectedBulkPresetBundle = function()
+  clearStatus("bulk")
+  helpers.auditSection("EXPORT BULK PRESET BUNDLE")
+  local names = selectedBulkPresetNames()
+  if #names == 0 then
+    setStatus("bulk", "Select at least one preset before exporting.", true); return false
+  end
+  if #names > MAX_FOLDER_BUNDLE_PRESETS then
+    setStatus("bulk", ("This selection has more than the %d presets allowed in one shared-folder file.")
+      :format(MAX_FOLDER_BUNDLE_PRESETS), true); return false
+  end
+  local folderMap = {}
+  for _, name in ipairs(names) do
+    addFolderAncestors(folderMap, parentFolder(name))
+  end
+  folderMap[""] = nil
+  local folders = {}
+  for folder in pairs(folderMap) do table.insert(folders, folder) end
+  table.sort(folders, function(a, b) return a:lower() < b:lower() end)
+  local filename = uniqueFolderBundleFilename("Selected Presets")
+  if not filename then
+    setStatus("bulk", "The mod could not create an unused file name for the selected presets.", true)
+    return false
+  end
+  local wrote, bundleError = writePresetBundle(filename, "Selected Presets", folders, names,
+    function(name) return name end)
+  if not wrote then
+    setStatus("bulk", bundleError or "The shared-folder file could not be saved.", true)
+    return false
+  end
+  state.cache.folderBundleFilesDirty = true
+  setStatus("bulk", ("Exported %d selected preset%s to %s.")
+    :format(#names, #names == 1 and "" or "s", filename), false, "success")
+  log(("[FOLDER BUNDLE] Exported bulk selection presets=%d file='%s'.")
+    :format(#names, filename), "complete")
+  return true
 end
 
 local function inspectFolderBundle(filename)

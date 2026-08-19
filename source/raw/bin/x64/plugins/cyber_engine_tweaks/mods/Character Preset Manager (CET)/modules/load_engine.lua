@@ -21,7 +21,8 @@ state.loadOptionIdentity = function(option, key, occurrence)
 end
 
 function savedEntryAuditIdentity(entry)
-  local preset = state.library.presets[state.load.presetName or state.library.selected]
+  local preset = state.load.overridePreset
+    or state.library.presets[state.load.presetName or state.library.selected]
   local format = tonumber(preset and preset.format) or 4
   if format < 7 then
     return (" | preset format=%s | exact saved identity unknown because formats below 7 do not store an editor slot or saved choice")
@@ -417,9 +418,10 @@ helpers.logLoadMeasurements = function(result)
 end
 
 helpers.syncForceFullLoadSelection = function()
-  local selected = state.library.selected
+  local selected = state.load.overrideName or state.library.selected
   if state.load.forceFullPresetName == selected then return end
-  local preset = selected and state.library.presets[selected] or nil
+  local preset = state.load.overridePreset
+    or (selected and state.library.presets[selected] or nil)
   local format = tonumber(preset and preset.format) or 4
   state.load.forceFull = preset ~= nil
     and format < FORCE_FULL_LOAD_FORMAT_THRESHOLD
@@ -507,10 +509,10 @@ helpers.finalVerifyUnconfirmed = function()
   return cleared
 end
 
-beginLoadPass = function(preset)
+beginLoadPass = function(preset, loadName)
   helpers.auditSection("LOAD PRESET")
-  log(("[PRESET] Load requested: name='%s'"):format(tostring(state.library.selected)), "load")
-  state.load.presetName = state.library.selected
+  log(("[PRESET] Load requested: name='%s'"):format(tostring(loadName)), "load")
+  state.load.presetName = loadName
   state.load.pass = 1
   state.load.previousUnresolvedSignature = nil
   state.load.unresolvedRepeatCount = 0
@@ -565,7 +567,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
 
   if state.load.pass == 1 then
     log(("Preset='%s' | saved=%d options | editor exposes=%d options | format=%s")
-      :format(state.library.selected, valueCount, #options, tostring(preset.format or 1)),
+      :format(state.load.presetName or state.library.selected,
+        valueCount, #options, tostring(preset.format or 1)),
       "load")
   end
 
@@ -1010,9 +1013,11 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       state.load.stalled = true
       refreshCustomizationUi()
       log(("SUMMARY | preset='%s' | applied=%d | unresolved=%d | passes=%d | result=stopped")
-        :format(state.library.selected, applied, state.load.remaining, state.load.pass), "warn")
+        :format(state.load.presetName or state.library.selected,
+          applied, state.load.remaining, state.load.pass), "warn")
       log(("Load stalled: preset='%s' pass=%d unresolved=%d signature='%s'")
-        :format(state.library.selected, state.load.pass, state.load.remaining, signature), "warn")
+        :format(state.load.presetName or state.library.selected,
+          state.load.pass, state.load.remaining, signature), "warn")
       helpers.logLoadMeasurements("stopped")
       setStatus("load", (
         "Loading stopped because %d of %d options were still missing after %d checks. " ..
@@ -1059,7 +1064,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     state.load.unresolvedRepeatCount = 0
     refreshCustomizationUi()
     log(("SUMMARY | preset='%s' | processed=%d | confirmed=%d | unconfirmed=%d | forced=%d | cleanupUnconfirmed=%d | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=%s")
-      :format(state.library.selected, applied, math.max(0, applied - unconfirmed), unconfirmed,
+      :format(state.load.presetName or state.library.selected,
+        applied, math.max(0, applied - unconfirmed), unconfirmed,
         forced, cleanupSkipped, state.load.pass,
         (cleanupSkipped > 0 or unconfirmed > 0) and "complete-with-warning" or "complete"),
       (cleanupSkipped > 0 or unconfirmed > 0) and "warn" or "complete")
@@ -1093,12 +1099,15 @@ end
 
 function loadPreset()
   helpers.syncForceFullLoadSelection()
-  if not state.library.selected or not state.library.presets[state.library.selected] then
+  local loadName = state.load.overrideName or state.library.selected
+  local selectedPreset = state.load.overridePreset
+  if not selectedPreset and (not state.library.selected
+      or not state.library.presets[state.library.selected]) then
     resetLoadState()
     setStatus("load", "Select a preset.", true)
     return
   end
-  local selectedPreset = hydrateNamedPreset(state.library.selected)
+  if not selectedPreset then selectedPreset = hydrateNamedPreset(state.library.selected) end
   if not selectedPreset then
     resetLoadState()
     setStatus("load", "The selected preset could not be read safely.", true)
@@ -1114,11 +1123,11 @@ function loadPreset()
     log("[load] " .. tostring(optionsError), "warn")
     return
   end
-  if state.load.presetName ~= state.library.selected then refreshPreflight() end
+  if state.load.presetName ~= loadName and not state.load.overridePreset then refreshPreflight() end
 
   local preset = selectedPreset
   local values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
-  if state.load.presetName == state.library.selected then
+  if state.load.presetName == loadName then
     state.load.pass = state.load.pass + 1
     values = state.load.values
     savedCounts = state.load.savedCounts
@@ -1127,11 +1136,29 @@ function loadPreset()
     savedSlotCounts = state.load.savedSlotCounts
     valueCount = state.load.valueCount
   else
+    if not state.load.overridePreset then saveLastAppearanceSnapshot(options) end
     values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey =
-      beginLoadPass(preset)
+      beginLoadPass(preset, loadName)
   end
   return continueLoadPass(system, options, preset, values, savedCounts,
     orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
+end
+
+function restoreLastAppearance()
+  local preset = readPresetFile(LAST_APPEARANCE_FILE)
+  if not preset then
+    setStatus("load", "No appearance recovery snapshot is available yet.", true)
+    return false
+  end
+  resetLoadState()
+  state.load.overridePreset = preset
+  state.load.overrideName = "Appearance Before Last Load"
+  state.load.autoTimer = 0
+  state.load.autoPasses = 0
+  state.load.resetBefore = true
+  loadPreset()
+  if state.load.needsContinue then state.load.auto = true end
+  return state.load.presetName == state.load.overrideName
 end
 
 refreshPreflight = function()

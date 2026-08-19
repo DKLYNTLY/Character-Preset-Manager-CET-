@@ -273,7 +273,7 @@ events.onUpdate = function(delta)
   if state.load.autoTimer < state.load.nextInterval then return end
   state.load.autoTimer = 0
 
-  if not state.library.selected then
+  if not state.library.selected and not state.load.overridePreset then
     state.load.auto = false
     state.load.autoTimer = 0
     state.load.autoPasses = 0

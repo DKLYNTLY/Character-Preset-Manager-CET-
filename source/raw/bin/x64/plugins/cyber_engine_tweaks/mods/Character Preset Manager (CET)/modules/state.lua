@@ -34,6 +34,8 @@ state = {
   },
   load = {
     presetName = nil,
+    overridePreset = nil,
+    overrideName = nil,
     pass = 0,
     remaining = 0,
     needsContinue = false,
@@ -97,6 +99,7 @@ state = {
     pendingDeleteName = nil,
     pendingDeleteFingerprint = nil,
     bulkSelected = {},
+    bulkTargetFolder = "",
     pendingBulkAction = nil,
     pendingBulkFingerprint = nil,
     viewDirty = true,
@@ -109,6 +112,9 @@ state = {
     cachedBulkFolder = nil,
     cachedBulkFolderNames = {},
     cachedBulkNestedFolderCount = 0,
+  },
+  backup = {
+    selectedFile = nil,
   },
   ui = {
     openSections = {

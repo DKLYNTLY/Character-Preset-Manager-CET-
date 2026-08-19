@@ -42,6 +42,8 @@ function readPresetFile(path, metadataOnly)
       metadata.notes = sanitizeMetadata(catalogDecode(metadataValue), 512)
     elseif metadataKey == "tags" then
       metadata.tags = sanitizeMetadata(catalogDecode(metadataValue), 128)
+    elseif metadataKey == "favorite" then
+      metadata.favorite = metadataValue == "true" or metadataValue == "1"
     elseif not metadataOnly and metadataKey == "slot" then
       local slot = catalogDecode(metadataValue)
       pendingSlot = #slot <= MAX_PRESET_KEY_BYTES and not slot:find("%c")
@@ -68,6 +70,9 @@ function readPresetFile(path, metadataOnly)
       metadata.notes = sanitizeMetadata(readableValue, 512)
     elseif readableFormatConfirmed and readableKey == "Tags" then
       metadata.tags = sanitizeMetadata(readableValue, 128)
+    elseif readableFormatConfirmed and readableKey == "Favorite" then
+      local favorite = tostring(readableValue):lower()
+      metadata.favorite = favorite == "yes" or favorite == "true" or favorite == "on"
     elseif not metadataOnly and readableFormatConfirmed
         and readableKey == "Editor slot" and lastEntry then
       local slot = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES)
@@ -127,6 +132,7 @@ function readPresetFile(path, metadataOnly)
     modified = metadata.modified,
     notes = metadata.notes or "",
     tags = metadata.tags or "",
+    favorite = metadata.favorite == true,
     entries = not metadataOnly and entries or nil,
     entryCount = entryCount,
     entryCountKnown = true,
@@ -178,6 +184,7 @@ function writePresetContents(path, preset)
       "# Modified: " .. sanitizeMetadata(preset.modified or "", 64),
       "# Notes: " .. sanitizeMetadata(preset.notes, 512),
       "# Tags: " .. sanitizeMetadata(preset.tags, 128),
+      "# Favorite: " .. (preset.favorite == true and "Yes" or "No"),
       "#",
       "# Appearance options",
       "# Each main line is OptionKey:SavedNumber.",
@@ -275,7 +282,7 @@ presetsMatch = function(expected, actual)
   end
   if state.presetEntryCount(expected) ~= state.presetEntryCount(actual) then return false end
   if (tonumber(expected and expected.format) or 4) >= 5 then
-    for _, key in ipairs({ "format", "source", "created", "modified", "notes", "tags" }) do
+    for _, key in ipairs({ "format", "source", "created", "modified", "notes", "tags", "favorite" }) do
       if tostring(expected[key] or "") ~= tostring(actual and actual[key] or "") then
         return false
       end
@@ -470,6 +477,7 @@ function savePreset(confirmOverwrite)
     modified = logTimestamp(),
     notes = previousPreset and previousPreset.notes or "",
     tags = previousPreset and previousPreset.tags or "",
+    favorite = previousPreset and previousPreset.favorite == true,
     entries = entries,
     entryCount = #entries,
     storage = storage,
@@ -511,6 +519,48 @@ function savePreset(confirmOverwrite)
     setStatus("create", ("Saved \"%s\", but the preset file list could not be updated.")
       :format(name), false, "warning")
   end
+end
+
+function saveLastAppearanceSnapshot(options)
+  local entries = {}
+  for _, option in ipairs(options or {}) do
+    local key = optionKey(option)
+    if key and option.isEditable and option.isActive then
+      local currentIndex = tonumber(option.currIndex)
+      if #key > MAX_PRESET_KEY_BYTES or #entries >= MAX_PRESET_ENTRIES
+          or optionIndexValidationError(currentIndex) then
+        log(("[RECOVERY SNAPSHOT] Current appearance could not be saved because option '%s' is outside the preset safety limits.")
+          :format(tostring(key)), "warn")
+        return false
+      end
+      table.insert(entries, {
+        key = key,
+        index = currentIndex,
+        slot = optionSlot(option),
+        choice = helpers.optionChoiceKey(option, currentIndex),
+      })
+    end
+  end
+  if #entries == 0 then
+    log("[RECOVERY SNAPSHOT] Current appearance was not saved because no editable options were available.", "warn")
+    return false
+  end
+  local timestamp = logTimestamp()
+  local preset = {
+    format = CURRENT_PRESET_FORMAT,
+    source = MOD_NAME .. " automatic recovery",
+    created = timestamp,
+    modified = timestamp,
+    notes = "Appearance saved automatically before the last preset load.",
+    tags = "recovery",
+    favorite = false,
+    entries = entries,
+    entryCount = #entries,
+  }
+  local wrote = writePresetPath(LAST_APPEARANCE_FILE, preset)
+  log(("[RECOVERY SNAPSHOT] Saved current appearance options=%d file='%s' success=%s.")
+    :format(#entries, LAST_APPEARANCE_FILE, tostring(wrote)), wrote and "info" or "warn")
+  return wrote
 end
 
 function renamePreset()
@@ -607,17 +657,17 @@ function movePresetToSelectedFolder()
   clearStatus("folder")
   helpers.auditSection("MOVE PRESET")
   if not state.library.selected or not state.library.presets[state.library.selected] then
-    setStatus("folder", "Select a preset before moving it.", true); return
+    setStatus("folder", "Select a preset before moving it.", true); return false
   end
   local old = state.library.selected
   local newName = joinFolder(state.library.selectedFolder, baseName(old))
   if newName == old then
-    setStatus("folder", "The preset is already in the selected folder."); return
+    setStatus("folder", "The preset is already in the selected folder."); return false
   end
   local collision = findPresetCollision(newName, old)
   if collision then
     setStatus("folder",
-      ("A preset named \"%s\" already exists there."):format(baseName(collision)), true); return
+      ("A preset named \"%s\" already exists there."):format(baseName(collision)), true); return false
   end
   local preset = state.library.presets[old]
   state.library.presets[old] = nil
@@ -627,7 +677,7 @@ function movePresetToSelectedFolder()
     state.library.presets[newName] = nil
     state.library.presets[old] = preset
     setStatus("folder",
-      "The preset could not be moved because the folder list could not be saved.", true); return
+      "The preset could not be moved because the folder list could not be saved.", true); return false
   end
   state.library.selected = newName
   invalidateViewCache()
@@ -638,6 +688,64 @@ function movePresetToSelectedFolder()
       state.library.selectedFolder == "" and "All Presets" or state.library.selectedFolder), false, "success")
   log(("[PRESET] Virtual move completed: '%s' -> '%s' storage='%s'.")
     :format(old, newName, preset.storage), "complete")
+  return true, newName
+end
+
+function moveSelectedBulkPresetsToFolder()
+  clearStatus("bulk")
+  helpers.auditSection("BULK MOVE PRESETS")
+  local names = selectedBulkPresetNames()
+  if #names == 0 then
+    setStatus("bulk", "Select at least one preset before moving.", true)
+    return false
+  end
+  local target = state.trash.bulkTargetFolder or ""
+  if target ~= "" and not state.library.folders[target] then
+    setStatus("bulk", "Choose an available destination folder.", true)
+    return false
+  end
+  local destinations = {}
+  for _, name in ipairs(names) do
+    local destination = joinFolder(target, baseName(name))
+    local lowered = destination:lower()
+    local collision = findPresetCollision(destination, name)
+    if destination == name then
+      setStatus("bulk", ("\"%s\" is already in that folder."):format(baseName(name)), true)
+      return false
+    end
+    if collision or destinations[lowered] then
+      setStatus("bulk", ("The destination already has, or would receive, more than one preset named \"%s\".")
+        :format(baseName(name)), true)
+      return false
+    end
+    destinations[lowered] = true
+  end
+  local previousSelected = state.library.selected
+  local movedNames = {}
+  state.library.selectedFolder = target
+  for _, name in ipairs(names) do
+    state.library.selected = name
+    local moved, newName = movePresetToSelectedFolder()
+    if not moved then
+      setStatus("bulk", ("Bulk move stopped after %d of %d presets. Review the folder list before trying again.")
+        :format(#movedNames, #names), true)
+      invalidateBulkSelectionCache()
+      return false
+    end
+    table.insert(movedNames, newName)
+    state.trash.bulkSelected[name] = nil
+    state.trash.bulkSelected[newName] = true
+  end
+  if previousSelected and state.library.presets[previousSelected] then
+    state.library.selected = previousSelected
+  else
+    state.library.selected = movedNames[#movedNames]
+  end
+  invalidateBulkSelectionCache()
+  setStatus("bulk", ("Moved %d preset%s to %s.")
+    :format(#movedNames, #movedNames == 1 and "" or "s",
+      target == "" and "All Presets" or target), false, "success")
+  return true
 end
 
 function savePresetMetadata()
@@ -672,6 +780,32 @@ function savePresetMetadata()
   setStatus("rename", "Saved details for \"" .. state.library.selected .. "\"." ..
     (inventorySaved and "" or " The preset file list could not be updated."),
     false, inventorySaved and "success" or "warning")
+end
+
+function toggleSelectedPresetFavorite()
+  local name = state.library.selected
+  local preset = name and hydrateNamedPreset(name)
+  if not preset then
+    setStatus("load", "Select a preset before changing its favorite status.", true)
+    return false
+  end
+  local previousFavorite = preset.favorite == true
+  local previousModified = preset.modified
+  preset.favorite = not previousFavorite
+  preset.modified = logTimestamp()
+  if not writePresetPath(presetPath(name), preset) then
+    preset.favorite = previousFavorite
+    preset.modified = previousModified
+    setStatus("load", "The favorite setting could not be saved safely.", true)
+    return false
+  end
+  invalidateViewCache()
+  local inventorySaved = writeInventory(state.library.presets, state.library.folders)
+  setStatus("load", (preset.favorite and "Added \"%s\" to Favorites."
+      or "Removed \"%s\" from Favorites."):format(name) ..
+    (inventorySaved and "" or " The preset file list could not be updated."),
+    false, inventorySaved and "success" or "warning")
+  return true
 end
 
 function duplicatePreset()

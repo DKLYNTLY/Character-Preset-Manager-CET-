@@ -54,7 +54,31 @@ ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
   selectedBulkNames = selectedBulkPresetNames()
   ImGui.TextDisabled(("%d preset%s selected.")
     :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
+  local targetLabel = state.trash.bulkTargetFolder == ""
+    and "All Presets" or state.trash.bulkTargetFolder
+  if ImGui.BeginCombo("Move selected to folder##bulkTargetFolder", targetLabel) then
+    if ImGui.Selectable("All Presets##bulkTargetRoot", state.trash.bulkTargetFolder == "") then
+      state.trash.bulkTargetFolder = ""
+      clearStatus("bulk")
+    end
+    for _, folder in ipairs(sortedFolderNames()) do
+      if ImGui.Selectable(helpers.breadcrumb(folder) .. "##bulkTarget:" .. folder,
+          state.trash.bulkTargetFolder == folder) then
+        state.trash.bulkTargetFolder = folder
+        clearStatus("bulk")
+      end
+    end
+    ImGui.EndCombo()
+  end
   if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
+  local bulkActionWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+  if ImGui.Button("Move Selected##bulkMove", bulkActionWidth, actionButtonHeight) then
+    moveSelectedBulkPresetsToFolder()
+  end
+  ImGui.SameLine()
+  if ImGui.Button("Export Selected##bulkExport", bulkActionWidth, actionButtonHeight) then
+    exportSelectedBulkPresetBundle()
+  end
   local bulkTrashLabel = state.trash.pendingBulkAction == "presets"
     and "Confirm Bulk Trash"
     or ("Move %d Preset%s to Trash")
@@ -81,7 +105,7 @@ if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
         end
       end
 
-      if compactSubsectionButton("More Trash Options", "Hide More Trash Options",
+      if compactSubsectionButton("More Bulk Actions", "Hide Bulk Actions",
           "bulkTrash") then
         ImGui.Indent(8)
         ui.drawBulkTrashOptions(actionButtonHeight, statusHeight)
