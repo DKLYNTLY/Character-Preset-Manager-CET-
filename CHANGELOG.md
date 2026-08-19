@@ -11,6 +11,12 @@ used. See the README and in-game Help for current instructions.
 
 *Faster access to useful details and more consistent controls.*
 
+- Releases finished preset-loading data after it is no longer needed, reducing
+  memory kept during long play sessions.
+- Unloads full preset contents and clears rebuildable interface lists when the
+  mod window is hidden. Preset names, notes, tags, favorites, and other details
+  remain available and are read again when needed.
+- Clears the displayed Activity Log from memory when its panel closes.
 - Prevents the Lua 200-local-variable startup failure from returning by keeping
   the affected shared functions in one stable helper namespace. This also
   prevents missing-function errors in preset, folder, log, and session actions.

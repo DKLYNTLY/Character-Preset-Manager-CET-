@@ -66,7 +66,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
       state.ui.settingsOpen = not state.ui.settingsOpen
       if state.ui.settingsOpen then
         state.ui.helpOpen = false
-        state.ui.debugOpen = false
+        ui.closeDebugPanel()
       end
     end
     ImGui.SameLine()
@@ -74,14 +74,16 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
       state.ui.helpOpen = not state.ui.helpOpen
       if state.ui.helpOpen then
         state.ui.settingsOpen = false
-        state.ui.debugOpen = false
+        ui.closeDebugPanel()
         state.ui.bindingCache = {}
       end
     end
     ImGui.SameLine()
     if ImGui.Button("Log##debug", topButtonWidth, actionButtonHeight) then
-      state.ui.debugOpen = not state.ui.debugOpen
       if state.ui.debugOpen then
+        ui.closeDebugPanel()
+      else
+        state.ui.debugOpen = true
         state.ui.settingsOpen = false
         state.ui.helpOpen = false
         ui.readDiagnosticLog()

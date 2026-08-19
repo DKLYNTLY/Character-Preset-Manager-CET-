@@ -58,6 +58,33 @@ function invalidatePresetAndTrashCaches()
   if state.invalidateTrashViewCache then state.invalidateTrashViewCache() end
 end
 
+helpers.releaseViewCaches = function()
+  state.cache.presetNames = {}
+  state.cache.folderNames = {}
+  state.cache.presetsByFolder = {}
+  state.cache.folderPresetCounts = {}
+  state.cache.filteredPresetNames = {}
+  state.cache.matchedFolders = {}
+  state.cache.matchingPresetsByFolder = {}
+  state.cache.folderMatches = {}
+  state.cache.searchText = nil
+  state.cache.queryActive = false
+  state.cache.viewDirty = true
+  state.cache.filteredViewDirty = true
+  state.cache.folderBundleFiles = {}
+  state.cache.folderBundleFilesDirty = true
+  state.trash.cachedNames = {}
+  state.trash.cachedGroupIds = {}
+  state.trash.cachedBundleNames = {}
+  state.trash.cachedGroupStats = {}
+  state.trash.cachedBulkSelectedNames = {}
+  state.trash.cachedBulkFolder = nil
+  state.trash.cachedBulkFolderNames = {}
+  state.trash.cachedBulkNestedFolderCount = 0
+  state.trash.viewDirty = true
+  state.trash.bulkSelectionDirty = true
+end
+
 helpers.rebuildViewCache = function()
   local presetNames = {}
   local folderNames = {}

@@ -417,6 +417,34 @@ helpers.logLoadMeasurements = function(result)
       state.load.waitSeconds, state.load.structureChanges), "info")
 end
 
+helpers.releaseFinishedLoadWorkingData = function()
+  state.app.optionsMemo = nil
+  state.load.overridePreset = nil
+  state.load.values = nil
+  state.load.savedCounts = nil
+  state.load.orderedEntries = nil
+  state.load.savedEntryByKey = nil
+  state.load.savedSlotCounts = nil
+  state.load.satisfied = {}
+  state.load.forcedKeys = {}
+  state.load.resolvedChoiceIndexes = {}
+  state.load.applyAttempts = {}
+  state.load.unconfirmed = {}
+  state.load.cleanupAttempts = {}
+  state.load.cleanupSkipped = {}
+  state.load.loggedWarnings = {}
+  state.load.optionIdentityCache = {}
+  state.load.pendingChange = nil
+  state.load.lastStructureSignature = nil
+  state.load.lastOptionCount = nil
+  state.load.scanResult = nil
+  state.load.dependencyKeys = {}
+  state.load.dependencyRemaps = {}
+  state.load.auto = false
+  state.load.autoTimer = 0
+  state.load.autoPasses = 0
+end
+
 helpers.syncForceFullLoadSelection = function()
   local selected = state.load.overrideName or state.library.selected
   if state.load.forceFullPresetName == selected then return end
@@ -1140,8 +1168,13 @@ function loadPreset()
     values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey =
       beginLoadPass(preset, loadName)
   end
-  return continueLoadPass(system, options, preset, values, savedCounts,
+  local result = continueLoadPass(system, options, preset, values, savedCounts,
     orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
+  if state.load.presetName and not state.load.needsContinue
+      and not state.load.pendingChange then
+    helpers.releaseFinishedLoadWorkingData()
+  end
+  return result
 end
 
 function restoreLastAppearance()

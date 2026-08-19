@@ -5,6 +5,21 @@ local _ENV = runtime
 
 events = {}
 
+helpers.releaseIdleMemory = function()
+  if state.load.auto or state.load.needsContinue or state.load.pendingChange then
+    return false
+  end
+  helpers.releaseFinishedLoadWorkingData()
+  for _, preset in pairs(state.library.presets) do
+    state.dehydratePreset(preset)
+  end
+  helpers.releaseViewCaches()
+  ui.closeDebugPanel()
+  state.ui.bindingCache = {}
+  state.invalidatePreflight()
+  return true
+end
+
 events.onInit = function()
   activitySequence = 0
   local archived, archiveResult, cleanupWarning, deletedArchives = helpers.archiveLogForNewSession()
@@ -300,6 +315,9 @@ events.onUpdate = function(delta)
   if not state.load.needsContinue then
     state.load.auto = false
     state.load.autoPasses = 0
+    if not state.app.overlayOpen or not state.app.windowOpen then
+      helpers.releaseIdleMemory()
+    end
   end
 end
 
@@ -326,6 +344,7 @@ events.onOverlayClose = function()
   state.app.overlayOpen = false
   helpers.clearSectionStatuses()
   cancelConfirmations()
+  helpers.releaseIdleMemory()
 end
 
 events.onDraw = function()
@@ -345,6 +364,7 @@ end
 events.toggleWindow = function()
   state.editor.windowHotkeyCount = state.editor.windowHotkeyCount + 1
   state.app.windowOpen = not state.app.windowOpen
+  if not state.app.windowOpen then helpers.releaseIdleMemory() end
   log(("[UI] Character Preset Manager window visibility changed to %s.")
     :format(tostring(state.app.windowOpen)), "info")
 end

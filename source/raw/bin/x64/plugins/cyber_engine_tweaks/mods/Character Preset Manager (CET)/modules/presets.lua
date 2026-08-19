@@ -160,6 +160,15 @@ state.hydratePreset = function(preset, path)
   return preset
 end
 
+state.dehydratePreset = function(preset)
+  if not preset or not preset.entries then return false end
+  preset.entryCount = #preset.entries
+  preset.entryCountKnown = true
+  preset.entries = nil
+  preset.lazy = true
+  return true
+end
+
 function hydrateNamedPreset(name)
   local preset = name and state.library.presets[name]
   if not preset then return nil end

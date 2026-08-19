@@ -33,6 +33,16 @@ ui.setDebugLogText = function(text)
   state.ui.debugLogLines = lines
 end
 
+ui.clearDiagnosticLog = function()
+  state.ui.debugLogText = ""
+  state.ui.debugLogLines = {}
+end
+
+ui.closeDebugPanel = function()
+  state.ui.debugOpen = false
+  ui.clearDiagnosticLog()
+end
+
 ui.readDiagnosticLog = function()
   closeActivityLog()
   local file = io.open(LOG_FILE, "rb")
@@ -81,7 +91,7 @@ ui.drawDebugPanel = function(height)
     ImGui.SetClipboardText(state.ui.debugLogText or "")
   end
   ImGui.SameLine()
-  if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then state.ui.debugOpen = false end
+  if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then ui.closeDebugPanel() end
   if compactSubsectionButton(
       "Technical Details", "Hide Technical Details", "advancedDiagnostics") then
     ImGui.Indent(8)
