@@ -104,6 +104,10 @@ used. See the README and in-game Help for current instructions.
   and removes the extra undo heading.
 - Renames **Save Folder Choices** to **Save Location** and removes
   the `Optional:` and `Folder:` prefixes from secondary buttons.
+- Expands searchable in-game Help with a plain explanation for every button,
+  including changing labels, confirmation actions, selection rows, and dropdowns.
+- Renames the expanded **Hide Optional Preset Tools** label to
+  **Hide Tags, Notes & File**.
 
 </details>
 
