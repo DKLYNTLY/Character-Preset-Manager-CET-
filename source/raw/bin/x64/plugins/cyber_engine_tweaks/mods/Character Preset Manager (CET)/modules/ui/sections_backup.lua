@@ -43,7 +43,8 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
         actionButtonHeight) then
       importLibraryBackup()
     end
-    local deleteBackupLabel = state.backup.pendingDeleteFile == state.backup.selectedFile
+    local deleteBackupLabel = state.backup.selectedFile
+      and state.backup.pendingDeleteFile == state.backup.selectedFile
       and "Confirm Delete Selected Backup Permanently##deleteLibraryBackup"
       or "Delete Selected Backup Permanently##deleteLibraryBackup"
     if dangerButton(deleteBackupLabel, ImGui.GetContentRegionAvail(),
