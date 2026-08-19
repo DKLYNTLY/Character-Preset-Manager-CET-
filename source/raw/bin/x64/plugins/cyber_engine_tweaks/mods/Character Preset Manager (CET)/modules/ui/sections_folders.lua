@@ -41,7 +41,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     if addFolderUnavailable then ImGui.EndDisabled() end
     if addFolderUnavailable then ImGui.TextDisabled("Enter a valid folder name to enable adding.") end
     if state.library.selectedFolder ~= "" then
-      if compactSubsectionButton("Folder: Rename / Copy / Move / Delete",
+      if compactSubsectionButton("Rename / Copy / Move / Delete",
           "Hide Selected Folder Actions", "selectedFolderActions") then
       ImGui.Indent(8)
       ImGui.PushItemWidth(-1)
@@ -96,7 +96,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         or "The selected preset is already in All Presets.")
       end
     end
-    if compactSubsectionButton("Optional: Share & Import Folders",
+    if compactSubsectionButton("Share & Import Folders",
         "Hide Share & Import Folders", "folderSharing") then
     ImGui.Indent(8)
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Shared Folder Files")
@@ -116,7 +116,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     ImGui.Unindent(8)
     end
     local bundleFiles = folderBundleFiles()
-    local bundleLabel = ("Optional: Manage & Remove .cpmfolder Files (%d)")
+    local bundleLabel = ("Manage & Remove .cpmfolder Files (%d)")
       :format(#bundleFiles)
     if compactSubsectionButton(bundleLabel, "Hide .cpmfolder File Manager",
         "folderBundleFiles") then

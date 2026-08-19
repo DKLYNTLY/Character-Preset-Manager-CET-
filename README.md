@@ -114,7 +114,7 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.5 does 
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
-3. Under **Save & Replace Presets**, open **Save Folder Choices**.
+3. Under **Save & Replace Presets**, open **Save Location**.
 4. Choose a folder or **All Presets**.
 5. Enter a name and select **Save New Preset**.
 
@@ -134,7 +134,7 @@ refreshes and the final appearance.
 5. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
 
-**Restore Appearance from Before Last Load** is under **Load & Restore Appearance**. Before
+**Restore Previous Appearance** is under **Load & Restore Appearance**. Before
 each normal preset load, the mod quietly saves the active appearance. Open a
 supported character screen and use this button to undo the newest preset load.
 
@@ -214,13 +214,13 @@ easy to inspect without treating its headings as damaged data.
 - Copies appear beside the original and use names such as `Copy` and `Copy 2`.
 - Copying a folder also copies every preset and folder inside it.
 - Renaming a preset also renames its `.preset` file.
-- Notes, tags, and the file path are under **Rename & Copy Presets > Optional: Tags, Notes & File**.
+- Notes, tags, and the file path are under **Rename & Copy Presets > Tags, Notes & File**.
 - Search checks preset names, folder names, and tags. Tags also appear beside
   preset names in the list.
 - **Copy File Path** inside those optional preset tools copies the selected preset's
   complete path from the Cyberpunk 2077 game folder.
 
-Choose a preset under **Load & Restore Appearance**, then open **Optional: Favorites & Details**
+Choose a preset under **Load & Restore Appearance**, then open **Favorites & Details**
 and select **Add Selected Preset to Favorites**. The same button removes it from Favorites
 later. Favorites remain in their original folders and also appear in a pinned
 group above the regular folder list. This choice is stored inside the readable
@@ -284,7 +284,7 @@ A `.cpmfolder` file contains the selected CET folder, all folders inside it, and
 #### Export a folder
 
 1. Open **Create & Organize Folders** and choose a non-empty folder.
-2. Open **Optional: Share & Import Folders**.
+2. Open **Share & Import Folders**.
 3. Select **Export Selected Folder as a .cpmfolder File**.
 4. Find the new `.cpmfolder` file in `Character Presets` and send it.
 
@@ -293,7 +293,7 @@ A shared folder can contain up to 512 presets and cannot be larger than 32 MB. A
 The mod writes and installs shared folders one preset at a time. Large bundles
 do not need to be held in memory all at once.
 
-To remove only the exported file, open **Optional: Manage & Remove .cpmfolder Files**,
+To remove only the exported file, open **Manage & Remove .cpmfolder Files**,
 select the file, and choose **Move Selected .cpmfolder File to Trash**. This does
 not remove the original folder or its presets. You can restore the file under
 **Delete & Restore Items** or remove it with **Empty Trash Permanently**.
@@ -302,14 +302,14 @@ not remove the original folder or its presets. You can restore the file under
 
 1. Put the downloaded `.cpmfolder` file in `Character Presets`.
 2. Open Character Preset Manager and expand **Create & Organize Folders**.
-3. Open **Optional: Share & Import Folders**.
+3. Open **Share & Import Folders**.
 4. Select **Install .cpmfolder Files from Character Presets**.
 
 The mod rebuilds the complete folder group and leaves the `.cpmfolder` file in place. It remembers the filename, file contents, and imported folder in `Data/Catalog/Imported Bundles.txt`.
 
 An unchanged bundle is skipped while its imported folder still exists. You can import it again after deleting that folder. You can also import a changed bundle that uses the same filename. If a folder name is already in use, the new folder gets a safe `Copy` name. A failed import is not marked as complete, so you can fix the file and try again.
 
-After a successful import, **Optional: Manage & Remove .cpmfolder Files** can move the
+After a successful import, **Manage & Remove .cpmfolder Files** can move the
 source file to Trash without removing the imported folder or presets. This file
 manager is always available under **Create & Organize Folders**, regardless of the selected folder.
 
@@ -398,7 +398,7 @@ equipped clothing while its window is open.
 
 - **Customization Reminder: Enabled/Disabled** turns the character-screen reminder on or off. It starts on and stays off after you disable it.
 - **Preset Sort** sorts presets by name or by the most recently changed preset.
-- **Optional: Reload Settings File** applies manual changes without restarting.
+- Open **Settings File**, then select **Reload Settings File**, to apply manual changes without restarting.
 
 The same choices are stored in:
 

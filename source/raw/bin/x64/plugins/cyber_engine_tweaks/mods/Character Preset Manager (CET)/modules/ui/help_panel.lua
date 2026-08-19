@@ -225,8 +225,8 @@ if state.ui.settingsOpen then
         invalidateViewCache()
         state.status.settings = writeConfig() and "Settings saved." or "The settings file could not be saved."
       end
-      if compactSubsectionButton("Optional: Reload Settings File",
-          "Hide Optional Settings File Tool", "settingsFile") then
+      if compactSubsectionButton("Settings File",
+          "Hide Settings File", "settingsFile") then
       ImGui.Indent(8)
       if fullWidthButton("Reload Settings File##reloadConfig", actionButtonHeight) then
         local config, loaded = readConfig()
@@ -338,15 +338,15 @@ if state.ui.helpOpen then
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
-      ImGui.TextWrapped("Restore Appearance from Before Last Load is under Load & Restore Appearance. It uses the recovery snapshot saved before the newest normal preset load.")
-      ImGui.TextWrapped("Refresh and Force Full Load remain visible because they directly affect loading. Open Optional: Favorites & Details for the small favorite action and saved preset details.")
+      ImGui.TextWrapped("Restore Previous Appearance is under Load & Restore Appearance. It uses the recovery snapshot saved before the newest normal preset load.")
+      ImGui.TextWrapped("Refresh and Force Full Load remain visible because they directly affect loading. Open Favorites & Details for saved preset details and the favorite action.")
       end
 
       if showHelpTopic("Save & Replace Presets",
           "save create overwrite replace destination folder new preset") then
       helpHeading("Save & Replace Presets")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Under Save & Replace Presets, open Save Folder Choices.")
+      ImGui.TextWrapped("2. Under Save & Replace Presets, open Save Location.")
       ImGui.TextWrapped("3. Choose a folder or All Presets, then enter a name.")
       ImGui.TextWrapped("4. Select Save New Preset. Only confirm Replace Existing Preset if you want to overwrite it.")
       end
@@ -355,7 +355,7 @@ if state.ui.helpOpen then
           "organize folder folders move remove keep favorite favorites pin imported windows folder") then
       helpHeading("Create & Organize Folders")
       ImGui.TextWrapped("Select a folder row under Load & Restore Appearance to open or close it. Presets that are not in a folder appear under All Presets.")
-      ImGui.TextWrapped("To favorite a preset, choose it under Load & Restore Appearance, open Optional: Favorites & Details, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
+      ImGui.TextWrapped("To favorite a preset, choose it under Load & Restore Appearance, open Favorites & Details, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
       ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
       ImGui.TextWrapped("Remove Folder, Keep Presets is under Create & Organize Folders. It removes the folder but moves everything inside it to the folder above, and it never deletes unknown files.")
@@ -368,7 +368,7 @@ if state.ui.helpOpen then
       helpHeading("Rename & Copy Presets")
       ImGui.TextWrapped("Choose a preset or folder first. Renaming a preset also renames its .preset file. Renaming a folder changes only the name shown in the mod.")
       ImGui.TextWrapped("A copy appears beside the original. Copying a folder also copies every preset and folder inside it.")
-      ImGui.TextWrapped("Open Rename & Copy Presets to rename or copy the selected preset. Open Optional: Tags, Notes & File to edit extra details or copy its file path.")
+      ImGui.TextWrapped("Open Rename & Copy Presets to rename or copy the selected preset. Open Tags, Notes & File to edit extra details or copy its file path.")
       end
 
       if showHelpTopic("Select & Manage Multiple Presets",
@@ -405,16 +405,16 @@ if state.ui.helpOpen then
       if showHelpTopic("Share a Folder",
           "share sharing send install import export folder bundle cpmfolder file delete remove trash") then
       helpHeading("Share a Folder")
-      ImGui.TextWrapped("Under Create & Organize Folders, open Optional: Share & Import Folders. Choose a non-empty folder and select Export Selected Folder as a .cpmfolder File.")
-      ImGui.TextWrapped("To install a shared folder, place its .cpmfolder file in Character Presets, open Optional: Share & Import Folders, then select Install .cpmfolder Files from Character Presets.")
+      ImGui.TextWrapped("Under Create & Organize Folders, open Share & Import Folders. Choose a non-empty folder and select Export Selected Folder as a .cpmfolder File.")
+      ImGui.TextWrapped("To install a shared folder, place its .cpmfolder file in Character Presets, open Share & Import Folders, then select Install .cpmfolder Files from Character Presets.")
       ImGui.TextWrapped("The mod skips a bundle that was already imported and has not changed. If you deleted its imported folder, you can import the same bundle again.")
-      ImGui.TextWrapped("To remove only a sharing file, open Optional: Manage & Remove .cpmfolder Files. Moving the file to Trash does not remove installed presets or folders.")
+      ImGui.TextWrapped("To remove only a sharing file, open Manage & Remove .cpmfolder Files. Moving the file to Trash does not remove installed presets or folders.")
       end
 
       if showHelpTopic("Settings",
           "settings config reminder sort reload preferences") then
       helpHeading("Settings")
-      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off and choose how presets are sorted. Open Optional: Reload Settings File only after changing Data/Config/Config.txt by hand.")
+      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off and choose how presets are sorted. Open Settings File and select Reload Settings File only after changing Data/Config/Config.txt by hand.")
       end
 
       if showHelpTopic("Export & Import Backups",

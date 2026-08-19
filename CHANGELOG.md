@@ -40,7 +40,7 @@ used. See the README and in-game Help for current instructions.
   option.
 - Keeps the selected preset's folder and its parent folders open after a search
   is cleared.
-- Adds **Copy File Path** under **Rename & Copy Presets > Optional: Tags, Notes & File**. It
+- Adds **Copy File Path** under **Rename & Copy Presets > Tags, Notes & File**. It
   copies the complete path from the Cyberpunk 2077 game folder.
 - Uses the same status handling for every folder action, keeping message colors
   consistent.
@@ -76,8 +76,7 @@ used. See the README and in-game Help for current instructions.
   and can be selected again to remove it from the group.
 - Adds persistent Favorites. Favorite presets stay in their folders and also
   appear in a pinned group above the regular preset tree.
-- Places **Add Selected Preset to Favorites** under **Load & Restore Appearance >
-  Optional: Favorites & Details**, keeping it available without treating
+- Places **Add Selected Preset to Favorites** under **Load & Restore Appearance > Favorites & Details**, keeping it available without treating
   the small action as a primary workflow.
 - Adds complete `.cpmbackup` export and import. A backup contains
   every preset, the CET folder layout, and the current settings file without
@@ -93,14 +92,18 @@ used. See the README and in-game Help for current instructions.
   entered, preventing repeated redraws and making search results obvious.
 - Replaces vague expandable labels with labels that name the controls inside,
   including folder actions, preset details, bulk actions, and backup tools.
-- Groups `.cpmfolder` install and export under **Optional: Share & Import Folders**,
-  with file removal under **Optional: Manage & Remove .cpmfolder Files**.
+- Groups `.cpmfolder` install and export under **Share & Import Folders**,
+  with file removal under **Manage & Remove .cpmfolder Files**.
   Removing a sharing file still states that installed presets and folders are not deleted.
-- Uses clearly named **Optional:** buttons for Favorites and details, preset details,
+- Uses clearly named secondary buttons for Favorites and details, preset details,
   folder sharing, Settings, and Activity Log tools so each primary workflow stays short
   and focused.
-- Renames every main section with the same **action & action + object** pattern and
-  keeps Refresh and Force Full Load visible as primary loading controls.
+- Renames every main section with the same **action & action + object** pattern.
+- Keeps **Favorites & Details** above **Restore Previous Appearance**, places the
+  favorite action below the preset details, keeps **Force Full Load** unchanged,
+  and removes the extra undo heading.
+- Renames **Save Folder Choices** to **Save Location** and removes
+  the `Optional:` and `Folder:` prefixes from secondary buttons.
 
 </details>
 

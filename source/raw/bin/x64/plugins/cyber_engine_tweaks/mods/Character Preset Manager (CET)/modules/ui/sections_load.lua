@@ -156,18 +156,12 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       end
     end
 
-    if compactSubsectionButton("Optional: Favorites & Details",
+    if compactSubsectionButton("Favorites & Details",
         "Hide Favorites & Details", "loadFavorites") then
       ImGui.Indent(8)
       local optionalPreset = state.library.selected
         and state.library.presets[state.library.selected]
       if optionalPreset then
-        local favoriteLabel = optionalPreset.favorite == true
-          and "Remove Selected Preset from Favorites##favoritePreset"
-          or "Add Selected Preset to Favorites##favoritePreset"
-        if fullWidthButton(favoriteLabel, actionButtonHeight) then
-          toggleSelectedPresetFavorite()
-        end
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
           ("Source: %s\nModified: %s")
             :format(tostring(optionalPreset.source or "Older or ACU preset"),
@@ -178,10 +172,31 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         if optionalPreset.notes and optionalPreset.notes ~= "" then
           ImGui.TextWrapped("Notes: " .. optionalPreset.notes)
         end
+        local favoriteLabel = optionalPreset.favorite == true
+          and "Remove Selected Preset from Favorites##favoritePreset"
+          or "Add Selected Preset to Favorites##favoritePreset"
+        if fullWidthButton(favoriteLabel, actionButtonHeight) then
+          toggleSelectedPresetFavorite()
+        end
       else
         ImGui.TextDisabled("Select a preset to use Favorites or view its details.")
       end
       ImGui.Unindent(8)
+    end
+
+    local restoreFileAvailable = fileExists(LAST_APPEARANCE_FILE)
+    local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
+      or state.load.auto or state.load.needsContinue
+    if restoreUnavailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Restore Previous Appearance##restoreAppearance",
+        actionButtonHeight) then
+      restoreLastAppearance()
+    end
+    if restoreUnavailable then ImGui.EndDisabled() end
+    if not restoreFileAvailable then
+      ImGui.TextDisabled("This becomes available after the first normal preset load.")
+    elseif not state.app.inCustomization then
+      ImGui.TextDisabled("Open a customization screen to restore the previous appearance.")
     end
 
     if state.load.auto then ImGui.BeginDisabled() end
@@ -239,24 +254,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     elseif loadUnavailable then
       ImGui.TextDisabled(not state.library.selected and "Select a preset to enable loading."
         or "Open a customization screen to enable loading.")
-    end
-    ImGui.Spacing()
-    ImGui.Separator()
-    ImGui.Spacing()
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Undo the previous preset load")
-    local restoreFileAvailable = fileExists(LAST_APPEARANCE_FILE)
-    local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
-      or state.load.auto or state.load.needsContinue
-    if restoreUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Restore Appearance from Before Last Load##restoreAppearance",
-        actionButtonHeight) then
-      restoreLastAppearance()
-    end
-    if restoreUnavailable then ImGui.EndDisabled() end
-    if not restoreFileAvailable then
-      ImGui.TextDisabled("This becomes available after the first normal preset load.")
-    elseif not state.app.inCustomization then
-      ImGui.TextDisabled("Open a customization screen to restore the previous appearance.")
     end
     drawSectionStatus("load", "##loadStatus", statusHeight)
     end

@@ -83,7 +83,7 @@ ui.drawDebugPanel = function(height)
   ImGui.SameLine()
   if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then state.ui.debugOpen = false end
   if compactSubsectionButton(
-      "Optional: Technical Details", "Hide Technical Details", "advancedDiagnostics") then
+      "Technical Details", "Hide Technical Details", "advancedDiagnostics") then
     ImGui.Indent(8)
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
       :format(state.editor.inputCount, state.editor.controllerCaptureCount,
