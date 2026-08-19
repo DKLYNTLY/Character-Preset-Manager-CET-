@@ -8,7 +8,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Select how new or moved presets are organized")
     ImGui.TextWrapped("Selected destination: " .. helpers.breadcrumb(state.library.selectedFolder))
-    coloredWrapped(0.64, 0.67, 0.73, 1.0,
+    coloredWrapped(1.0, 1.0, 1.0, 1.0,
       "Folders made in CET have no set limit. Imported folders are Windows folders inside Character Presets.")
     ImGui.Spacing()
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
@@ -39,7 +39,6 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     if addFolderUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Add Folder", actionButtonHeight) then createFolder() end
     if addFolderUnavailable then ImGui.EndDisabled() end
-    if addFolderUnavailable then ImGui.TextDisabled("Enter a valid folder name to enable adding.") end
     if state.library.selectedFolder ~= "" then
       if compactSubsectionButton("Rename / Copy / Move / Delete",
           "Hide Selected Folder Actions", "selectedFolderActions") then
@@ -57,9 +56,6 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       if moveUnavailable then ImGui.BeginDisabled() end
       if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then movePresetToSelectedFolder() end
       if moveUnavailable then ImGui.EndDisabled() end
-      if moveUnavailable and not state.library.selected then
-        ImGui.TextDisabled("Select a preset under Load & Restore Appearance before moving it.")
-      end
       local removeFolderLabel = state.library.pendingRemoveFolder == state.library.selectedFolder
         and "Confirm Remove Folder, Keep Presets"
         or "Remove Folder, Keep Presets"
@@ -80,10 +76,9 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         requestBulkTrash(folderBulkNames, state.library.selectedFolder)
       end
       if folderTrashUnavailable then ImGui.EndDisabled() end
-      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+      coloredWrapped(1.0, 1.0, 1.0, 1.0,
         ("Trash will include %d folder%s inside this one. You can restore them later.")
           :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
-      drawSectionStatus("bulk", "##folderBulkStatus", statusHeight)
       ImGui.Unindent(8)
       end
     else
@@ -91,10 +86,6 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       if rootMoveUnavailable then ImGui.BeginDisabled() end
       if fullWidthButton("Move Selected Preset to All Presets", actionButtonHeight) then movePresetToSelectedFolder() end
       if rootMoveUnavailable then ImGui.EndDisabled() end
-      if rootMoveUnavailable then ImGui.TextDisabled(not state.library.selected
-        and "Select a preset under Load & Restore Appearance before moving it."
-        or "The selected preset is already in All Presets.")
-      end
     end
     if compactSubsectionButton("Share & Import Folders",
         "Hide Share & Import Folders", "folderSharing") then
@@ -107,9 +98,6 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       exportSelectedFolderBundle()
     end
     if folderExportUnavailable then ImGui.EndDisabled() end
-    if folderExportUnavailable then
-      ImGui.TextDisabled("Choose a folder above to export it for sharing.")
-    end
     if fullWidthButton("Install .cpmfolder Files from Character Presets", actionButtonHeight) then
       importAvailableFolderBundles()
     end
@@ -124,7 +112,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       if #bundleFiles == 0 then
         state.library.selectedBundleFile = nil
         clearFolderBundlePreview()
-        ImGui.TextDisabled("No .cpmfolder files found in Character Presets.")
+        ImGui.TextWrapped("No .cpmfolder files found in Character Presets.")
       else
         ImGui.TextWrapped("Choose a sharing file below to view its contents or move only that file to Trash.")
         ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
@@ -175,7 +163,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           ImGui.Spacing()
           ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Selected File Contents")
           ImGui.TextWrapped("Main folder: " .. preview.root)
-          ImGui.TextDisabled(("Nested folders: %d    Presets: %d")
+          ImGui.TextWrapped(("Nested folders: %d    Presets: %d")
             :format(#preview.folders, #preview.presets))
           ImGui.BeginChild("##folderBundleContents", 0, ImGui.GetFontSize() * 7, true)
           ImGui.TextWrapped("Folder: " .. preview.root)
@@ -187,7 +175,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           end
           ImGui.EndChild()
         end
-        ImGui.TextDisabled("You can restore the file later under Delete & Restore Items.")
+        ImGui.TextWrapped("You can restore the file later under Delete & Restore Items.")
       end
       ImGui.Unindent(8)
     end
@@ -198,7 +186,15 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         state.status.lastLoggedFolder = state.status.sections.folder.message
       end
     end
-    drawSectionStatus("folder", "##folderStatus", statusHeight)
+    local folderStatus = state.library.selectedFolder == ""
+      and (not state.library.selected
+        and "All Presets is selected. Enter a folder name to add one, or select a preset before moving it."
+        or (parentFolder(state.library.selected) == ""
+          and "All Presets is selected. The selected preset is already here."
+          or "All Presets is selected. The selected preset can be moved here."))
+      or ("Folder selected: %s. Add a folder or use the selected folder actions.")
+        :format(helpers.breadcrumb(state.library.selectedFolder))
+    drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready")
     end
 end
 

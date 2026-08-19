@@ -14,7 +14,16 @@ if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
       openFullAppearanceEditor()
     end
     if editorUnavailable then ImGui.EndDisabled() end
-    drawSectionStatus("editor", "##editorStatus", statusHeight)
+    local editorStatus = state.editor.openPending
+      and "The full appearance editor is opening."
+      or (state.app.inCustomization
+        and "A character customization screen is already open."
+        or (not state.editor.hooksAvailable
+          and "The full editor is not available with this game or CET version."
+          or "Ready to open the full appearance editor."))
+    drawSectionStatus("editor", "##editorStatus", statusHeight, editorStatus,
+      not state.editor.openPending and not state.app.inCustomization
+        and state.editor.hooksAvailable and "ready" or "info")
     end
 end
 

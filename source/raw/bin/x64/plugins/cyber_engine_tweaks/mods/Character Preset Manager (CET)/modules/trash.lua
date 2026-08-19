@@ -777,14 +777,15 @@ local function bulkTrashFingerprint(names, folder)
   return table.concat(parts, "\30")
 end
 
-local function moveBulkPresetsToTrash(names, folder)
+local function moveBulkPresetsToTrash(names, folder, statusSection)
+  statusSection = statusSection or "bulk"
   local physicalFolderWasImported = folder and state.library.manualFolders[folder] == true
   local reserved, plans = {}, {}
   for _, name in ipairs(names) do
     local preset = state.library.presets[name]
     local trashFilename = uniqueTrashFilename(name, reserved)
     if not preset or not trashFilename then
-      setStatus("bulk", "The mod could not create a safe file name in Trash.", true)
+      setStatus(statusSection, "The mod could not create a safe file name in Trash.", true)
       return false
     end
     reserved[trashFilename] = true
@@ -811,7 +812,7 @@ local function moveBulkPresetsToTrash(names, folder)
   end
 
   if not writeTransaction("prepared", "trash", plans) then
-    setStatus("bulk", "The recovery record for moving these items to Trash could not be created.", true)
+    setStatus(statusSection, "The recovery record for moving these items to Trash could not be created.", true)
     return false
   end
 
@@ -830,7 +831,7 @@ local function moveBulkPresetsToTrash(names, folder)
       else
         os.remove(TRANSACTION_FILE)
       end
-      setStatus("bulk", rollbackFailed
+      setStatus(statusSection, rollbackFailed
         and "Bulk Trash failed, and at least one moved preset could not be restored. Refresh completed; review Trash."
         or ("Bulk Trash stopped at \"%s\": %s"):format(plan.name, tostring(moveError)), true)
       return false
@@ -896,7 +897,7 @@ local function moveBulkPresetsToTrash(names, folder)
       writeTrashCatalog(state.trash.items, state.trash.groups)
       os.remove(TRANSACTION_FILE)
     end
-    setStatus("bulk", rollbackFailed
+    setStatus(statusSection, rollbackFailed
       and "The Trash lists could not be saved, and at least one preset could not be returned. Refresh is complete; check Trash."
       or "The presets were returned because the folder, Trash, or recovery lists could not be saved.", true)
     return false
@@ -924,7 +925,7 @@ local function moveBulkPresetsToTrash(names, folder)
       and directoryTreeContainsFiles(folderPath(folder), 0) == false then
     physicalFolderRemoved = removeEmptyDirectoryTree(folderPath(folder), 0)
   end
-  setStatus("bulk", (folder
+  setStatus(statusSection, (folder
     and ("Moved folder \"%s\" and %d preset%s to Trash; removed %d folder%s inside it. Restoring the folder rebuilds this structure.%s")
       :format(folder, #names, #names == 1 and "" or "s", nestedFolderCount,
         nestedFolderCount == 1 and "" or "s",
@@ -939,27 +940,28 @@ local function moveBulkPresetsToTrash(names, folder)
 end
 
 requestBulkTrash = function(names, folder)
+  local statusSection = folder and "folder" or "bulk"
   if #names == 0 then
-    setStatus("bulk", folder
+    setStatus(statusSection, folder
       and "The selected folder contains no presets. Use Remove Folder, Keep Presets."
       or "Select at least one preset for the bulk action.", true)
     return
   end
   local fingerprint, fingerprintError = bulkTrashFingerprint(names, folder)
-  if not fingerprint then setStatus("bulk", fingerprintError, true); return end
+  if not fingerprint then setStatus(statusSection, fingerprintError, true); return end
   local action = folder and ("folder:" .. folder) or "presets"
   if state.trash.pendingBulkAction ~= action
       or state.trash.pendingBulkFingerprint ~= fingerprint then
     state.trash.pendingBulkAction = action
     state.trash.pendingBulkFingerprint = fingerprint
-    setStatus("bulk", folder
+    setStatus(statusSection, folder
       and ("Move folder \"%s\" and %d preset%s to Trash? Select Confirm Move Folder & Presets to Trash.")
         :format(folder, #names, #names == 1 and "" or "s")
       or ("Move %d selected preset%s to Trash? Select Confirm Bulk Trash.")
         :format(#names, #names == 1 and "" or "s"))
     return
   end
-  moveBulkPresetsToTrash(names, folder)
+  moveBulkPresetsToTrash(names, folder, statusSection)
 end
 
 end

@@ -19,6 +19,10 @@ used. See the README and in-game Help for current instructions.
   both preset and folder counts.
 - Adds **Delete Selected Backup Permanently** with a required second
   confirmation inside **Export & Import Backups**.
+- Gives every main menu section one consistent status card. The card shows what
+  the section needs, when it is ready, whether an action succeeded, and any
+  warning or error. Backup actions now use the same status colors, and folder
+  actions no longer display a second Bulk status card.
 - Labels new format-8 files as **CPM Preset** and records their preset name and
   CET library folder in readable text. If a preset has no saved folder-list
   entry, the mod can rebuild its name and folder from the preset file. Older

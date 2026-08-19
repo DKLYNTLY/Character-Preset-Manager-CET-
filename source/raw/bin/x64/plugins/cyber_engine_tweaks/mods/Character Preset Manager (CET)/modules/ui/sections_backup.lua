@@ -33,7 +33,7 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
             state.backup.selectedFile == backupPath) then
           state.backup.selectedFile = backupPath
           cancelConfirmations()
-          state.status.backup = ""
+          clearStatus("backup")
         end
       end
       ImGui.EndCombo()
@@ -52,9 +52,11 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       deleteSelectedLibraryBackup()
     end
     if #backupFiles == 0 then ImGui.EndDisabled() end
-    if state.status.backup ~= "" then
-      coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.backup)
-    end
+    local backupStatus = #backupFiles == 0
+      and "Export a complete library backup to create your first backup file."
+      or "Choose a backup file to import or permanently delete, or export a new complete backup."
+    drawSectionStatus("backup", "##backupStatus", statusHeight, backupStatus,
+      #backupFiles > 0 and "ready" or "info")
 
   end
 end

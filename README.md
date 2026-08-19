@@ -66,6 +66,10 @@ than the smaller selection normally available during play.
 - A selected `.cpmfolder` file can be inspected before it is installed.
 - Finished loading data, full preset contents, interface lists, and displayed
   Activity Log text are released when they are no longer needed.
+- Every main menu section now has one status card. It replaces the scattered
+  grey guidance with a clear ready, status, success, warning, or error message.
+  Backup, folder, and preset actions all report their result in the card for the
+  section where the action was started.
 - Favorites, complete-library backups, previous-appearance recovery, bulk
   preset actions, Help search, and clearer section controls are part of the
   main interface.

@@ -6,8 +6,7 @@ local _ENV = runtime
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
       if not state.library.selected or not state.library.presets[state.library.selected] then
-        coloredWrapped(0.64, 0.67, 0.73, 1.0,
-          "Select a preset under Load & Restore Appearance to rename, copy, or edit it.")
+        ImGui.TextWrapped("Choose a preset under Load & Restore Appearance.")
       else
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")
@@ -46,8 +45,12 @@ if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
           end
           ImGui.Unindent(8)
         end
-        drawSectionStatus("rename", "##renameStatus", statusHeight)
       end
+      local manageStatus = state.library.selected
+        and ("Ready to rename, copy, or edit %s."):format(state.library.selected)
+        or "Select a preset under Load & Restore Appearance to rename, copy, or edit it."
+      drawSectionStatus("rename", "##renameStatus", statusHeight, manageStatus,
+        state.library.selected and "ready" or "info")
     end
 end
 

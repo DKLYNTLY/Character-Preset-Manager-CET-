@@ -34,10 +34,9 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       clearStatus("bulk")
     end
     if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-    ImGui.TextDisabled("Select a preset row to add it. Select it again to remove it.")
     ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
     if #visibleNames == 0 then
-      ImGui.TextDisabled("No presets match the current search.")
+      ImGui.TextWrapped("No presets match the current search.")
     else
       for _, name in ipairs(visibleNames) do
         local selectedForBulk = state.trash.bulkSelected[name] == true
@@ -57,8 +56,6 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
     end
     ImGui.EndChild()
     selectedBulkNames = selectedBulkPresetNames()
-    ImGui.TextDisabled(("%d preset%s selected.")
-      :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
     local targetLabel = state.trash.bulkTargetFolder == ""
       and "All Presets" or state.trash.bulkTargetFolder
     if ImGui.BeginCombo("Move selected to folder##bulkTargetFolder", targetLabel) then
@@ -93,7 +90,14 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       requestBulkTrash(selectedBulkNames)
     end
     if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-    drawSectionStatus("bulk", "##bulkStatus", statusHeight)
+    local bulkStatus = #visibleNames == 0
+      and "No presets match the current search."
+      or (#selectedBulkNames == 0
+        and "Select a preset row to add it. Select it again to remove it."
+        or ("%d preset%s selected. Choose an action below.")
+          :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
+    drawSectionStatus("bulk", "##bulkStatus", statusHeight, bulkStatus,
+      #selectedBulkNames > 0 and "ready" or "info")
   end
 end
 

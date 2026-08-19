@@ -196,14 +196,14 @@ state = {
       rename = { message = "", error = false },
       delete = { message = "", error = false },
       bulk = { message = "", error = false },
+      backup = { message = "", error = false },
     },
     kinds = {},
     settings = "",
-    backup = "",
     lastLoggedFolder = nil,
   },
 }
 
-STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete", "bulk" }
+STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete", "bulk", "backup" }
 
 return state

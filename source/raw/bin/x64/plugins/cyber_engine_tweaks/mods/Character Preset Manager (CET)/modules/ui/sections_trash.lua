@@ -6,9 +6,7 @@ local _ENV = runtime
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       ImGui.TextWrapped("Move presets, folders, and shared-folder files to Trash. You can restore them later.")
-      if not state.library.selected then
-        ImGui.TextDisabled("Select a preset under Load & Restore Appearance to move one preset to Trash.")
-      else
+      if state.library.selected then
         local deleteLabel = state.trash.pendingDeleteName == state.library.selected
           and "Confirm Move to Trash##danger"
           or "Move Selected Preset to Trash##danger"
@@ -26,7 +24,7 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       local trashGroupIds = state.trash.cachedGroupIds
       local trashBundleNames = state.trash.cachedBundleNames
       if #trashNames == 0 and #trashGroupIds == 0 and #trashBundleNames == 0 then
-        ImGui.TextDisabled("Trash is empty.")
+        ImGui.TextWrapped("Trash is empty.")
       else
         ImGui.TextWrapped(("%d preset%s in Trash  |  %d shared-folder file%s")
           :format(#trashNames, #trashNames == 1 and "" or "s",
@@ -80,7 +78,14 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
           end
         end
       end
-      drawSectionStatus("delete", "##trashStatus", statusHeight)
+      local trashCount = #trashNames + #trashGroupIds + #trashBundleNames
+      local trashStatus = state.library.selected
+        and ("Ready to move %s to Trash. %d recoverable item%s currently in Trash.")
+          :format(state.library.selected, trashCount, trashCount == 1 and "" or "s")
+        or ("Select a preset under Load & Restore Appearance to move it to Trash. %d recoverable item%s currently in Trash.")
+          :format(trashCount, trashCount == 1 and "" or "s")
+      drawSectionStatus("delete", "##trashStatus", statusHeight, trashStatus,
+        state.library.selected and "ready" or "info")
     end
 end
 

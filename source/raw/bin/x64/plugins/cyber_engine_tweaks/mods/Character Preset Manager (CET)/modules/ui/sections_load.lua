@@ -50,7 +50,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     local queryActive = state.cache.queryActive
     local matchedFolders = state.cache.matchedFolders
     if #names == 0 then
-      ImGui.TextDisabled("No presets saved.")
+      ImGui.TextWrapped("No presets saved.")
     else
       local function drawPresetChoice(name, label, idSuffix)
         local preset = state.library.presets[name]
@@ -140,7 +140,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     if state.library.selected and state.library.presets[state.library.selected] then
       local preset = state.library.presets[state.library.selected]
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, baseName(state.library.selected))
-      coloredWrapped(0.64, 0.67, 0.73, 1.0,
+      coloredWrapped(1.0, 1.0, 1.0, 1.0,
         ("%s  |  %d options  |  Format %s")
         :format(helpers.breadcrumb(parentFolder(state.library.selected)), state.presetEntryCount(preset),
           tostring(preset.format or 4)))
@@ -151,8 +151,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         coloredWrapped(color[1], color[2], color[3], 1.0,
           ("Option check: %d found  |  %d missing  |  %d repeated  |  %d invalid")
             :format(check.available, check.unavailable, check.ambiguous, check.invalid))
-      else
-        ImGui.TextDisabled("Open a customization screen to check compatibility.")
       end
     end
 
@@ -162,7 +160,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       local optionalPreset = state.library.selected
         and state.library.presets[state.library.selected]
       if optionalPreset then
-        coloredWrapped(0.64, 0.67, 0.73, 1.0,
+        coloredWrapped(1.0, 1.0, 1.0, 1.0,
           ("Source: %s\nModified: %s")
             :format(tostring(optionalPreset.source or "Older or ACU preset"),
             tostring(optionalPreset.modified or "Unknown")))
@@ -179,7 +177,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           toggleSelectedPresetFavorite()
         end
       else
-        ImGui.TextDisabled("Select a preset to use Favorites or view its details.")
+        ImGui.TextWrapped("Select a preset to use Favorites or view its details.")
       end
       ImGui.Unindent(8)
     end
@@ -193,11 +191,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       restoreLastAppearance()
     end
     if restoreUnavailable then ImGui.EndDisabled() end
-    if not restoreFileAvailable then
-      ImGui.TextDisabled("This becomes available after the first normal preset load.")
-    elseif not state.app.inCustomization then
-      ImGui.TextDisabled("Open a customization screen to restore the previous appearance.")
-    end
 
     if state.load.auto then ImGui.BeginDisabled() end
     local forceLoadLabel = state.load.forceFull
@@ -251,11 +244,16 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), actionButtonHeight) then
         cancelLoading()
       end
-    elseif loadUnavailable then
-      ImGui.TextDisabled(not state.library.selected and "Select a preset to enable loading."
-        or "Open a customization screen to enable loading.")
     end
-    drawSectionStatus("load", "##loadStatus", statusHeight)
+    local loadStatus = #names == 0
+      and "Save a preset before trying to load an appearance."
+      or (not state.library.selected
+        and "Select a preset to enable loading."
+        or (not state.app.inCustomization
+          and "Open the character creator, a mirror, or a ripperdoc to load the selected preset."
+          or ("Ready to load %s."):format(state.library.selected)))
+    drawSectionStatus("load", "##loadStatus", statusHeight, loadStatus,
+      state.library.selected and state.app.inCustomization and "ready" or "info")
     end
 end
 

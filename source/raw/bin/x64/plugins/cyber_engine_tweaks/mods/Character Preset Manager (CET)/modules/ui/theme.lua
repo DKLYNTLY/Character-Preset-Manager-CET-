@@ -122,19 +122,23 @@ function coloredWrapped(r, g, b, a, text)
   ImGui.PopStyleColor(1)
 end
 
-function drawSectionStatus(section, childId, height)
+function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKind)
   local sectionStatus = state.status.sections[section]
-  local text = sectionStatus.message
+  local hasCurrentStatus = sectionStatus.message and sectionStatus.message ~= ""
+  local text = hasCurrentStatus and sectionStatus.message or fallbackMessage
   if not text or text == "" then return end
-  local kind = state.status.kinds[section]
-  local isError = sectionStatus.error or kind == "error"
+  local kind = hasCurrentStatus and state.status.kinds[section] or fallbackKind
+  local isError = hasCurrentStatus and (sectionStatus.error or kind == "error")
   local success = not isError and (kind == "success" or kind == "ready")
   local warning = not isError and kind == "warning"
   local destructiveWarning = (section == "delete"
       and (state.trash.pendingEmpty == true
         or (state.trash.pendingDeleteName ~= nil
           and state.trash.pendingDeleteName == state.library.selected)))
-    or (section == "bulk" and state.trash.pendingBulkAction ~= nil)
+    or (section == "bulk" and state.trash.pendingBulkAction == "presets")
+    or (section == "folder" and state.trash.pendingBulkAction ~= nil
+      and state.trash.pendingBulkAction ~= "presets")
+    or (section == "backup" and state.backup.pendingDeleteFile ~= nil)
   local customColors = false
   ImGui.Spacing()
   if isError or destructiveWarning then

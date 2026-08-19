@@ -3,6 +3,10 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
+local function setBackupStatus(message, isError, kind)
+  setStatus("backup", message, isError, kind)
+end
+
 do
 
 local function encode(value)
@@ -139,12 +143,12 @@ exportLibraryBackup = function()
   local names = helpers.sortedPresetNames()
   local folders = sortedFolderNames()
   if #names == 0 then
-    state.status.backup = "Save at least one preset before exporting a library backup."
+    setBackupStatus("Save at least one preset before exporting a library backup.", true)
     return false
   end
   local filename = uniqueBackupFilename()
   if not filename then
-    state.status.backup = "The mod could not create an unused library-backup file name."
+    setBackupStatus("The mod could not create an unused library-backup file name.", true)
     return false
   end
   local config = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
@@ -200,26 +204,27 @@ exportLibraryBackup = function()
     end)
   end, "library backup")
   if not wrote then
-    state.status.backup = exportError or "The library backup could not be saved."
+    setBackupStatus(exportError or "The library backup could not be saved.", true)
     return false
   end
   local verified, verificationError = verifyBackupContents(filename, names, folders)
   if not verified then
     local removed = os.remove(filename) ~= nil or not fileExists(filename)
-    state.status.backup = verificationError
+    local verificationMessage = verificationError
       or "The finished library backup did not pass verification."
     if not removed then
-      state.status.backup = state.status.backup
+      verificationMessage = verificationMessage
         .. " The unverified backup file could not be removed."
     end
+    setBackupStatus(verificationMessage, true)
     log(("[LIBRARY BACKUP] Verification failed file='%s' reason='%s'.")
-      :format(filename, tostring(state.status.backup)), "error")
+      :format(filename, tostring(verificationMessage)), "error")
     return false
   end
   state.backup.selectedFile = filename
-  state.status.backup = ("Exported and verified %d preset%s and %d folder%s in %s.")
+  setBackupStatus(("Exported and verified %d preset%s and %d folder%s in %s.")
     :format(#names, #names == 1 and "" or "s", #folders,
-      #folders == 1 and "" or "s", filename)
+      #folders == 1 and "" or "s", filename), false, "success")
   log(("[LIBRARY BACKUP] Exported presets=%d folders=%d file='%s'.")
     :format(#names, #folders, filename), "complete")
   return true
@@ -238,13 +243,13 @@ deleteSelectedLibraryBackup = function()
   if not selectedPath then
     cancelConfirmations()
     state.backup.selectedFile = nil
-    state.status.backup = "Choose an available library-backup file first."
+    setBackupStatus("Choose an available library-backup file first.", true)
     return false
   end
   local fingerprint = fileFingerprint(selectedPath, MAX_LIBRARY_BACKUP_BYTES)
   if not fingerprint then
     cancelConfirmations()
-    state.status.backup = "The selected library backup could not be checked safely."
+    setBackupStatus("The selected library backup could not be checked safely.", true)
     return false
   end
   local leaf = selectedPath:match("([^/]+)$") or selectedPath
@@ -253,20 +258,20 @@ deleteSelectedLibraryBackup = function()
     cancelConfirmations()
     state.backup.pendingDeleteFile = selectedPath
     state.backup.pendingDeleteFingerprint = fingerprint
-    state.status.backup = ("Permanently delete \"%s\"? Select Confirm Delete Selected Backup Permanently.")
-      :format(leaf)
+    setBackupStatus(("Permanently delete \"%s\"? Select Confirm Delete Selected Backup Permanently.")
+      :format(leaf), false, "warning")
     return false
   end
   state.backup.pendingDeleteFile = nil
   state.backup.pendingDeleteFingerprint = nil
   local removed, removeError = os.remove(selectedPath)
   if not removed or fileExists(selectedPath) then
-    state.status.backup = ("The selected library backup could not be deleted: %s")
-      :format(tostring(removeError or "the file is still present"))
+    setBackupStatus(("The selected library backup could not be deleted: %s")
+      :format(tostring(removeError or "the file is still present")), true)
     return false
   end
   state.backup.selectedFile = nil
-  state.status.backup = ("Permanently deleted \"%s\"."):format(leaf)
+  setBackupStatus(("Permanently deleted \"%s\"."):format(leaf), false, "success")
   log(("[LIBRARY BACKUP] Permanently deleted file='%s'."):format(selectedPath), "complete")
   return true
 end
@@ -333,11 +338,11 @@ importLibraryBackup = function()
   helpers.auditSection("IMPORT LIBRARY BACKUP")
   local path = state.backup.selectedFile
   if not path or not fileExists(path) then
-    state.status.backup = "Choose an available library-backup file first."
+    setBackupStatus("Choose an available library-backup file first.", true)
     return false
   end
   local backup, readError = readBackup(path)
-  if not backup then state.status.backup = readError; return false end
+  if not backup then setBackupStatus(readError, true); return false end
   local needsRoot = false
   for folder in pairs(backup.folders) do
     if folderNameExists(folder) then needsRoot = true; break end
@@ -349,7 +354,7 @@ importLibraryBackup = function()
   end
   local root = needsRoot and uniqueImportRoot() or ""
   if needsRoot and not root then
-    state.status.backup = "The mod could not create a safe folder for colliding backup items."
+    setBackupStatus("The mod could not create a safe folder for colliding backup items.", true)
     return false
   end
   local newPresets = cloneMap(state.library.presets)
@@ -360,7 +365,7 @@ importLibraryBackup = function()
   for folder in pairs(backup.folders) do addFolderAncestors(newFolders, joinFolder(root, folder)) end
   local reservedStorage = storageFilenamesInUse()
   if not reservedStorage then
-    state.status.backup = "Existing preset file names could not be checked safely."
+    setBackupStatus("Existing preset file names could not be checked safely.", true)
     return false
   end
   local createdFiles = {}
@@ -369,7 +374,7 @@ importLibraryBackup = function()
     item.storage = uniqueStorageName(baseName(item.logicalName), reservedStorage)
     if not item.storage then
       removeFileList(createdFiles)
-      state.status.backup = "The mod could not create a safe file name for an imported preset."
+      setBackupStatus("The mod could not create a safe file name for an imported preset.", true)
       return false
     end
     item.path = PRESET_DIR .. "/" .. item.storage .. ".preset"
@@ -382,7 +387,7 @@ importLibraryBackup = function()
     if not preset then
       removeFileList(createdFiles)
       if wrote then removeFileList({ item.path }) end
-      state.status.backup = "An imported preset could not be written or verified safely."
+      setBackupStatus("An imported preset could not be written or verified safely.", true)
       return false
     end
     table.insert(createdFiles, item.path)
@@ -391,7 +396,7 @@ importLibraryBackup = function()
     local folderUpdated = state.updatePresetLibraryFolder(preset, item.logicalName)
     if not folderUpdated then
       removeFileList(createdFiles)
-      state.status.backup = "An imported preset's saved library folder could not be updated safely."
+      setBackupStatus("An imported preset's saved library folder could not be updated safely.", true)
       return false
     end
     newPresets[item.logicalName] = preset
@@ -403,7 +408,7 @@ importLibraryBackup = function()
       state.library.ignoredPhysicalFolders)
     writeInventory(state.library.presets, state.library.folders)
     removeFileList(createdFiles)
-    state.status.backup = "The imported presets were removed because the library lists could not be saved."
+    setBackupStatus("The imported presets were removed because the library lists could not be saved.", true)
     return false
   end
   local previousConfig = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
@@ -424,7 +429,7 @@ importLibraryBackup = function()
         end)
       end, "previous config")
     end
-    state.status.backup = "The imported presets were removed because the settings file could not be restored."
+    setBackupStatus("The imported presets were removed because the settings file could not be restored.", true)
     return false
   end
   state.library.presets, state.library.folders = newPresets, newFolders
@@ -441,10 +446,10 @@ importLibraryBackup = function()
   cancelConfirmations()
   local folderCount = 0
   for _ in pairs(backup.folders) do folderCount = folderCount + 1 end
-  state.status.backup = ("Imported %d preset%s and %d folder%s with the saved settings%s.")
+  setBackupStatus(("Imported %d preset%s and %d folder%s with the saved settings%s.")
     :format(#backup.presets, #backup.presets == 1 and "" or "s",
       folderCount, folderCount == 1 and "" or "s",
-      root ~= "" and (" under " .. root) or "")
+      root ~= "" and (" under " .. root) or ""), false, "success")
   log(("[LIBRARY BACKUP] Imported presets=%d folders=%d root='%s' file='%s'.")
     :format(#backup.presets, folderCount, root, path), "complete")
   return true

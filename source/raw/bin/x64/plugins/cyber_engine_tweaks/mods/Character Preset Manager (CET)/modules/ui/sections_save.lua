@@ -55,12 +55,14 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
       savePreset(state.library.pendingOverwriteName == pendingCreateName)
     end
     if saveUnavailable then ImGui.EndDisabled() end
-    if saveUnavailable then
-      ImGui.TextDisabled(not state.app.inCustomization
-        and "Open a customization screen to enable saving."
-        or "Enter a valid preset name to enable saving.")
-    end
-    drawSectionStatus("create", "##createStatus", statusHeight)
+    local saveStatus = not state.app.inCustomization
+      and "Open the character creator, a mirror, or a ripperdoc to save a preset."
+      or (validatedPresetName(state.library.newName) == nil
+        and "Enter a preset name to enable saving."
+        or ("Ready to save this appearance in %s.")
+          :format(helpers.breadcrumb(state.library.selectedFolder)))
+    drawSectionStatus("create", "##createStatus", statusHeight, saveStatus,
+      saveUnavailable and "info" or "ready")
     end
 end
 
