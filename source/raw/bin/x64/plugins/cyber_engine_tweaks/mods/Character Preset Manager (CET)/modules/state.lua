@@ -135,6 +135,7 @@ state = {
     },
     helpOpen = false,
     helpSearchText = "",
+    helpAppliedSearchText = "",
     debugOpen = false,
     settingsOpen = false,
     debugLogText = "",

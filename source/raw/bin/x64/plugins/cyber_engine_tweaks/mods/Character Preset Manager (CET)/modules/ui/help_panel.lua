@@ -290,24 +290,46 @@ if state.ui.helpOpen then
       ImGui.BeginChild("##help", 0, 230 + math.min(extraHeight * 0.20, 80), true)
 
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Search Help")
-      ImGui.TextDisabled("Try: share, bug, clothing, ACU, backup, Trash, or favorite")
-      local helpSearchButtonWidth = 54
-      ImGui.PushItemWidth(math.max(90,
-        ImGui.GetContentRegionAvail() - helpSearchButtonWidth - 8))
+      ImGui.TextDisabled("Type a word, then select Search. Try: share, bug, clothing, ACU, backup, Trash, or favorite.")
+      ImGui.PushItemWidth(-1)
       state.ui.helpSearchText = ImGui.InputTextWithHint(
         "##helpSearch", "What do you need help with?", state.ui.helpSearchText, 65)
       ImGui.PopItemWidth()
+      local draftHelpQuery = normalizeSearch(state.ui.helpSearchText)
+      local appliedHelpQuery = normalizeSearch(state.ui.helpAppliedSearchText)
+      local helpSearchButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+      local helpSearchReady = draftHelpQuery ~= appliedHelpQuery
+      if not helpSearchReady then ImGui.BeginDisabled() end
+      if ImGui.Button("Search##helpSearchApply", helpSearchButtonWidth,
+          actionButtonHeight) then
+        state.ui.helpAppliedSearchText = draftHelpQuery
+        appliedHelpQuery = draftHelpQuery
+      end
+      if not helpSearchReady then ImGui.EndDisabled() end
       ImGui.SameLine()
-      local helpSearchEmpty = normalizeSearch(state.ui.helpSearchText) == ""
+      local helpSearchEmpty = draftHelpQuery == "" and appliedHelpQuery == ""
       if helpSearchEmpty then ImGui.BeginDisabled() end
       if ImGui.Button("Clear##helpSearchClear", helpSearchButtonWidth, actionButtonHeight) then
         state.ui.helpSearchText = ""
+        state.ui.helpAppliedSearchText = ""
+        draftHelpQuery = ""
+        appliedHelpQuery = ""
       end
       if helpSearchEmpty then ImGui.EndDisabled() end
-      local helpQuery = normalizeSearch(state.ui.helpSearchText)
+      local helpSearchPending = draftHelpQuery ~= appliedHelpQuery
+      if helpSearchPending then
+        ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
+          "Select Search to show matching Help topics.")
+      elseif appliedHelpQuery ~= "" then
+        ImGui.TextColored(0.3, 1.0, 0.4, 1.0,
+          "Showing Help results for: " .. appliedHelpQuery)
+      else
+        ImGui.TextDisabled("All Help topics are shown.")
+      end
       local visibleHelpTopics = 0
       local function showHelpTopic(title, keywords)
-        local visible = helpTopicMatches(helpQuery, title, keywords)
+        local visible = not helpSearchPending and
+          helpTopicMatches(appliedHelpQuery, title, keywords)
         if visible then visibleHelpTopics = visibleHelpTopics + 1 end
         return visible
       end
@@ -436,7 +458,7 @@ if state.ui.helpOpen then
       end
       end
 
-      if visibleHelpTopics == 0 then
+      if visibleHelpTopics == 0 and not helpSearchPending then
         ImGui.Spacing()
         ImGui.TextWrapped("No help topic matches that search. Try a shorter word such as share, bug, load, folder, backup, or Trash.")
       end

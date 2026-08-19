@@ -86,6 +86,8 @@ used. See the README and in-game Help for current instructions.
   Snapshot failure is logged and never delays or blocks loading.
 - Adds Help search with topic keywords and common terms such as **share**,
   **bug**, **clothing**, **ACU**, **backup**, **Trash**, and **favorite**.
+- Adds a clear **Search** button and pauses the long Help list while text is being
+  entered, preventing repeated redraws and making search results obvious.
 - Replaces vague expandable labels with labels that name the controls inside,
   including folder actions, preset details, bulk actions, and backup tools.
 - Keeps `.cpmfolder` install, export, and file-removal controls visible under

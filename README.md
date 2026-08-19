@@ -433,8 +433,9 @@ Folders made inside CET exist only in the mod's folder list. They do not create 
 
 ### Search Help
 
-Open **Help** and enter a word or short phrase. The panel shows only matching
-topics. Searches such as `share`, `bug`, `clothing`, `ACU`, `backup`, `Trash`,
+Open **Help**, enter a word or short phrase, then select **Search**. The panel
+pauses the long Help list while you type, then shows only matching topics.
+Searches such as `share`, `bug`, `clothing`, `ACU`, `backup`, `Trash`,
 and `favorite` include common related terms, so the required instructions and
 known problems are easier to find.
 
