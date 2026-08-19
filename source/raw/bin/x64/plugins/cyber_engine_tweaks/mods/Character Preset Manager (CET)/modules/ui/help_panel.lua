@@ -198,7 +198,7 @@ end
 drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if state.ui.settingsOpen then
       ImGui.Spacing()
-      ImGui.BeginChild("##settings", 0, 360, true)
+      ImGui.BeginChild("##settings", 0, 240, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
       ImGui.TextDisabled(CONFIG_FILE)
       ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
@@ -237,41 +237,6 @@ if state.ui.settingsOpen then
         else
           state.status.settings = "The settings file could not be reloaded."
         end
-      end
-      if compactSubsectionButton("Backup: Export / Import / Restore",
-          "Hide Backup & Recovery", "backupRecovery") then
-      ImGui.Indent(8)
-      if fullWidthButton("Export Everything##exportLibraryBackup", actionButtonHeight) then
-        exportLibraryBackup()
-      end
-      local backupFiles = libraryBackupFiles()
-      if #backupFiles > 0 and not state.backup.selectedFile then
-        state.backup.selectedFile = backupFiles[#backupFiles]
-      end
-      local selectedBackupLabel = state.backup.selectedFile
-        and state.backup.selectedFile:match("([^/]+)$") or "No library backup found"
-      if ImGui.BeginCombo("Library backup to import##libraryBackupFile", selectedBackupLabel) then
-        for _, backupPath in ipairs(backupFiles) do
-          local label = backupPath:match("([^/]+)$") or backupPath
-          if ImGui.Selectable(label .. "##backup:" .. backupPath,
-              state.backup.selectedFile == backupPath) then
-            state.backup.selectedFile = backupPath
-          end
-        end
-        ImGui.EndCombo()
-      end
-      if #backupFiles == 0 then ImGui.BeginDisabled() end
-      if fullWidthButton("Import Library Backup##importLibraryBackup", actionButtonHeight) then
-        importLibraryBackup()
-      end
-      if #backupFiles == 0 then ImGui.EndDisabled() end
-      if not fileExists(LAST_APPEARANCE_FILE) then ImGui.BeginDisabled() end
-      if fullWidthButton("Restore Appearance from Before Last Load##restoreAppearance", actionButtonHeight) then
-        restoreLastAppearance()
-        state.ui.settingsOpen = false
-      end
-      if not fileExists(LAST_APPEARANCE_FILE) then ImGui.EndDisabled() end
-      ImGui.Unindent(8)
       end
       if state.status.settings ~= "" then
         coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.settings)
@@ -438,12 +403,17 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("To remove only a .cpmfolder file, open Folders, then open .cpmfolder Files: Manage / Remove. Moving the sharing file to Trash does not remove installed presets or folders.")
       end
 
-      if showHelpTopic("Settings, Backup & Recovery",
-          "settings config reminder sort backup export everything import library restore appearance snapshot recovery") then
-      helpHeading("Settings, Backup & Recovery")
-      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off, choose how presets are sorted, or export and import a complete library backup.")
+      if showHelpTopic("Settings",
+          "settings config reminder sort reload preferences") then
+      helpHeading("Settings")
+      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off, choose how presets are sorted, or reload changes made in Data/Config/Config.txt.")
+      end
+
+      if showHelpTopic("Backup & Recovery",
+          "backup export complete everything import library restore appearance snapshot recovery undo") then
+      helpHeading("Backup & Recovery")
+      ImGui.TextWrapped("Open Backup & Recovery to export the complete preset library or import a .cpmbackup file. Complete backups include presets, folders, and settings.")
       ImGui.TextWrapped("Before each normal preset load, the mod quietly saves the current appearance. Restore Appearance from Before Last Load uses the newest snapshot and does not add it to the preset list.")
-      ImGui.TextWrapped("Advanced users can also change Data/Config/Config.txt, then select Reload Settings File.")
       end
 
       if showHelpTopic("Activity Log",

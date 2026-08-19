@@ -115,6 +115,7 @@ state = {
   },
   backup = {
     selectedFile = nil,
+    restoreStatusVisible = false,
   },
   ui = {
     openSections = {
@@ -123,6 +124,7 @@ state = {
       create = true,
       folders = false,
       manage = false,
+      backup = false,
       bulk = false,
       trash = false,
     },
@@ -193,6 +195,7 @@ state = {
     },
     kinds = {},
     settings = "",
+    backup = "",
     lastLoggedFolder = nil,
   },
 }

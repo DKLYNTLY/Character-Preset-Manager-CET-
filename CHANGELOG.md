@@ -78,9 +78,11 @@ used. See the README and in-game Help for current instructions.
   appear in a pinned group above the regular preset tree.
 - Shows **Add Selected Preset to Favorites** directly under the chosen preset instead
   of hiding it inside the preset details.
-- Adds complete `.cpmbackup` export and import in Settings. A backup contains
+- Adds complete `.cpmbackup` export and import. A backup contains
   every preset, the CET folder layout, and the current settings file without
   overwriting colliding items in an existing library.
+- Moves complete-library export, import, and appearance recovery out of Settings
+  into a visible **Backup & Recovery** section with direct controls.
 - Saves a hidden recovery snapshot before each new preset load and adds a
   Settings action to restore the appearance that was active before that load.
   Snapshot failure is logged and never delays or blocks loading.

@@ -309,12 +309,17 @@ folder paths inside a single **Selected Presets** group when it is installed.
 
 ### Back up the complete library
 
-Open **Settings** and choose **Export Everything**. The new `.cpmbackup` file in
+Open **Backup & Recovery** and choose **Export Complete Library Backup**. The new `.cpmbackup` file in
 `Character Presets` contains every preset, the CET folder layout, and the current
-settings file. Choose a backup in Settings, then select **Import Library Backup**.
+settings file. Choose a backup in the same section, then select **Import Selected Library Backup**.
 On an empty installation, the original layout is restored. If names are already
 in use, the imported library is placed in a new **Imported Library** folder so
 nothing is overwritten. A backup cannot be larger than 256 MB.
+
+The same **Backup & Recovery** section includes **Restore Appearance from Before
+Last Load**. The mod quietly saves this recovery snapshot before each normal
+preset load, so the button can undo the most recent load without adding another
+preset to the library.
 
 </details>
 
@@ -387,8 +392,6 @@ equipped clothing while its window is open.
 - **Customization Reminder: Enabled/Disabled** turns the character-screen reminder on or off. It starts on and stays off after you disable it.
 - **Preset Sort** sorts presets by name or by the most recently changed preset.
 - **Reload Settings File** applies manual changes without restarting.
-- **Export Everything** and **Import Library Backup** create or restore a complete `.cpmbackup` file.
-- **Restore Appearance from Before Last Load** loads the hidden recovery snapshot made before the newest normal preset load. A failed snapshot never stops the requested load.
 
 Choose a preset under **Load Preset**, then select **Add Selected Preset to Favorites**.
 The same button removes it from Favorites later. Favorites remain in their original

@@ -76,12 +76,12 @@ exportLibraryBackup = function()
   helpers.auditSection("EXPORT LIBRARY BACKUP")
   local names = helpers.sortedPresetNames()
   if #names == 0 then
-    state.status.settings = "Save at least one preset before exporting a library backup."
+    state.status.backup = "Save at least one preset before exporting a library backup."
     return false
   end
   local filename = uniqueBackupFilename()
   if not filename then
-    state.status.settings = "The mod could not create an unused library-backup file name."
+    state.status.backup = "The mod could not create an unused library-backup file name."
     return false
   end
   local config = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
@@ -136,11 +136,11 @@ exportLibraryBackup = function()
     end)
   end, "library backup")
   if not wrote then
-    state.status.settings = exportError or "The library backup could not be saved."
+    state.status.backup = exportError or "The library backup could not be saved."
     return false
   end
   state.backup.selectedFile = filename
-  state.status.settings = ("Exported %d preset%s to %s.")
+  state.status.backup = ("Exported %d preset%s to %s.")
     :format(#names, #names == 1 and "" or "s", filename)
   log(("[LIBRARY BACKUP] Exported presets=%d folders=%d file='%s'.")
     :format(#names, #sortedFolderNames(), filename), "complete")
@@ -209,11 +209,11 @@ importLibraryBackup = function()
   helpers.auditSection("IMPORT LIBRARY BACKUP")
   local path = state.backup.selectedFile
   if not path or not fileExists(path) then
-    state.status.settings = "Choose an available library-backup file first."
+    state.status.backup = "Choose an available library-backup file first."
     return false
   end
   local backup, readError = readBackup(path)
-  if not backup then state.status.settings = readError; return false end
+  if not backup then state.status.backup = readError; return false end
   local needsRoot = false
   for folder in pairs(backup.folders) do
     if folderNameExists(folder) then needsRoot = true; break end
@@ -225,7 +225,7 @@ importLibraryBackup = function()
   end
   local root = needsRoot and uniqueImportRoot() or ""
   if needsRoot and not root then
-    state.status.settings = "The mod could not create a safe folder for colliding backup items."
+    state.status.backup = "The mod could not create a safe folder for colliding backup items."
     return false
   end
   local newPresets = cloneMap(state.library.presets)
@@ -236,7 +236,7 @@ importLibraryBackup = function()
   for folder in pairs(backup.folders) do addFolderAncestors(newFolders, joinFolder(root, folder)) end
   local reservedStorage = storageFilenamesInUse()
   if not reservedStorage then
-    state.status.settings = "Existing preset file names could not be checked safely."
+    state.status.backup = "Existing preset file names could not be checked safely."
     return false
   end
   local createdFiles = {}
@@ -245,7 +245,7 @@ importLibraryBackup = function()
     item.storage = uniqueStorageName(baseName(item.logicalName), reservedStorage)
     if not item.storage then
       removeFileList(createdFiles)
-      state.status.settings = "The mod could not create a safe file name for an imported preset."
+      state.status.backup = "The mod could not create a safe file name for an imported preset."
       return false
     end
     item.path = PRESET_DIR .. "/" .. item.storage .. ".preset"
@@ -258,7 +258,7 @@ importLibraryBackup = function()
     if not preset then
       removeFileList(createdFiles)
       if wrote then removeFileList({ item.path }) end
-      state.status.settings = "An imported preset could not be written or verified safely."
+      state.status.backup = "An imported preset could not be written or verified safely."
       return false
     end
     table.insert(createdFiles, item.path)
@@ -273,7 +273,7 @@ importLibraryBackup = function()
       state.library.ignoredPhysicalFolders)
     writeInventory(state.library.presets, state.library.folders)
     removeFileList(createdFiles)
-    state.status.settings = "The imported presets were removed because the library lists could not be saved."
+    state.status.backup = "The imported presets were removed because the library lists could not be saved."
     return false
   end
   local previousConfig = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
@@ -294,7 +294,7 @@ importLibraryBackup = function()
         end)
       end, "previous config")
     end
-    state.status.settings = "The imported presets were removed because the settings file could not be restored."
+    state.status.backup = "The imported presets were removed because the settings file could not be restored."
     return false
   end
   state.library.presets, state.library.folders = newPresets, newFolders
@@ -308,7 +308,7 @@ importLibraryBackup = function()
   invalidateViewCache()
   resetLoadState()
   cancelConfirmations()
-  state.status.settings = ("Imported %d preset%s and the saved settings%s.")
+  state.status.backup = ("Imported %d preset%s and the saved settings%s.")
     :format(#backup.presets, #backup.presets == 1 and "" or "s",
       root ~= "" and (" under " .. root) or "")
   log(("[LIBRARY BACKUP] Imported presets=%d root='%s' file='%s'.")
