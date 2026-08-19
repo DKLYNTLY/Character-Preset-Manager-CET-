@@ -482,12 +482,14 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Under Create & Organize Folders, open Share & Import Folders. Choose a non-empty folder and select Export Selected Folder as a .cpmfolder File.")
       ImGui.TextWrapped("To install a shared folder, place its .cpmfolder file in Character Presets, open Share & Import Folders, then select Install .cpmfolder Files from Character Presets.")
       ImGui.TextWrapped("The mod skips a bundle that was already imported and has not changed. If you deleted its imported folder, you can import the same bundle again.")
+      ImGui.TextWrapped("To check a sharing file first, select it under Manage & Remove .cpmfolder Files, then choose View Selected .cpmfolder Contents. The preview does not install or change anything.")
       ImGui.TextWrapped("To remove only a sharing file, open Manage & Remove .cpmfolder Files. Moving the file to Trash does not remove installed presets or folders.")
       helpButton("Share & Import Folders / Hide Share & Import Folders", "Shows or hides the controls used to create and install .cpmfolder sharing files.")
       helpButton("Export Selected Folder as a .cpmfolder File", "Creates a sharing file containing the selected folder, every folder inside it, and their presets.")
       helpButton("Install .cpmfolder Files from Character Presets", "Finds and installs valid .cpmfolder files placed in Character Presets.")
       helpButton("Manage & Remove .cpmfolder Files / Hide .cpmfolder File Manager", "Shows or hides the sharing files currently stored in Character Presets. The number shows how many were found.")
-      helpButton("Sharing-file rows", "Chooses which .cpmfolder file the removal button will move to Trash.")
+      helpButton("Sharing-file rows", "Chooses which .cpmfolder file to view or move to Trash.")
+      helpButton("View Selected .cpmfolder Contents / Hide Selected .cpmfolder Contents", "Checks the file and shows its main folder, nested folders, and every preset without installing it.")
       helpButton("Move Selected .cpmfolder File to Trash", "Moves only the selected sharing file to Trash. It does not remove the folder or presets that were installed from it.")
       end
 

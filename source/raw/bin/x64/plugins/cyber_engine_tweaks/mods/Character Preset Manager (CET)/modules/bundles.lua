@@ -70,6 +70,10 @@ folderBundleFiles = function(forceRefresh)
   return state.cache.folderBundleFiles
 end
 
+clearFolderBundlePreview = function()
+  state.library.folderBundlePreview = nil
+end
+
 local function uniqueTrashedBundleFilename(filename)
   local stem = filename:sub(1, -#FOLDER_BUNDLE_EXTENSION - 1)
   for index = 1, 9999 do
@@ -99,6 +103,7 @@ trashSelectedFolderBundle = function()
   end
   if not selectedPath then
     state.library.selectedBundleFile = nil
+    clearFolderBundlePreview()
     setStatus("folder", "That shared-folder file is no longer available.", true)
     return
   end
@@ -129,6 +134,7 @@ trashSelectedFolderBundle = function()
   state.trash.bundles[trashFilename] = true
   state.trash.viewDirty = true
   state.library.selectedBundleFile = nil
+  clearFolderBundlePreview()
   state.cache.folderBundleFilesDirty = true
   setStatus("folder",
     ("Moved shared-folder file \"%s\" to Trash. Presets and folders were not changed.")
@@ -409,6 +415,54 @@ local function inspectFolderBundle(filename)
   bundle.folderNames = nil
   bundle.presetNames = nil
   return bundle
+end
+
+viewSelectedFolderBundleContents = function()
+  clearStatus("folder")
+  local selected = state.library.selectedBundleFile
+  if not isFolderBundleFilename(selected) then
+    clearFolderBundlePreview()
+    setStatus("folder", "Select a shared-folder file to view its contents.", true)
+    return false
+  end
+  local selectedPath = nil
+  for _, path in ipairs(folderBundleFiles(true)) do
+    local leaf = path:match("([^/]+)$")
+    if leaf and leaf:lower() == selected:lower() then
+      selected, selectedPath = leaf, path
+      break
+    end
+  end
+  if not selectedPath then
+    state.library.selectedBundleFile = nil
+    clearFolderBundlePreview()
+    setStatus("folder", "That shared-folder file is no longer available.", true)
+    return false
+  end
+  local bundle, bundleError = inspectFolderBundle(selectedPath)
+  if not bundle then
+    clearFolderBundlePreview()
+    setStatus("folder", bundleError, true)
+    return false
+  end
+  local folders, presets = {}, {}
+  for folder in pairs(bundle.folders) do table.insert(folders, folder) end
+  for _, preset in ipairs(bundle.presets) do table.insert(presets, preset.name) end
+  table.sort(folders, function(a, b) return a:lower() < b:lower() end)
+  table.sort(presets, function(a, b) return a:lower() < b:lower() end)
+  state.library.selectedBundleFile = selected
+  state.library.folderBundlePreview = {
+    filename = selected,
+    root = bundle.root,
+    folders = folders,
+    presets = presets,
+  }
+  setStatus("folder",
+    ("Showing %d preset%s from \"%s\".")
+      :format(#presets, #presets == 1 and "" or "s", selected), false, "success")
+  log(("[FOLDER BUNDLE] Viewed file='%s' root='%s' folders=%d presets=%d.")
+    :format(selectedPath, bundle.root, #folders, #presets), "info")
+  return true
 end
 
 local function writeRawPreset(path, contents)

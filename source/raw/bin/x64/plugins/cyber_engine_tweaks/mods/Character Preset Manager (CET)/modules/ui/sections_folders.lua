@@ -123,9 +123,10 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       ImGui.Indent(8)
       if #bundleFiles == 0 then
         state.library.selectedBundleFile = nil
+        clearFolderBundlePreview()
         ImGui.TextDisabled("No .cpmfolder files found in Character Presets.")
       else
-        ImGui.TextWrapped("Choose a sharing file below, then move only that file to Trash.")
+        ImGui.TextWrapped("Choose a sharing file below to view its contents or move only that file to Trash.")
         ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
         local selectedStillExists = false
         for _, path in ipairs(bundleFiles) do
@@ -137,6 +138,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           end
           if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
               state.library.selectedBundleFile == leaf) then
+            if state.library.selectedBundleFile ~= leaf then clearFolderBundlePreview() end
             state.library.selectedBundleFile = leaf
             cancelConfirmations()
             selectedStillExists = true
@@ -145,14 +147,46 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         ImGui.EndChild()
         if state.library.selectedBundleFile and not selectedStillExists then
           state.library.selectedBundleFile = nil
+          clearFolderBundlePreview()
         end
-        local bundleDeleteUnavailable = not state.library.selectedBundleFile
-        if bundleDeleteUnavailable then ImGui.BeginDisabled() end
+        local bundleActionUnavailable = not state.library.selectedBundleFile
+        if bundleActionUnavailable then ImGui.BeginDisabled() end
+        local preview = state.library.folderBundlePreview
+        local previewVisible = preview and state.library.selectedBundleFile
+          and preview.filename:lower() == state.library.selectedBundleFile:lower()
+        local previewLabel = previewVisible
+          and "Hide Selected .cpmfolder Contents##viewFolderBundle"
+          or "View Selected .cpmfolder Contents##viewFolderBundle"
+        if fullWidthButton(previewLabel, actionButtonHeight) then
+          if previewVisible then
+            clearFolderBundlePreview()
+            clearStatus("folder")
+          else viewSelectedFolderBundleContents() end
+        end
         if dangerButton("Move Selected .cpmfolder File to Trash##trashFolderBundle",
             ImGui.GetContentRegionAvail(), actionButtonHeight) then
           trashSelectedFolderBundle()
         end
-        if bundleDeleteUnavailable then ImGui.EndDisabled() end
+        if bundleActionUnavailable then ImGui.EndDisabled() end
+        preview = state.library.folderBundlePreview
+        previewVisible = preview and state.library.selectedBundleFile
+          and preview.filename:lower() == state.library.selectedBundleFile:lower()
+        if previewVisible then
+          ImGui.Spacing()
+          ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Selected File Contents")
+          ImGui.TextWrapped("Main folder: " .. preview.root)
+          ImGui.TextDisabled(("Nested folders: %d    Presets: %d")
+            :format(#preview.folders, #preview.presets))
+          ImGui.BeginChild("##folderBundleContents", 0, ImGui.GetFontSize() * 7, true)
+          ImGui.TextWrapped("Folder: " .. preview.root)
+          for _, folder in ipairs(preview.folders) do
+            ImGui.TextWrapped("Folder: " .. joinFolder(preview.root, folder))
+          end
+          for _, preset in ipairs(preview.presets) do
+            ImGui.TextWrapped("Preset: " .. joinFolder(preview.root, preset))
+          end
+          ImGui.EndChild()
+        end
         ImGui.TextDisabled("You can restore the file later under Delete & Restore Items.")
       end
       ImGui.Unindent(8)

@@ -17,6 +17,8 @@ used. See the README and in-game Help for current instructions.
   folder in readable text. If a preset has no saved folder-list entry, the mod
   can rebuild its folder from the preset file. Older CPM and compatible ACU
   presets remain readable.
+- Adds **View Selected .cpmfolder Contents** so a sharing file's main folder,
+  nested folders, and included presets can be checked before installation.
 - Releases finished preset-loading data after it is no longer needed, reducing
   memory kept during long play sessions.
 - Unloads full preset contents and clears rebuildable interface lists when the

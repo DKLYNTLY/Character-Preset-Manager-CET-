@@ -73,6 +73,7 @@ helpers.releaseViewCaches = function()
   state.cache.filteredViewDirty = true
   state.cache.folderBundleFiles = {}
   state.cache.folderBundleFilesDirty = true
+  state.library.folderBundlePreview = nil
   state.trash.cachedNames = {}
   state.trash.cachedGroupIds = {}
   state.trash.cachedBundleNames = {}

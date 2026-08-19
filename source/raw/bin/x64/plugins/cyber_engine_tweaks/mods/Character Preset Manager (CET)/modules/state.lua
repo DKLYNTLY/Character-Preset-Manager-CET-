@@ -30,6 +30,7 @@ state = {
     pendingOverwriteFingerprint = nil,
     pendingRemoveFolder = nil,
     selectedBundleFile = nil,
+    folderBundlePreview = nil,
     sortMode = "name",
   },
   load = {

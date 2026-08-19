@@ -298,10 +298,15 @@ A shared folder can contain up to 512 presets and cannot be larger than 32 MB. A
 The mod writes and installs shared folders one preset at a time. Large bundles
 do not need to be held in memory all at once.
 
-To remove only the exported file, open **Manage & Remove .cpmfolder Files**,
-select the file, and choose **Move Selected .cpmfolder File to Trash**. This does
-not remove the original folder or its presets. You can restore the file under
-**Delete & Restore Items** or remove it with **Empty Trash Permanently**.
+To check a sharing file before installing it, open **Manage & Remove .cpmfolder
+Files**, select the file, and choose **View Selected .cpmfolder Contents**. The
+preview shows its main folder, nested folders, and every included preset. It
+does not install or change anything.
+
+To remove only the exported file, select it in the same section and choose
+**Move Selected .cpmfolder File to Trash**. This does not remove the original
+folder or its presets. You can restore the file under **Delete & Restore Items**
+or remove it with **Empty Trash Permanently**.
 
 #### Import a folder
 
