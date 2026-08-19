@@ -7,26 +7,14 @@ drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight,
 if collapsibleSectionHeader("MANAGE PRESET", "manage") then
       if not state.library.selected or not state.library.presets[state.library.selected] then
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
-          "Select a preset under Load Preset to favorite, rename, duplicate, or edit it.")
+          "Select a preset under Load Preset to rename, duplicate, or edit it.")
       else
-        local preset = state.library.presets[state.library.selected]
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")
         ImGui.TextWrapped(state.library.selected)
-        local favoriteLabel = preset.favorite == true
-          and "Remove Selected Preset from Favorites##favoritePreset"
-          or "Add Selected Preset to Favorites##favoritePreset"
-        if fullWidthButton(favoriteLabel, actionButtonHeight) then
-          toggleSelectedPresetFavorite()
-        end
-        ImGui.Spacing()
         local selectedPresetPath =
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/" ..
           presetPath(state.library.selected)
-        ui.pathCallout("##selectedPresetPath", "Preset File", selectedPresetPath)
-        if fullWidthButton("Copy File Path##copyPresetPath", actionButtonHeight) then
-          ImGui.SetClipboardText(selectedPresetPath)
-        end
         ImGui.Spacing()
         ImGui.PushItemWidth(-1)
         state.library.renameName = ImGui.InputTextWithHint(
@@ -41,9 +29,14 @@ if collapsibleSectionHeader("MANAGE PRESET", "manage") then
         ImGui.SameLine()
         if ImGui.Button("Duplicate Preset##duplicateSelected",
             manageButtonWidth, actionButtonHeight) then duplicatePreset() end
-        if compactSubsectionButton("Edit Tags & Notes", "Hide Tags & Notes",
+        if compactSubsectionButton("Optional: Tags, Notes & File",
+            "Hide Optional Preset Tools",
             "presetDetails") then
           ImGui.Indent(8)
+          ui.pathCallout("##selectedPresetPath", "Preset File", selectedPresetPath)
+          if fullWidthButton("Copy File Path##copyPresetPath", actionButtonHeight) then
+            ImGui.SetClipboardText(selectedPresetPath)
+          end
           ImGui.PushItemWidth(-1)
           state.library.presetTags = ImGui.InputTextWithHint("##presetTags", "Tags", state.library.presetTags, 129)
           state.library.presetNotes = ImGui.InputTextWithHint("##presetNotes", "Notes", state.library.presetNotes, 513)

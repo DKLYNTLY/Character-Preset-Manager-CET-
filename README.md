@@ -168,7 +168,7 @@ Always check the result after changing option mods.
 
 Force Full Load turns on automatically for older presets that need position-based
 matching and turns off when you select a current preset. You can still change it
-manually for the selected preset.
+manually under **Optional: Details & Force Full Load**.
 
 When Force Full Load applies a renamed option from an older preset, post-load
 cleanup protects that exact live match. The protection remains only while its
@@ -214,14 +214,14 @@ easy to inspect without treating its headings as damaged data.
 - Copies appear beside the original and use names such as `Copy` and `Copy 2`.
 - Copying a folder also copies every preset and folder inside it.
 - Renaming a preset also renames its `.preset` file.
-- Notes and tags are under **Manage Preset > Edit Tags & Notes**.
+- Notes, tags, and the file path are under **Manage Preset > Optional: Tags, Notes & File**.
 - Search checks preset names, folder names, and tags. Tags also appear beside
   preset names in the list.
-- **Copy File Path** under **Manage Preset** copies the selected preset's
+- **Copy File Path** inside those optional preset tools copies the selected preset's
   complete path from the Cyberpunk 2077 game folder.
 
-Choose a preset under **Load Preset**, then open **Manage Preset** and select
-**Add Selected Preset to Favorites**. The same button removes it from Favorites
+Choose a preset under **Load Preset**, then open **Optional: Refresh & Favorites**
+and select **Add Selected Preset to Favorites**. The same button removes it from Favorites
 later. Favorites remain in their original folders and also appear in a pinned
 group above the regular folder list. This choice is stored inside the readable
 `.preset` file.
@@ -264,7 +264,8 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 
 - To share an appearance, send its `.preset` file.
 - To install a preset, place its file in `Character Presets` or in a Windows folder inside it.
-- Select **Refresh** under **Load Preset** after changing files outside the game.
+- Under **Load Preset**, open **Optional: Refresh & Favorites** and select **Refresh Preset Files**
+  after changing files outside the game.
 - Startup uses the saved preset list instead of fully reading every preset and
   every Trash file. A preset is read in full when you select or use it. Opening
   the CET overlay does not scan the library again. This keeps large collections
@@ -283,16 +284,16 @@ A `.cpmfolder` file contains the selected CET folder, all folders inside it, and
 #### Export a folder
 
 1. Open **Folders** and choose a non-empty folder.
-2. Select **Export Selected Folder as a .cpmfolder File**.
-3. Find the new `.cpmfolder` file in `Character Presets`.
-4. Send that one file.
+2. Open **Optional: Share & Import Folders**.
+3. Select **Export Selected Folder as a .cpmfolder File**.
+4. Find the new `.cpmfolder` file in `Character Presets` and send it.
 
 A shared folder can contain up to 512 presets and cannot be larger than 32 MB. An empty folder cannot be exported.
 
 The mod writes and installs shared folders one preset at a time. Large bundles
 do not need to be held in memory all at once.
 
-To remove only the exported file, open **.cpmfolder Files: Manage / Remove**,
+To remove only the exported file, open **Optional: Manage & Remove .cpmfolder Files**,
 select the file, and choose **Move Selected .cpmfolder File to Trash**. This does
 not remove the original folder or its presets. You can restore the file under
 **Delete & Restore** or remove it with **Empty Trash Permanently**.
@@ -301,13 +302,14 @@ not remove the original folder or its presets. You can restore the file under
 
 1. Put the downloaded `.cpmfolder` file in `Character Presets`.
 2. Open Character Preset Manager and expand **Folders**.
-3. Select **Install .cpmfolder Files from Character Presets**.
+3. Open **Optional: Share & Import Folders**.
+4. Select **Install .cpmfolder Files from Character Presets**.
 
 The mod rebuilds the complete folder group and leaves the `.cpmfolder` file in place. It remembers the filename, file contents, and imported folder in `Data/Catalog/Imported Bundles.txt`.
 
 An unchanged bundle is skipped while its imported folder still exists. You can import it again after deleting that folder. You can also import a changed bundle that uses the same filename. If a folder name is already in use, the new folder gets a safe `Copy` name. A failed import is not marked as complete, so you can fix the file and try again.
 
-After a successful import, **.cpmfolder Files: Manage / Remove** can move the
+After a successful import, **Optional: Manage & Remove .cpmfolder Files** can move the
 source file to Trash without removing the imported folder or presets. This file
 manager is always visible under **Folders**, regardless of the selected folder.
 
@@ -396,7 +398,7 @@ equipped clothing while its window is open.
 
 - **Customization Reminder: Enabled/Disabled** turns the character-screen reminder on or off. It starts on and stays off after you disable it.
 - **Preset Sort** sorts presets by name or by the most recently changed preset.
-- **Reload Settings File** applies manual changes without restarting.
+- **Optional: Reload Settings File** applies manual changes without restarting.
 
 The same choices are stored in:
 

@@ -225,6 +225,9 @@ if state.ui.settingsOpen then
         invalidateViewCache()
         state.status.settings = writeConfig() and "Settings saved." or "The settings file could not be saved."
       end
+      if compactSubsectionButton("Optional: Reload Settings File",
+          "Hide Optional Settings File Tool", "settingsFile") then
+      ImGui.Indent(8)
       if fullWidthButton("Reload Settings File##reloadConfig", actionButtonHeight) then
         local config, loaded = readConfig()
         if loaded then
@@ -237,6 +240,8 @@ if state.ui.settingsOpen then
         else
           state.status.settings = "The settings file could not be reloaded."
         end
+      end
+      ImGui.Unindent(8)
       end
       if state.status.settings ~= "" then
         coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.settings)
@@ -329,11 +334,12 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("3. Select Load Selected Preset once.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
         "4. Wait for the final result. Green means every option was confirmed. Yellow means the game did not confirm one or more changes.")
-      ImGui.TextWrapped("If you add, remove, or edit preset files outside CET, select Refresh under Load Preset before using them.")
+      ImGui.TextWrapped("If you change preset files outside CET, open Optional: Refresh & Favorites and select Refresh Preset Files before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
       ImGui.TextWrapped("Restore Appearance from Before Last Load is also under Load Preset. It uses the recovery snapshot saved before the newest normal preset load.")
+      ImGui.TextWrapped("Open Optional: Refresh & Favorites to rescan preset files or add the selected preset to Favorites. Open Optional: Details & Force Full Load for saved details and the manual matching control.")
       end
 
       if showHelpTopic("Save a Preset",
@@ -349,7 +355,7 @@ if state.ui.helpOpen then
           "organize folder folders move remove keep favorite favorites pin imported windows folder") then
       helpHeading("Organize Presets")
       ImGui.TextWrapped("Select a folder row under Load Preset to open or close it. Presets that are not in a folder appear under All Presets.")
-      ImGui.TextWrapped("To favorite a preset, choose it under Load Preset, open Manage Preset, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
+      ImGui.TextWrapped("To favorite a preset, choose it under Load Preset, open Optional: Refresh & Favorites, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
       ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
       ImGui.TextWrapped("Remove Folder, Keep Presets is under Folders. It removes the folder but moves everything inside it to the folder above, and it never deletes unknown files.")
@@ -358,11 +364,11 @@ if state.ui.helpOpen then
       end
 
       if showHelpTopic("Manage Presets",
-          "manage rename duplicate copy favorite favorites tags notes file path") then
+          "manage rename duplicate copy tags notes file path optional") then
       helpHeading("Manage Presets")
       ImGui.TextWrapped("Choose a preset or folder first. Renaming a preset also renames its .preset file. Renaming a folder changes only the name shown in the mod.")
       ImGui.TextWrapped("A copy appears beside the original. Copying a folder also copies every preset and folder inside it.")
-      ImGui.TextWrapped("Open Manage Preset to add or remove a favorite, rename or duplicate the selected preset, edit tags and notes, or copy its file path.")
+      ImGui.TextWrapped("Open Manage Preset to rename or duplicate the selected preset. Open Optional: Tags, Notes & File to edit extra details or copy its file path.")
       end
 
       if showHelpTopic("Bulk Actions",
@@ -384,7 +390,7 @@ if state.ui.helpOpen then
       if showHelpTopic("Share One Preset",
           "share sharing send install import export preset file path character presets download upload bug issue wrong option legacy older ACU") then
       helpHeading("Share One Preset")
-      ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load Preset.")
+      ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then open Optional: Refresh & Favorites and select Refresh Preset Files.")
       ImGui.TextWrapped("A shared preset does not include its CET folder. Older Character Preset Manager and compatible ACU preset files can still be loaded.")
       ImGui.TextWrapped("New format-8 preset files use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
       ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
@@ -399,16 +405,16 @@ if state.ui.helpOpen then
       if showHelpTopic("Share a Folder",
           "share sharing send install import export folder bundle cpmfolder file delete remove trash") then
       helpHeading("Share a Folder")
-      ImGui.TextWrapped("To share a folder, choose a non-empty folder under Folders and select Export Selected Folder as a .cpmfolder File. The new file appears in Character Presets and includes everything inside that folder.")
-      ImGui.TextWrapped("To install a shared folder, place its .cpmfolder file in Character Presets. Open Folders, then select Install .cpmfolder Files from Character Presets.")
+      ImGui.TextWrapped("Under Folders, open Optional: Share & Import Folders. Choose a non-empty folder and select Export Selected Folder as a .cpmfolder File.")
+      ImGui.TextWrapped("To install a shared folder, place its .cpmfolder file in Character Presets, open Optional: Share & Import Folders, then select Install .cpmfolder Files from Character Presets.")
       ImGui.TextWrapped("The mod skips a bundle that was already imported and has not changed. If you deleted its imported folder, you can import the same bundle again.")
-      ImGui.TextWrapped("To remove only a .cpmfolder file, open Folders, then open .cpmfolder Files: Manage / Remove. Moving the sharing file to Trash does not remove installed presets or folders.")
+      ImGui.TextWrapped("To remove only a sharing file, open Optional: Manage & Remove .cpmfolder Files. Moving the file to Trash does not remove installed presets or folders.")
       end
 
       if showHelpTopic("Settings",
           "settings config reminder sort reload preferences") then
       helpHeading("Settings")
-      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off, choose how presets are sorted, or reload changes made in Data/Config/Config.txt.")
+      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off and choose how presets are sorted. Open Optional: Reload Settings File only after changing Data/Config/Config.txt by hand.")
       end
 
       if showHelpTopic("Backup & Recovery",

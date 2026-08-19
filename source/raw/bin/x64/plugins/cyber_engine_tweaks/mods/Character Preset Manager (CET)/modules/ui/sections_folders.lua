@@ -96,11 +96,11 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
         or "The selected preset is already in All Presets.")
       end
     end
-    ImGui.Spacing()
-    ImGui.Separator()
-    ImGui.Spacing()
+    if compactSubsectionButton("Optional: Share & Import Folders",
+        "Hide Share & Import Folders", "folderSharing") then
+    ImGui.Indent(8)
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Shared Folder Files")
-    ImGui.TextWrapped("Install, export, or remove .cpmfolder sharing files. These controls do not delete the presets already installed from them.")
+    ImGui.TextWrapped("Export a folder for sharing or install .cpmfolder files from Character Presets.")
     local folderExportUnavailable = state.library.selectedFolder == ""
     if folderExportUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Export Selected Folder as a .cpmfolder File", actionButtonHeight) then
@@ -113,9 +113,13 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
     if fullWidthButton("Install .cpmfolder Files from Character Presets", actionButtonHeight) then
       importAvailableFolderBundles()
     end
+    ImGui.Unindent(8)
+    end
     local bundleFiles = folderBundleFiles()
-    local bundleLabel = (".cpmfolder Files: Manage / Remove (%d)"):format(#bundleFiles)
-    if compactSubsectionButton(bundleLabel, "Hide .cpmfolder File Manager", "folderBundleFiles") then
+    local bundleLabel = ("Optional: Manage & Remove .cpmfolder Files (%d)")
+      :format(#bundleFiles)
+    if compactSubsectionButton(bundleLabel, "Hide .cpmfolder File Manager",
+        "folderBundleFiles") then
       ImGui.Indent(8)
       if #bundleFiles == 0 then
         state.library.selectedBundleFile = nil

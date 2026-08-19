@@ -10,9 +10,9 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
     local searchButtonWidth = narrowTopRow
-      and math.max(80, (searchRowWidth - 8) * 0.5) or 64
+      and searchRowWidth or 64
     local searchInputWidth = narrowTopRow
-      and searchRowWidth or math.max(80, searchRowWidth - searchButtonWidth * 2 - 16)
+      and searchRowWidth or math.max(80, searchRowWidth - searchButtonWidth - 8)
     ImGui.PushItemWidth(searchInputWidth)
     local previousSearchText = state.library.searchText
     state.library.searchText = ImGui.InputTextWithHint(
@@ -27,23 +27,6 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
       invalidateFilteredViewCache()
     end
     if clearSearchUnavailable then ImGui.EndDisabled() end
-    ImGui.SameLine()
-    if ImGui.Button("Refresh##presetRefresh", searchButtonWidth, actionButtonHeight) then
-      local _, refreshed, changes = refreshPresets("external")
-      refreshTrash()
-      if state.library.selected and state.library.presets[state.library.selected] then
-        state.library.presetNotes = state.library.presets[state.library.selected].notes or ""
-        state.library.presetTags = state.library.presets[state.library.selected].tags or ""
-      end
-      refreshPreflight()
-      local added = changes and changes.added or 0
-      local removed = changes and changes.removed or 0
-      local updated = changes and changes.modified or 0
-      setStatus("load", refreshed
-        and ("Refreshed: %d added, %d updated, %d removed; %d available.")
-          :format(added, updated, removed, #helpers.sortedPresetNames())
-        or "Refresh failed; the previous list was kept.", not refreshed)
-    end
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
     local names = helpers.sortedPresetNames()
     ensureFilteredViewCache()
@@ -154,41 +137,85 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
       else
         ImGui.TextDisabled("Open a customization screen to check compatibility.")
       end
-      if compactSubsectionButton("Tags, Notes & File Details", "Hide Preset Details", "loadDetails") then
-        ImGui.Indent(8)
-        coloredWrapped(0.64, 0.67, 0.73, 1.0,
-          ("Source: %s\nModified: %s")
-            :format(tostring(preset.source or "Older or ACU preset"),
-            tostring(preset.modified or "Unknown")))
-        if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
-        if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
-        ImGui.Unindent(8)
-      end
     end
 
-    if state.load.auto then ImGui.BeginDisabled() end
-    local forceLoadLabel = state.load.forceFull
-      and "Force Full Load: On##forceFullLoad"
-      or "Force Full Load: Off##forceFullLoad"
-    if fullWidthButton(forceLoadLabel, actionButtonHeight) then
-      state.load.forceFull = not state.load.forceFull
-      resetLoadState()
-      state.invalidatePreflight()
-      refreshPreflight()
-      log(("[UI] Force Full Load toggled %s.")
-        :format(state.load.forceFull and "on" or "off"), "info")
-    end
-    if state.load.auto then ImGui.EndDisabled() end
-    if state.load.forceFull then
-      local selectedFormat = state.library.selected and state.library.presets[state.library.selected]
-        and tonumber(state.library.presets[state.library.selected].format) or 4
-      if selectedFormat >= 7 then
-        coloredWrapped(1.0, 0.8, 0.2, 1.0,
-          "Force Full Load will try saved editor positions. Check the appearance after loading.")
-      else
-        coloredWrapped(1.0, 0.4, 0.4, 1.0,
-          "Older preset: added options may change the hair or color. Check the appearance after loading.")
+    if compactSubsectionButton("Optional: Refresh & Favorites",
+        "Hide Refresh & Favorites", "loadExtras") then
+      ImGui.Indent(8)
+      if fullWidthButton("Refresh Preset Files##presetRefresh", actionButtonHeight) then
+        local _, refreshed, changes = refreshPresets("external")
+        refreshTrash()
+        if state.library.selected and state.library.presets[state.library.selected] then
+          state.library.presetNotes = state.library.presets[state.library.selected].notes or ""
+          state.library.presetTags = state.library.presets[state.library.selected].tags or ""
+        end
+        refreshPreflight()
+        local added = changes and changes.added or 0
+        local removed = changes and changes.removed or 0
+        local updated = changes and changes.modified or 0
+        setStatus("load", refreshed
+          and ("Refreshed: %d added, %d updated, %d removed; %d available.")
+            :format(added, updated, removed, #helpers.sortedPresetNames())
+          or "Refresh failed; the previous list was kept.", not refreshed)
       end
+      local optionalPreset = state.library.selected
+        and state.library.presets[state.library.selected]
+      if optionalPreset then
+        local favoriteLabel = optionalPreset.favorite == true
+          and "Remove Selected Preset from Favorites##favoritePreset"
+          or "Add Selected Preset to Favorites##favoritePreset"
+        if fullWidthButton(favoriteLabel, actionButtonHeight) then
+          toggleSelectedPresetFavorite()
+        end
+      else
+        ImGui.TextDisabled("Select a preset to add or remove a favorite.")
+      end
+      ImGui.Unindent(8)
+    end
+
+    if compactSubsectionButton("Optional: Details & Force Full Load",
+        "Hide Details & Force Full Load", "loadDetails") then
+      ImGui.Indent(8)
+      local optionalPreset = state.library.selected
+        and state.library.presets[state.library.selected]
+      if optionalPreset then
+        coloredWrapped(0.64, 0.67, 0.73, 1.0,
+          ("Source: %s\nModified: %s")
+            :format(tostring(optionalPreset.source or "Older or ACU preset"),
+            tostring(optionalPreset.modified or "Unknown")))
+        if optionalPreset.tags and optionalPreset.tags ~= "" then
+          ImGui.TextWrapped("Tags: " .. optionalPreset.tags)
+        end
+        if optionalPreset.notes and optionalPreset.notes ~= "" then
+          ImGui.TextWrapped("Notes: " .. optionalPreset.notes)
+        end
+      else
+        ImGui.TextDisabled("Select a preset to view its saved details.")
+      end
+      if state.load.auto then ImGui.BeginDisabled() end
+      local forceLoadLabel = state.load.forceFull
+        and "Force Full Load: On##forceFullLoad"
+        or "Force Full Load: Off##forceFullLoad"
+      if fullWidthButton(forceLoadLabel, actionButtonHeight) then
+        state.load.forceFull = not state.load.forceFull
+        resetLoadState()
+        state.invalidatePreflight()
+        refreshPreflight()
+        log(("[UI] Force Full Load toggled %s.")
+          :format(state.load.forceFull and "on" or "off"), "info")
+      end
+      if state.load.auto then ImGui.EndDisabled() end
+      if state.load.forceFull then
+        local selectedFormat = optionalPreset and tonumber(optionalPreset.format) or 4
+        if selectedFormat >= 7 then
+          coloredWrapped(1.0, 0.8, 0.2, 1.0,
+            "Force Full Load will try saved editor positions. Check the appearance after loading.")
+        else
+          coloredWrapped(1.0, 0.4, 0.4, 1.0,
+            "Older preset: added options may change the hair or color. Check the appearance after loading.")
+        end
+      end
+      ImGui.Unindent(8)
     end
 
     local loadUnavailable = not state.library.selected or not state.app.inCustomization

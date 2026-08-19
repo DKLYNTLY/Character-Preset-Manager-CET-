@@ -40,7 +40,7 @@ used. See the README and in-game Help for current instructions.
   option.
 - Keeps the selected preset's folder and its parent folders open after a search
   is cleared.
-- Adds **Copy File Path** under **Manage Preset** for the selected preset. It
+- Adds **Copy File Path** under **Manage Preset > Optional: Tags, Notes & File**. It
   copies the complete path from the Cyberpunk 2077 game folder.
 - Uses the same status handling for every folder action, keeping message colors
   consistent.
@@ -76,8 +76,9 @@ used. See the README and in-game Help for current instructions.
   and can be selected again to remove it from the group.
 - Adds persistent Favorites. Favorite presets stay in their folders and also
   appear in a pinned group above the regular preset tree.
-- Shows **Add Selected Preset to Favorites** directly in **Manage Preset** instead
-  of hiding it inside extra details or placing it among loading controls.
+- Places **Add Selected Preset to Favorites** under **Load Preset > Optional:
+  Refresh & Favorites**, keeping it available without treating
+  the small action as a primary workflow.
 - Adds complete `.cpmbackup` export and import. A backup contains
   every preset, the CET folder layout, and the current settings file without
   overwriting colliding items in an existing library.
@@ -92,9 +93,12 @@ used. See the README and in-game Help for current instructions.
   entered, preventing repeated redraws and making search results obvious.
 - Replaces vague expandable labels with labels that name the controls inside,
   including folder actions, preset details, bulk actions, and backup tools.
-- Keeps `.cpmfolder` install, export, and file-removal controls visible under
-  **Folders** for every folder selection. Removing a sharing file clearly states
-  that installed presets and folders are not deleted.
+- Groups `.cpmfolder` install and export under **Optional: Share & Import Folders**,
+  with file removal under **Optional: Manage & Remove .cpmfolder Files**.
+  Removing a sharing file still states that installed presets and folders are not deleted.
+- Uses clearly named **Optional:** buttons for secondary Load, Manage Preset,
+  Folders, Settings, and Activity Log tools so each primary workflow stays short
+  and focused.
 
 </details>
 

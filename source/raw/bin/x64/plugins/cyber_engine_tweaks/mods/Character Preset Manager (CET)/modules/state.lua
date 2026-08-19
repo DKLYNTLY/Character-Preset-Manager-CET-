@@ -129,9 +129,12 @@ state = {
     },
     openSubsections = {
       saveDestination = false,
+      loadExtras = false,
       loadDetails = false,
+      folderSharing = false,
       folderBundleFiles = false,
       presetDetails = false,
+      settingsFile = false,
       advancedDiagnostics = false,
     },
     helpOpen = false,
