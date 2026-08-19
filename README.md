@@ -59,6 +59,8 @@ than the smaller selection normally available during play.
 ### What changed in 3.0.5
 
 - Complete-library backup export works correctly when checking the first preset.
+- A finished backup is checked against every preset and folder in the current
+  library before the mod reports success.
 - Current CPM preset files identify themselves with `# CPM Preset` and record
   `# Name:` and `# Library folder:` details for library recovery.
 - A selected `.cpmfolder` file can be inspected before it is installed.
@@ -359,9 +361,11 @@ folder paths inside a single **Selected Presets** group when it is installed.
 
 Open **Export & Import Backups** and choose **Export Complete Library Backup**.
 The new `.cpmbackup` file in `Character Presets` contains every preset, the CET
-folder layout, and the current settings file.
+folder layout, and the current settings file. This includes presets in Imported
+Windows folders, folders made inside CET, and empty CET folders. The success
+message shows the verified preset and folder totals.
 
-To restore one, choose its filename under **Backup file to import**, then select
+To restore one, choose its filename under **Backup file**, then select
 **Import Selected Library Backup**. On an empty installation, the original
 layout is restored. If names are already in use, the imported library is placed
 in a new **Imported Library** folder so nothing is overwritten. Imported
@@ -371,6 +375,11 @@ destination. A backup cannot be larger than 256 MB.
 Version 3.0.5 fixes complete-library export stopping while it checked the first
 preset file. A failed export or import reports the problem and does not treat a
 partial file or library as complete.
+
+To remove a backup, choose it under **Backup file**, then select
+**Delete Selected Backup Permanently**. Check the filename in the warning and
+select **Confirm Delete Selected Backup Permanently**. This deletes only the
+selected `.cpmbackup` file. It does not delete presets already in the library.
 
 </details>
 
@@ -551,8 +560,9 @@ and I do not plan to release it.
 <details>
 <summary><strong>Version 3.0.5 summary</strong></summary>
 
-- Fixes complete-library backup export and keeps backup import non-destructive
-  when names already exist.
+- Fixes and verifies complete-library backup export, reports preset and folder
+  totals, adds confirmed backup deletion, and keeps import non-destructive when
+  names already exist.
 - Adds `# CPM Preset`, `# Name:`, and `# Library folder:` details to current
   format-8 files. These details can rebuild a missing catalog assignment.
 - Keeps older CPM formats and compatible ACU presets readable without changing

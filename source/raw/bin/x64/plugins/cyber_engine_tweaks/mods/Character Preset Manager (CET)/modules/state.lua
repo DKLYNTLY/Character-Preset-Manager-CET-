@@ -116,6 +116,8 @@ state = {
   },
   backup = {
     selectedFile = nil,
+    pendingDeleteFile = nil,
+    pendingDeleteFingerprint = nil,
   },
   ui = {
     openSections = {

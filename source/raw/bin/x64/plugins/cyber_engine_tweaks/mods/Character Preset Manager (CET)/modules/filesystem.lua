@@ -56,6 +56,8 @@ function cancelConfirmations()
   state.trash.pendingEmpty = false
   state.trash.pendingBulkAction = nil
   state.trash.pendingBulkFingerprint = nil
+  state.backup.pendingDeleteFile = nil
+  state.backup.pendingDeleteFingerprint = nil
 end
 
 function resetLoadState()

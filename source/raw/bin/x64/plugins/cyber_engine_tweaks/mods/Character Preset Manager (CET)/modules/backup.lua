@@ -72,9 +72,72 @@ local function uniqueBackupFilename()
   return nil
 end
 
+local function verifyBackupContents(path, expectedNames, expectedFolders)
+  local expectedPresetMap, expectedFolderMap = {}, {}
+  for _, name in ipairs(expectedNames) do expectedPresetMap[name:lower()] = true end
+  for _, folder in ipairs(expectedFolders) do expectedFolderMap[folder:lower()] = true end
+  local file = io.open(path, "rb")
+  if not file then return false, "The finished library backup could not be reopened." end
+  local lineNumber, presetCount, folderCount = 0, 0, 0
+  local sawConfig, seenPresets, seenFolders = false, {}, {}
+  local function fail(message)
+    pcall(file.close, file)
+    return false, message
+  end
+  for line in file:lines() do
+    line = line:gsub("\r$", "")
+    lineNumber = lineNumber + 1
+    if lineNumber == 1 then
+      if line ~= "CPMBACKUP\t1" then
+        return fail("The finished library backup has an invalid first line.")
+      end
+    else
+      local configValue = line:match("^CONFIG\t(.*)$")
+      local folderValue = line:match("^F\t([^\t]+)$")
+      local nameValue, contentsStart = line:match("^P\t([^\t]+)\t()")
+      if configValue then
+        if sawConfig or decode(configValue) == nil then
+          return fail("The finished library backup has invalid settings data.")
+        end
+        sawConfig = true
+      elseif folderValue then
+        local folder = catalogDecode(folderValue)
+        local lowered = folder and folder:lower() or ""
+        if not expectedFolderMap[lowered] or seenFolders[lowered] then
+          return fail("The finished library backup has an unexpected folder record.")
+        end
+        seenFolders[lowered] = true
+        folderCount = folderCount + 1
+      elseif nameValue then
+        local name = catalogDecode(nameValue)
+        local lowered = name and name:lower() or ""
+        local contentsLength = #line - contentsStart + 1
+        if not expectedPresetMap[lowered] or seenPresets[lowered]
+            or contentsLength == 0 or contentsLength % 2 ~= 0
+            or contentsLength > MAX_PRESET_BYTES * 2
+            or line:find("[^%x]", contentsStart) then
+          return fail("The finished library backup has an unexpected preset record.")
+        end
+        seenPresets[lowered] = true
+        presetCount = presetCount + 1
+      elseif line ~= "" then
+        return fail(("Line %d in the finished library backup is invalid.")
+          :format(lineNumber))
+      end
+    end
+  end
+  local closeOk, closeResult = pcall(file.close, file)
+  if not closeOk or closeResult == nil or not sawConfig
+      or presetCount ~= #expectedNames or folderCount ~= #expectedFolders then
+    return false, "The finished library backup does not contain the complete library."
+  end
+  return true
+end
+
 exportLibraryBackup = function()
   helpers.auditSection("EXPORT LIBRARY BACKUP")
   local names = helpers.sortedPresetNames()
+  local folders = sortedFolderNames()
   if #names == 0 then
     state.status.backup = "Save at least one preset before exporting a library backup."
     return false
@@ -101,7 +164,7 @@ exportLibraryBackup = function()
         exportError = "The library backup would be larger than the 256 MB limit."
         return false
       end
-      for _, folder in ipairs(sortedFolderNames()) do
+      for _, folder in ipairs(folders) do
         if not validRelativePath(folder) or not writeLine("F\t" .. catalogEncode(folder)) then
           exportError = "A folder name is unsafe or the library backup is too large."
           return false
@@ -140,11 +203,71 @@ exportLibraryBackup = function()
     state.status.backup = exportError or "The library backup could not be saved."
     return false
   end
+  local verified, verificationError = verifyBackupContents(filename, names, folders)
+  if not verified then
+    local removed = os.remove(filename) ~= nil or not fileExists(filename)
+    state.status.backup = verificationError
+      or "The finished library backup did not pass verification."
+    if not removed then
+      state.status.backup = state.status.backup
+        .. " The unverified backup file could not be removed."
+    end
+    log(("[LIBRARY BACKUP] Verification failed file='%s' reason='%s'.")
+      :format(filename, tostring(state.status.backup)), "error")
+    return false
+  end
   state.backup.selectedFile = filename
-  state.status.backup = ("Exported %d preset%s to %s.")
-    :format(#names, #names == 1 and "" or "s", filename)
+  state.status.backup = ("Exported and verified %d preset%s and %d folder%s in %s.")
+    :format(#names, #names == 1 and "" or "s", #folders,
+      #folders == 1 and "" or "s", filename)
   log(("[LIBRARY BACKUP] Exported presets=%d folders=%d file='%s'.")
-    :format(#names, #sortedFolderNames(), filename), "complete")
+    :format(#names, #folders, filename), "complete")
+  return true
+end
+
+deleteSelectedLibraryBackup = function()
+  helpers.auditSection("DELETE LIBRARY BACKUP")
+  local selected = state.backup.selectedFile
+  local selectedPath = nil
+  for _, path in ipairs(backupFiles()) do
+    if selected and path:lower() == selected:lower() then
+      selected, selectedPath = path, path
+      break
+    end
+  end
+  if not selectedPath then
+    cancelConfirmations()
+    state.backup.selectedFile = nil
+    state.status.backup = "Choose an available library-backup file first."
+    return false
+  end
+  local fingerprint = fileFingerprint(selectedPath, MAX_LIBRARY_BACKUP_BYTES)
+  if not fingerprint then
+    cancelConfirmations()
+    state.status.backup = "The selected library backup could not be checked safely."
+    return false
+  end
+  local leaf = selectedPath:match("([^/]+)$") or selectedPath
+  if state.backup.pendingDeleteFile ~= selectedPath
+      or state.backup.pendingDeleteFingerprint ~= fingerprint then
+    cancelConfirmations()
+    state.backup.pendingDeleteFile = selectedPath
+    state.backup.pendingDeleteFingerprint = fingerprint
+    state.status.backup = ("Permanently delete \"%s\"? Select Confirm Delete Selected Backup Permanently.")
+      :format(leaf)
+    return false
+  end
+  state.backup.pendingDeleteFile = nil
+  state.backup.pendingDeleteFingerprint = nil
+  local removed, removeError = os.remove(selectedPath)
+  if not removed or fileExists(selectedPath) then
+    state.status.backup = ("The selected library backup could not be deleted: %s")
+      :format(tostring(removeError or "the file is still present"))
+    return false
+  end
+  state.backup.selectedFile = nil
+  state.status.backup = ("Permanently deleted \"%s\"."):format(leaf)
+  log(("[LIBRARY BACKUP] Permanently deleted file='%s'."):format(selectedPath), "complete")
   return true
 end
 
@@ -312,14 +435,18 @@ importLibraryBackup = function()
     state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
   end
   state.library.selectedFolder = root
+  if root ~= "" then state.library.expandedLoadFolders[root] = true end
   invalidateViewCache()
   resetLoadState()
   cancelConfirmations()
-  state.status.backup = ("Imported %d preset%s and the saved settings%s.")
+  local folderCount = 0
+  for _ in pairs(backup.folders) do folderCount = folderCount + 1 end
+  state.status.backup = ("Imported %d preset%s and %d folder%s with the saved settings%s.")
     :format(#backup.presets, #backup.presets == 1 and "" or "s",
+      folderCount, folderCount == 1 and "" or "s",
       root ~= "" and (" under " .. root) or "")
-  log(("[LIBRARY BACKUP] Imported presets=%d root='%s' file='%s'.")
-    :format(#backup.presets, root, path), "complete")
+  log(("[LIBRARY BACKUP] Imported presets=%d folders=%d root='%s' file='%s'.")
+    :format(#backup.presets, folderCount, root, path), "complete")
   return true
 end
 

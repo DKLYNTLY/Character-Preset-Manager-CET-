@@ -6,7 +6,7 @@ local _ENV = runtime
 drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight,
     narrowTopRow)
   if collapsibleSectionHeader("EXPORT & IMPORT BACKUPS", "backup") then
-    ImGui.TextWrapped("Save or restore the complete preset library, including folders and settings.")
+    ImGui.TextWrapped("Save or restore the complete preset library, including folders and settings, or permanently delete a selected backup file.")
     if fullWidthButton("Export Complete Library Backup##exportLibraryBackup",
         actionButtonHeight) then
       exportLibraryBackup()
@@ -26,12 +26,13 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
     end
     local selectedBackupLabel = state.backup.selectedFile
       and state.backup.selectedFile:match("([^/]+)$") or "No library backup found"
-    if ImGui.BeginCombo("Backup file to import##libraryBackupFile", selectedBackupLabel) then
+    if ImGui.BeginCombo("Backup file##libraryBackupFile", selectedBackupLabel) then
       for _, backupPath in ipairs(backupFiles) do
         local label = backupPath:match("([^/]+)$") or backupPath
         if ImGui.Selectable(label .. "##backup:" .. backupPath,
             state.backup.selectedFile == backupPath) then
           state.backup.selectedFile = backupPath
+          cancelConfirmations()
           state.status.backup = ""
         end
       end
@@ -41,6 +42,13 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
     if fullWidthButton("Import Selected Library Backup##importLibraryBackup",
         actionButtonHeight) then
       importLibraryBackup()
+    end
+    local deleteBackupLabel = state.backup.pendingDeleteFile == state.backup.selectedFile
+      and "Confirm Delete Selected Backup Permanently##deleteLibraryBackup"
+      or "Delete Selected Backup Permanently##deleteLibraryBackup"
+    if dangerButton(deleteBackupLabel, ImGui.GetContentRegionAvail(),
+        actionButtonHeight) then
+      deleteSelectedLibraryBackup()
     end
     if #backupFiles == 0 then ImGui.EndDisabled() end
     if state.status.backup ~= "" then

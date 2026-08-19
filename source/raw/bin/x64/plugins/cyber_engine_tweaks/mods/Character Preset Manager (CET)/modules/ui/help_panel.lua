@@ -506,10 +506,11 @@ if state.ui.helpOpen then
       if showHelpTopic("Export & Import Backups",
           "backup export complete everything import selected file dropdown library cpmbackup button") then
       helpHeading("Export & Import Backups")
-      ImGui.TextWrapped("Open Export & Import Backups to export the complete preset library or import a .cpmbackup file. Complete backups include presets, folders, and settings.")
-      helpButton("Export Complete Library Backup", "Creates a .cpmbackup file containing every preset, the CET folder layout, and the current settings file.")
-      helpButton("Backup file to import", "Chooses which .cpmbackup file will be imported.")
+      ImGui.TextWrapped("Open Export & Import Backups to export the complete preset library, import a .cpmbackup file, or delete a backup file. Complete backups include presets in Imported Windows folders, folders made in CET, empty CET folders, and settings.")
+      helpButton("Export Complete Library Backup", "Creates and verifies a .cpmbackup file containing every preset, the CET folder layout, and the current settings file.")
+      helpButton("Backup file", "Chooses which .cpmbackup file to import or permanently delete.")
       helpButton("Import Selected Library Backup", "Imports the selected backup without replacing existing items that use the same names.")
+      helpButton("Delete Selected Backup Permanently / Confirm Delete Selected Backup Permanently", "Permanently deletes only the chosen .cpmbackup file after a required second selection. Presets already in the library are not deleted.")
       end
 
       if showHelpTopic("Activity Log",

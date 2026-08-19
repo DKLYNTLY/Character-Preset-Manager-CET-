@@ -13,6 +13,12 @@ used. See the README and in-game Help for current instructions.
 
 - Fixes complete-library backups failing while checking the size of the first
   preset file.
+- Verifies that every current preset and folder record, including presets in
+  Imported Windows folders and folders made in CET, is present before reporting
+  a complete-library backup as successful. Export and import results now show
+  both preset and folder counts.
+- Adds **Delete Selected Backup Permanently** with a required second
+  confirmation inside **Export & Import Backups**.
 - Labels new format-8 files as **CPM Preset** and records their preset name and
   CET library folder in readable text. If a preset has no saved folder-list
   entry, the mod can rebuild its name and folder from the preset file. Older
