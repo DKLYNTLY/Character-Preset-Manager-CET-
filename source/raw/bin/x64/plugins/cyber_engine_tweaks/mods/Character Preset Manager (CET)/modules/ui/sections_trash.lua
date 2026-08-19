@@ -3,94 +3,6 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
-ui.drawBulkTrashOptions = function(actionButtonHeight, statusHeight)
-  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
-  ImGui.PushItemWidth(-1)
-  local previousSearchText = state.library.searchText
-  state.library.searchText = ImGui.InputTextWithHint("##bulkPresetSearch",
-    "Search presets or folders", state.library.searchText, 65)
-  if state.library.searchText ~= previousSearchText then invalidateFilteredViewCache() end
-  ImGui.PopItemWidth()
-  local visibleNames = helpers.filteredPresetNames()
-  local selectedBulkNames = selectedBulkPresetNames()
-  local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
-  if ImGui.Button("Select All Visible##bulkSelectAll",
-      bulkButtonWidth, actionButtonHeight) then
-    for _, name in ipairs(visibleNames) do state.trash.bulkSelected[name] = true end
-    invalidateBulkSelectionCache()
-    cancelConfirmations()
-    clearStatus("bulk")
-  end
-  ImGui.SameLine()
-  if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
-  if ImGui.Button("Clear Selection##bulkClear",
-      bulkButtonWidth, actionButtonHeight) then
-    state.trash.bulkSelected = {}
-    invalidateBulkSelectionCache()
-    cancelConfirmations()
-    clearStatus("bulk")
-  end
-  if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-  ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
-  if #visibleNames == 0 then
-    ImGui.TextDisabled("No presets match the current search.")
-  else
-    for _, name in ipairs(visibleNames) do
-      local selectedForBulk = state.trash.bulkSelected[name] == true
-      if ImGui.Selectable((selectedForBulk and "[x] " or "[ ] ") ..
-          helpers.breadcrumb(name) .. "##bulkPreset:" .. name, selectedForBulk) then
-        if selectedForBulk then
-          state.trash.bulkSelected[name] = nil
-        else
-          state.trash.bulkSelected[name] = true
-        end
-        invalidateBulkSelectionCache()
-        cancelConfirmations()
-        clearStatus("bulk")
-      end
-    end
-  end
-  ImGui.EndChild()
-  selectedBulkNames = selectedBulkPresetNames()
-  ImGui.TextDisabled(("%d preset%s selected.")
-    :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
-  local targetLabel = state.trash.bulkTargetFolder == ""
-    and "All Presets" or state.trash.bulkTargetFolder
-  if ImGui.BeginCombo("Move selected to folder##bulkTargetFolder", targetLabel) then
-    if ImGui.Selectable("All Presets##bulkTargetRoot", state.trash.bulkTargetFolder == "") then
-      state.trash.bulkTargetFolder = ""
-      clearStatus("bulk")
-    end
-    for _, folder in ipairs(sortedFolderNames()) do
-      if ImGui.Selectable(helpers.breadcrumb(folder) .. "##bulkTarget:" .. folder,
-          state.trash.bulkTargetFolder == folder) then
-        state.trash.bulkTargetFolder = folder
-        clearStatus("bulk")
-      end
-    end
-    ImGui.EndCombo()
-  end
-  if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
-  local bulkActionWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
-  if ImGui.Button("Move Selected##bulkMove", bulkActionWidth, actionButtonHeight) then
-    moveSelectedBulkPresetsToFolder()
-  end
-  ImGui.SameLine()
-  if ImGui.Button("Export Selected##bulkExport", bulkActionWidth, actionButtonHeight) then
-    exportSelectedBulkPresetBundle()
-  end
-  local bulkTrashLabel = state.trash.pendingBulkAction == "presets"
-    and "Confirm Bulk Trash"
-    or ("Move %d Preset%s to Trash")
-      :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s")
-  if dangerButton(bulkTrashLabel .. "##bulkPresetTrash",
-      ImGui.GetContentRegionAvail(), actionButtonHeight) then
-    requestBulkTrash(selectedBulkNames)
-  end
-  if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-  drawSectionStatus("bulk", "##bulkStatus", statusHeight)
-end
-
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
       ImGui.TextWrapped("Move presets, folders, and shared-folder files to Trash. You can restore them later.")
@@ -103,13 +15,6 @@ if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
         if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
           trashPreset()
         end
-      end
-
-      if compactSubsectionButton("Bulk: Move / Export / Trash", "Hide Bulk Actions",
-          "bulkTrash") then
-        ImGui.Indent(8)
-        ui.drawBulkTrashOptions(actionButtonHeight, statusHeight)
-        ImGui.Unindent(8)
       end
 
       ImGui.Spacing()

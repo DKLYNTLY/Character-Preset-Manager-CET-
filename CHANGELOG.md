@@ -68,10 +68,16 @@ used. See the README and in-game Help for current instructions.
   are still removed temporarily and restored afterward.
 - Places **Clear** and **Refresh** on a full-width row below preset search in a
   narrow window, so neither label is cut off.
-- Adds **Bulk: Move / Export / Trash** so one selection can be moved to a chosen folder,
+- Adds **Bulk Actions** so one selection can be moved to a chosen folder,
   exported as one shared-folder file, or moved to Trash.
+- Moves those controls into a separate **Bulk Actions** section instead of hiding
+  them under **Delete & Restore**.
+- Makes every bulk preset row a clear selection button that changes to **Selected**
+  and can be selected again to remove it from the group.
 - Adds persistent Favorites. Favorite presets stay in their folders and also
   appear in a pinned group above the regular preset tree.
+- Shows **Add Selected Preset to Favorites** directly under the chosen preset instead
+  of hiding it inside the preset details.
 - Adds complete `.cpmbackup` export and import in Settings. A backup contains
   every preset, the CET folder layout, and the current settings file without
   overwriting colliding items in an existing library.

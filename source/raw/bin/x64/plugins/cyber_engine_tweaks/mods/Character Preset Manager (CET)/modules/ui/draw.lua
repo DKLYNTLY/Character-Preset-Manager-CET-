@@ -97,6 +97,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     drawSaveSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawFoldersSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawManageSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
+    drawBulkSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawTrashSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
   end
 ImGui.End()

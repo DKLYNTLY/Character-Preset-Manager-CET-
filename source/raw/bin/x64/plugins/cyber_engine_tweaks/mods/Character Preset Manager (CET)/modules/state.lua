@@ -123,6 +123,7 @@ state = {
       create = true,
       folders = false,
       manage = false,
+      bulk = false,
       trash = false,
     },
     openSubsections = {
@@ -130,7 +131,6 @@ state = {
       loadDetails = false,
       folderBundleFiles = false,
       presetDetails = false,
-      bulkTrash = false,
       advancedDiagnostics = false,
     },
     helpOpen = false,

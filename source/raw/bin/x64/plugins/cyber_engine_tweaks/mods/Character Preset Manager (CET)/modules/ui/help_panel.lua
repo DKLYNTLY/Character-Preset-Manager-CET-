@@ -361,7 +361,7 @@ if state.ui.helpOpen then
           "organize folder folders move favorite favorites pin imported windows folder") then
       helpHeading("Organize Presets")
       ImGui.TextWrapped("Select a folder row under Load Preset to open or close it. Presets that are not in a folder appear under All Presets.")
-      ImGui.TextWrapped("Add frequently used presets to Favorites from Favorite, Tags, Notes & File. Favorites stay in their original folders and also appear together above the folder list.")
+      ImGui.TextWrapped("To favorite a preset, choose it under Load Preset, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
       ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
       ImGui.TextWrapped("Folders made in CET organize presets only inside the mod. They do not create matching Windows folders and have no set limit.")
@@ -376,10 +376,18 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Remove Folder, Keep Presets removes the folder but moves everything inside it to the folder above. It never deletes unknown files.")
       end
 
+      if showHelpTopic("Bulk Actions",
+          "bulk multiple multi select selected move export share trash several presets") then
+      helpHeading("Bulk Actions")
+      ImGui.TextWrapped("Open Bulk Actions to work with several presets at once. Select a preset row to add it to the selection. Select it again to remove it.")
+      ImGui.TextWrapped("Use Select All Visible to include every preset shown by the current search. Clear Selection removes every check.")
+      ImGui.TextWrapped("After selecting presets, you can move them to one folder, export them together as a .cpmfolder file, or move them to Trash.")
+      end
+
       if showHelpTopic("Delete and Restore",
-          "delete trash restore recover recovery empty bulk remove cpmfolder sharing file") then
+          "delete trash restore recover recovery empty remove cpmfolder sharing file") then
       helpHeading("Delete and Restore")
-      ImGui.TextWrapped("Under Folders, you can move a folder and everything inside it to Trash. Bulk: Move / Export / Trash handles several selected presets at once.")
+      ImGui.TextWrapped("Under Folders, you can move a folder and everything inside it to Trash. Under Delete & Restore, you can move the selected preset to Trash.")
       ImGui.TextWrapped("You can restore presets and complete folders later. If a name is already in use, the restored item gets a Copy name instead of replacing anything.")
       ImGui.TextWrapped("Empty Trash Permanently is the only action that permanently deletes files. All Trash actions ask for confirmation.")
       end

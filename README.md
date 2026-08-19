@@ -303,8 +303,8 @@ manager is always visible under **Folders**, regardless of the selected folder.
 
 ### Export selected presets
 
-Open **Delete & Restore**, then open **Bulk: Move / Export / Trash**. Select presets from
-any folders and choose **Export Selected**. The new `.cpmfolder` file keeps their
+Open **Bulk Actions**. Select presets from any folders and choose **Export Selected**.
+The new `.cpmfolder` file keeps their
 folder paths inside a single **Selected Presets** group when it is installed.
 
 ### Back up the complete library
@@ -319,13 +319,20 @@ nothing is overwritten. A backup cannot be larger than 256 MB.
 </details>
 
 <details>
+<summary><strong>Bulk actions</strong></summary>
+
+- **Bulk Actions** is a separate main section for working with several presets.
+- Select a preset row to add it to the selection. Select it again to remove it.
+- **Select All Visible** and **Clear Selection** make large selections easier.
+- Selected presets can be moved to one folder, exported together, or moved to Trash.
+
+</details>
+
+<details>
 <summary><strong>Trash and recovery</strong></summary>
 
 - Moving a preset to Trash keeps it available for recovery.
 - Under **Folders**, you can move a folder and everything inside it to Trash.
-- **Bulk: Move / Export / Trash** lets you select several presets from the current search results.
-- **Select All Visible** and **Clear Selection** make large selections easier.
-- The selected presets can be moved to one folder, exported together, or moved to Trash.
 - Moving an Imported folder to Trash removes its Windows folder only when it is empty. Unknown files are never deleted.
 - **Restore Folder** rebuilds the whole folder group, including empty folders inside it, and restores every preset in that Trash group.
 - You can also restore presets one at a time.
@@ -383,9 +390,10 @@ equipped clothing while its window is open.
 - **Export Everything** and **Import Library Backup** create or restore a complete `.cpmbackup` file.
 - **Restore Appearance from Before Last Load** loads the hidden recovery snapshot made before the newest normal preset load. A failed snapshot never stops the requested load.
 
-Use **Favorite, Tags, Notes & File** under **Load Preset** to add or remove a favorite.
-Favorites remain in their original folders and also appear in a pinned group above
-the regular folder list. This choice is stored inside the readable `.preset` file.
+Choose a preset under **Load Preset**, then select **Add Selected Preset to Favorites**.
+The same button removes it from Favorites later. Favorites remain in their original
+folders and also appear in a pinned group above the regular folder list. This choice
+is stored inside the readable `.preset` file.
 
 The same choices are stored in:
 

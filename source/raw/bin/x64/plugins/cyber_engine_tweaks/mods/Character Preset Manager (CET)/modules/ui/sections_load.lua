@@ -154,7 +154,13 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
       else
         ImGui.TextDisabled("Open a customization screen to check compatibility.")
       end
-      if compactSubsectionButton("Favorite, Tags, Notes & File", "Hide Preset Details", "loadDetails") then
+      local favoriteLabel = preset.favorite == true
+        and "Remove Selected Preset from Favorites##favoritePreset"
+        or "Add Selected Preset to Favorites##favoritePreset"
+      if fullWidthButton(favoriteLabel, actionButtonHeight) then
+        toggleSelectedPresetFavorite()
+      end
+      if compactSubsectionButton("Tags, Notes & File Details", "Hide Preset Details", "loadDetails") then
         ImGui.Indent(8)
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
           ("Source: %s\nModified: %s")
@@ -162,12 +168,6 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
             tostring(preset.modified or "Unknown")))
         if preset.tags and preset.tags ~= "" then ImGui.TextWrapped("Tags: " .. preset.tags) end
         if preset.notes and preset.notes ~= "" then ImGui.TextWrapped("Notes: " .. preset.notes) end
-        local favoriteLabel = preset.favorite == true
-          and "Remove from Favorites##favoritePreset"
-          or "Add to Favorites##favoritePreset"
-        if fullWidthButton(favoriteLabel, actionButtonHeight) then
-          toggleSelectedPresetFavorite()
-        end
         ImGui.Unindent(8)
       end
     end
