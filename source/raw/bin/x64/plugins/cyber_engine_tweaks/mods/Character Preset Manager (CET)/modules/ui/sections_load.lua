@@ -9,14 +9,17 @@ if collapsibleSectionHeader("LOAD PRESET", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
-    local searchButtonWidth = narrowTopRow and 48 or 64
-    ImGui.PushItemWidth(math.max(80, searchRowWidth - searchButtonWidth * 2 - 16))
+    local searchButtonWidth = narrowTopRow
+      and math.max(80, (searchRowWidth - 8) * 0.5) or 64
+    local searchInputWidth = narrowTopRow
+      and searchRowWidth or math.max(80, searchRowWidth - searchButtonWidth * 2 - 16)
+    ImGui.PushItemWidth(searchInputWidth)
     local previousSearchText = state.library.searchText
     state.library.searchText = ImGui.InputTextWithHint(
       "##presetSearch", "Search presets, folders, or tags", state.library.searchText, 65)
     if state.library.searchText ~= previousSearchText then invalidateFilteredViewCache() end
     ImGui.PopItemWidth()
-    ImGui.SameLine()
+    if not narrowTopRow then ImGui.SameLine() end
     local clearSearchUnavailable = not tostring(state.library.searchText):match("%S")
     if clearSearchUnavailable then ImGui.BeginDisabled() end
     if ImGui.Button("Clear##presetSearchClear", searchButtonWidth, actionButtonHeight) then

@@ -66,6 +66,8 @@ used. See the README and in-game Help for current instructions.
 - Removes the repeating equipped-clothing scan from the Load status. Help still
   explains the clothing and **No Outfit** workaround, and active wardrobe outfits
   are still removed temporarily and restored afterward.
+- Places **Clear** and **Refresh** on a full-width row below preset search in a
+  narrow window, so neither label is cut off.
 
 </details>
 
