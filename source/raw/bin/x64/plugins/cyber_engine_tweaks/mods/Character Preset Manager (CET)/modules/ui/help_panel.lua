@@ -333,6 +333,7 @@ if state.ui.helpOpen then
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
+      ImGui.TextWrapped("Restore Appearance from Before Last Load is also under Load Preset. It uses the recovery snapshot saved before the newest normal preset load.")
       end
 
       if showHelpTopic("Save a Preset",
@@ -345,22 +346,23 @@ if state.ui.helpOpen then
       end
 
       if showHelpTopic("Organize Presets",
-          "organize folder folders move favorite favorites pin imported windows folder") then
+          "organize folder folders move remove keep favorite favorites pin imported windows folder") then
       helpHeading("Organize Presets")
       ImGui.TextWrapped("Select a folder row under Load Preset to open or close it. Presets that are not in a folder appear under All Presets.")
-      ImGui.TextWrapped("To favorite a preset, choose it under Load Preset, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
+      ImGui.TextWrapped("To favorite a preset, choose it under Load Preset, open Manage Preset, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
       ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
+      ImGui.TextWrapped("Remove Folder, Keep Presets is under Folders. It removes the folder but moves everything inside it to the folder above, and it never deletes unknown files.")
       ImGui.TextWrapped("Folders made in CET organize presets only inside the mod. They do not create matching Windows folders and have no set limit.")
       ImGui.TextWrapped("Windows folders placed inside Character Presets appear with an Imported label. The mod keeps unknown files in those folders safe.")
       end
 
-      if showHelpTopic("Rename, Copy, or Remove",
-          "rename duplicate copy remove folder keep presets file name") then
-      helpHeading("Rename, Copy, or Remove")
+      if showHelpTopic("Manage Presets",
+          "manage rename duplicate copy favorite favorites tags notes file path") then
+      helpHeading("Manage Presets")
       ImGui.TextWrapped("Choose a preset or folder first. Renaming a preset also renames its .preset file. Renaming a folder changes only the name shown in the mod.")
       ImGui.TextWrapped("A copy appears beside the original. Copying a folder also copies every preset and folder inside it.")
-      ImGui.TextWrapped("Remove Folder, Keep Presets removes the folder but moves everything inside it to the folder above. It never deletes unknown files.")
+      ImGui.TextWrapped("Open Manage Preset to add or remove a favorite, rename or duplicate the selected preset, edit tags and notes, or copy its file path.")
       end
 
       if showHelpTopic("Bulk Actions",
@@ -410,10 +412,9 @@ if state.ui.helpOpen then
       end
 
       if showHelpTopic("Backup & Recovery",
-          "backup export complete everything import library restore appearance snapshot recovery undo") then
+          "backup export complete everything import library cpmbackup") then
       helpHeading("Backup & Recovery")
       ImGui.TextWrapped("Open Backup & Recovery to export the complete preset library or import a .cpmbackup file. Complete backups include presets, folders, and settings.")
-      ImGui.TextWrapped("Before each normal preset load, the mod quietly saves the current appearance. Restore Appearance from Before Last Load uses the newest snapshot and does not add it to the preset list.")
       end
 
       if showHelpTopic("Activity Log",

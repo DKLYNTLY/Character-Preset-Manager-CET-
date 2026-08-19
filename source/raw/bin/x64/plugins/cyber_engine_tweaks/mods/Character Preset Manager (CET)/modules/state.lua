@@ -115,7 +115,6 @@ state = {
   },
   backup = {
     selectedFile = nil,
-    restoreStatusVisible = false,
   },
   ui = {
     openSections = {

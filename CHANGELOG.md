@@ -40,7 +40,7 @@ used. See the README and in-game Help for current instructions.
   option.
 - Keeps the selected preset's folder and its parent folders open after a search
   is cleared.
-- Adds **Copy File Path** under **Rename & Copy** for the selected preset. It
+- Adds **Copy File Path** under **Manage Preset** for the selected preset. It
   copies the complete path from the Cyberpunk 2077 game folder.
 - Uses the same status handling for every folder action, keeping message colors
   consistent.
@@ -76,15 +76,15 @@ used. See the README and in-game Help for current instructions.
   and can be selected again to remove it from the group.
 - Adds persistent Favorites. Favorite presets stay in their folders and also
   appear in a pinned group above the regular preset tree.
-- Shows **Add Selected Preset to Favorites** directly under the chosen preset instead
-  of hiding it inside the preset details.
+- Shows **Add Selected Preset to Favorites** directly in **Manage Preset** instead
+  of hiding it inside extra details or placing it among loading controls.
 - Adds complete `.cpmbackup` export and import. A backup contains
   every preset, the CET folder layout, and the current settings file without
   overwriting colliding items in an existing library.
-- Moves complete-library export, import, and appearance recovery out of Settings
-  into a visible **Backup & Recovery** section with direct controls.
+- Moves complete-library export and import out of Settings into a visible
+  **Backup & Recovery** section with direct controls.
 - Saves a hidden recovery snapshot before each new preset load and adds a
-  Settings action to restore the appearance that was active before that load.
+  **Load Preset** action to restore the appearance that was active before that load.
   Snapshot failure is logged and never delays or blocks loading.
 - Adds Help search with topic keywords and common terms such as **share**,
   **bug**, **clothing**, **ACU**, **backup**, **Trash**, and **favorite**.

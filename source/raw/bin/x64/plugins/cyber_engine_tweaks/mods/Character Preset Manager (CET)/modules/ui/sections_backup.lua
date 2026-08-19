@@ -47,21 +47,6 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.backup)
     end
 
-    ImGui.Spacing()
-    ImGui.Separator()
-    ImGui.Spacing()
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Recover the previous appearance")
-    ImGui.TextWrapped("Before a normal preset load, the mod saves the appearance that was active. Use this if you want to undo the most recent preset load.")
-    if not fileExists(LAST_APPEARANCE_FILE) then ImGui.BeginDisabled() end
-    if fullWidthButton("Restore Appearance from Before Last Load##restoreAppearance",
-        actionButtonHeight) then
-      state.backup.restoreStatusVisible = true
-      restoreLastAppearance()
-    end
-    if not fileExists(LAST_APPEARANCE_FILE) then ImGui.EndDisabled() end
-    if state.backup.restoreStatusVisible then
-      drawSectionStatus("load", "##backupRestoreStatus", statusHeight)
-    end
   end
 end
 

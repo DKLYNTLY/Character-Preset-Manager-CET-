@@ -4,14 +4,21 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("RENAME & COPY", "manage") then
+if collapsibleSectionHeader("MANAGE PRESET", "manage") then
       if not state.library.selected or not state.library.presets[state.library.selected] then
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
-          "Select a preset under Load Preset to rename, duplicate, or edit its details.")
+          "Select a preset under Load Preset to favorite, rename, duplicate, or edit it.")
       else
+        local preset = state.library.presets[state.library.selected]
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")
         ImGui.TextWrapped(state.library.selected)
+        local favoriteLabel = preset.favorite == true
+          and "Remove Selected Preset from Favorites##favoritePreset"
+          or "Add Selected Preset to Favorites##favoritePreset"
+        if fullWidthButton(favoriteLabel, actionButtonHeight) then
+          toggleSelectedPresetFavorite()
+        end
         ImGui.Spacing()
         local selectedPresetPath =
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/" ..

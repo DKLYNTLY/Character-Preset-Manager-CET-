@@ -134,6 +134,10 @@ refreshes and the final appearance.
 5. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
 
+**Restore Appearance from Before Last Load** is also under **Load Preset**. Before
+each normal preset load, the mod quietly saves the active appearance. Open a
+supported character screen and use this button to undo the newest preset load.
+
 Cyberpunk may refresh the editor several times. The mod waits and continues on
 its own. It applies the saved appearance before clearing any remaining options,
 then checks the preset again. Select **Cancel Loading** if you need to stop.
@@ -210,11 +214,17 @@ easy to inspect without treating its headings as damaged data.
 - Copies appear beside the original and use names such as `Copy` and `Copy 2`.
 - Copying a folder also copies every preset and folder inside it.
 - Renaming a preset also renames its `.preset` file.
-- Notes and tags are under **Rename & Copy > Edit Tags & Notes**.
+- Notes and tags are under **Manage Preset > Edit Tags & Notes**.
 - Search checks preset names, folder names, and tags. Tags also appear beside
   preset names in the list.
-- **Copy File Path** under **Rename & Copy** copies the selected preset's
+- **Copy File Path** under **Manage Preset** copies the selected preset's
   complete path from the Cyberpunk 2077 game folder.
+
+Choose a preset under **Load Preset**, then open **Manage Preset** and select
+**Add Selected Preset to Favorites**. The same button removes it from Favorites
+later. Favorites remain in their original folders and also appear in a pinned
+group above the regular folder list. This choice is stored inside the readable
+`.preset` file.
 
 ### Folders made in CET
 
@@ -316,11 +326,6 @@ On an empty installation, the original layout is restored. If names are already
 in use, the imported library is placed in a new **Imported Library** folder so
 nothing is overwritten. A backup cannot be larger than 256 MB.
 
-The same **Backup & Recovery** section includes **Restore Appearance from Before
-Last Load**. The mod quietly saves this recovery snapshot before each normal
-preset load, so the button can undo the most recent load without adding another
-preset to the library.
-
 </details>
 
 <details>
@@ -392,11 +397,6 @@ equipped clothing while its window is open.
 - **Customization Reminder: Enabled/Disabled** turns the character-screen reminder on or off. It starts on and stays off after you disable it.
 - **Preset Sort** sorts presets by name or by the most recently changed preset.
 - **Reload Settings File** applies manual changes without restarting.
-
-Choose a preset under **Load Preset**, then select **Add Selected Preset to Favorites**.
-The same button removes it from Favorites later. Favorites remain in their original
-folders and also appear in a pinned group above the regular folder list. This choice
-is stored inside the readable `.preset` file.
 
 The same choices are stored in:
 
