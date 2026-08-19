@@ -29,7 +29,12 @@ function readPresetFile(path, metadataOnly)
         :format(MAX_PRESET_LINES, path), "warn")
       return nil
     end
+    if line == "# CPM Preset"
+        or line == "# Character Preset Manager (CET) preset" then
+      metadata.managedByCpm = true
+    end
     local metadataKey, metadataValue = line:match("^# CPM\t([%a]+)\t(.*)$")
+    if metadataKey then metadata.managedByCpm = true end
     if metadataKey == "format" then
       metadata.format = tonumber(metadataValue) or 4
     elseif metadataKey == "source" then
@@ -73,6 +78,13 @@ function readPresetFile(path, metadataOnly)
     elseif readableFormatConfirmed and readableKey == "Favorite" then
       local favorite = tostring(readableValue):lower()
       metadata.favorite = favorite == "yes" or favorite == "true" or favorite == "on"
+    elseif readableFormatConfirmed and readableKey == "Library folder"
+        and metadata.managedByCpm then
+      local folder = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES * 4)
+      if folder == "/" then folder = "" end
+      if folder == "" or validRelativePath(folder) then
+        metadata.libraryFolder = folder
+      end
     elseif not metadataOnly and readableFormatConfirmed
         and readableKey == "Editor slot" and lastEntry then
       local slot = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES)
@@ -133,6 +145,8 @@ function readPresetFile(path, metadataOnly)
     notes = metadata.notes or "",
     tags = metadata.tags or "",
     favorite = metadata.favorite == true,
+    managedByCpm = metadata.managedByCpm == true,
+    libraryFolder = metadata.libraryFolder,
     entries = not metadataOnly and entries or nil,
     entryCount = entryCount,
     entryCountKnown = true,
@@ -169,6 +183,39 @@ state.dehydratePreset = function(preset)
   return true
 end
 
+state.updatePresetLibraryFolder = function(preset, logicalName)
+  if not preset then return false, nil end
+  if not preset.entries then
+    local storage = preset.storage
+    if not storage then return false, nil end
+    preset = state.hydratePreset(preset, PRESET_DIR .. "/" .. storage .. ".preset")
+    if not preset then return false, nil end
+  end
+  if not preset.managedByCpm
+      or (tonumber(preset.format) or 4) < CURRENT_PRESET_FORMAT then
+    return true, nil
+  end
+  local desiredFolder = parentFolder(logicalName)
+  if preset.libraryFolder == desiredFolder then return true, nil end
+  local change = {
+    preset = preset,
+    libraryFolder = preset.libraryFolder,
+    storage = preset.storage,
+  }
+  preset.libraryFolder = desiredFolder
+  if writePresetPath(PRESET_DIR .. "/" .. preset.storage .. ".preset", preset) then
+    return true, change
+  end
+  preset.libraryFolder = change.libraryFolder
+  return false, nil
+end
+
+state.restorePresetLibraryFolder = function(change)
+  if not change or not change.preset or not change.storage then return true end
+  change.preset.libraryFolder = change.libraryFolder
+  return writePresetPath(PRESET_DIR .. "/" .. change.storage .. ".preset", change.preset)
+end
+
 function hydrateNamedPreset(name)
   local preset = name and state.library.presets[name]
   if not preset then return nil end
@@ -185,8 +232,12 @@ end
 function writePresetContents(path, preset)
   return writeFileSafely(path, "w", function(file)
     local format = tonumber(preset.format) or CURRENT_PRESET_FORMAT
+    local libraryFolder = tostring(preset.libraryFolder or "")
+    if libraryFolder ~= "" and not validRelativePath(libraryFolder) then
+      libraryFolder = ""
+    end
     local header = {
-      "# Character Preset Manager (CET) preset",
+      "# CPM Preset",
       "# Format: " .. tostring(format),
       "# Source: " .. sanitizeMetadata(preset.source or MOD_NAME, 128),
       "# Created: " .. sanitizeMetadata(preset.created or "", 64),
@@ -194,6 +245,7 @@ function writePresetContents(path, preset)
       "# Notes: " .. sanitizeMetadata(preset.notes, 512),
       "# Tags: " .. sanitizeMetadata(preset.tags, 128),
       "# Favorite: " .. (preset.favorite == true and "Yes" or "No"),
+      "# Library folder: " .. (libraryFolder ~= "" and libraryFolder or "/"),
       "#",
       "# Appearance options",
       "# Each main line is OptionKey:SavedNumber.",
@@ -275,6 +327,7 @@ readConfig = function()
 end
 
 function writePresetPath(path, preset)
+  preset.managedByCpm = true
   local wrote = atomicReplace(path, function(temporary)
     if not writePresetContents(temporary, preset) then return false end
     return presetsMatch(preset, readPresetFile(temporary))
@@ -295,6 +348,11 @@ presetsMatch = function(expected, actual)
       if tostring(expected[key] or "") ~= tostring(actual and actual[key] or "") then
         return false
       end
+    end
+    if (tonumber(expected and expected.format) or 4) >= CURRENT_PRESET_FORMAT then
+      if expected.managedByCpm ~= actual.managedByCpm
+          or tostring(expected.libraryFolder or "")
+            ~= tostring(actual.libraryFolder or "") then return false end
     end
   end
   if not expected or not actual or not expected.entries or not actual.entries then
@@ -487,6 +545,8 @@ function savePreset(confirmOverwrite)
     notes = previousPreset and previousPreset.notes or "",
     tags = previousPreset and previousPreset.tags or "",
     favorite = previousPreset and previousPreset.favorite == true,
+    managedByCpm = true,
+    libraryFolder = parentFolder(name),
     entries = entries,
     entryCount = #entries,
     storage = storage,
@@ -563,6 +623,8 @@ function saveLastAppearanceSnapshot(options)
     notes = "Appearance saved automatically before the last preset load.",
     tags = "recovery",
     favorite = false,
+    managedByCpm = true,
+    libraryFolder = "",
     entries = entries,
     entryCount = #entries,
   }
@@ -679,14 +741,23 @@ function movePresetToSelectedFolder()
       ("A preset named \"%s\" already exists there."):format(baseName(collision)), true); return false
   end
   local preset = state.library.presets[old]
+  local folderUpdated, folderChange = state.updatePresetLibraryFolder(preset, newName)
+  if not folderUpdated then
+    setStatus("folder", "The preset could not be moved because its saved folder could not be updated.", true)
+    return false
+  end
   state.library.presets[old] = nil
   state.library.presets[newName] = preset
   if not persistVirtualState(state.library.presets, state.library.folders, state.library.manualFolders,
       state.library.ignoredPhysicalFolders) then
     state.library.presets[newName] = nil
     state.library.presets[old] = preset
+    local folderRestored = state.restorePresetLibraryFolder(folderChange)
     setStatus("folder",
-      "The preset could not be moved because the folder list could not be saved.", true); return false
+      folderRestored
+        and "The preset could not be moved because the folder list could not be saved."
+        or "The preset folder list could not be saved, and its saved folder could not be returned to the earlier value.",
+      true); return false
   end
   state.library.selected = newName
   invalidateViewCache()
@@ -769,16 +840,22 @@ function savePresetMetadata()
   local previousNotes, previousTags = preset.notes, preset.tags
   local previousModified, previousFormat = preset.modified, preset.format
   local previousSource = preset.source
+  local previousManagedByCpm, previousLibraryFolder =
+    preset.managedByCpm, preset.libraryFolder
   preset.notes = sanitizeMetadata(state.library.presetNotes, 512)
   preset.tags = sanitizeMetadata(state.library.presetTags, 128)
   preset.modified = logTimestamp()
   preset.created = preset.created or preset.modified
   preset.source = MOD_NAME
   preset.format = math.max(CURRENT_PRESET_FORMAT, tonumber(preset.format) or 4)
+  preset.managedByCpm = true
+  preset.libraryFolder = parentFolder(state.library.selected)
   if not writePresetPath(presetPath(state.library.selected), preset) then
     preset.notes, preset.tags = previousNotes, previousTags
     preset.modified, preset.format = previousModified, previousFormat
     preset.source = previousSource
+    preset.managedByCpm, preset.libraryFolder =
+      previousManagedByCpm, previousLibraryFolder
     setStatus("rename", "Preset details could not be saved safely.", true)
     return
   end
@@ -800,11 +877,17 @@ function toggleSelectedPresetFavorite()
   end
   local previousFavorite = preset.favorite == true
   local previousModified = preset.modified
+  local previousManagedByCpm, previousLibraryFolder =
+    preset.managedByCpm, preset.libraryFolder
   preset.favorite = not previousFavorite
   preset.modified = logTimestamp()
+  preset.managedByCpm = true
+  preset.libraryFolder = parentFolder(name)
   if not writePresetPath(presetPath(name), preset) then
     preset.favorite = previousFavorite
     preset.modified = previousModified
+    preset.managedByCpm, preset.libraryFolder =
+      previousManagedByCpm, previousLibraryFolder
     setStatus("load", "The favorite setting could not be saved safely.", true)
     return false
   end

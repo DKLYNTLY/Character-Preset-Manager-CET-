@@ -11,8 +11,45 @@ function remapFolderTreePath(path, source, destination)
   return path
 end
 
+local function restoreLibraryFolderChanges(changes)
+  local restored = true
+  for index = #changes, 1, -1 do
+    if not state.restorePresetLibraryFolder(changes[index]) then restored = false end
+  end
+  if not restored then
+    log("[FOLDER LIST] Some preset folder details could not be returned to their previous values.", "error")
+  end
+  return restored
+end
+
+local function syncLibraryFolders(presets)
+  local currentNames = {}
+  for name, preset in pairs(state.library.presets) do currentNames[preset] = name end
+  local changes = {}
+  for name, preset in pairs(presets or {}) do
+    local previousName = currentNames[preset]
+    local desiredFolder = parentFolder(name)
+    local folderChanged = previousName
+      and parentFolder(previousName) ~= desiredFolder
+    local savedFolderChanged = preset.libraryFolder ~= nil
+      and preset.libraryFolder ~= desiredFolder
+    if not previousName or folderChanged or savedFolderChanged then
+      local updated, change = state.updatePresetLibraryFolder(preset, name)
+      if not updated then
+        restoreLibraryFolderChanges(changes)
+        return nil
+      end
+      if change then table.insert(changes, change) end
+    end
+  end
+  return changes
+end
+
 function persistVirtualState(presets, folders, manualFolders, ignoredPhysicalFolders)
+  local folderChanges = syncLibraryFolders(presets)
+  if not folderChanges then return false end
   if not writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders) then
+    restoreLibraryFolderChanges(folderChanges)
     return false
   end
   writeInventory(presets, folders)

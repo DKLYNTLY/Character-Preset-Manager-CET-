@@ -114,7 +114,8 @@ exportLibraryBackup = function()
         end
         local source = presetPath(name)
         local input = io.open(source, "rb")
-        local sizeOk, sourceBytes = input and pcall(input.seek, input, "end")
+        local sizeOk, sourceBytes = false, nil
+        if input then sizeOk, sourceBytes = pcall(input.seek, input, "end") end
         if input then input:close() end
         if not input or not sizeOk or not sourceBytes or sourceBytes > MAX_PRESET_BYTES then
           exportError = "This preset could not be read and was not exported: " .. name
@@ -264,6 +265,12 @@ importLibraryBackup = function()
     table.insert(createdFiles, item.path)
     preset.storage = item.storage
     preset.fingerprint = fileFingerprint(item.path, MAX_PRESET_BYTES)
+    local folderUpdated = state.updatePresetLibraryFolder(preset, item.logicalName)
+    if not folderUpdated then
+      removeFileList(createdFiles)
+      state.status.backup = "An imported preset's saved library folder could not be updated safely."
+      return false
+    end
     newPresets[item.logicalName] = preset
   end
   local catalogSaved = writeCatalog(newPresets, newFolders, newManualFolders, newIgnored)

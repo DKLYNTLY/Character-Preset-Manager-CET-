@@ -475,6 +475,11 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
       end
       preset.fingerprint = fileFingerprint(item.path, MAX_PRESET_BYTES)
       preset.storage = item.storage
+      local folderUpdated = state.updatePresetLibraryFolder(preset, item.logicalName)
+      if not folderUpdated then
+        importError = "An imported preset's saved library folder could not be updated safely."
+        break
+      end
       newPresets[item.logicalName] = preset
       importedCount = importedCount + 1
     end

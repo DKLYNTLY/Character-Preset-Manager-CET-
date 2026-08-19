@@ -184,13 +184,15 @@ option keeps its original `OptionKey:SavedNumber` line, followed by readable
 details when they are available:
 
 ```text
-# Character Preset Manager (CET) preset
+# CPM Preset
 # Format: 8
 # Source: Character Preset Manager (CET)
 # Created: 2026-08-15 13:19:27
 # Modified: 2026-08-15 13:19:27
 # Notes:
 # Tags:
+# Favorite: No
+# Library folder: Favorites/Female V
 
 LocKey#9502141975964618858:50
 # Editor slot: hairstyle
@@ -198,7 +200,10 @@ LocKey#9502141975964618858:50
 ```
 
 The mod ignores normal comment lines when reading a preset. This keeps the file
-easy to inspect without treating its headings as damaged data.
+easy to inspect without treating its headings as damaged data. **CPM Preset**
+identifies a file saved by this mod. **Library folder** records its CET folder.
+If the saved folder list has no entry for that preset, the mod can rebuild its
+folder from this line. `/` means **All Presets**.
 
 </details>
 

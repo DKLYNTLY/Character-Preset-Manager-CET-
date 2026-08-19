@@ -61,7 +61,8 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
         if scanReason == "startup" then
           local inventoryName = assignments[storage]
           if not validRelativePath(inventoryName) then inventoryName = storage end
-          if type(previousPresets[inventoryName]) == "table" then
+          if type(previousPresets[inventoryName]) == "table"
+              and validRelativePath(assignments[storage]) then
             preset = {
               entryCount = 0,
               entryCountKnown = false,
@@ -124,6 +125,11 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   for _, storage in ipairs(storageNames) do
     local preset = scannedPresets[storage]
     local preferred = assignments[storage]
+    if not validRelativePath(preferred) and preset.managedByCpm
+        and (preset.libraryFolder == ""
+          or validRelativePath(preset.libraryFolder)) then
+      preferred = joinFolder(preset.libraryFolder, baseName(storage))
+    end
     if not validRelativePath(preferred) then preferred = storage end
     local logicalName = preferred
     local lowered = logicalName:lower()
