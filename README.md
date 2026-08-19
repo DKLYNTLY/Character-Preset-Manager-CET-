@@ -186,6 +186,7 @@ details when they are available:
 ```text
 # CPM Preset
 # Format: 8
+# Name: Neon Street V
 # Source: Character Preset Manager (CET)
 # Created: 2026-08-15 13:19:27
 # Modified: 2026-08-15 13:19:27
@@ -201,9 +202,10 @@ LocKey#9502141975964618858:50
 
 The mod ignores normal comment lines when reading a preset. This keeps the file
 easy to inspect without treating its headings as damaged data. **CPM Preset**
-identifies a file saved by this mod. **Library folder** records its CET folder.
-If the saved folder list has no entry for that preset, the mod can rebuild its
-folder from this line. `/` means **All Presets**.
+identifies a file saved by this mod. **Name** records the preset name, and
+**Library folder** records its CET folder. If the saved folder list has no entry
+for that preset, the mod can rebuild its name and folder from these lines. `/`
+means **All Presets**.
 
 </details>
 

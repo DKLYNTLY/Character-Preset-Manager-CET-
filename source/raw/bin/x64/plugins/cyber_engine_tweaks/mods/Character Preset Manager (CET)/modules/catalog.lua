@@ -128,7 +128,12 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
     if not validRelativePath(preferred) and preset.managedByCpm
         and (preset.libraryFolder == ""
           or validRelativePath(preset.libraryFolder)) then
-      preferred = joinFolder(preset.libraryFolder, baseName(storage))
+      local presetName = preset.presetName
+      local validated = validatedPresetName(presetName)
+      if not presetName or validated ~= presetName then
+        presetName = baseName(storage)
+      end
+      preferred = joinFolder(preset.libraryFolder, presetName)
     end
     if not validRelativePath(preferred) then preferred = storage end
     local logicalName = preferred

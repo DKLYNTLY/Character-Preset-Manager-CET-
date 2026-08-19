@@ -78,6 +78,11 @@ function readPresetFile(path, metadataOnly)
     elseif readableFormatConfirmed and readableKey == "Favorite" then
       local favorite = tostring(readableValue):lower()
       metadata.favorite = favorite == "yes" or favorite == "true" or favorite == "on"
+    elseif readableFormatConfirmed and readableKey == "Name"
+        and metadata.managedByCpm then
+      local name = sanitizeMetadata(readableValue, 64)
+      local validated = validatedPresetName(name)
+      if validated == name then metadata.presetName = name end
     elseif readableFormatConfirmed and readableKey == "Library folder"
         and metadata.managedByCpm then
       local folder = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES * 4)
@@ -146,6 +151,7 @@ function readPresetFile(path, metadataOnly)
     tags = metadata.tags or "",
     favorite = metadata.favorite == true,
     managedByCpm = metadata.managedByCpm == true,
+    presetName = metadata.presetName,
     libraryFolder = metadata.libraryFolder,
     entries = not metadataOnly and entries or nil,
     entryCount = entryCount,
@@ -196,22 +202,28 @@ state.updatePresetLibraryFolder = function(preset, logicalName)
     return true, nil
   end
   local desiredFolder = parentFolder(logicalName)
-  if preset.libraryFolder == desiredFolder then return true, nil end
+  local desiredName = baseName(logicalName)
+  if preset.libraryFolder == desiredFolder
+      and preset.presetName == desiredName then return true, nil end
   local change = {
     preset = preset,
+    presetName = preset.presetName,
     libraryFolder = preset.libraryFolder,
     storage = preset.storage,
   }
+  preset.presetName = desiredName
   preset.libraryFolder = desiredFolder
   if writePresetPath(PRESET_DIR .. "/" .. preset.storage .. ".preset", preset) then
     return true, change
   end
+  preset.presetName = change.presetName
   preset.libraryFolder = change.libraryFolder
   return false, nil
 end
 
 state.restorePresetLibraryFolder = function(change)
   if not change or not change.preset or not change.storage then return true end
+  change.preset.presetName = change.presetName
   change.preset.libraryFolder = change.libraryFolder
   return writePresetPath(PRESET_DIR .. "/" .. change.storage .. ".preset", change.preset)
 end
@@ -239,6 +251,7 @@ function writePresetContents(path, preset)
     local header = {
       "# CPM Preset",
       "# Format: " .. tostring(format),
+      "# Name: " .. sanitizeMetadata(preset.presetName, 64),
       "# Source: " .. sanitizeMetadata(preset.source or MOD_NAME, 128),
       "# Created: " .. sanitizeMetadata(preset.created or "", 64),
       "# Modified: " .. sanitizeMetadata(preset.modified or "", 64),
@@ -351,6 +364,8 @@ presetsMatch = function(expected, actual)
     end
     if (tonumber(expected and expected.format) or 4) >= CURRENT_PRESET_FORMAT then
       if expected.managedByCpm ~= actual.managedByCpm
+          or tostring(expected.presetName or "")
+            ~= tostring(actual.presetName or "")
           or tostring(expected.libraryFolder or "")
             ~= tostring(actual.libraryFolder or "") then return false end
     end
@@ -546,6 +561,7 @@ function savePreset(confirmOverwrite)
     tags = previousPreset and previousPreset.tags or "",
     favorite = previousPreset and previousPreset.favorite == true,
     managedByCpm = true,
+    presetName = baseName(name),
     libraryFolder = parentFolder(name),
     entries = entries,
     entryCount = #entries,
@@ -624,6 +640,7 @@ function saveLastAppearanceSnapshot(options)
     tags = "recovery",
     favorite = false,
     managedByCpm = true,
+    presetName = "Last Appearance",
     libraryFolder = "",
     entries = entries,
     entryCount = #entries,
@@ -840,8 +857,8 @@ function savePresetMetadata()
   local previousNotes, previousTags = preset.notes, preset.tags
   local previousModified, previousFormat = preset.modified, preset.format
   local previousSource = preset.source
-  local previousManagedByCpm, previousLibraryFolder =
-    preset.managedByCpm, preset.libraryFolder
+  local previousManagedByCpm, previousPresetName, previousLibraryFolder =
+    preset.managedByCpm, preset.presetName, preset.libraryFolder
   preset.notes = sanitizeMetadata(state.library.presetNotes, 512)
   preset.tags = sanitizeMetadata(state.library.presetTags, 128)
   preset.modified = logTimestamp()
@@ -849,13 +866,14 @@ function savePresetMetadata()
   preset.source = MOD_NAME
   preset.format = math.max(CURRENT_PRESET_FORMAT, tonumber(preset.format) or 4)
   preset.managedByCpm = true
+  preset.presetName = baseName(state.library.selected)
   preset.libraryFolder = parentFolder(state.library.selected)
   if not writePresetPath(presetPath(state.library.selected), preset) then
     preset.notes, preset.tags = previousNotes, previousTags
     preset.modified, preset.format = previousModified, previousFormat
     preset.source = previousSource
-    preset.managedByCpm, preset.libraryFolder =
-      previousManagedByCpm, previousLibraryFolder
+    preset.managedByCpm, preset.presetName, preset.libraryFolder =
+      previousManagedByCpm, previousPresetName, previousLibraryFolder
     setStatus("rename", "Preset details could not be saved safely.", true)
     return
   end
@@ -877,17 +895,18 @@ function toggleSelectedPresetFavorite()
   end
   local previousFavorite = preset.favorite == true
   local previousModified = preset.modified
-  local previousManagedByCpm, previousLibraryFolder =
-    preset.managedByCpm, preset.libraryFolder
+  local previousManagedByCpm, previousPresetName, previousLibraryFolder =
+    preset.managedByCpm, preset.presetName, preset.libraryFolder
   preset.favorite = not previousFavorite
   preset.modified = logTimestamp()
   preset.managedByCpm = true
+  preset.presetName = baseName(name)
   preset.libraryFolder = parentFolder(name)
   if not writePresetPath(presetPath(name), preset) then
     preset.favorite = previousFavorite
     preset.modified = previousModified
-    preset.managedByCpm, preset.libraryFolder =
-      previousManagedByCpm, previousLibraryFolder
+    preset.managedByCpm, preset.presetName, preset.libraryFolder =
+      previousManagedByCpm, previousPresetName, previousLibraryFolder
     setStatus("load", "The favorite setting could not be saved safely.", true)
     return false
   end

@@ -13,10 +13,10 @@ used. See the README and in-game Help for current instructions.
 
 - Fixes complete-library backups failing while checking the size of the first
   preset file.
-- Labels new format-8 files as **CPM Preset** and records their CET library
-  folder in readable text. If a preset has no saved folder-list entry, the mod
-  can rebuild its folder from the preset file. Older CPM and compatible ACU
-  presets remain readable.
+- Labels new format-8 files as **CPM Preset** and records their preset name and
+  CET library folder in readable text. If a preset has no saved folder-list
+  entry, the mod can rebuild its name and folder from the preset file. Older
+  CPM and compatible ACU presets remain readable.
 - Adds **View Selected .cpmfolder Contents** so a sharing file's main folder,
   nested folders, and included presets can be checked before installation.
 - Releases finished preset-loading data after it is no longer needed, reducing

@@ -33,7 +33,9 @@ local function syncLibraryFolders(presets)
       and parentFolder(previousName) ~= desiredFolder
     local savedFolderChanged = preset.libraryFolder ~= nil
       and preset.libraryFolder ~= desiredFolder
-    if not previousName or folderChanged or savedFolderChanged then
+    local savedNameChanged = preset.presetName ~= nil
+      and preset.presetName ~= baseName(name)
+    if not previousName or folderChanged or savedFolderChanged or savedNameChanged then
       local updated, change = state.updatePresetLibraryFolder(preset, name)
       if not updated then
         restoreLibraryFolderChanges(changes)

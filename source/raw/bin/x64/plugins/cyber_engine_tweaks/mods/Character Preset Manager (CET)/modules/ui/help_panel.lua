@@ -464,7 +464,7 @@ if state.ui.helpOpen then
           "share sharing send install import export preset file path character presets download upload bug issue wrong option legacy older ACU") then
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load & Restore Appearance.")
-      ImGui.TextWrapped("A current format-8 CPM preset records its CET folder. The mod uses that folder when the saved folder list has no entry for the preset. Older Character Preset Manager and compatible ACU preset files can still be loaded.")
+      ImGui.TextWrapped("A current format-8 CPM preset records its preset name and CET folder. The mod uses those details when the saved folder list has no entry for the preset. Older Character Preset Manager and compatible ACU preset files can still be loaded.")
       ImGui.TextWrapped("New format-8 preset files begin with CPM Preset and use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
       ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
       ui.pathCallout("##presetFolderPath", "Preset Folder",
