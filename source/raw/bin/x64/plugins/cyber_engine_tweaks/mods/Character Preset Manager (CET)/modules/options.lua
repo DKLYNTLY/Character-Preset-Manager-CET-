@@ -216,10 +216,16 @@ function refreshCustomizationUi()
   return true
 end
 
-function getOptions()
+function getOptions(forceRefresh)
+  if not forceRefresh and state.app.optionsMemo then
+    local memo = state.app.optionsMemo
+    return memo.system, memo.options, memo.error
+  end
   local systemOk, system = pcall(Game.GetCharacterCustomizationSystem)
   if not systemOk or not system then
-    return nil, nil, "Character customization system is unavailable"
+    local message = "Character customization system is unavailable"
+    state.app.optionsMemo = { error = message }
+    return nil, nil, message
   end
   local ok, options = pcall(function()
     if not emptyCustomizationName then emptyCustomizationName = ToCName({}) end
@@ -233,8 +239,11 @@ function getOptions()
     )
   end)
   if not ok or type(options) ~= "table" or next(options) == nil then
-    return nil, nil, "Customization options haven't loaded yet"
+    local message = "Customization options haven't loaded yet"
+    state.app.optionsMemo = { error = message }
+    return nil, nil, message
   end
+  state.app.optionsMemo = { system = system, options = options }
   return system, options
 end
 

@@ -4,6 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawLoadSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
+helpers.syncForceFullLoadSelection()
 if collapsibleSectionHeader("LOAD PRESET", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     ImGui.Spacing()

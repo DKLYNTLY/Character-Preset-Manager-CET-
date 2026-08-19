@@ -50,21 +50,49 @@ helpers.loadChoiceShape = function(option)
   return table.concat(parts, ",")
 end
 
+helpers.clearLoadScanTable = function(target)
+  for key in pairs(target) do target[key] = nil end
+end
+
 helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
   local started = helpers.loadClock()
   relevantLabels = relevantLabels or {}
   relevantSlots = relevantSlots or {}
-  local result = {
-    exposed = {},
-    activeExposed = {},
-    activeByKey = {},
-    activeKeySet = {},
-    activeCounts = {},
-    exposedBySlot = {},
-    activeSlotCounts = {},
-    structureChanged = false,
-  }
-  local occurrences, activeSlotCounts, signatureParts = {}, result.activeSlotCounts, {}
+  local result = state.load.scanResult
+  if not result then
+    result = {
+      exposed = {},
+      activeExposed = {},
+      activeByKey = {},
+      activeKeySet = {},
+      activeCounts = {},
+      exposedBySlot = {},
+      activeSlotCounts = {},
+      occurrences = {},
+      signatureParts = {},
+      records = {},
+    }
+    state.load.scanResult = result
+  end
+  helpers.clearLoadScanTable(result.exposed)
+  helpers.clearLoadScanTable(result.activeExposed)
+  helpers.clearLoadScanTable(result.activeByKey)
+  helpers.clearLoadScanTable(result.activeKeySet)
+  helpers.clearLoadScanTable(result.activeCounts)
+  helpers.clearLoadScanTable(result.exposedBySlot)
+  helpers.clearLoadScanTable(result.activeSlotCounts)
+  helpers.clearLoadScanTable(result.occurrences)
+  result.structureChanged = false
+  local occurrences = result.occurrences
+  local activeSlotCounts = result.activeSlotCounts
+  local signatureParts = result.signatureParts
+  local pendingChange = state.load.pendingChange
+  local optionCount = #options
+  local rebuildSignature = state.load.lastOptionCount == nil
+    or state.load.lastOptionCount ~= optionCount
+    or state.load.forceStructureScan
+    or (pendingChange and pendingChange.longSettle)
+  state.load.forceStructureScan = false
   local fullExposure = state.load.forceFull or state.load.phase == "cleanup"
   for position, option in ipairs(options) do
     local label = optionKey(option)
@@ -91,16 +119,20 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
       or (slot and relevantSlots[slot])
       or (pendingOption and pendingOption.label == label))
     if includeOption then
-      local exposedOption = {
-        option = option,
-        position = position,
-        label = label,
-        key = key,
-        occurrence = occurrence,
-        slot = slot,
-        slotOccurrence = slotOccurrence,
-        choiceShape = choiceShape,
-      }
+      local exposedIndex = #result.exposed + 1
+      local exposedOption = result.records[exposedIndex]
+      if not exposedOption then
+        exposedOption = {}
+        result.records[exposedIndex] = exposedOption
+      end
+      exposedOption.option = option
+      exposedOption.position = position
+      exposedOption.label = label
+      exposedOption.key = key
+      exposedOption.occurrence = occurrence
+      exposedOption.slot = slot
+      exposedOption.slotOccurrence = slotOccurrence
+      exposedOption.choiceShape = choiceShape
       result.exposed[#result.exposed + 1] = exposedOption
       result.activeKeySet[key] = true
       result.activeByKey[key] = exposedOption
@@ -109,14 +141,21 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
         result.exposedBySlot[slot .. "\31" .. tostring(slotOccurrence)] = exposedOption
       end
     end
-    signatureParts[position] = table.concat({
-      tostring(label or ""), tostring(occurrence or 0), tostring(slot or ""),
-      tostring(slotOccurrence or 0), editable and "1" or "0", active and "1" or "0",
-    }, "\29")
+    if rebuildSignature then
+      signatureParts[position] = table.concat({
+        tostring(label or ""), tostring(occurrence or 0), tostring(slot or ""),
+        tostring(slotOccurrence or 0), editable and "1" or "0", active and "1" or "0",
+      }, "\29")
+    end
   end
-  result.signature = table.concat(signatureParts, "\30")
+  if rebuildSignature then
+    for position = optionCount + 1, #signatureParts do signatureParts[position] = nil end
+    result.signature = table.concat(signatureParts, "\30")
+  else
+    result.signature = state.load.lastStructureSignature
+  end
   local previousSignature = state.load.lastStructureSignature
-  if previousSignature and previousSignature ~= result.signature then
+  if rebuildSignature and previousSignature and previousSignature ~= result.signature then
     result.structureChanged = true
     state.load.structureChanges = state.load.structureChanges + 1
     state.load.resolvedChoiceIndexes = {}
@@ -133,7 +172,8 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
         :format(#options), "info")
     end
   end
-  state.load.lastStructureSignature = result.signature
+  if rebuildSignature then state.load.lastStructureSignature = result.signature end
+  state.load.lastOptionCount = optionCount
   state.load.scanSeconds = state.load.scanSeconds + math.max(0, helpers.loadClock() - started)
   return result
 end
@@ -247,7 +287,8 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
     longSettle = longSettle,
   }
   state.load.pendingElapsed = 0
-  state.load.nextInterval = AUTO_LOAD_TIMING.interval
+  state.load.nextInterval = AUTO_LOAD_TIMING.pollInterval
+  state.load.forceStructureScan = true
   state.load.needsContinue = true
   state.load.previousUnresolvedSignature = nil
   state.load.unresolvedRepeatCount = 0
@@ -319,7 +360,8 @@ helpers.checkPendingChange = function(system, scan)
     state.load.waitSeconds = state.load.waitSeconds + waited
     state.load.pendingElapsed = waited
     state.load.pendingChange = nil
-    state.load.nextInterval = AUTO_LOAD_TIMING.interval
+    state.load.nextInterval = AUTO_LOAD_TIMING.passInterval
+    state.load.forceStructureScan = true
     if pending.kind == "apply" then
       state.load.satisfied[pending.trackingKey] = true
       state.load.unconfirmed[pending.trackingKey] = nil
@@ -337,14 +379,15 @@ helpers.checkPendingChange = function(system, scan)
   end
   local sinceAttempt = state.load.elapsed - pending.attemptStartedAt
   if pending.longSettle and sinceAttempt < AUTO_LOAD_TIMING.dependencyTimeout then
-    state.load.nextInterval = AUTO_LOAD_TIMING.interval
+    state.load.nextInterval = AUTO_LOAD_TIMING.pollInterval
     state.load.pendingElapsed = math.max(0, state.load.elapsed - pending.startedAt)
     return "waiting"
   end
   local waited = math.max(0, state.load.elapsed - pending.startedAt)
   state.load.waitSeconds = state.load.waitSeconds + waited
   state.load.pendingChange = nil
-  state.load.nextInterval = AUTO_LOAD_TIMING.interval
+  state.load.nextInterval = AUTO_LOAD_TIMING.passInterval
+  state.load.forceStructureScan = true
   if pending.kind == "cleanup" then
     state.load.cleanupSkipped[pending.trackingKey] = true
     state.load.phase = "verify"
@@ -371,6 +414,97 @@ helpers.logLoadMeasurements = function(result)
       state.load.scanSeconds, state.load.targetPolls, state.load.targetPollSeconds,
       state.load.targetFallbacks, state.load.choiceSeconds, state.load.applySeconds,
       state.load.waitSeconds, state.load.structureChanges), "info")
+end
+
+helpers.syncForceFullLoadSelection = function()
+  local selected = state.library.selected
+  if state.load.forceFullPresetName == selected then return end
+  local preset = selected and state.library.presets[selected] or nil
+  local format = tonumber(preset and preset.format) or 4
+  state.load.forceFull = preset ~= nil
+    and format < FORCE_FULL_LOAD_FORMAT_THRESHOLD
+  state.load.forceFullPresetName = selected
+  if selected then
+    log(("[LOAD] Force Full Load selected automatically for '%s': %s (format %s).")
+      :format(selected, state.load.forceFull and "on" or "off", tostring(format)), "info")
+  end
+end
+
+helpers.finalVerifyUnconfirmed = function()
+  if next(state.load.unconfirmed) == nil then return 0 end
+  local optionsStarted = helpers.loadClock()
+  local _, options, optionsError = getOptions(true)
+  state.load.optionsSeconds = state.load.optionsSeconds
+    + math.max(0, helpers.loadClock() - optionsStarted)
+  state.load.optionCalls = state.load.optionCalls + 1
+  if not options then
+    log("FINAL CONFIRMATION | Fresh option check unavailable: " ..
+      tostring(optionsError), "warn")
+    return 0
+  end
+
+  local occurrences, slotOccurrences = {}, {}
+  local activeCounts, activeSlotCounts, candidates = {}, {}, {}
+  for position, option in ipairs(options) do
+    local label = optionKey(option)
+    local slot = optionSlot(option)
+    if label and option.isEditable and option.isActive then
+      occurrences[label] = (occurrences[label] or 0) + 1
+      activeCounts[label] = occurrences[label]
+      local slotOccurrence = nil
+      if slot then
+        slotOccurrences[slot] = (slotOccurrences[slot] or 0) + 1
+        activeSlotCounts[slot] = slotOccurrences[slot]
+        slotOccurrence = slotOccurrences[slot]
+      end
+      local key = label .. "\31" .. tostring(occurrences[label])
+      candidates[key] = {
+        option = option,
+        position = position,
+        label = label,
+        occurrence = occurrences[label],
+        slot = slot,
+        slotOccurrence = slotOccurrence,
+      }
+    end
+  end
+
+  local cleared = 0
+  for key in pairs(state.load.unconfirmed) do
+    local candidate = candidates[key]
+    local label = candidate and candidate.label or nil
+    local target = state.load.values and state.load.values[key] or nil
+    if candidate and target ~= nil
+        and (activeCounts[label] or 0) == ((state.load.savedCounts or {})[label] or 0)
+        and (tonumber(candidate.option.currIndex) or 0) == target then
+      state.load.unconfirmed[key] = nil
+      cleared = cleared + 1
+      log(("FINAL CONFIRMATION | %s now matches target index=%s.")
+        :format(state.loadOptionIdentity(candidate.option, label, candidate.occurrence),
+          tostring(target)), "info")
+    end
+  end
+
+  for liveKey, remap in pairs(state.load.dependencyRemaps) do
+    local savedKey = remap and remap.savedKey
+    local candidate = candidates[liveKey]
+    if savedKey and state.load.unconfirmed[savedKey] and candidate
+        and candidate.label == remap.label
+        and candidate.occurrence == remap.occurrence
+        and candidate.position == remap.position
+        and candidate.slot == remap.slot
+        and candidate.slotOccurrence == remap.slotOccurrence
+        and (not remap.slot
+          or (activeSlotCounts[remap.slot] or 0) == remap.slotCount)
+        and (tonumber(candidate.option.currIndex) or 0) == remap.target then
+      state.load.unconfirmed[savedKey] = nil
+      cleared = cleared + 1
+      log(("FINAL CONFIRMATION | %s now matches remapped target index=%s.")
+        :format(state.loadOptionIdentity(candidate.option, candidate.label,
+          candidate.occurrence), tostring(remap.target)), "info")
+    end
+  end
+  return cleared
 end
 
 beginLoadPass = function(preset)
@@ -912,6 +1046,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       setStatus("load", "Preset checked. Looking for another remaining option.")
       return
     end
+    helpers.finalVerifyUnconfirmed()
     local cleanupSkipped = 0
     for _ in pairs(state.load.cleanupSkipped) do cleanupSkipped = cleanupSkipped + 1 end
     local unconfirmed = 0
@@ -957,6 +1092,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
 end
 
 function loadPreset()
+  helpers.syncForceFullLoadSelection()
   if not state.library.selected or not state.library.presets[state.library.selected] then
     resetLoadState()
     setStatus("load", "Select a preset.", true)
@@ -999,6 +1135,7 @@ function loadPreset()
 end
 
 refreshPreflight = function()
+  helpers.syncForceFullLoadSelection()
   state.load.preflight = nil
   state.load.preflightDirty = false
   state.load.preflightPresetName = state.library.selected

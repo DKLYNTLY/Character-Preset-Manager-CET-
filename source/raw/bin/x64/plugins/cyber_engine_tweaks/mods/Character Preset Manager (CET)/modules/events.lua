@@ -51,9 +51,6 @@ events.onInit = function()
       state.editor.activeBodyMorphMenu = menu
       state.app.inCustomization = true
       state.invalidatePreflight()
-      state.ui.clothingCheckDirty = true
-      state.ui.cachedClothingLabels = nil
-      state.ui.clothingCheckNextAt = 0
       state.ui.discoveryNoticePending = not state.ui.discoveryNoticeIgnored
       state.ui.discoveryNoticeLayout = nil
       log(state.ui.discoveryNoticeIgnored
@@ -73,9 +70,6 @@ events.onInit = function()
       state.editor.activeBodyMorphMenu = nil
       state.app.inCustomization = false
       state.invalidatePreflight()
-      state.ui.clothingCheckDirty = true
-      state.ui.cachedClothingLabels = nil
-      state.ui.clothingCheckNextAt = 0
       state.ui.discoveryNoticePending = false
       state.ui.discoveryNoticeLayout = nil
       state.editor.openedByLauncher = false
@@ -223,8 +217,6 @@ events.onShutdown = function()
   state.app.ready = false
   state.app.inCustomization = false
   state.editor.newGameCharacterCreator = false
-  state.ui.clothingCheckDirty = true
-  state.ui.cachedClothingLabels = nil
   cancelConfirmations()
   resetLoadState()
   state.editor.activeBodyMorphMenu = nil
@@ -239,6 +231,7 @@ events.onShutdown = function()
 end
 
 events.onUpdate = function(delta)
+  state.app.optionsMemo = nil
   local elapsed = tonumber(delta) or 0
   local monitorPreflight = state.app.overlayOpen and state.app.windowOpen
     and state.library.selected ~= nil and not state.load.auto

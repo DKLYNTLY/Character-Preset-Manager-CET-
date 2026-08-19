@@ -18,31 +18,6 @@ helpers.activeWardrobeSetEquipped = function()
   return activeSet ~= gameWardrobeClothingSetIndex.INVALID, player
 end
 
-helpers.equippedClothingLabels = function()
-  local playerOk, player = pcall(Game.GetPlayer)
-  if not playerOk or not player then return nil end
-  local dataOk, data = pcall(EquipmentSystem.GetData, player)
-  if not dataOk or not data then return nil end
-  local areas = {
-    { area = gamedataEquipmentArea.Head, label = "Head" },
-    { area = gamedataEquipmentArea.Face, label = "Face" },
-    { area = gamedataEquipmentArea.OuterChest, label = "Outer torso" },
-    { area = gamedataEquipmentArea.InnerChest, label = "Inner torso" },
-    { area = gamedataEquipmentArea.Legs, label = "Legs" },
-    { area = gamedataEquipmentArea.Feet, label = "Feet" },
-    { area = gamedataEquipmentArea.Outfit, label = "Outfit" },
-  }
-  local labels = {}
-  for _, entry in ipairs(areas) do
-    local itemOk, item = pcall(data.GetActiveItem, data, entry.area)
-    if itemOk and item then
-      local validOk, valid = pcall(ItemID.IsValid, item)
-      if validOk and valid then table.insert(labels, entry.label) end
-    end
-  end
-  return labels
-end
-
 function equipmentSystem()
   local ok, system = pcall(function()
     return Game.GetScriptableSystemsContainer():Get("EquipmentSystem")
@@ -154,8 +129,6 @@ function refreshEditorState()
     end
     resetLoadState()
     state.invalidatePreflight()
-    state.ui.clothingCheckDirty = true
-    state.ui.clothingCheckNextAt = 0
   end
   if not state.app.inCustomization then state.editor.activeBodyMorphMenu = nil end
 end

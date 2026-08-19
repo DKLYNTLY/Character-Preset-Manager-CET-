@@ -128,33 +128,6 @@ function drawSectionStatus(section, childId, height)
   if not text or text == "" then return end
   local kind = state.status.kinds[section]
   local isError = sectionStatus.error or kind == "error"
-  local checkClothing = section == "load"
-    and not isError
-    and state.app.inCustomization
-    and not state.editor.newGameCharacterCreator
-    and not state.load.auto
-    and not state.load.needsContinue
-    and kind == "ready"
-  if checkClothing then
-    local clockOk, now = pcall(os.clock)
-    now = clockOk and tonumber(now) or 0
-    if state.ui.clothingCheckDirty or now >= (state.ui.clothingCheckNextAt or 0) then
-      state.ui.cachedClothingLabels = helpers.equippedClothingLabels()
-      state.ui.clothingCheckDirty = false
-      state.ui.clothingCheckNextAt = now + 1
-    end
-  end
-  local clothingLabels = {}
-  if checkClothing then clothingLabels = state.ui.cachedClothingLabels end
-  local clothingCheckUnavailable = checkClothing and clothingLabels == nil
-  clothingLabels = clothingLabels or {}
-  local clothingWarning = #clothingLabels > 0
-  if clothingWarning then
-    text = "Equipped areas: " .. table.concat(clothingLabels, ", ") ..
-      ". You may ignore this notice and load normally. If the game hangs when customization closes, unequip these items and select No Outfit before trying again."
-  elseif clothingCheckUnavailable then
-    text = "Clothing could not be checked. You may ignore this notice and load normally. If the game hangs when customization closes, unequip all clothing and select No Outfit before trying again."
-  end
   local success = not isError and (kind == "success" or kind == "ready")
   local warning = not isError and kind == "warning"
   local destructiveWarning = (section == "delete"
@@ -168,7 +141,7 @@ function drawSectionStatus(section, childId, height)
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.90, 0.25, 0.22, 0.90)
     customColors = true
-  elseif warning or clothingWarning or clothingCheckUnavailable then
+  elseif warning then
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.97, 0.72, 0.20, 0.90)
     customColors = true
@@ -188,9 +161,6 @@ function drawSectionStatus(section, childId, height)
     coloredWrapped(1.0, 0.4, 0.4, 1.0, text)
   elseif warning then
     ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "WARNING")
-    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
-  elseif clothingWarning or clothingCheckUnavailable then
-    ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "OPTIONAL CLOTHING NOTICE")
     coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
   elseif section == "load" and state.load.stalled then
     ImGui.TextColored(1.0, 0.55, 0.15, 1.0, "ATTENTION")

@@ -142,12 +142,12 @@ The compatibility summary refreshes while the mod and character editor are open.
 It updates after the editor changes without making you select a different preset
 and switch back. Other selected-preset details update at the same time.
 
-Automatic loading gets a fresh option list after every applied change. An
-ordinary option advances on the next normal check instead of waiting through a
-separate settling period. If a change adds, removes, disables, or rearranges an
-option, the mod waits longer for the editor to settle. Small targeted checks are
-used only after a full check has confirmed a dependency-changing option, and a
-final full check always runs before another option is applied. Saved-choice
+Automatic loading checks a pending change quickly, then leaves more time between
+ordinary passes. It reuses the option list during the same update and avoids
+rebuilding the full option-list fingerprint unless the list count changes or a
+recent change may affect dependent options. If a change adds, removes, disables,
+or rearranges an option, the mod waits longer for the editor to settle. A final
+read-only check confirms any late changes before the summary. Saved-choice
 matches are reused only after the current option still proves that they match.
 
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
@@ -161,6 +161,10 @@ list. If a hairstyle replaces a related option under a new name, a current
 preset can match it automatically when its editor slot and unique saved choice
 both agree. **Force Full Load** can try less certain editor-position matches.
 Always check the result after changing option mods.
+
+Force Full Load turns on automatically for older presets that need position-based
+matching and turns off when you select a current preset. You can still change it
+manually for the selected preset.
 
 When Force Full Load applies a renamed option from an older preset, post-load
 cleanup protects that exact live match. The protection remains only while its
@@ -342,7 +346,9 @@ Compatible ACU preset files can still be loaded after ACU is removed. Save new p
 
 Cyberpunk can sometimes stay on a loading screen after any character editor closes. This can happen without Character Preset Manager. Clothing, wardrobe outfits, Equipment-EX, and detailed outfits may make it more likely.
 
-If this happens, remove all clothing and choose **No Outfit** before opening the editor. Put everything back on afterward. The optional yellow clothing message does not mean that the mod failed.
+If this happens, remove all clothing and choose **No Outfit** before opening the
+editor. Put everything back on afterward. Character Preset Manager does not scan
+equipped clothing while its window is open.
 
 </details>
 

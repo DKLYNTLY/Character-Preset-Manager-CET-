@@ -50,6 +50,22 @@ used. See the README and in-game Help for current instructions.
   compatible ACU preset files remain fully readable.
 - Simplifies the Load button's disabled state without changing when it can be
   used.
+- Runs one final read-only check before the load summary. An option that finishes
+  changing near the end of a load is now confirmed instead of being left as an
+  unconfirmed result.
+- Reuses loader work tables and rebuilds the full option-list fingerprint only
+  when the option count changes or a recent change may affect dependent options.
+- Checks a pending option every 0.05 seconds, while ordinary passes now wait
+  0.225 seconds. This keeps confirmation responsive and reduces work between
+  changes.
+- Reuses the game's option list within the same update frame instead of asking
+  the game for it more than once.
+- Turns **Force Full Load** off when a current preset is selected and turns it on
+  automatically for an older preset that needs position-based matching. The
+  manual control remains available for either choice.
+- Removes the repeating equipped-clothing scan from the Load status. Help still
+  explains the clothing and **No Outfit** workaround, and active wardrobe outfits
+  are still removed temporarily and restored afterward.
 
 </details>
 

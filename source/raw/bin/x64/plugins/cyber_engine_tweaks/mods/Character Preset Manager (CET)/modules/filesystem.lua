@@ -96,11 +96,13 @@ function resetLoadState()
   state.load.optionCalls = 0
   state.load.structureChanges = 0
   state.load.lastStructureSignature = nil
+  state.load.lastOptionCount = nil
+  state.load.forceStructureScan = true
   state.load.targetPollingDisabled = false
   state.load.returnToCleanup = false
   state.load.dependencyKeys = {}
   state.load.dependencyRemaps = {}
-  state.load.nextInterval = AUTO_LOAD_TIMING.interval
+  state.load.nextInterval = AUTO_LOAD_TIMING.passInterval
   state.load.auto = false
   state.load.autoTimer = 0
   state.load.autoPasses = 0

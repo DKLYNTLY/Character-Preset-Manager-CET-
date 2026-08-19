@@ -30,11 +30,12 @@ CURRENT_PRESET_FORMAT = 8
 activitySequence = 0
 
 AUTO_LOAD_TIMING = {
-  interval = 0.10,
+  passInterval = 0.225,
   pollInterval = 0.05,
   dependencyTimeout = 1.25,
   dependencyStableTime = 0.20,
 }
+FORCE_FULL_LOAD_FORMAT_THRESHOLD = 7
 PREFLIGHT_REFRESH_INTERVAL = 0.75
 AUTO_LOAD_LIMITS = {
   minimumSeconds = 60,
