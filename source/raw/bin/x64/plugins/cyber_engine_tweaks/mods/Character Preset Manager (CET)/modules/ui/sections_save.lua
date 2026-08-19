@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawSaveSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("SAVE PRESET", "create") then
+if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
     ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.library.selectedFolder))

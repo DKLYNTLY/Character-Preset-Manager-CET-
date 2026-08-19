@@ -4,10 +4,10 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("DELETE & RESTORE", "trash") then
+if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       ImGui.TextWrapped("Move presets, folders, and shared-folder files to Trash. You can restore them later.")
       if not state.library.selected then
-        ImGui.TextDisabled("Select a preset under Load Preset to move one preset to Trash.")
+        ImGui.TextDisabled("Select a preset under Load & Restore Appearance to move one preset to Trash.")
       else
         local deleteLabel = state.trash.pendingDeleteName == state.library.selected
           and "Confirm Move to Trash##danger"

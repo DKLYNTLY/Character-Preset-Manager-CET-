@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawFoldersSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("FOLDERS", "folders") then
+if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Select how new or moved presets are organized")
     ImGui.TextWrapped("Selected destination: " .. helpers.breadcrumb(state.library.selectedFolder))
@@ -58,7 +58,7 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
       if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then movePresetToSelectedFolder() end
       if moveUnavailable then ImGui.EndDisabled() end
       if moveUnavailable and not state.library.selected then
-        ImGui.TextDisabled("Select a preset under Load Preset before moving it.")
+        ImGui.TextDisabled("Select a preset under Load & Restore Appearance before moving it.")
       end
       local removeFolderLabel = state.library.pendingRemoveFolder == state.library.selectedFolder
         and "Confirm Remove Folder, Keep Presets"
@@ -92,7 +92,7 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
       if fullWidthButton("Move Selected Preset to All Presets", actionButtonHeight) then movePresetToSelectedFolder() end
       if rootMoveUnavailable then ImGui.EndDisabled() end
       if rootMoveUnavailable then ImGui.TextDisabled(not state.library.selected
-        and "Select a preset under Load Preset before moving it."
+        and "Select a preset under Load & Restore Appearance before moving it."
         or "The selected preset is already in All Presets.")
       end
     end
@@ -153,7 +153,7 @@ if collapsibleSectionHeader("FOLDERS", "folders") then
           trashSelectedFolderBundle()
         end
         if bundleDeleteUnavailable then ImGui.EndDisabled() end
-        ImGui.TextDisabled("You can restore the file later under Delete & Restore.")
+        ImGui.TextDisabled("You can restore the file later under Delete & Restore Items.")
       end
       ImGui.Unindent(8)
     end

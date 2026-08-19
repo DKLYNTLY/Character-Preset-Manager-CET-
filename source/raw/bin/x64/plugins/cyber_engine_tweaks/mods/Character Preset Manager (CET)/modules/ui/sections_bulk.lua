@@ -5,7 +5,7 @@ local _ENV = runtime
 
 drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight,
     narrowTopRow)
-  if collapsibleSectionHeader("BULK ACTIONS", "bulk") then
+  if collapsibleSectionHeader("SELECT & MANAGE MULTIPLE PRESETS", "bulk") then
     ImGui.TextWrapped("Select several presets, then move them to one folder, export them together, or move them to Trash.")
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
     ImGui.PushItemWidth(-1)

@@ -5,7 +5,7 @@ local _ENV = runtime
 
 drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight,
     narrowTopRow)
-  if collapsibleSectionHeader("BACKUP & RECOVERY", "backup") then
+  if collapsibleSectionHeader("EXPORT & IMPORT BACKUPS", "backup") then
     ImGui.TextWrapped("Save or restore the complete preset library, including folders and settings.")
     if fullWidthButton("Export Complete Library Backup##exportLibraryBackup",
         actionButtonHeight) then

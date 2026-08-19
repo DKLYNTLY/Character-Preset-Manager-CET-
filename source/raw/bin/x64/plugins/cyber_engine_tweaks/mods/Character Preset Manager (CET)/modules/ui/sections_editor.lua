@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawEditorSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("APPEARANCE EDITOR", "editor") then
+if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
     ImGui.TextWrapped("Opens the game's full character editor. Apartment mirrors offer the same options.")
     ImGui.Spacing()
     local editorUnavailable = state.editor.openPending or state.app.inCustomization

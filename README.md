@@ -114,7 +114,7 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.5 does 
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
-3. Under **Save Preset**, open **Choose Save Folder**.
+3. Under **Save & Replace Presets**, open **Save Folder Choices**.
 4. Choose a folder or **All Presets**.
 5. Enter a name and select **Save New Preset**.
 
@@ -128,13 +128,13 @@ This example shows the complete loading process, including automatic editor
 refreshes and the final appearance.
 
 1. Open one of the supported character screens listed above.
-2. Choose a preset under **Load Preset**.
+2. Choose a preset under **Load & Restore Appearance**.
 3. Check its folder, number of saved options, source, details, and compatibility summary.
 4. Select **Load Selected Preset** once.
 5. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
 
-**Restore Appearance from Before Last Load** is also under **Load Preset**. Before
+**Restore Appearance from Before Last Load** is under **Load & Restore Appearance**. Before
 each normal preset load, the mod quietly saves the active appearance. Open a
 supported character screen and use this button to undo the newest preset load.
 
@@ -168,7 +168,7 @@ Always check the result after changing option mods.
 
 Force Full Load turns on automatically for older presets that need position-based
 matching and turns off when you select a current preset. You can still change it
-manually under **Optional: Details & Force Full Load**.
+manually under **Load & Restore Appearance**.
 
 When Force Full Load applies a renamed option from an older preset, post-load
 cleanup protects that exact live match. The protection remains only while its
@@ -207,20 +207,20 @@ easy to inspect without treating its headings as damaged data.
 
 ### Basic folder use
 
-- Select a folder row under **Load Preset** to open or close it.
+- Select a folder row under **Load & Restore Appearance** to open or close it.
 - Presets without a folder appear under **All Presets**.
 - Choose a folder or **All Presets** before saving or moving a preset.
 - To make a folder inside another folder, select the parent folder first.
 - Copies appear beside the original and use names such as `Copy` and `Copy 2`.
 - Copying a folder also copies every preset and folder inside it.
 - Renaming a preset also renames its `.preset` file.
-- Notes, tags, and the file path are under **Manage Preset > Optional: Tags, Notes & File**.
+- Notes, tags, and the file path are under **Rename & Copy Presets > Optional: Tags, Notes & File**.
 - Search checks preset names, folder names, and tags. Tags also appear beside
   preset names in the list.
 - **Copy File Path** inside those optional preset tools copies the selected preset's
   complete path from the Cyberpunk 2077 game folder.
 
-Choose a preset under **Load Preset**, then open **Optional: Refresh & Favorites**
+Choose a preset under **Load & Restore Appearance**, then open **Optional: Favorites & Details**
 and select **Add Selected Preset to Favorites**. The same button removes it from Favorites
 later. Favorites remain in their original folders and also appear in a pinned
 group above the regular folder list. This choice is stored inside the readable
@@ -264,7 +264,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 
 - To share an appearance, send its `.preset` file.
 - To install a preset, place its file in `Character Presets` or in a Windows folder inside it.
-- Under **Load Preset**, open **Optional: Refresh & Favorites** and select **Refresh Preset Files**
+- Under **Load & Restore Appearance**, select **Refresh**
   after changing files outside the game.
 - Startup uses the saved preset list instead of fully reading every preset and
   every Trash file. A preset is read in full when you select or use it. Opening
@@ -283,7 +283,7 @@ A `.cpmfolder` file contains the selected CET folder, all folders inside it, and
 
 #### Export a folder
 
-1. Open **Folders** and choose a non-empty folder.
+1. Open **Create & Organize Folders** and choose a non-empty folder.
 2. Open **Optional: Share & Import Folders**.
 3. Select **Export Selected Folder as a .cpmfolder File**.
 4. Find the new `.cpmfolder` file in `Character Presets` and send it.
@@ -296,12 +296,12 @@ do not need to be held in memory all at once.
 To remove only the exported file, open **Optional: Manage & Remove .cpmfolder Files**,
 select the file, and choose **Move Selected .cpmfolder File to Trash**. This does
 not remove the original folder or its presets. You can restore the file under
-**Delete & Restore** or remove it with **Empty Trash Permanently**.
+**Delete & Restore Items** or remove it with **Empty Trash Permanently**.
 
 #### Import a folder
 
 1. Put the downloaded `.cpmfolder` file in `Character Presets`.
-2. Open Character Preset Manager and expand **Folders**.
+2. Open Character Preset Manager and expand **Create & Organize Folders**.
 3. Open **Optional: Share & Import Folders**.
 4. Select **Install .cpmfolder Files from Character Presets**.
 
@@ -311,17 +311,17 @@ An unchanged bundle is skipped while its imported folder still exists. You can i
 
 After a successful import, **Optional: Manage & Remove .cpmfolder Files** can move the
 source file to Trash without removing the imported folder or presets. This file
-manager is always visible under **Folders**, regardless of the selected folder.
+manager is always available under **Create & Organize Folders**, regardless of the selected folder.
 
 ### Export selected presets
 
-Open **Bulk Actions**. Select presets from any folders and choose **Export Selected**.
+Open **Select & Manage Multiple Presets**. Select presets from any folders and choose **Export Selected**.
 The new `.cpmfolder` file keeps their
 folder paths inside a single **Selected Presets** group when it is installed.
 
 ### Back up the complete library
 
-Open **Backup & Recovery** and choose **Export Complete Library Backup**. The new `.cpmbackup` file in
+Open **Export & Import Backups** and choose **Export Complete Library Backup**. The new `.cpmbackup` file in
 `Character Presets` contains every preset, the CET folder layout, and the current
 settings file. Choose a backup in the same section, then select **Import Selected Library Backup**.
 On an empty installation, the original layout is restored. If names are already
@@ -333,7 +333,7 @@ nothing is overwritten. A backup cannot be larger than 256 MB.
 <details>
 <summary><strong>Bulk actions</strong></summary>
 
-- **Bulk Actions** is a separate main section for working with several presets.
+- **Select & Manage Multiple Presets** is a separate main section for working with several presets.
 - Select a preset row to add it to the selection. Select it again to remove it.
 - **Select All Visible** and **Clear Selection** make large selections easier.
 - Selected presets can be moved to one folder, exported together, or moved to Trash.
@@ -344,7 +344,7 @@ nothing is overwritten. A backup cannot be larger than 256 MB.
 <summary><strong>Trash and recovery</strong></summary>
 
 - Moving a preset to Trash keeps it available for recovery.
-- Under **Folders**, you can move a folder and everything inside it to Trash.
+- Under **Create & Organize Folders**, you can move a folder and everything inside it to Trash.
 - Moving an Imported folder to Trash removes its Windows folder only when it is empty. Unknown files are never deleted.
 - **Restore Folder** rebuilds the whole folder group, including empty folders inside it, and restores every preset in that Trash group.
 - You can also restore presets one at a time.

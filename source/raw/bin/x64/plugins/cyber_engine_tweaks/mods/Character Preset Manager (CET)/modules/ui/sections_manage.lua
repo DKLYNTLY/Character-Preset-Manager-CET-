@@ -4,10 +4,10 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("MANAGE PRESET", "manage") then
+if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
       if not state.library.selected or not state.library.presets[state.library.selected] then
         coloredWrapped(0.64, 0.67, 0.73, 1.0,
-          "Select a preset under Load Preset to rename, duplicate, or edit it.")
+          "Select a preset under Load & Restore Appearance to rename, copy, or edit it.")
       else
         ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
           "Selected preset")
@@ -27,7 +27,7 @@ if collapsibleSectionHeader("MANAGE PRESET", "manage") then
             manageButtonWidth, actionButtonHeight) then renamePreset() end
         if renameUnavailable then ImGui.EndDisabled() end
         ImGui.SameLine()
-        if ImGui.Button("Duplicate Preset##duplicateSelected",
+        if ImGui.Button("Copy Preset##duplicateSelected",
             manageButtonWidth, actionButtonHeight) then duplicatePreset() end
         if compactSubsectionButton("Optional: Tags, Notes & File",
             "Hide Optional Preset Tools",
