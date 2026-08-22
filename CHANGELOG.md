@@ -24,14 +24,18 @@ used. See the README and in-game Help for current instructions.
   accidentally.
 - Replaces custom optional-group buttons with built-in folding headers. Main
   sections, optional groups, Help topics, buttons, and selected preset rows now
-  share one orange color family. Folding headers use gold text on dark
-  burnt-orange, with a brighter orange hover. Only editor and Load start open.
+  share one orange color family. Main section headers use gold text on dark
+  burnt-orange. Optional controls use charcoal headers with orange text so they
+  remain clearly secondary. Only editor and Load start open.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
   before selecting an action.
 - Places optional folding headers after each section's main actions. The Save
   status card now includes the selected save location, and repeated section
   details were removed to keep the main path clear.
+- Separates the important value in every status card from its instruction or
+  result. Save locations, selected presets, destinations, backup counts, and
+  recoverable-item counts appear on their own orange line.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
   while a preset is selected. Opening CET, refreshing presets, changing Force
   Full Load, and finishing a load also no longer start the display-only scan.

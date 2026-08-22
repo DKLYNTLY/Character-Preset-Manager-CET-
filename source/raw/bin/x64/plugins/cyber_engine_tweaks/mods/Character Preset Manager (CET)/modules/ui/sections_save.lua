@@ -11,15 +11,12 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
     local statusSaveUnavailable = not state.app.inCustomization
       or validatedPresetName(state.library.newName) == nil
     local saveStatus = not state.app.inCustomization
-      and ("Save location: %s. Open the character creator, a mirror, or a ripperdoc to save a preset.")
-        :format(saveLocation)
+      and "Open the character creator, a mirror, or a ripperdoc to save a preset."
       or (validatedPresetName(state.library.newName) == nil
-        and ("Save location: %s. Enter a preset name to enable saving.")
-          :format(saveLocation)
-        or ("Save location: %s. Ready to save this appearance.")
-          :format(saveLocation))
+        and "Enter a preset name to enable saving."
+        or "Ready to save this appearance.")
     drawSectionStatus("create", "##createStatus", statusHeight, saveStatus,
-      statusSaveUnavailable and "info" or "ready")
+      statusSaveUnavailable and "info" or "ready", "Save location: " .. saveLocation)
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
     local previousNewName = state.library.newName
@@ -43,7 +40,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
       savePreset(state.library.pendingOverwriteName == pendingCreateName)
     end
     if saveUnavailable then ImGui.EndDisabled() end
-    if compactSubsectionButton("Save Location", "Hide Save Location",
+    if compactSubsectionButton("Change Save Location", "Hide Save Location",
         "saveDestination") then
       ImGui.Indent(8)
       local saveFolders = sortedFolderNames()
@@ -53,7 +50,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
           and state.library.selectedFolder ~= "" then
         state.library.selectedFolder = ""
         cancelConfirmations()
-        setStatus("create", "Save location: All Presets.")
+        clearStatus("create")
         log("[UI] Save destination changed to '<root>'.", "info")
       end
       local firstFolder, lastFolder = pagedRange("saveFolders",
@@ -66,7 +63,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
             state.library.selectedFolder == folder) and state.library.selectedFolder ~= folder then
           state.library.selectedFolder = folder
           cancelConfirmations()
-          setStatus("create", "Save location: " .. helpers.breadcrumb(folder) .. ".")
+          clearStatus("create")
           log(("[UI] Save destination changed to '%s'."):format(folder), "info")
         end
       end

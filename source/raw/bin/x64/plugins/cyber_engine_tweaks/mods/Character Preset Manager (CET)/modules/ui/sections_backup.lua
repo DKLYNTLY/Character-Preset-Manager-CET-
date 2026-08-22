@@ -24,7 +24,8 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       and "Export a complete library backup to create your first backup file."
       or "Choose a backup file to import or permanently delete, or export a new complete backup."
     drawSectionStatus("backup", "##backupStatus", statusHeight, backupStatus,
-      #backupFiles > 0 and "ready" or "info")
+      #backupFiles > 0 and "ready" or "info",
+      ("Backup files: %d"):format(#backupFiles))
     if fullWidthButton("Export Complete Library Backup##exportLibraryBackup",
         actionButtonHeight) then
       exportLibraryBackup()

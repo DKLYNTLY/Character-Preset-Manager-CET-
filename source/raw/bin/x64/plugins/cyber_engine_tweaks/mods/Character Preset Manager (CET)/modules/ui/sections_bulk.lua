@@ -13,10 +13,10 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       and "No presets match the current search."
       or (#selectedBulkNames == 0
         and "Select a preset row to add it. Select it again to remove it."
-        or ("%d preset%s selected. Choose an action below.")
-          :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
+        or "Choose an action below.")
     drawSectionStatus("bulk", "##bulkStatus", statusHeight, bulkStatus,
-      #selectedBulkNames > 0 and "ready" or "info")
+      #selectedBulkNames > 0 and "ready" or "info",
+      ("Selected presets: %d"):format(#selectedBulkNames))
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
     ImGui.PushItemWidth(-1)
     local previousSearchText = state.library.searchText

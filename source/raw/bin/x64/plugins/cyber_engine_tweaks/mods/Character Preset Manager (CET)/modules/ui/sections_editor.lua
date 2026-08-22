@@ -17,7 +17,10 @@ if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
           or "Ready to open the full appearance editor."))
     drawSectionStatus("editor", "##editorStatus", statusHeight, editorStatus,
       not state.editor.openPending and not state.app.inCustomization
-        and state.editor.hooksAvailable and "ready" or "info")
+        and state.editor.hooksAvailable and "ready" or "info",
+      "Editor state: " .. (state.editor.openPending and "Opening"
+        or (state.app.inCustomization and "Open"
+          or (state.editor.hooksAvailable and "Available" or "Unavailable"))))
     ImGui.Spacing()
     if editorUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then

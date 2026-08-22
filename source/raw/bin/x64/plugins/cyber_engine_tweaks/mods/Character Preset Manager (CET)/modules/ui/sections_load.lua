@@ -48,8 +48,11 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       end
       loadStatus = table.concat(messages, " ")
     end
+    local loadContext = #names == 0
+      and "Available presets: 0"
+      or "Selected preset: " .. tostring(state.library.selected or "None")
     drawSectionStatus("load", "##loadStatus", statusHeight, loadStatus,
-      loadStatusKind)
+      loadStatusKind, loadContext)
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
     local searchButtonWidth = narrowTopRow

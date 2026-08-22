@@ -79,6 +79,18 @@ function popFoldingHeaderTheme()
   ImGui.PopStyleColor(5)
 end
 
+function pushOptionalHeaderTheme()
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.11, 0.12, 0.15, 0.96)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.30, 0.16, 0.03, 0.95)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.44, 0.25, 0.05, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.58, 0.16, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
+end
+
+function popOptionalHeaderTheme()
+  ImGui.PopStyleColor(5)
+end
+
 function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
   pushFoldingHeaderTheme()
@@ -98,9 +110,9 @@ function compactSubsectionButton(closedLabel, _, key)
   ImGui.Spacing()
   local open = state.ui.openSubsections[key] == true
   ImGui.SetNextItemOpen(open, ImGuiCond.Always)
-  pushFoldingHeaderTheme()
+  pushOptionalHeaderTheme()
   open = ImGui.CollapsingHeader(closedLabel .. "##CPMSubsection:" .. key)
-  popFoldingHeaderTheme()
+  popOptionalHeaderTheme()
   state.ui.openSubsections[key] = open
   if open then
     ImGui.Spacing()
@@ -131,7 +143,8 @@ function coloredWrapped(r, g, b, a, text)
   ImGui.PopStyleColor(1)
 end
 
-function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKind)
+function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKind,
+    contextText)
   local sectionStatus = state.status.sections[section]
   local hasCurrentStatus = sectionStatus.message and sectionStatus.message ~= ""
   local text = hasCurrentStatus and sectionStatus.message or fallbackMessage
@@ -165,30 +178,37 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
     customColors = true
   end
   local estimatedLines = math.max(1, math.ceil(#tostring(text) / 48))
-  local panelHeight = math.min(126, math.max(height or 64, 40 + estimatedLines * 18))
+  if contextText and contextText ~= "" then estimatedLines = estimatedLines + 1 end
+  local panelHeight = math.min(144, math.max(height or 64, 40 + estimatedLines * 18))
   ImGui.BeginChild(childId, 0, panelHeight, true)
+  local function drawStatusText(r, g, b)
+    if contextText and contextText ~= "" then
+      coloredWrapped(1.0, 0.58, 0.16, 1.0, contextText)
+    end
+    coloredWrapped(r, g, b, 1.0, text)
+  end
   if isError then
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "ERROR")
-    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
+    drawStatusText(1.0, 1.0, 1.0)
   elseif destructiveWarning or criticalWarning then
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "WARNING")
-    coloredWrapped(1.0, 0.4, 0.4, 1.0, text)
+    drawStatusText(1.0, 0.4, 0.4)
   elseif warning then
     ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "WARNING")
-    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
+    drawStatusText(1.0, 1.0, 1.0)
   elseif section == "load" and state.load.stalled then
     ImGui.TextColored(1.0, 0.55, 0.15, 1.0, "ATTENTION")
-    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
+    drawStatusText(1.0, 1.0, 1.0)
   elseif section == "load" and state.load.remaining > 0 then
     ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "LOADING")
-    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
+    drawStatusText(1.0, 1.0, 1.0)
   elseif success then
     local successLabel = kind == "ready" and "READY" or "SUCCESS"
     ImGui.TextColored(0.3, 1.0, 0.4, 1.0, successLabel)
-    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
+    drawStatusText(1.0, 1.0, 1.0)
   else
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "STATUS")
-    coloredWrapped(1.0, 1.0, 1.0, 1.0, text)
+    drawStatusText(1.0, 1.0, 1.0)
   end
   ImGui.EndChild()
   if customColors then ImGui.PopStyleColor(2) end

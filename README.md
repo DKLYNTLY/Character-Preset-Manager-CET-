@@ -71,15 +71,19 @@ than the smaller selection normally available during play.
 - Moves **Force Full Load** under **Preset Options** so it is less likely to be
   turned on accidentally.
 - Uses one orange family across buttons, selected rows, and folding headers.
-  Folding headers use a dark burnt-orange background with gold text and a
-  brighter orange hover. Green, yellow, and red remain reserved for status
-  meaning. Only the editor and Load sections start open.
+  Main section headers use dark burnt orange with gold text. Optional controls
+  use a charcoal header with orange text so they cannot be mistaken for a main
+  section. Green, yellow, and red remain reserved for status meaning. Only the
+  editor and Load sections start open.
 - Places every section's status card directly below its introductory text and
   above its controls, so warnings and required steps are visible before an
   action is selected.
 - Keeps the main action path clear by placing optional folding headers after
   the main buttons. Changing details such as the save location now appear in
   the status card instead of being repeated as separate lines.
+- Gives every status card a separate orange context line for its important
+  value, such as the save location, selected preset, destination, or number of
+  recoverable items. The instruction or result appears separately below it.
 - Slow compatibility checks identify whether the game option list or preset
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and
@@ -152,8 +156,9 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.6 does 
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
-3. Check the save location in the status card. To change it, open **Save
-   Location** below the save button and choose a folder or **All Presets**.
+3. Check the orange save-location line in the status card. To change it, open
+   **Change Save Location** below the save button and choose a folder or **All
+   Presets**.
 4. Enter a name and select **Save New Preset**.
 
 If that name already exists, confirm **Replace Existing Preset** only when you want to overwrite it.

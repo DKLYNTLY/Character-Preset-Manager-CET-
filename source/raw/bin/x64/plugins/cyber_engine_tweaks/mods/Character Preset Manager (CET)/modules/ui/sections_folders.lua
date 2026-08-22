@@ -9,13 +9,13 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       "Create folders or move presets between them")
     local folderStatus = state.library.selectedFolder == ""
       and (not state.library.selected
-        and "Destination: All Presets. Enter a folder name to add one, or select a preset before moving it."
+        and "Enter a folder name to add one, or select a preset before moving it."
         or (parentFolder(state.library.selected) == ""
-          and "Destination: All Presets. The selected preset is already here."
-          or "Destination: All Presets. The selected preset can be moved here."))
-      or ("Destination: %s. Add a folder or open the selected folder actions.")
-        :format(helpers.breadcrumb(state.library.selectedFolder))
-    drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready")
+          and "The selected preset is already here."
+          or "The selected preset can be moved here."))
+      or "Add a folder or open the selected folder actions."
+    drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready",
+      "Destination: " .. helpers.breadcrumb(state.library.selectedFolder))
     ImGui.Spacing()
     local folderNames = sortedFolderNames()
     drawPageControls("organizeFolders", #folderNames, UI_LIST_PAGE_SIZE, "Folders")

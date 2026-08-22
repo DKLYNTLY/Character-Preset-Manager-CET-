@@ -12,12 +12,11 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       local trashBundleNames = state.trash.cachedBundleNames
       local trashCount = #trashNames + #trashGroupIds + #trashBundleNames
       local trashStatus = state.library.selected
-        and ("Ready to move %s to Trash. %d recoverable item%s currently in Trash.")
-          :format(state.library.selected, trashCount, trashCount == 1 and "" or "s")
-        or ("Select a preset under Load & Restore Appearance to move it to Trash. %d recoverable item%s currently in Trash.")
-          :format(trashCount, trashCount == 1 and "" or "s")
+        and ("Ready to move %s to Trash."):format(state.library.selected)
+        or "Select a preset under Load & Restore Appearance to move it to Trash."
       drawSectionStatus("delete", "##trashStatus", statusHeight, trashStatus,
-        state.library.selected and "ready" or "info")
+        state.library.selected and "ready" or "info",
+        ("Recoverable items: %d"):format(trashCount))
       if state.library.selected then
         local deleteLabel = state.trash.pendingDeleteName == state.library.selected
           and "Confirm Move to Trash##danger"
