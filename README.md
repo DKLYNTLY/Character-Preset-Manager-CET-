@@ -70,9 +70,9 @@ than the smaller selection normally available during play.
   section. **Preset Options** contains actions only.
 - Moves **Force Full Load** under **Preset Options** so it is less likely to be
   turned on accidentally.
-- Makes optional groups full-width subheaders with open and closed arrows,
-  stronger open colors, and dividers around their controls. Only the editor and
-  Load sections start open; saving and library-management sections start closed.
+- Makes optional groups and Help topics use the same gold-on-dark colors as the
+  main section buttons. Full-width arrows and dividers mark opened controls.
+  Only the editor and Load sections start open; other sections start closed.
 - Slow compatibility checks identify whether the game option list or preset
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and

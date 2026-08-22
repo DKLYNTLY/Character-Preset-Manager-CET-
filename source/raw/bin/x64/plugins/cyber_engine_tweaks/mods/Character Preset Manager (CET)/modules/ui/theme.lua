@@ -88,14 +88,11 @@ end
 function compactSubsectionButton(closedLabel, openLabel, key)
   ImGui.Spacing()
   local open = state.ui.openSubsections[key] == true
-  ImGui.PushStyleColor(ImGuiCol.Button,
-    open and 0.16 or 0.10, open and 0.24 or 0.11, open and 0.34 or 0.14, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.28, 0.38, 0.50, 0.92)
-  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.24, 0.32, 0.42, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.Border,
-    open and 0.97 or 0.34, open and 0.72 or 0.37, open and 0.20 or 0.44, 0.88)
-  ImGui.PushStyleColor(ImGuiCol.Text,
-    open and 0.97 or 0.88, open and 0.82 or 0.90, open and 0.42 or 0.94, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Button, 0.055, 0.059, 0.078, 0.98)
+  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.12, 0.09, 0.04, 0.98)
+  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.18, 0.12, 0.04, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
+  ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
   ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.0)
   local marker = open and "v  " or ">  "
   if ImGui.Button(marker .. (open and openLabel or closedLabel) ..

@@ -308,7 +308,13 @@ if state.ui.helpOpen then
         if visible then visibleHelpTopics = visibleHelpTopics + 1 end
         if not visible then return false end
         if appliedHelpQuery ~= "" then return true end
-        return ImGui.CollapsingHeader(title .. "##helpTopic:" .. title)
+        ImGui.PushStyleColor(ImGuiCol.Header, 0.055, 0.059, 0.078, 0.98)
+        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.12, 0.09, 0.04, 0.98)
+        ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.18, 0.12, 0.04, 1.0)
+        ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
+        local open = ImGui.CollapsingHeader(title .. "##helpTopic:" .. title)
+        ImGui.PopStyleColor(4)
+        return open
       end
 
       if showHelpTopic("Main Window & Help Buttons",
