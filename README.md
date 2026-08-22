@@ -65,6 +65,9 @@ than the smaller selection normally available during play.
 - Preset details and the saved-option count are read from the selected preset
   file before they are shown. **Check Compatibility** no longer makes missing
   notes, tags, or source details suddenly appear.
+- Keeps the selected preset's name, folder, saved-option count, source, changed
+  date, tags, and notes together in one bordered card. **Preset Options** now
+  contains actions only.
 - Slow compatibility checks identify whether the game option list or preset
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and

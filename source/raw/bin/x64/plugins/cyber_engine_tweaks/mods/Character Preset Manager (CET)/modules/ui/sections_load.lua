@@ -158,12 +158,28 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
 
     if state.library.selected and state.library.presets[state.library.selected] then
       local preset = state.library.presets[state.library.selected]
+      local tags = tostring(preset.tags or "")
+      local notes = tostring(preset.notes or "")
+      local wrappedDetailLines = 0
+      if tags ~= "" then wrappedDetailLines = wrappedDetailLines + math.max(1, math.ceil((#tags + 6) / 48)) end
+      if notes ~= "" then wrappedDetailLines = wrappedDetailLines + math.max(1, math.ceil((#notes + 7) / 48)) end
+      local presetInfoHeight = math.min(260,
+        128 + wrappedDetailLines * (ImGui.GetFontSize() + 3))
+      ImGui.BeginChild("##selectedPresetInfo", 0, presetInfoHeight, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
         "Preset: " .. baseName(state.library.selected))
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
         ("Folder: %s\nSaved options: %d")
         :format(helpers.breadcrumb(parentFolder(state.library.selected)),
           state.presetEntryCount(preset)))
+      ImGui.Separator()
+      coloredWrapped(1.0, 1.0, 1.0, 1.0,
+        ("Source: %s\nModified: %s")
+          :format(tostring(preset.source or "Older or ACU preset"),
+          tostring(preset.modified or "Unknown")))
+      if tags ~= "" then ImGui.TextWrapped("Tags: " .. tags) end
+      if notes ~= "" then ImGui.TextWrapped("Notes: " .. notes) end
+      ImGui.EndChild()
     end
 
     if compactSubsectionButton("Preset Options",
@@ -184,24 +200,12 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           refreshPreflight()
         end
         if compatibilityUnavailable then ImGui.EndDisabled() end
-        coloredWrapped(1.0, 1.0, 1.0, 1.0,
-          ("Source: %s\nModified: %s")
-            :format(tostring(optionalPreset.source or "Older or ACU preset"),
-            tostring(optionalPreset.modified or "Unknown")))
-        if optionalPreset.tags and optionalPreset.tags ~= "" then
-          ImGui.TextWrapped("Tags: " .. optionalPreset.tags)
-        end
-        if optionalPreset.notes and optionalPreset.notes ~= "" then
-          ImGui.TextWrapped("Notes: " .. optionalPreset.notes)
-        end
         local favoriteLabel = optionalPreset.favorite == true
           and "Remove Selected Preset from Favorites##favoritePreset"
           or "Add Selected Preset to Favorites##favoritePreset"
         if fullWidthButton(favoriteLabel, actionButtonHeight) then
           toggleSelectedPresetFavorite()
         end
-      else
-        ImGui.TextWrapped("Select a preset to check compatibility or use its options.")
       end
       ImGui.Unindent(8)
     end
