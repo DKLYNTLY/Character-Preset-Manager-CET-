@@ -317,7 +317,7 @@ if state.ui.helpOpen then
       if showHelpTopic("Main Window & Help Buttons",
           "button buttons controls interface section header open close settings help log search clear find title window") then
       helpHeading("Main Window & Help Buttons")
-      ImGui.TextWrapped("Select any section header to open or close that section. Its arrow shows whether the section is open. The window's X closes Character Preset Manager without closing CET.")
+      ImGui.TextWrapped("Select any section header to open or close that section. Its arrow shows whether the section is open, and a divider line separates it from the previous section. The window's X closes Character Preset Manager without closing CET.")
       ImGui.TextWrapped("Each section places its status card below the introductory text and above its controls. The important current value appears on a separate orange line, followed by the instruction or result. Blue means information, green means ready or success, yellow means warning, and red means error.")
       helpButton("Settings", "Opens or closes the mod's preferences. Opening it closes Help and the Activity Log.")
       helpButton("Help", "Opens or closes this searchable Help panel. Opening it closes Settings and the Activity Log.")

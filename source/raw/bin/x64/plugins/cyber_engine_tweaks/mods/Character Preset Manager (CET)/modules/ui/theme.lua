@@ -81,6 +81,8 @@ end
 
 function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
+  ImGui.Separator()
+  ImGui.Spacing()
   pushFoldingHeaderTheme()
   local defaultFlag = state.ui.openSections[key] ~= false and 32 or 0
   local open = ImGui.CollapsingHeader(label .. "##CPMSectionV2:" .. key,

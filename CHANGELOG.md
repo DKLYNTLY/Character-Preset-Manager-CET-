@@ -26,6 +26,8 @@ used. See the README and in-game Help for current instructions.
   near-black background with white text. Optional controls return to compact,
   centered charcoal buttons with orange text so they remain clearly secondary.
   Only editor and Load start open.
+- Adds a divider line before every main section, making section boundaries easy
+  to see without relying only on the header text.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
   before selecting an action.
