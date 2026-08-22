@@ -158,28 +158,11 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
 
     if state.library.selected and state.library.presets[state.library.selected] then
       local preset = state.library.presets[state.library.selected]
-      local tags = tostring(preset.tags or "")
-      local notes = tostring(preset.notes or "")
-      local wrappedDetailLines = 0
-      if tags ~= "" then wrappedDetailLines = wrappedDetailLines + math.max(1, math.ceil((#tags + 6) / 48)) end
-      if notes ~= "" then wrappedDetailLines = wrappedDetailLines + math.max(1, math.ceil((#notes + 7) / 48)) end
-      local presetInfoHeight = math.min(260,
-        128 + wrappedDetailLines * (ImGui.GetFontSize() + 3))
-      ImGui.BeginChild("##selectedPresetInfo", 0, presetInfoHeight, true)
-      ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
-        "Preset: " .. baseName(state.library.selected))
-      coloredWrapped(1.0, 1.0, 1.0, 1.0,
-        ("Folder: %s\nSaved options: %d")
-        :format(helpers.breadcrumb(parentFolder(state.library.selected)),
-          state.presetEntryCount(preset)))
-      ImGui.Separator()
-      coloredWrapped(1.0, 1.0, 1.0, 1.0,
-        ("Source: %s\nModified: %s")
-          :format(tostring(preset.source or "Older or ACU preset"),
-          tostring(preset.modified or "Unknown")))
-      if tags ~= "" then ImGui.TextWrapped("Tags: " .. tags) end
-      if notes ~= "" then ImGui.TextWrapped("Notes: " .. notes) end
-      ImGui.EndChild()
+      coloredWrapped(0.97, 0.72, 0.20, 1.0,
+        ("%s  |  %s  |  %d options  |  Format %s")
+          :format(baseName(state.library.selected),
+          helpers.breadcrumb(parentFolder(state.library.selected)),
+          state.presetEntryCount(preset), tostring(preset.format or 4)))
     end
 
     if compactSubsectionButton("Preset Options",
@@ -200,6 +183,19 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           refreshPreflight()
         end
         if compatibilityUnavailable then ImGui.EndDisabled() end
+        if state.load.auto then ImGui.BeginDisabled() end
+        local forceLoadLabel = state.load.forceFull
+          and "Force Full Load: On##forceFullLoad"
+          or "Force Full Load: Off##forceFullLoad"
+        if fullWidthButton(forceLoadLabel, actionButtonHeight) then
+          state.load.forceFull = not state.load.forceFull
+          resetLoadState()
+          state.invalidatePreflight()
+          clearStatus("load")
+          log(("[UI] Force Full Load toggled %s.")
+            :format(state.load.forceFull and "on" or "off"), "info")
+        end
+        if state.load.auto then ImGui.EndDisabled() end
         local favoriteLabel = optionalPreset.favorite == true
           and "Remove Selected Preset from Favorites##favoritePreset"
           or "Add Selected Preset to Favorites##favoritePreset"
@@ -210,19 +206,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       ImGui.Unindent(8)
     end
 
-    if state.load.auto then ImGui.BeginDisabled() end
-    local forceLoadLabel = state.load.forceFull
-      and "Force Full Load: On##forceFullLoad"
-      or "Force Full Load: Off##forceFullLoad"
-    if fullWidthButton(forceLoadLabel, actionButtonHeight) then
-      state.load.forceFull = not state.load.forceFull
-      resetLoadState()
-      state.invalidatePreflight()
-      clearStatus("load")
-      log(("[UI] Force Full Load toggled %s.")
-        :format(state.load.forceFull and "on" or "off"), "info")
-    end
-    if state.load.auto then ImGui.EndDisabled() end
     local loadUnavailable = not state.library.selected or not state.app.inCustomization
     local loadLabel
     if state.load.auto then

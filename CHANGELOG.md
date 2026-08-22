@@ -18,8 +18,10 @@ used. See the README and in-game Help for current instructions.
   Load status card.
 - Reads the selected preset's saved-option count and details before displaying
   them. **Check Compatibility** no longer changes its source, notes, or tags.
-- Groups all selected-preset information in one bordered card. **Preset
-  Options** contains only the compatibility and favorite actions.
+- Restores one compact selected-preset line for its name, folder, saved-option
+  count, and format. **Preset Options** contains **Check Compatibility**, the
+  favorite action, and **Force Full Load** so it is less likely to be enabled
+  accidentally.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
   while a preset is selected. Opening CET, refreshing presets, changing Force
   Full Load, and finishing a load also no longer start the display-only scan.

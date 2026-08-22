@@ -65,9 +65,11 @@ than the smaller selection normally available during play.
 - Preset details and the saved-option count are read from the selected preset
   file before they are shown. **Check Compatibility** no longer makes missing
   notes, tags, or source details suddenly appear.
-- Keeps the selected preset's name, folder, saved-option count, source, changed
-  date, tags, and notes together in one bordered card. **Preset Options** now
-  contains actions only.
+- Uses one compact line for the selected preset's name, folder, saved-option
+  count, and format. Source, date, tags, and notes are not repeated in the Load
+  section. **Preset Options** contains actions only.
+- Moves **Force Full Load** under **Preset Options** so it is less likely to be
+  turned on accidentally.
 - Slow compatibility checks identify whether the game option list or preset
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and
@@ -198,7 +200,7 @@ Always check the result after changing option mods.
 
 Force Full Load turns on automatically for older presets that need position-based
 matching and turns off when you select a current preset. You can still change it
-manually under **Load & Restore Appearance**.
+manually under **Load & Restore Appearance > Preset Options**.
 
 When Force Full Load applies a renamed option from an older preset, post-load
 cleanup protects that exact live match. The protection remains only while its
