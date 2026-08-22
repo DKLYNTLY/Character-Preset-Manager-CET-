@@ -379,7 +379,7 @@ if state.ui.helpOpen then
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")
       helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorite presets also appear in the Favorites group.")
       helpButton("Preset Options", "Below the main load and restore buttons, this shows or hides Check Compatibility, Force Full Load, and the favorite action.")
-      ImGui.TextWrapped("Main sections, Help topics, buttons, and selected preset rows use one orange color family. Optional controls use charcoal headers with orange text so they remain separate from main sections. Saving and library-management sections start closed.")
+      ImGui.TextWrapped("Main sections, Help topics, buttons, and selected preset rows use one orange color family. Main headers use white text and become darker when hovered. Optional controls use charcoal headers with orange text so they remain separate from main sections. Saving and library-management sections start closed.")
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")

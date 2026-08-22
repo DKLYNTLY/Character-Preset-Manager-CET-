@@ -71,7 +71,8 @@ than the smaller selection normally available during play.
 - Moves **Force Full Load** under **Preset Options** so it is less likely to be
   turned on accidentally.
 - Uses one orange family across buttons, selected rows, and folding headers.
-  Main section headers use dark burnt orange with gold text. Optional controls
+  Main section headers use dark burnt orange with white text and become darker
+  when hovered, matching the original button behavior. Optional controls
   use a charcoal header with orange text so they cannot be mistaken for a main
   section. Green, yellow, and red remain reserved for status meaning. Only the
   editor and Load sections start open.

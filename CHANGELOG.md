@@ -24,8 +24,9 @@ used. See the README and in-game Help for current instructions.
   accidentally.
 - Replaces custom optional-group buttons with built-in folding headers. Main
   sections, optional groups, Help topics, buttons, and selected preset rows now
-  share one orange color family. Main section headers use gold text on dark
-  burnt-orange. Optional controls use charcoal headers with orange text so they
+  share one orange color family. Main section headers use white text on dark
+  burnt-orange and become darker when hovered, matching the original button
+  behavior. Optional controls use charcoal headers with orange text so they
   remain clearly secondary. Only editor and Load start open.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
