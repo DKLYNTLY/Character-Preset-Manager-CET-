@@ -6,17 +6,14 @@ local _ENV = runtime
 drawFoldersSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      "Select how new or moved presets are organized")
-    ImGui.TextWrapped("Selected destination: " .. helpers.breadcrumb(state.library.selectedFolder))
-    coloredWrapped(1.0, 1.0, 1.0, 1.0,
-      "Folders made in CET have no set limit. Imported folders are Windows folders inside Character Presets.")
+      "Create folders or move presets between them")
     local folderStatus = state.library.selectedFolder == ""
       and (not state.library.selected
-        and "All Presets is selected. Enter a folder name to add one, or select a preset before moving it."
+        and "Destination: All Presets. Enter a folder name to add one, or select a preset before moving it."
         or (parentFolder(state.library.selected) == ""
-          and "All Presets is selected. The selected preset is already here."
-          or "All Presets is selected. The selected preset can be moved here."))
-      or ("Folder selected: %s. Add a folder or use the selected folder actions.")
+          and "Destination: All Presets. The selected preset is already here."
+          or "Destination: All Presets. The selected preset can be moved here."))
+      or ("Destination: %s. Add a folder or open the selected folder actions.")
         :format(helpers.breadcrumb(state.library.selectedFolder))
     drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready")
     ImGui.Spacing()

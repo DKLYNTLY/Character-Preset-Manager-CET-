@@ -207,6 +207,43 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           state.presetEntryCount(preset), tostring(preset.format or 4)))
     end
 
+    local loadUnavailable = not state.library.selected or not state.app.inCustomization
+    local loadLabel
+    if state.load.auto then
+      loadLabel = ("Loading... (pass %d)"):format(state.load.pass)
+    elseif state.load.needsContinue then
+      loadLabel = ("Continue Loading Preset (%d remaining)"):format(state.load.remaining)
+    else
+      loadLabel = "Load Selected Preset"
+    end
+    local loadButtonDisabled = loadUnavailable or state.load.auto
+    if loadButtonDisabled then ImGui.BeginDisabled() end
+    if fullWidthButton(loadLabel .. "##loadPreset", actionButtonHeight) then
+      if not state.load.needsContinue then
+        resetLoadState()
+      end
+      state.load.autoTimer = 0
+      state.load.autoPasses = 0
+      state.load.resetBefore = true
+      loadPreset()
+      if state.load.needsContinue then state.load.auto = true end
+    end
+    if loadButtonDisabled then ImGui.EndDisabled() end
+    if state.load.auto or state.load.needsContinue then
+      if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), actionButtonHeight) then
+        cancelLoading()
+      end
+    end
+    local restoreFileAvailable = state.load.recoverySnapshotAvailable == true
+    local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
+      or state.load.auto or state.load.needsContinue
+    if restoreUnavailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Restore Previous Appearance##restoreAppearance",
+        actionButtonHeight) then
+      restoreLastAppearance()
+    end
+    if restoreUnavailable then ImGui.EndDisabled() end
+
     if compactSubsectionButton("Preset Options",
         "Hide Preset Options", "loadFavorites") then
       ImGui.Indent(8)
@@ -247,43 +284,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       end
       finishCompactSubsection()
     end
-
-    local loadUnavailable = not state.library.selected or not state.app.inCustomization
-    local loadLabel
-    if state.load.auto then
-      loadLabel = ("Loading... (pass %d)"):format(state.load.pass)
-    elseif state.load.needsContinue then
-      loadLabel = ("Continue Loading Preset (%d remaining)"):format(state.load.remaining)
-    else
-      loadLabel = "Load Selected Preset"
-    end
-    local loadButtonDisabled = loadUnavailable or state.load.auto
-    if loadButtonDisabled then ImGui.BeginDisabled() end
-    if fullWidthButton(loadLabel .. "##loadPreset", actionButtonHeight) then
-      if not state.load.needsContinue then
-        resetLoadState()
-      end
-      state.load.autoTimer = 0
-      state.load.autoPasses = 0
-      state.load.resetBefore = true
-      loadPreset()
-      if state.load.needsContinue then state.load.auto = true end
-    end
-    if loadButtonDisabled then ImGui.EndDisabled() end
-    if state.load.auto or state.load.needsContinue then
-      if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), actionButtonHeight) then
-        cancelLoading()
-      end
-    end
-    local restoreFileAvailable = state.load.recoverySnapshotAvailable == true
-    local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
-      or state.load.auto or state.load.needsContinue
-    if restoreUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Restore Previous Appearance##restoreAppearance",
-        actionButtonHeight) then
-      restoreLastAppearance()
-    end
-    if restoreUnavailable then ImGui.EndDisabled() end
 
     end
 end

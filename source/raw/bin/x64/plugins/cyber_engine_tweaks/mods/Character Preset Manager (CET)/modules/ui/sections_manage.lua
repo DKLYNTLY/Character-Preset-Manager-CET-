@@ -7,13 +7,7 @@ drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight,
 if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
       local selectedPresetAvailable = state.library.selected
         and state.library.presets[state.library.selected]
-      if not selectedPresetAvailable then
-        ImGui.TextWrapped("Choose a preset under Load & Restore Appearance.")
-      else
-        ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
-          "Selected preset")
-        ImGui.TextWrapped(state.library.selected)
-      end
+      ImGui.TextWrapped("Rename, copy, or edit the selected preset.")
       local manageStatus = state.library.selected
         and ("Ready to rename, copy, or edit %s."):format(state.library.selected)
         or "Select a preset under Load & Restore Appearance to rename, copy, or edit it."

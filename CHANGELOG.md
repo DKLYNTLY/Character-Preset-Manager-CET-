@@ -28,6 +28,9 @@ used. See the README and in-game Help for current instructions.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
   before selecting an action.
+- Places optional folding headers after each section's main actions. The Save
+  status card now includes the selected save location, and repeated section
+  details were removed to keep the main path clear.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
   while a preset is selected. Opening CET, refreshing presets, changing Force
   Full Load, and finishing a load also no longer start the display-only scan.

@@ -370,7 +370,7 @@ if state.ui.helpOpen then
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
-      ImGui.TextWrapped("Open Preset Options and select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
+      ImGui.TextWrapped("Open Preset Options below the main load and restore buttons, then select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
       ImGui.TextWrapped("Force Full Load is under Preset Options to reduce accidental use. Its cautions appear in the Load status card.")
       ImGui.TextWrapped("Restore Previous Appearance follows the normal loading controls. It uses the recovery snapshot saved before the newest normal preset load.")
       ImGui.TextWrapped("The compact selected-preset line shows its name, folder, saved-option count, and format. Open Preset Options for actions only.")
@@ -378,7 +378,7 @@ if state.ui.helpOpen then
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")
       helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorite presets also appear in the Favorites group.")
-      helpButton("Preset Options", "Shows or hides Check Compatibility, Force Full Load, and the favorite action. The compact preset summary stays above it.")
+      helpButton("Preset Options", "Below the main load and restore buttons, this shows or hides Check Compatibility, Force Full Load, and the favorite action.")
       ImGui.TextWrapped("Main sections, optional groups, and Help topics use the same blue highlight as selected preset rows. Saving and library-management sections start closed.")
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
@@ -394,10 +394,10 @@ if state.ui.helpOpen then
           "save create overwrite confirm replace destination location folder all presets new preset name hide button") then
       helpHeading("Save & Replace Presets")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Under Save & Replace Presets, open Save Location.")
-      ImGui.TextWrapped("3. Choose a folder or All Presets, then enter a name.")
-      ImGui.TextWrapped("4. Select Save New Preset. Only select Confirm Overwrite if you want to replace an existing preset.")
-      helpButton("Save Location", "Shows or hides the list of folders where the new preset can be saved.")
+      ImGui.TextWrapped("2. Check the save location in the status card.")
+      ImGui.TextWrapped("3. Enter a name and select Save New Preset. Only select Confirm Overwrite if you want to replace an existing preset.")
+      ImGui.TextWrapped("4. To use another location, open Save Location below the save button and choose a folder or All Presets before saving.")
+      helpButton("Save Location", "Below the main save button, this shows or hides the list of folders where the new preset can be saved.")
       helpButton("All Presets and folder rows", "Chooses the save location. All Presets saves outside every folder.")
       helpButton("Save New Preset", "Saves the appearance currently shown in the open character editor using the entered name and chosen location.")
       helpButton("Confirm Overwrite", "Replaces the existing preset with the same name and location. It appears only after Save New Preset finds that name already in use.")
@@ -406,6 +406,7 @@ if state.ui.helpOpen then
       if showHelpTopic("Create & Organize Folders",
           "organize folder folders add rename copy duplicate move remove keep delete trash confirm all presets selected actions imported windows button") then
       helpHeading("Create & Organize Folders")
+      ImGui.TextWrapped("The status card shows the destination used by the folder and preset actions.")
       ImGui.TextWrapped("Select a folder row under Load & Restore Appearance to open or close it. Presets that are not in a folder appear under All Presets.")
       ImGui.TextWrapped("To favorite a preset, choose it under Load & Restore Appearance, open Preset Options, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")

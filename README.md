@@ -76,6 +76,9 @@ than the smaller selection normally available during play.
 - Places every section's status card directly below its introductory text and
   above its controls, so warnings and required steps are visible before an
   action is selected.
+- Keeps the main action path clear by placing optional folding headers after
+  the main buttons. Changing details such as the save location now appear in
+  the status card instead of being repeated as separate lines.
 - Slow compatibility checks identify whether the game option list or preset
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and
@@ -148,9 +151,9 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.6 does 
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
 2. Open Character Preset Manager in CET.
-3. Under **Save & Replace Presets**, open **Save Location**.
-4. Choose a folder or **All Presets**.
-5. Enter a name and select **Save New Preset**.
+3. Check the save location in the status card. To change it, open **Save
+   Location** below the save button and choose a folder or **All Presets**.
+4. Enter a name and select **Save New Preset**.
 
 If that name already exists, confirm **Replace Existing Preset** only when you want to overwrite it.
 
@@ -164,7 +167,8 @@ refreshes and the final appearance.
 1. Open one of the supported character screens listed above.
 2. Choose a preset under **Load & Restore Appearance**.
 3. Check its name, folder, and number of saved options.
-4. To compare it with the open editor first, open **Preset Options** and select
+4. To compare it with the open editor first, open **Preset Options** below the
+   main load and restore buttons, then select
    **Check Compatibility**. The Load status card shows the found, missing,
    repeated, and invalid totals.
 5. Select **Load Selected Preset** once.
