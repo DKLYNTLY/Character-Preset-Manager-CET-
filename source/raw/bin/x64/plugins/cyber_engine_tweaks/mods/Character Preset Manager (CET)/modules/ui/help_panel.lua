@@ -308,16 +308,18 @@ if state.ui.helpOpen then
         if visible then visibleHelpTopics = visibleHelpTopics + 1 end
         if not visible then return false end
         if appliedHelpQuery ~= "" then return true end
-        pushFoldingHeaderTheme()
-        local open = ImGui.CollapsingHeader(title .. "##helpTopic:" .. title)
-        popFoldingHeaderTheme()
+        local open = state.ui.openHelpTopics[title] == true
+        if sectionBarButton(title, "helpTopic:" .. title, open, true, 28) then
+          open = not open
+          state.ui.openHelpTopics[title] = open
+        end
         return open
       end
 
       if showHelpTopic("Main Window & Help Buttons",
           "button buttons controls interface section header open close settings help log search clear find title window") then
       helpHeading("Main Window & Help Buttons")
-      ImGui.TextWrapped("Select any section heading to open or close that section. The window's X closes Character Preset Manager without closing CET.")
+      ImGui.TextWrapped("Select any section bar to open or close that section. The bars do not use arrows, so the triangle in the title bar always means the whole mod window. The window's X closes Character Preset Manager without closing CET.")
       ImGui.TextWrapped("Each section places its status card below the introductory text and above its controls. The important current value appears on a separate orange line, followed by the instruction or result.")
       helpButton("Settings", "Opens or closes the mod's preferences. Opening it closes Help and the Activity Log.")
       helpButton("Help", "Opens or closes this searchable Help panel. Opening it closes Settings and the Activity Log.")

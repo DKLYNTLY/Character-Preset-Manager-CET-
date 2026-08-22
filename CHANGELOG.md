@@ -22,16 +22,17 @@ used. See the README and in-game Help for current instructions.
   count, and format. **Preset Options** contains **Check Compatibility**, the
   favorite action, and **Force Full Load** so it is less likely to be enabled
   accidentally.
-- Replaces custom optional-group buttons with built-in folding headers. Main
-  sections, optional groups, Help topics, buttons, and selected preset rows now
-  share one orange color family. Main section headers use white text on dark
-  burnt-orange and become darker when hovered, matching the original button
-  behavior. Optional controls use charcoal headers with orange text so they
-  remain clearly secondary. Only editor and Load start open.
+- Uses custom toggle bars for main sections, optional groups, and Help topics.
+  These controls, action buttons, and selected preset rows now
+  share one orange color family. Main sections use left-aligned toggle bars
+  without arrows: open bars are burnt orange with white text, while closed bars
+  are charcoal. Optional controls use smaller charcoal bars with orange text.
+  The window title is the only bar with a collapse triangle. Only editor and
+  Load start open.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
   before selecting an action.
-- Places optional folding headers after each section's main actions. The Save
+- Places optional control bars after each section's main actions. The Save
   status card now includes the selected save location, and repeated section
   details were removed to keep the main path clear.
 - Separates the important value in every status card from its instruction or

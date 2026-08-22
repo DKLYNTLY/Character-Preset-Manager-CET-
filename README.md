@@ -70,16 +70,16 @@ than the smaller selection normally available during play.
   section. **Preset Options** contains actions only.
 - Moves **Force Full Load** under **Preset Options** so it is less likely to be
   turned on accidentally.
-- Uses one orange family across buttons, selected rows, and folding headers.
-  Main section headers use dark burnt orange with white text and become darker
-  when hovered, matching the original button behavior. Optional controls
-  use a charcoal header with orange text so they cannot be mistaken for a main
-  section. Green, yellow, and red remain reserved for status meaning. Only the
-  editor and Load sections start open.
+- Uses one orange family across buttons, selected rows, and section bars.
+  Main sections now use left-aligned toggle bars without arrows. Open bars use
+  dark burnt orange with white text and become darker when hovered. Closed bars
+  use charcoal. Optional controls use smaller charcoal bars with orange text.
+  The title bar is the only place that uses a collapse triangle. Green, yellow,
+  and red remain reserved for status meaning. Only editor and Load start open.
 - Places every section's status card directly below its introductory text and
   above its controls, so warnings and required steps are visible before an
   action is selected.
-- Keeps the main action path clear by placing optional folding headers after
+- Keeps the main action path clear by placing optional control bars after
   the main buttons. Changing details such as the save location now appear in
   the status card instead of being repeated as separate lines.
 - Gives every status card a separate orange context line for its important
@@ -89,7 +89,7 @@ than the smaller selection normally available during play.
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and
   Activity Log lists use pages instead of drawing every item on every frame.
-- Help shows compact topic headings. Select one to read it, or search to show
+- Help shows compact topic bars. Select one to read it, or search to show
   matching instructions directly.
 - Backup-file discovery and previous-appearance availability are remembered
   instead of checking the drive every frame. **Refresh Backup File List** finds

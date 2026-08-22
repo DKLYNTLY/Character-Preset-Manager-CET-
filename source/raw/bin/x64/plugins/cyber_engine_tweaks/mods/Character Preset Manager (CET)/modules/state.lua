@@ -141,6 +141,7 @@ state = {
       settingsFile = false,
       advancedDiagnostics = false,
     },
+    openHelpTopics = {},
     helpOpen = false,
     helpSearchText = "",
     helpAppliedSearchText = "",
