@@ -1161,8 +1161,6 @@ function loadPreset()
     log("[load] " .. tostring(optionsError), "warn")
     return
   end
-  if state.load.presetName ~= loadName and not state.load.overridePreset then refreshPreflight() end
-
   local preset = selectedPreset
   local values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
   if state.load.presetName == loadName then
@@ -1184,7 +1182,6 @@ function loadPreset()
       and not state.load.pendingChange then
     helpers.releaseFinishedLoadWorkingData()
     state.invalidatePreflight()
-    if state.app.overlayOpen and state.app.windowOpen then refreshPreflight() end
   end
   return result
 end

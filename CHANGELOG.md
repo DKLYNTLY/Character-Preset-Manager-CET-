@@ -11,9 +11,14 @@ used. See the README and in-game Help for current instructions.
 
 *Smoother CET performance for large appearance setups and libraries.*
 
+- Keeps preset selection lightweight by showing only the preset name, folder,
+  and saved-option count. It no longer starts a compatibility scan.
+- Adds **Check Compatibility** under **Preset Options**. The scan runs once when
+  selected, and its found, missing, repeated, and invalid totals appear in the
+  Load status card.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
-  while a preset is selected. The check now runs when the selected preset,
-  editor, overlay, or relevant loading setting changes.
+  while a preset is selected. Opening CET, refreshing presets, changing Force
+  Full Load, and finishing a load also no longer start the display-only scan.
 - Records a performance warning only when retrieving appearance options or
   matching a preset takes at least 0.05 seconds. The warning separates the time
   spent retrieving game options from the time spent matching the preset.

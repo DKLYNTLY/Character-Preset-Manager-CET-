@@ -331,7 +331,6 @@ events.onOverlayOpen = function()
   state.ui.cachedWindowX = nil
   state.ui.cachedDisplayWidth = nil
   refreshEditorState()
-  refreshPreflight()
 end
 
 events.onOverlayClose = function()

@@ -39,7 +39,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         state.library.presetNotes = state.library.presets[state.library.selected].notes or ""
         state.library.presetTags = state.library.presets[state.library.selected].tags or ""
       end
-      refreshPreflight()
       local added = changes and changes.added or 0
       local removed = changes and changes.removed or 0
       local updated = changes and changes.modified or 0
@@ -125,7 +124,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           clearStatus("load")
           clearStatus("rename")
           clearStatus("delete")
-          refreshPreflight()
         end
       end
       local firstRow, lastRow = pagedRange("loadPresets",
@@ -156,24 +154,34 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     ImGui.EndChild()
     ImGui.Spacing()
 
-    if state.load.preflightDirty or state.load.preflightPresetName ~= state.library.selected then
-      refreshPreflight()
-    end
     if state.library.selected and state.library.presets[state.library.selected] then
       local preset = state.library.presets[state.library.selected]
-      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, baseName(state.library.selected))
+      ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
+        "Preset: " .. baseName(state.library.selected))
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
-        ("%s  |  %d options  |  Format %s")
-        :format(helpers.breadcrumb(parentFolder(state.library.selected)), state.presetEntryCount(preset),
-          tostring(preset.format or 4)))
+        ("Folder: %s\nSaved options: %d")
+        :format(helpers.breadcrumb(parentFolder(state.library.selected)),
+          state.presetEntryCount(preset)))
     end
 
-    if compactSubsectionButton("Favorites & Details",
-        "Hide Favorites & Details", "loadFavorites") then
+    if compactSubsectionButton("Preset Options",
+        "Hide Preset Options", "loadFavorites") then
       ImGui.Indent(8)
       local optionalPreset = state.library.selected
         and state.library.presets[state.library.selected]
       if optionalPreset then
+        local compatibilityUnavailable = not state.app.inCustomization
+          or state.load.auto or state.load.needsContinue
+        if compatibilityUnavailable then ImGui.BeginDisabled() end
+        if fullWidthButton("Check Compatibility##checkCompatibility",
+            actionButtonHeight) then
+          clearStatus("load")
+          state.invalidatePreflight()
+          log(("[UI] Compatibility check requested for '%s'.")
+            :format(state.library.selected), "info")
+          refreshPreflight()
+        end
+        if compatibilityUnavailable then ImGui.EndDisabled() end
         coloredWrapped(1.0, 1.0, 1.0, 1.0,
           ("Source: %s\nModified: %s")
             :format(tostring(optionalPreset.source or "Older or ACU preset"),
@@ -191,7 +199,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           toggleSelectedPresetFavorite()
         end
       else
-        ImGui.TextWrapped("Select a preset to use Favorites or view its details.")
+        ImGui.TextWrapped("Select a preset to check compatibility or use its options.")
       end
       ImGui.Unindent(8)
     end
@@ -204,7 +212,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       state.load.forceFull = not state.load.forceFull
       resetLoadState()
       state.invalidatePreflight()
-      refreshPreflight()
       clearStatus("load")
       log(("[UI] Force Full Load toggled %s.")
         :format(state.load.forceFull and "on" or "off"), "info")

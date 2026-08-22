@@ -45,7 +45,7 @@ than the smaller selection normally available during play.
 - **Full apartment mirror options** — Use the complete character-creation option set through normal apartment mirrors.
 - **One-click loading** — Select a preset once while the mod waits for Cyberpunk to refresh the editor.
 - **Cosmetic cleanup** — After applying a preset, clear visible appearance options that were not part of it.
-- **Search and compatibility checks** — Find presets by name, folder, or tag and see whether the current editor has the options they need.
+- **Search and compatibility checks** — Find presets by name, folder, or tag. Run a compatibility check only when you need it.
 - **Unlimited nested folders** — Organize presets in folders and folders inside folders, with no set limit.
 - **Preset and folder copies** — Copy one preset or a complete folder group.
 - **Readable format-8 files** — See the CPM marker, preset name, CET library folder, dates, notes, tags, favorite status, and appearance choices in plain text.
@@ -58,9 +58,10 @@ than the smaller selection normally available during play.
 
 ### What changed in 3.0.6
 
-- Selecting a preset no longer repeats the complete compatibility scan every
-  0.75 seconds. Compatibility updates when the preset, editor, overlay, or a
-  related loading control changes.
+- Selecting a preset shows its name, folder, and saved-option count without
+  scanning the game's appearance options. Open **Preset Options** and select
+  **Check Compatibility** to run the scan once and show its result in the Load
+  status card.
 - Slow compatibility checks identify whether the game option list or preset
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and
@@ -148,9 +149,12 @@ refreshes and the final appearance.
 
 1. Open one of the supported character screens listed above.
 2. Choose a preset under **Load & Restore Appearance**.
-3. Check its folder, number of saved options, source, details, and compatibility summary.
-4. Select **Load Selected Preset** once.
-5. Wait for the final result. A green message means every saved option was
+3. Check its name, folder, and number of saved options.
+4. To compare it with the open editor first, open **Preset Options** and select
+   **Check Compatibility**. The Load status card shows the found, missing,
+   repeated, and invalid totals.
+5. Select **Load Selected Preset** once.
+6. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
 
 **Restore Previous Appearance** is under **Load & Restore Appearance**. Before
@@ -161,9 +165,10 @@ Cyberpunk may refresh the editor several times. The mod waits and continues on
 its own. It applies the saved appearance before clearing any remaining options,
 then checks the preset again. Select **Cancel Loading** if you need to stop.
 
-The compatibility summary refreshes while the mod and character editor are open.
-It updates after the editor changes without making you select a different preset
-and switch back. Other selected-preset details update at the same time.
+Compatibility is not checked when you select a preset, open CET, refresh the
+preset list, change Force Full Load, or finish loading. Open **Preset Options**
+and select **Check Compatibility** whenever you want a current result. This
+avoids scanning large appearance-option lists while you browse presets.
 
 Automatic loading checks a pending change quickly, then leaves more time between
 ordinary passes. It reuses the option list during the same update and avoids
@@ -250,7 +255,7 @@ because they were found or loaded.
 - **Copy File Path** inside those optional preset tools copies the selected preset's
   complete path from the Cyberpunk 2077 game folder.
 
-Choose a preset under **Load & Restore Appearance**, then open **Favorites & Details**
+Choose a preset under **Load & Restore Appearance**, then open **Preset Options**
 and select **Add Selected Preset to Favorites**. The same button removes it from Favorites
 later. Favorites remain in their original folders and also appear in a pinned
 group above the regular folder list. This choice is stored inside the readable
