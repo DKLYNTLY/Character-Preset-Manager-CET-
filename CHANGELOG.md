@@ -22,13 +22,10 @@ used. See the README and in-game Help for current instructions.
   count, and format. **Preset Options** contains **Check Compatibility**, the
   favorite action, and **Force Full Load** so it is less likely to be enabled
   accidentally.
-- Uses custom toggle bars for main sections, optional groups, and Help topics.
-  These controls, action buttons, and selected preset rows now
-  share one orange color family. Main sections use left-aligned toggle bars
-  without arrows: open bars are burnt orange with white text, while closed bars
-  are charcoal. Optional controls use smaller charcoal bars with orange text.
-  The window title is the only bar with a collapse triangle. Only editor and
-  Load start open.
+- Uses familiar arrow headers for main sections and Help topics. They have a
+  near-black background with white text. Optional controls return to compact,
+  centered charcoal buttons with orange text so they remain clearly secondary.
+  Only editor and Load start open.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
   before selecting an action.

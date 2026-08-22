@@ -67,47 +67,25 @@ function popTheme()
   ImGui.PopStyleColor(#THEME_COLORS)
 end
 
-function pushSectionBarTheme(open, optional)
-  if optional then
-    ImGui.PushStyleColor(ImGuiCol.Button, 0.11, 0.12, 0.15, 0.96)
-    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.20, 0.10, 0.02, 0.98)
-    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.30, 0.16, 0.03, 1.0)
-    ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.58, 0.16, 1.0)
-  elseif open then
-    ImGui.PushStyleColor(ImGuiCol.Button, 0.44, 0.25, 0.05, 0.95)
-    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.30, 0.16, 0.03, 0.98)
-    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.24, 0.12, 0.02, 1.0)
-    ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
-  else
-    ImGui.PushStyleColor(ImGuiCol.Button, 0.11, 0.12, 0.15, 0.96)
-    ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.30, 0.16, 0.03, 0.98)
-    ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.24, 0.12, 0.02, 1.0)
-    ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
-  end
+function pushFoldingHeaderTheme()
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.055, 0.059, 0.078, 0.98)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.12, 0.09, 0.04, 0.98)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.18, 0.12, 0.04, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
-  ImGui.PushStyleVar(ImGuiStyleVar.ButtonTextAlign, 0.0, 0.5)
 end
 
-function popSectionBarTheme()
-  ImGui.PopStyleVar(1)
+function popFoldingHeaderTheme()
   ImGui.PopStyleColor(5)
-end
-
-function sectionBarButton(label, id, open, optional, height)
-  pushSectionBarTheme(open, optional)
-  local pressed = ImGui.Button(label .. "##" .. id,
-    ImGui.GetContentRegionAvail(), height or 30)
-  popSectionBarTheme()
-  return pressed
 end
 
 function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
-  local open = state.ui.openSections[key] == true
-  if sectionBarButton(label, "CPMSectionBar:" .. key, open, false, 30) then
-    open = not open
-    state.ui.openSections[key] = open
-  end
+  pushFoldingHeaderTheme()
+  local defaultFlag = state.ui.openSections[key] ~= false and 32 or 0
+  local open = ImGui.CollapsingHeader(label .. "##CPMSectionV2:" .. key,
+    defaultFlag)
+  popFoldingHeaderTheme()
   if open then ImGui.Spacing() end
   return open
 end
@@ -117,14 +95,27 @@ function fullWidthButton(label, height)
   return ImGui.Button(label, width, height or 32)
 end
 
-function compactSubsectionButton(closedLabel, _, key)
+function compactSubsectionButton(closedLabel, openLabel, key)
   ImGui.Spacing()
   local open = state.ui.openSubsections[key] == true
-  if sectionBarButton(closedLabel, "CPMSubsectionBar:" .. key,
-      open, true, 28) then
+  local closedWidth = ImGui.CalcTextSize(closedLabel)
+  local openWidth = ImGui.CalcTextSize(openLabel)
+  local availableWidth = ImGui.GetContentRegionAvail()
+  local width = math.min(math.max(closedWidth, openWidth) + 24, availableWidth)
+  local startX = ImGui.GetCursorPosX()
+  ImGui.SetCursorPosX(startX + math.max(0, (availableWidth - width) * 0.5))
+  ImGui.PushStyleColor(ImGuiCol.Button, 0.10, 0.11, 0.14, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.20, 0.10, 0.02, 0.98)
+  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.30, 0.16, 0.03, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
+  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.72, 0.24, 1.0)
+  if ImGui.Button((open and openLabel or closedLabel) ..
+      "##CPMSubsection:" .. key, width, 26) then
     open = not open
     state.ui.openSubsections[key] = open
   end
+  ImGui.PopStyleColor(5)
+  ImGui.SetCursorPosX(startX)
   if open then
     ImGui.Spacing()
     ImGui.Separator()

@@ -70,12 +70,11 @@ than the smaller selection normally available during play.
   section. **Preset Options** contains actions only.
 - Moves **Force Full Load** under **Preset Options** so it is less likely to be
   turned on accidentally.
-- Uses one orange family across buttons, selected rows, and section bars.
-  Main sections now use left-aligned toggle bars without arrows. Open bars use
-  dark burnt orange with white text and become darker when hovered. Closed bars
-  use charcoal. Optional controls use smaller charcoal bars with orange text.
-  The title bar is the only place that uses a collapse triangle. Green, yellow,
-  and red remain reserved for status meaning. Only editor and Load start open.
+- Uses one orange family across buttons, selected rows, and section accents.
+  Main sections and Help topics use familiar arrow headers with a near-black
+  background and white text. Optional controls use compact charcoal buttons
+  with orange text, centered below the main actions. Green, yellow, and red
+  remain reserved for status meaning. Only editor and Load start open.
 - Places every section's status card directly below its introductory text and
   above its controls, so warnings and required steps are visible before an
   action is selected.
