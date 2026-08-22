@@ -70,9 +70,10 @@ than the smaller selection normally available during play.
   section. **Preset Options** contains actions only.
 - Moves **Force Full Load** under **Preset Options** so it is less likely to be
   turned on accidentally.
-- Uses the preset-selection blue highlight and white text for every folding
-  header, including main sections, optional groups, and Help topics. Only the
-  editor and Load sections start open.
+- Uses one orange family across buttons, selected rows, and folding headers.
+  Folding headers use a dark burnt-orange background with gold text and a
+  brighter orange hover. Green, yellow, and red remain reserved for status
+  meaning. Only the editor and Load sections start open.
 - Places every section's status card directly below its introductory text and
   above its controls, so warnings and required steps are visible before an
   action is selected.

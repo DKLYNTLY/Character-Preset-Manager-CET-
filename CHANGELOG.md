@@ -23,8 +23,9 @@ used. See the README and in-game Help for current instructions.
   favorite action, and **Force Full Load** so it is less likely to be enabled
   accidentally.
 - Replaces custom optional-group buttons with built-in folding headers. Main
-  sections, optional groups, Help topics, and selected preset rows now share
-  the same blue highlight and white text. Only editor and Load start open.
+  sections, optional groups, Help topics, buttons, and selected preset rows now
+  share one orange color family. Folding headers use gold text on dark
+  burnt-orange, with a brighter orange hover. Only editor and Load start open.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
   before selecting an action.

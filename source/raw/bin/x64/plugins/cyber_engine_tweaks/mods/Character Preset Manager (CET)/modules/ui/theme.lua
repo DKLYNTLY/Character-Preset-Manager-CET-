@@ -20,9 +20,9 @@ THEME_COLORS = {
   { ImGuiCol.Button,            0.72,  0.42,  0.08,  0.92 },
   { ImGuiCol.ButtonHovered,     0.52,  0.29,  0.05,  1.0  },
   { ImGuiCol.ButtonActive,      0.36,  0.19,  0.03,  1.0  },
-  { ImGuiCol.Header,            0.24,  0.32,  0.42,  0.65 },
-  { ImGuiCol.HeaderHovered,     0.28,  0.38,  0.50,  0.65 },
-  { ImGuiCol.HeaderActive,      0.24,  0.32,  0.42,  0.90 },
+  { ImGuiCol.Header,            0.30,  0.16,  0.03,  0.86 },
+  { ImGuiCol.HeaderHovered,     0.44,  0.25,  0.05,  0.95 },
+  { ImGuiCol.HeaderActive,      0.56,  0.32,  0.07,  1.0  },
   { ImGuiCol.CheckMark,         0.97,  0.72,  0.20,  1.0  },
   { ImGuiCol.SliderGrab,        0.97,  0.72,  0.20,  1.0  },
   { ImGuiCol.SliderGrabActive,  0.85,  0.55,  0.10,  1.0  },
@@ -68,10 +68,10 @@ function popTheme()
 end
 
 function pushFoldingHeaderTheme()
-  ImGui.PushStyleColor(ImGuiCol.Header, 0.24, 0.32, 0.42, 0.65)
-  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.28, 0.38, 0.50, 0.65)
-  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.24, 0.32, 0.42, 0.90)
-  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.30, 0.16, 0.03, 0.86)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.44, 0.25, 0.05, 0.95)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.56, 0.32, 0.07, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
 end
 
