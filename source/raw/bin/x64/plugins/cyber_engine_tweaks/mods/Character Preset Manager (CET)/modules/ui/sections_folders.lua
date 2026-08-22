@@ -84,7 +84,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
         ("Trash will include %d folder%s inside this one. You can restore them later.")
           :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
-      ImGui.Unindent(8)
+      finishCompactSubsection()
       end
     else
       local rootMoveUnavailable = not state.library.selected or parentFolder(state.library.selected) == ""
@@ -106,7 +106,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     if fullWidthButton("Install .cpmfolder Files from Character Presets", actionButtonHeight) then
       importAvailableFolderBundles()
     end
-    ImGui.Unindent(8)
+    finishCompactSubsection()
     end
     local bundleFiles = folderBundleFiles()
     local bundleLabel = ("Manage & Remove .cpmfolder Files (%d)")
@@ -199,7 +199,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         end
         ImGui.TextWrapped("You can restore the file later under Delete & Restore Items.")
       end
-      ImGui.Unindent(8)
+      finishCompactSubsection()
     end
     if state.status.sections.folder.message ~= "" then
       if state.status.lastLoggedFolder ~= state.status.sections.folder.message then

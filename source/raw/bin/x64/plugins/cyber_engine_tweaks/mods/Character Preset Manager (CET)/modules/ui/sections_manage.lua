@@ -43,7 +43,7 @@ if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
           if fullWidthButton("Save Preset Details", actionButtonHeight) then
             savePresetMetadata()
           end
-          ImGui.Unindent(8)
+          finishCompactSubsection()
         end
       end
       local manageStatus = state.library.selected

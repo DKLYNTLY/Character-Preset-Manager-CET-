@@ -22,6 +22,9 @@ used. See the README and in-game Help for current instructions.
   count, and format. **Preset Options** contains **Check Compatibility**, the
   favorite action, and **Force Full Load** so it is less likely to be enabled
   accidentally.
+- Makes optional groups full-width subheaders with clear arrows, highlighted
+  open states, and beginning and ending dividers. Only the editor and Load
+  sections start open, keeping the basic preset-loading path easier to follow.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
   while a preset is selected. Opening CET, refreshing presets, changing Force
   Full Load, and finishing a load also no longer start the display-only scan.

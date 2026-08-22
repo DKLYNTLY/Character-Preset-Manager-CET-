@@ -88,23 +88,35 @@ end
 function compactSubsectionButton(closedLabel, openLabel, key)
   ImGui.Spacing()
   local open = state.ui.openSubsections[key] == true
-  local closedWidth = ImGui.CalcTextSize(closedLabel)
-  local openWidth = ImGui.CalcTextSize(openLabel)
-  local availableWidth = ImGui.GetContentRegionAvail()
-  local width = math.min(math.max(closedWidth, openWidth) + 20, availableWidth)
-  ImGui.PushStyleColor(ImGuiCol.Button, 0.10, 0.11, 0.14, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.28, 0.38, 0.50, 0.78)
-  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.24, 0.32, 0.42, 0.95)
-  ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 0.0)
-  if ImGui.Button((open and openLabel or closedLabel) ..
-      "##CPMSubsection:" .. key, width, 26) then
+  ImGui.PushStyleColor(ImGuiCol.Button,
+    open and 0.16 or 0.10, open and 0.24 or 0.11, open and 0.34 or 0.14, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.28, 0.38, 0.50, 0.92)
+  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.24, 0.32, 0.42, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Border,
+    open and 0.97 or 0.34, open and 0.72 or 0.37, open and 0.20 or 0.44, 0.88)
+  ImGui.PushStyleColor(ImGuiCol.Text,
+    open and 0.97 or 0.88, open and 0.82 or 0.90, open and 0.42 or 0.94, 1.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.0)
+  local marker = open and "v  " or ">  "
+  if ImGui.Button(marker .. (open and openLabel or closedLabel) ..
+      "##CPMSubsection:" .. key, ImGui.GetContentRegionAvail(), 28) then
     open = not open
     state.ui.openSubsections[key] = open
   end
   ImGui.PopStyleVar(1)
-  ImGui.PopStyleColor(3)
-  if open then ImGui.Spacing() end
+  ImGui.PopStyleColor(5)
+  if open then
+    ImGui.Spacing()
+    ImGui.Separator()
+    ImGui.Spacing()
+  end
   return open
+end
+
+function finishCompactSubsection()
+  ImGui.Unindent(8)
+  ImGui.Spacing()
+  ImGui.Separator()
 end
 
 function dangerButton(label, width, height)

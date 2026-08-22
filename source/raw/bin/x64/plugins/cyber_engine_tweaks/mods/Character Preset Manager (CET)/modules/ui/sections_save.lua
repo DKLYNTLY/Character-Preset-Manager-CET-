@@ -36,7 +36,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
         end
       end
       ImGui.EndChild()
-      ImGui.Unindent(8)
+      finishCompactSubsection()
     end
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)

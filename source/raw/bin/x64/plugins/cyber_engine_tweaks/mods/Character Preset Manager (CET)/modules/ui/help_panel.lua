@@ -246,7 +246,7 @@ if state.ui.settingsOpen then
           state.status.settings = "The settings file could not be reloaded."
         end
       end
-      ImGui.Unindent(8)
+      finishCompactSubsection()
       end
       if state.status.settings ~= "" then
         coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.settings)
@@ -375,6 +375,7 @@ if state.ui.helpOpen then
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")
       helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorite presets also appear in the Favorites group.")
       helpButton("Preset Options / Hide Preset Options", "Shows or hides Check Compatibility, Force Full Load, and the favorite action. The compact preset summary stays above it.")
+      ImGui.TextWrapped("Optional groups use a right arrow when closed and a down arrow with dividers when open. Saving and library-management sections start closed so the loading controls are easier to find.")
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")

@@ -203,7 +203,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           toggleSelectedPresetFavorite()
         end
       end
-      ImGui.Unindent(8)
+      finishCompactSubsection()
     end
 
     local loadUnavailable = not state.library.selected or not state.app.inCustomization

@@ -102,7 +102,7 @@ ui.drawDebugPanel = function(height)
         state.editor.pauseRedirectCount, state.editor.puppetReadyCount))
     coloredWrapped(0.64, 0.67, 0.73, 1.0,
       "After one successful input launch, all four values should be at least 1.")
-    ImGui.Unindent(8)
+    finishCompactSubsection()
   end
   ImGui.TextColored(0.3, 1.0, 0.4, 1.0, "Green = complete")
   ImGui.SameLine()
