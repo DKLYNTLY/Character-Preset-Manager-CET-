@@ -115,9 +115,11 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           state.library.selected = name
           addFolderAncestors(state.library.expandedLoadFolders, parentFolder(name))
           state.invalidatePreflight()
-          local selectedPreset = state.library.presets[name]
+          local selectedPreset = hydrateNamedPresetMetadata(name)
+            or state.library.presets[name]
           state.library.presetNotes = selectedPreset and selectedPreset.notes or ""
           state.library.presetTags = selectedPreset and selectedPreset.tags or ""
+          invalidateFilteredViewCache()
           cancelConfirmations()
           state.library.renameName = ""
           resetLoadState()

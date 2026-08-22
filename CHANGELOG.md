@@ -16,6 +16,8 @@ used. See the README and in-game Help for current instructions.
 - Adds **Check Compatibility** under **Preset Options**. The scan runs once when
   selected, and its found, missing, repeated, and invalid totals appear in the
   Load status card.
+- Reads the selected preset's saved-option count and details before displaying
+  them. **Check Compatibility** no longer changes its source, notes, or tags.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
   while a preset is selected. Opening CET, refreshing presets, changing Force
   Full Load, and finishing a load also no longer start the display-only scan.

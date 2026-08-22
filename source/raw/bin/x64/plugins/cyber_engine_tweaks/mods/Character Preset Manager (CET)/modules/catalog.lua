@@ -66,6 +66,7 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
             preset = {
               entryCount = 0,
               entryCountKnown = false,
+              metadataLoaded = false,
               lazy = true,
             }
           else
@@ -438,6 +439,7 @@ helpers.readInventory = function()
           format = presetFormat,
           modified = catalogDecode(encodedModified),
           fingerprint = fingerprint ~= "-" and fingerprint or nil,
+          metadataLoaded = false,
           lazy = true,
         }
       elseif kind == "P" and validRelativePath(name) then

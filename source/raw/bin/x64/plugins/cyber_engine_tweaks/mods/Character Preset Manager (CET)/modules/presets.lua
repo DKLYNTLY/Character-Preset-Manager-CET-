@@ -156,6 +156,7 @@ function readPresetFile(path, metadataOnly)
     entries = not metadataOnly and entries or nil,
     entryCount = entryCount,
     entryCountKnown = true,
+    metadataLoaded = true,
     lazy = metadataOnly == true,
   }
 end
@@ -232,6 +233,23 @@ function hydrateNamedPreset(name)
   local preset = name and state.library.presets[name]
   if not preset then return nil end
   return state.hydratePreset(preset, presetPath(name))
+end
+
+function hydrateNamedPresetMetadata(name)
+  local preset = name and state.library.presets[name]
+  if not preset then return nil end
+  if preset.entries or preset.metadataLoaded == true then return preset end
+  local loaded = readPresetFile(presetPath(name), true)
+  if not loaded then return nil end
+  for _, key in ipairs({
+    "format", "source", "created", "modified", "notes", "tags", "favorite",
+    "managedByCpm", "presetName", "libraryFolder", "entryCount",
+    "entryCountKnown", "metadataLoaded",
+  }) do
+    preset[key] = loaded[key]
+  end
+  preset.lazy = true
+  return preset
 end
 
 state.invalidatePreflight = function()
