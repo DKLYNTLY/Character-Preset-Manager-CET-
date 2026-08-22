@@ -24,8 +24,9 @@ used. See the README and in-game Help for current instructions.
   accidentally.
 - Uses familiar arrow headers for main sections and Help topics. They have a
   near-black background with white text. Optional controls return to compact,
-  centered charcoal buttons with orange text so they remain clearly secondary.
-  Only editor and Load start open.
+  centered charcoal buttons with white text. Their responsive width keeps short
+  and long labels balanced as the window changes size. Only editor and Load
+  start open.
 - Adds a divider line before every main section, making section boundaries easy
   to see without relying only on the header text.
 - Moves every main status card below its section introduction and above the

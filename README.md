@@ -73,8 +73,9 @@ than the smaller selection normally available during play.
 - Uses one orange family across buttons, selected rows, and section accents.
   Main sections and Help topics use familiar arrow headers with a near-black
   background and white text. Optional controls use compact charcoal buttons
-  with orange text, centered below the main actions. A divider line separates
-  every main section so each block remains easy to identify while scrolling.
+  with white text, centered below the main actions. Their width responds to the
+  window while preserving enough room for long labels. A divider line
+  separates every main section so each block remains easy to identify while scrolling.
   Status cards use blue for information, green for ready or success, yellow for
   warnings, and red for errors. Orange is reserved for the important current
   value. Only editor and Load start open.

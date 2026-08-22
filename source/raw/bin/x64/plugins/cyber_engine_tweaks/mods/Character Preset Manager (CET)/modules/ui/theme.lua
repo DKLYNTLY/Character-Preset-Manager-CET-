@@ -103,16 +103,22 @@ function compactSubsectionButton(closedLabel, openLabel, key)
   local closedWidth = ImGui.CalcTextSize(closedLabel)
   local openWidth = ImGui.CalcTextSize(openLabel)
   local availableWidth = ImGui.GetContentRegionAvail()
-  local width = math.min(math.max(closedWidth, openWidth) + 24, availableWidth)
+  local responsiveWidth = math.min(360, availableWidth * 0.58)
+  local width = math.min(math.max(closedWidth, openWidth) + 32,
+    math.max(responsiveWidth, 0), availableWidth)
   local startX = ImGui.GetCursorPosX()
   ImGui.SetCursorPosX(startX + math.max(0, (availableWidth - width) * 0.5))
-  ImGui.PushStyleColor(ImGuiCol.Button, 0.10, 0.11, 0.14, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Button,
+    open and 0.18 or 0.10, open and 0.12 or 0.11,
+    open and 0.04 or 0.14, 1.0)
   ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.20, 0.10, 0.02, 0.98)
   ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.30, 0.16, 0.03, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
-  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 0.72, 0.24, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Border,
+    open and 1.0 or 0.95, open and 0.55 or 0.72,
+    open and 0.15 or 0.20, open and 0.85 or 0.55)
+  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
   if ImGui.Button((open and openLabel or closedLabel) ..
-      "##CPMSubsection:" .. key, width, 26) then
+      "##CPMSubsection:" .. key, width, 30) then
     open = not open
     state.ui.openSubsections[key] = open
   end
