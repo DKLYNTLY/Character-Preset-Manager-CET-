@@ -29,23 +29,37 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
         ImGui.TextWrapped(("%d preset%s in Trash  |  %d shared-folder file%s")
           :format(#trashNames, #trashNames == 1 and "" or "s",
             #trashBundleNames, #trashBundleNames == 1 and "" or "s"))
+        local trashRows = {}
+        for _, value in ipairs(trashGroupIds) do
+          trashRows[#trashRows + 1] = { kind = "group", value = value }
+        end
+        for _, value in ipairs(trashNames) do
+          trashRows[#trashRows + 1] = { kind = "preset", value = value }
+        end
+        for _, value in ipairs(trashBundleNames) do
+          trashRows[#trashRows + 1] = { kind = "bundle", value = value }
+        end
+        drawPageControls("trashItems", #trashRows, UI_LIST_PAGE_SIZE, "Trash")
         ImGui.BeginChild("##trashList", 0, ImGui.GetFontSize() * 6, true)
         local trashChanged = false
-        for _, groupId in ipairs(trashGroupIds) do
-          local group = state.trash.groups[groupId]
-          local stats = state.trash.cachedGroupStats[groupId] or { presets = 0, folders = 0 }
-          local groupPresetCount, folderCount = stats.presets, stats.folders
-          if fullWidthButton(("Restore Folder %s (%d presets, %d folders)")
-              :format(helpers.breadcrumb(group.root), groupPresetCount, folderCount) ..
-              "##trashGroup:" .. groupId, actionButtonHeight) then
-            restoreTrashGroup(groupId)
-            trashChanged = true
-            break
-          end
-        end
-        if not trashChanged then
-          if #trashGroupIds > 0 and #trashNames > 0 then ImGui.Separator() end
-          for _, filename in ipairs(trashNames) do
+        local firstRow, lastRow = pagedRange("trashItems",
+          #trashRows, UI_LIST_PAGE_SIZE)
+        for index = firstRow, lastRow do
+          local row = trashRows[index]
+          if row.kind == "group" then
+            local groupId = row.value
+            local group = state.trash.groups[groupId]
+            local stats = state.trash.cachedGroupStats[groupId]
+              or { presets = 0, folders = 0 }
+            if fullWidthButton(("Restore Folder %s (%d presets, %d folders)")
+                :format(helpers.breadcrumb(group.root), stats.presets, stats.folders) ..
+                "##trashGroup:" .. groupId, actionButtonHeight) then
+              restoreTrashGroup(groupId)
+              trashChanged = true
+              break
+            end
+          elseif row.kind == "preset" then
+            local filename = row.value
             local item = state.trash.items[filename]
             if item and fullWidthButton("Restore " .. (item.original or filename) ..
                 "##trash:" .. filename, actionButtonHeight) then
@@ -53,13 +67,8 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
               trashChanged = true
               break
             end
-          end
-        end
-        if not trashChanged then
-          if #trashBundleNames > 0 and (#trashGroupIds > 0 or #trashNames > 0) then
-            ImGui.Separator()
-          end
-          for _, filename in ipairs(trashBundleNames) do
+          else
+            local filename = row.value
             if fullWidthButton("Restore File " .. filename ..
                 "##trashBundle:" .. filename, actionButtonHeight) then
               restoreTrashBundle(filename)

@@ -31,6 +31,8 @@ ui.setDebugLogText = function(text)
     table.insert(lines, { text = line, kind = kind })
   end
   state.ui.debugLogLines = lines
+  state.ui.listPages.activityLog = math.max(1,
+    math.ceil(#lines / ACTIVITY_LOG_PAGE_SIZE))
 end
 
 ui.clearDiagnosticLog = function()
@@ -112,8 +114,13 @@ ui.drawDebugPanel = function(height)
   ImGui.SameLine()
   ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "Red = error")
   ImGui.Spacing()
+  drawPageControls("activityLog", #state.ui.debugLogLines,
+    ACTIVITY_LOG_PAGE_SIZE, "Activity Log")
   ImGui.BeginChild("##debugLog", 0, height or 200, true)
-  for _, entry in ipairs(state.ui.debugLogLines) do
+  local firstLine, lastLine = pagedRange("activityLog",
+    #state.ui.debugLogLines, ACTIVITY_LOG_PAGE_SIZE)
+  for index = firstLine, lastLine do
+    local entry = state.ui.debugLogLines[index]
     local line = entry.text
     if entry.kind == "blank" then
       ImGui.Spacing()

@@ -12,7 +12,10 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
     local previousSearchText = state.library.searchText
     state.library.searchText = ImGui.InputTextWithHint("##bulkPresetSearch",
       "Search presets or folders", state.library.searchText, 65)
-    if state.library.searchText ~= previousSearchText then invalidateFilteredViewCache() end
+    if state.library.searchText ~= previousSearchText then
+      invalidateFilteredViewCache()
+      state.ui.listPages.bulkPresets = 1
+    end
     ImGui.PopItemWidth()
     local visibleNames = helpers.filteredPresetNames()
     local selectedBulkNames = selectedBulkPresetNames()
@@ -34,11 +37,15 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       clearStatus("bulk")
     end
     if #selectedBulkNames == 0 then ImGui.EndDisabled() end
+    drawPageControls("bulkPresets", #visibleNames, UI_LIST_PAGE_SIZE, "Presets")
     ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
     if #visibleNames == 0 then
       ImGui.TextWrapped("No presets match the current search.")
     else
-      for _, name in ipairs(visibleNames) do
+      local firstPreset, lastPreset = pagedRange("bulkPresets",
+        #visibleNames, UI_LIST_PAGE_SIZE)
+      for index = firstPreset, lastPreset do
+        local name = visibleNames[index]
         local selectedForBulk = state.trash.bulkSelected[name] == true
         local rowLabel = (selectedForBulk and "[Selected] " or "[ ] ") ..
           helpers.breadcrumb(name) .. "##bulkPreset:" .. name

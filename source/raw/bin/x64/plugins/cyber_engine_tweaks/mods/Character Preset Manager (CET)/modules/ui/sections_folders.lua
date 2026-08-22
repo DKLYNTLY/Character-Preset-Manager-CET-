@@ -11,6 +11,8 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     coloredWrapped(1.0, 1.0, 1.0, 1.0,
       "Folders made in CET have no set limit. Imported folders are Windows folders inside Character Presets.")
     ImGui.Spacing()
+    local folderNames = sortedFolderNames()
+    drawPageControls("organizeFolders", #folderNames, UI_LIST_PAGE_SIZE, "Folders")
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
     if ImGui.Selectable("All Presets##rootFolder", state.library.selectedFolder == "")
         and state.library.selectedFolder ~= "" then
@@ -19,7 +21,10 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       state.library.selectedFolder = ""
       cancelConfirmations()
     end
-    for _, folder in ipairs(sortedFolderNames()) do
+    local firstFolder, lastFolder = pagedRange("organizeFolders",
+      #folderNames, UI_LIST_PAGE_SIZE)
+    for index = firstFolder, lastFolder do
+      local folder = folderNames[index]
       local label = string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
         (state.library.manualFolders[folder] and " (imported)" or "")
       if ImGui.Selectable(label .. "##folder:" .. folder, state.library.selectedFolder == folder)
@@ -115,6 +120,8 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         ImGui.TextWrapped("No .cpmfolder files found in Character Presets.")
       else
         ImGui.TextWrapped("Choose a sharing file below to view its contents or move only that file to Trash.")
+        drawPageControls("folderBundleFiles", #bundleFiles,
+          UI_LIST_PAGE_SIZE, "Sharing files")
         ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
         local selectedStillExists = false
         for _, path in ipairs(bundleFiles) do
@@ -124,6 +131,12 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
             state.library.selectedBundleFile = leaf
             selectedStillExists = true
           end
+        end
+        local firstBundle, lastBundle = pagedRange("folderBundleFiles",
+          #bundleFiles, UI_LIST_PAGE_SIZE)
+        for index = firstBundle, lastBundle do
+          local path = bundleFiles[index]
+          local leaf = path:match("([^/]+)$") or path
           if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
               state.library.selectedBundleFile == leaf) then
             if state.library.selectedBundleFile ~= leaf then clearFolderBundlePreview() end
@@ -165,13 +178,22 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           ImGui.TextWrapped("Main folder: " .. preview.root)
           ImGui.TextWrapped(("Nested folders: %d    Presets: %d")
             :format(#preview.folders, #preview.presets))
-          ImGui.BeginChild("##folderBundleContents", 0, ImGui.GetFontSize() * 7, true)
-          ImGui.TextWrapped("Folder: " .. preview.root)
+          local previewRows = { "Folder: " .. preview.root }
           for _, folder in ipairs(preview.folders) do
-            ImGui.TextWrapped("Folder: " .. joinFolder(preview.root, folder))
+            previewRows[#previewRows + 1] = "Folder: " ..
+              joinFolder(preview.root, folder)
           end
           for _, preset in ipairs(preview.presets) do
-            ImGui.TextWrapped("Preset: " .. joinFolder(preview.root, preset))
+            previewRows[#previewRows + 1] = "Preset: " ..
+              joinFolder(preview.root, preset)
+          end
+          drawPageControls("folderBundlePreview", #previewRows,
+            UI_LIST_PAGE_SIZE, "Contents")
+          ImGui.BeginChild("##folderBundleContents", 0, ImGui.GetFontSize() * 7, true)
+          local firstPreview, lastPreview = pagedRange("folderBundlePreview",
+            #previewRows, UI_LIST_PAGE_SIZE)
+          for index = firstPreview, lastPreview do
+            ImGui.TextWrapped(previewRows[index])
           end
           ImGui.EndChild()
         end

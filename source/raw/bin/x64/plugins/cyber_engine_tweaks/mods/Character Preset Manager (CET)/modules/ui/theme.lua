@@ -185,4 +185,31 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
   if customColors then ImGui.PopStyleColor(2) end
 end
 
+function pagedRange(key, count, pageSize)
+  local size = math.max(1, tonumber(pageSize) or UI_LIST_PAGE_SIZE)
+  local pages = math.max(1, math.ceil((tonumber(count) or 0) / size))
+  local page = math.max(1, math.min(pages,
+    tonumber(state.ui.listPages[key]) or 1))
+  state.ui.listPages[key] = page
+  return (page - 1) * size + 1, math.min(count, page * size), page, pages
+end
+
+function drawPageControls(key, count, pageSize, label)
+  local _, _, page, pages = pagedRange(key, count, pageSize)
+  if pages <= 1 then return end
+  local width = (ImGui.GetContentRegionAvail() - 8) * 0.5
+  if page <= 1 then ImGui.BeginDisabled() end
+  if ImGui.Button("Previous##page:" .. key, width, 28) then
+    state.ui.listPages[key] = page - 1
+  end
+  if page <= 1 then ImGui.EndDisabled() end
+  ImGui.SameLine()
+  if page >= pages then ImGui.BeginDisabled() end
+  if ImGui.Button("Next##page:" .. key, width, 28) then
+    state.ui.listPages[key] = page + 1
+  end
+  if page >= pages then ImGui.EndDisabled() end
+  ImGui.TextDisabled(("%s page %d of %d"):format(label or "List", page, pages))
+end
+
 return _ENV

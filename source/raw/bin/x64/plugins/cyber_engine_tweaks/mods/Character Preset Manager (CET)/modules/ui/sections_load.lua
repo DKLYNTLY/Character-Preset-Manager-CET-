@@ -17,7 +17,10 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     local previousSearchText = state.library.searchText
     state.library.searchText = ImGui.InputTextWithHint(
       "##presetSearch", "Search presets, folders, or tags", state.library.searchText, 65)
-    if state.library.searchText ~= previousSearchText then invalidateFilteredViewCache() end
+    if state.library.searchText ~= previousSearchText then
+      invalidateFilteredViewCache()
+      state.ui.listPages.loadPresets = 1
+    end
     ImGui.PopItemWidth()
     if not narrowTopRow then ImGui.SameLine() end
     local clearSearchUnavailable = not tostring(state.library.searchText):match("%S")
@@ -25,6 +28,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     if ImGui.Button("Clear##presetSearchClear", searchButtonWidth, actionButtonHeight) then
       state.library.searchText = ""
       invalidateFilteredViewCache()
+      state.ui.listPages.loadPresets = 1
     end
     if clearSearchUnavailable then ImGui.EndDisabled() end
     ImGui.SameLine()
@@ -44,11 +48,51 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           :format(added, updated, removed, #helpers.sortedPresetNames())
         or "Refresh failed; the previous list was kept.", not refreshed)
     end
-    ImGui.BeginChild("##presetList", 0, presetListHeight, true)
     local names = helpers.sortedPresetNames()
     ensureFilteredViewCache()
     local queryActive = state.cache.queryActive
     local matchedFolders = state.cache.matchedFolders
+    local loadRows = {}
+    local visibleNames = {}
+    for _, name in ipairs(helpers.filteredPresetNames()) do visibleNames[name] = true end
+    local favoriteHeadingAdded = false
+    for _, name in ipairs(names) do
+      local preset = state.library.presets[name]
+      if preset and preset.favorite == true and visibleNames[name] then
+        if not favoriteHeadingAdded then
+          loadRows[#loadRows + 1] = { kind = "heading", label = "Favorites" }
+          favoriteHeadingAdded = true
+        end
+        loadRows[#loadRows + 1] = {
+          kind = "preset", name = name, label = helpers.breadcrumb(name), suffix = ":favorite"
+        }
+      end
+    end
+    for _, folder in ipairs(sortedFolderNames()) do
+      local folderPresets = helpers.presetsInFolder(folder)
+      local subtreeCount = state.cache.folderPresetCounts[folder] or 0
+      local folderMatches = state.cache.folderMatches[folder] == true
+      local matchingPresets = state.cache.matchingPresetsByFolder[folder] or EMPTY_LIST
+      local descendantMatches = matchedFolders[folder] == true
+      if subtreeCount > 0 and (folderMatches or #matchingPresets > 0 or descendantMatches) then
+        local expanded = state.library.expandedLoadFolders[folder] == true
+        loadRows[#loadRows + 1] = {
+          kind = "folder", folder = folder, count = subtreeCount, expanded = expanded
+        }
+        if expanded or queryActive then
+          for _, name in ipairs(folderMatches and folderPresets or matchingPresets) do
+            loadRows[#loadRows + 1] = {
+              kind = "preset", name = name, label = baseName(name)
+            }
+          end
+        end
+      end
+    end
+    for _, name in ipairs(state.cache.matchingPresetsByFolder[""] or EMPTY_LIST) do
+      loadRows[#loadRows + 1] = { kind = "preset", name = name, label = name }
+    end
+    drawPageControls("loadPresets", #loadRows, UI_LIST_PAGE_SIZE, "Presets")
+    ImGui.BeginChild("##presetList", 0, presetListHeight, true)
     if #names == 0 then
       ImGui.TextWrapped("No presets saved.")
     else
@@ -84,52 +128,29 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           refreshPreflight()
         end
       end
-      local visibleNames = {}
-      for _, name in ipairs(helpers.filteredPresetNames()) do visibleNames[name] = true end
-      local favoriteNames = {}
-      for _, name in ipairs(names) do
-        local preset = state.library.presets[name]
-        if preset and preset.favorite == true and visibleNames[name] then
-          table.insert(favoriteNames, name)
-        end
-      end
-      if #favoriteNames > 0 then
-        ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Favorites")
-        for _, name in ipairs(favoriteNames) do
-          drawPresetChoice(name, helpers.breadcrumb(name), ":favorite")
-        end
-        ImGui.Separator()
-      end
-      for _, folder in ipairs(sortedFolderNames()) do
-        local folderPresets = helpers.presetsInFolder(folder)
-        local subtreeCount = state.cache.folderPresetCounts[folder] or 0
-        local folderMatches = state.cache.folderMatches[folder] == true
-        local matchingPresets = state.cache.matchingPresetsByFolder[folder] or EMPTY_LIST
-        local descendantMatches = matchedFolders[folder] == true
-        if subtreeCount > 0 and (folderMatches or #matchingPresets > 0 or descendantMatches) then
-          local expanded = state.library.expandedLoadFolders[folder] == true
+      local firstRow, lastRow = pagedRange("loadPresets",
+        #loadRows, UI_LIST_PAGE_SIZE)
+      for index = firstRow, lastRow do
+        local row = loadRows[index]
+        if row.kind == "heading" then
+          ImGui.TextColored(0.97, 0.72, 0.20, 1.0, row.label)
+        elseif row.kind == "preset" then
+          drawPresetChoice(row.name, row.label, row.suffix)
+        else
+          local folder = row.folder
+          local expanded = row.expanded
           local folderKind = state.library.manualFolders[folder]
             and " (imported)" or ""
           ImGui.SetNextItemOpen(expanded or queryActive, ImGuiCond.Always)
           local treeFlags = 8 + 2048 + (expanded and 1 or 0)
           local nodeOpen = ImGui.TreeNodeEx(
             string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
-              (" (%d)"):format(subtreeCount) .. folderKind .. "##loadFolder:" .. folder,
+              (" (%d)"):format(row.count) .. folderKind .. "##loadFolder:" .. folder,
             treeFlags)
           if not queryActive then
             state.library.expandedLoadFolders[folder] = nodeOpen
           end
-          if nodeOpen then
-            ImGui.Indent(12)
-            for _, name in ipairs(folderMatches and folderPresets or matchingPresets) do
-              drawPresetChoice(name, baseName(name))
-            end
-            ImGui.Unindent(12)
-          end
         end
-      end
-      for _, name in ipairs(state.cache.matchingPresetsByFolder[""] or EMPTY_LIST) do
-        drawPresetChoice(name, name)
       end
     end
     ImGui.EndChild()
@@ -216,7 +237,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         cancelLoading()
       end
     end
-    local restoreFileAvailable = fileExists(LAST_APPEARANCE_FILE)
+    local restoreFileAvailable = state.load.recoverySnapshotAvailable == true
     local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
       or state.load.auto or state.load.needsContinue
     if restoreUnavailable then ImGui.BeginDisabled() end

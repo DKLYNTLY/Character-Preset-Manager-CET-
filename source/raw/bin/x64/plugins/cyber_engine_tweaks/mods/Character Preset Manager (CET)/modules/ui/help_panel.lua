@@ -299,14 +299,16 @@ if state.ui.helpOpen then
         ImGui.TextColored(0.3, 1.0, 0.4, 1.0,
           "Showing Help results for: " .. appliedHelpQuery)
       else
-        ImGui.TextDisabled("All Help topics are shown.")
+        ImGui.TextDisabled("Select a Help topic to open it.")
       end
       local visibleHelpTopics = 0
       local function showHelpTopic(title, keywords)
         local visible = not helpSearchPending and
           helpTopicMatches(appliedHelpQuery, title, keywords)
         if visible then visibleHelpTopics = visibleHelpTopics + 1 end
-        return visible
+        if not visible then return false end
+        if appliedHelpQuery ~= "" then return true end
+        return ImGui.CollapsingHeader(title .. "##helpTopic:" .. title)
       end
 
       if showHelpTopic("Main Window & Help Buttons",
@@ -318,6 +320,7 @@ if state.ui.helpOpen then
       helpButton("Log", "Opens or closes the Activity Log and reads its newest contents.")
       helpButton("Search", "Applies the words typed in Search Help and shows matching topics. Typing alone does not run the search.")
       helpButton("Clear", "Clears the Help search and shows every Help topic again.")
+      helpButton("Previous / Next", "Moves through a long list one page at a time. The page line shows the current page and total pages.")
       helpButton("Open & Edit Appearance", "Opens or closes the controls for launching the full character editor.")
       helpButton("Load & Restore Appearance", "Opens or closes preset selection, loading, favorites, and appearance recovery.")
       helpButton("Save & Replace Presets", "Opens or closes the controls for saving the current appearance.")
@@ -509,6 +512,7 @@ if state.ui.helpOpen then
       helpHeading("Export & Import Backups")
       ImGui.TextWrapped("Open Export & Import Backups to export the complete preset library, import a .cpmbackup file, or delete a backup file. Complete backups include presets in Imported Windows folders, folders made in CET, empty CET folders, and settings.")
       helpButton("Export Complete Library Backup", "Creates and verifies a .cpmbackup file containing every preset, the CET folder layout, and the current settings file.")
+      helpButton("Refresh Backup File List", "Finds .cpmbackup files added or removed outside the mod while the game is running.")
       helpButton("Backup file", "Chooses which .cpmbackup file to import or permanently delete.")
       helpButton("Import Selected Library Backup", "Imports the selected backup without replacing existing items that use the same names.")
       helpButton("Delete Selected Backup Permanently / Confirm Delete Selected Backup Permanently", "Permanently deletes only the chosen .cpmbackup file after a required second selection. Presets already in the library are not deleted.")
@@ -518,8 +522,10 @@ if state.ui.helpOpen then
           "activity log debug diagnostic error errors warning warnings report support open refresh copy close technical details hide button") then
       helpHeading("Activity Log")
       ImGui.TextWrapped("Open the activity log to see recent preset actions, warnings, and errors. You can copy the log when asking for help.")
+      ImGui.TextWrapped("A performance warning separates game-option retrieval time from preset-matching time when an option check takes at least 0.05 seconds.")
+      helpButton("Previous / Next", "Moves through the Activity Log one page at a time. The newest page opens first.")
       helpButton("Refresh", "Reads the newest Activity Log contents from disk.")
-      helpButton("Copy", "Copies the visible Activity Log text to the clipboard.")
+      helpButton("Copy", "Copies the complete loaded Activity Log text to the clipboard, including pages that are not currently shown.")
       helpButton("Close", "Closes the Activity Log panel.")
       helpButton("Technical Details / Hide Technical Details", "Shows or hides editor-launch counters used for troubleshooting the Open Full Appearance Editor action.")
       if fullWidthButton("Open Activity Log##openDebugFromHelp", actionButtonHeight) then

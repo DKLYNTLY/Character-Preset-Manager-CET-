@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 MOD_NAME = "Character Preset Manager (CET)"
-VERSION = "3.0.5"
+VERSION = "3.0.6"
 PRESET_DIR = "Character Presets"
 DATA_DIR = "Data"
 CONFIG_DIR = DATA_DIR .. "/Config"
@@ -37,7 +37,9 @@ AUTO_LOAD_TIMING = {
   dependencyStableTime = 0.20,
 }
 FORCE_FULL_LOAD_FORMAT_THRESHOLD = 7
-PREFLIGHT_REFRESH_INTERVAL = 0.75
+UI_LIST_PAGE_SIZE = 48
+ACTIVITY_LOG_PAGE_SIZE = 60
+SLOW_PREFLIGHT_SECONDS = 0.05
 AUTO_LOAD_LIMITS = {
   minimumSeconds = 60,
   secondsPerOption = 2,

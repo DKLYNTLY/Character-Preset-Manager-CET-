@@ -16,6 +16,7 @@ helpers.releaseIdleMemory = function()
   helpers.releaseViewCaches()
   ui.closeDebugPanel()
   state.ui.bindingCache = {}
+  state.app.optionsMemo = nil
   state.invalidatePreflight()
   return true
 end
@@ -58,6 +59,7 @@ events.onInit = function()
     "characterCreationBodyMorphMenu",
     "OnInitialize",
     function(menu)
+      state.app.optionsMemo = nil
       temporarilyDisableWardrobe()
       if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
         helpers.logLoadMeasurements("editor-opened")
@@ -78,6 +80,7 @@ events.onInit = function()
     "characterCreationBodyMorphMenu",
     "OnUninitialize",
     function()
+      state.app.optionsMemo = nil
       if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
         helpers.logLoadMeasurements("editor-closed")
       end
@@ -246,19 +249,9 @@ events.onShutdown = function()
 end
 
 events.onUpdate = function(delta)
-  state.app.optionsMemo = nil
   local elapsed = tonumber(delta) or 0
-  local monitorPreflight = state.app.overlayOpen and state.app.windowOpen
-    and state.library.selected ~= nil and not state.load.auto
-  if not state.editor.openPending
-      and not state.load.auto and not monitorPreflight then
+  if not state.editor.openPending and not state.load.auto then
     return
-  end
-  if monitorPreflight then
-    state.load.preflightTimer = state.load.preflightTimer + elapsed
-    if state.load.preflightTimer >= PREFLIGHT_REFRESH_INTERVAL then
-      state.invalidatePreflight()
-    end
   end
   if state.editor.openPending then
     state.editor.openTimer = state.editor.openTimer + elapsed
@@ -330,6 +323,9 @@ events.onOverlayOpen = function()
   end
   state.app.overlayOpen = true
   state.app.windowOpen = true
+  state.app.optionsMemo = nil
+  state.load.recoverySnapshotAvailable = fileExists(LAST_APPEARANCE_FILE)
+  state.backup.filesDirty = true
   state.ui.bindingCache = {}
   state.ui.windowPositionCached = false
   state.ui.cachedWindowX = nil

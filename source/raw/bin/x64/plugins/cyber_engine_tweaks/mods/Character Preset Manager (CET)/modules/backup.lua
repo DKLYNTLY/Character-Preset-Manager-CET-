@@ -61,8 +61,12 @@ local function backupFiles()
   return files
 end
 
-libraryBackupFiles = function()
-  return backupFiles()
+libraryBackupFiles = function(forceRefresh)
+  if forceRefresh or state.backup.filesDirty then
+    state.backup.files = backupFiles()
+    state.backup.filesDirty = false
+  end
+  return state.backup.files
 end
 
 local function uniqueBackupFilename()
@@ -222,6 +226,7 @@ exportLibraryBackup = function()
     return false
   end
   state.backup.selectedFile = filename
+  state.backup.filesDirty = true
   setBackupStatus(("Exported and verified %d preset%s and %d folder%s in %s.")
     :format(#names, #names == 1 and "" or "s", #folders,
       #folders == 1 and "" or "s", filename), false, "success")
@@ -234,7 +239,7 @@ deleteSelectedLibraryBackup = function()
   helpers.auditSection("DELETE LIBRARY BACKUP")
   local selected = state.backup.selectedFile
   local selectedPath = nil
-  for _, path in ipairs(backupFiles()) do
+  for _, path in ipairs(libraryBackupFiles(true)) do
     if selected and path:lower() == selected:lower() then
       selected, selectedPath = path, path
       break
@@ -271,6 +276,7 @@ deleteSelectedLibraryBackup = function()
     return false
   end
   state.backup.selectedFile = nil
+  state.backup.filesDirty = true
   setBackupStatus(("Permanently deleted \"%s\"."):format(leaf), false, "success")
   log(("[LIBRARY BACKUP] Permanently deleted file='%s'."):format(selectedPath), "complete")
   return true

@@ -5,7 +5,32 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.5</strong></summary>
+<summary><strong>Latest release — 3.0.6</strong></summary>
+
+## 3.0.6
+
+*Smoother CET performance for large appearance setups and libraries.*
+
+- Stops repeating the complete preset compatibility check every 0.75 seconds
+  while a preset is selected. The check now runs when the selected preset,
+  editor, overlay, or relevant loading setting changes.
+- Records a performance warning only when retrieving appearance options or
+  matching a preset takes at least 0.05 seconds. The warning separates the time
+  spent retrieving game options from the time spent matching the preset.
+- Splits large preset, folder, Trash, sharing-file, backup, sharing-preview, and
+  Activity Log lists into pages. Every item remains available without drawing
+  the entire collection on every frame.
+- Shows closed Help topic headings until the user opens one. Help searches still
+  open all matching instructions directly.
+- Caches the complete-library backup file list while the interface is open and
+  adds **Refresh Backup File List** for files changed outside the mod.
+- Checks for the previous-appearance recovery file when the overlay opens and
+  after recovery actions instead of checking the drive on every drawn frame.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.5</strong></summary>
 
 ## 3.0.5
 

@@ -10,7 +10,7 @@
   <a href="CHANGELOG.md">Full changelog</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.5</strong></p>
+<p align="center"><strong>Current version: 3.0.6</strong></p>
 
 <p align="center">
   <img src="images/Character%20Preset%20Manager%20%28CET%29%20v3.0.3.png" alt="Character Preset Manager feature overview" width="900">
@@ -56,27 +56,20 @@ than the smaller selection normally available during play.
 - **Preset sharing** — Share one `.preset` file or a complete folder as a `.cpmfolder` file, and inspect a shared folder before installing it.
 - **Activity log** — Review actions, loading results, warnings, and errors inside CET.
 
-### What changed in 3.0.5
+### What changed in 3.0.6
 
-- Complete-library backup export works correctly when checking the first preset.
-- A finished backup is checked against every preset and folder in the current
-  library before the mod reports success.
-- Current CPM preset files identify themselves with `# CPM Preset` and record
-  `# Name:` and `# Library folder:` details for library recovery.
-- A selected `.cpmfolder` file can be inspected before it is installed.
-- Finished loading data, full preset contents, interface lists, and displayed
-  Activity Log text are released when they are no longer needed.
-- Every main menu section now has one status card. It replaces the scattered
-  grey guidance with a clear ready, status, success, warning, or error message.
-  Backup, folder, and preset actions all report their result in the card for the
-  section where the action was started.
-- **Force Full Load** now sits directly above the normal Load button. Its caution
-  and preset compatibility results appear in the Load status card, and
-  **Restore Previous Appearance** follows the normal loading controls as a
-  separate recovery action.
-- Favorites, complete-library backups, previous-appearance recovery, bulk
-  preset actions, Help search, and clearer section controls are part of the
-  main interface.
+- Selecting a preset no longer repeats the complete compatibility scan every
+  0.75 seconds. Compatibility updates when the preset, editor, overlay, or a
+  related loading control changes.
+- Slow compatibility checks identify whether the game option list or preset
+  matching took most of the time in the Activity Log.
+- Large preset, folder, Trash, backup, sharing-file, sharing-preview, and
+  Activity Log lists use pages instead of drawing every item on every frame.
+- Help shows compact topic headings. Select one to read it, or search to show
+  matching instructions directly.
+- Backup-file discovery and previous-appearance availability are remembered
+  instead of checking the drive every frame. **Refresh Backup File List** finds
+  backup files added outside the mod.
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -123,12 +116,12 @@ over an older preset updates it to format 8. Saving its optional notes or tags
 also updates that file. Keep a backup before replacing any preset you may still
 want to use with an older mod version.
 
-Do not keep an older copy of the mod beside the current one. Version 3.0.5 does not move loose files left by older releases. For a clean update:
+Do not keep an older copy of the mod beside the current one. Version 3.0.6 does not move loose files left by older releases. For a clean update:
 
 1. Back up the `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
    from `Character Presets`.
 2. Remove the old Character Preset Manager folder.
-3. Install version 3.0.5.
+3. Install version 3.0.6.
 4. Put your saved presets and bundles back in `Character Presets`.
 
 </details>
@@ -494,7 +487,7 @@ Folders made inside CET exist only in the mod's folder list. They do not create 
 
 ### Memory use while idle
 
-Version 3.0.5 releases temporary loading data as soon as a load finishes. When
+Version 3.0.6 releases temporary loading data as soon as a load finishes. When
 the mod window is hidden or the CET overlay closes, it also unloads full preset
 contents and clears interface lists that can be rebuilt. Preset names, folders,
 notes, tags, favorites, and other library details stay available.
@@ -540,7 +533,7 @@ formats did not store the slot and choice, so the exact option may be unknown.
 
 ### Can I use older Character Preset Manager or ACU presets?
 
-Yes. Version 3.0.5 can load older Character Preset Manager formats and compatible
+Yes. Version 3.0.6 can load older Character Preset Manager formats and compatible
 ACU presets. New and updated presets use format 8.
 
 ### What happens if the CET folder list is missing an entry?
@@ -566,27 +559,20 @@ and I do not plan to release it.
 </details>
 
 <details>
-<summary><strong>Version 3.0.5 summary</strong></summary>
+<summary><strong>Version 3.0.6 summary</strong></summary>
 
-- Fixes and verifies complete-library backup export, reports preset and folder
-  totals, adds confirmed backup deletion, and keeps import non-destructive when
-  names already exist.
-- Adds `# CPM Preset`, `# Name:`, and `# Library folder:` details to current
-  format-8 files. These details can rebuild a missing catalog assignment.
-- Keeps older CPM formats and compatible ACU presets readable without changing
-  them merely because they were found or loaded.
-- Adds a read-only `.cpmfolder` contents preview showing its main folder, nested
-  folders, and every included preset before installation.
-- Adds persistent Favorites, complete-library `.cpmbackup` controls, automatic
-  previous-appearance snapshots, and a separate bulk preset section.
-- Adds Help search, a top-level **Log** button, preset-tag searching, tags beside
-  preset names, and **Copy File Path** for the selected preset.
-- Improves loading confirmation, editor refresh timing, compatibility details,
-  automatic **Force Full Load** defaults, and narrow-window controls.
-- Releases completed-load data immediately and unloads full preset contents,
-  rebuildable interface lists, and displayed log text when they are idle.
-- Keeps safe writing, recovery, older preset support, Trash protection, and
-  `.cpmfolder` import tracking while organizing the mod into smaller modules.
+- Removes the repeating compatibility scan that could cause severe FPS loss
+  after selecting a preset in a large CC or CCXL appearance setup.
+- Logs separate game-option and preset-matching times when a compatibility check
+  is unusually slow.
+- Pages large interface and Activity Log lists so their hidden rows are not
+  redrawn every frame.
+- Keeps every preset, folder, Trash item, sharing file, backup, and log line
+  reachable through Previous and Next controls.
+- Caches backup discovery and previous-appearance availability instead of
+  repeatedly checking the drive.
+- Keeps format-7 and format-8 choice matching, older preset support, loading
+  safety, recovery, Trash protection, and sharing behavior unchanged.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
 

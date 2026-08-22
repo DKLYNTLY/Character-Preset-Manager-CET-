@@ -11,6 +11,11 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
         actionButtonHeight) then
       exportLibraryBackup()
     end
+    if fullWidthButton("Refresh Backup File List##refreshLibraryBackups",
+        actionButtonHeight) then
+      libraryBackupFiles(true)
+      clearStatus("backup")
+    end
     local backupFiles = libraryBackupFiles()
     local selectedBackupAvailable = false
     for _, backupPath in ipairs(backupFiles) do
@@ -26,8 +31,12 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
     end
     local selectedBackupLabel = state.backup.selectedFile
       and state.backup.selectedFile:match("([^/]+)$") or "No library backup found"
+    drawPageControls("backupFiles", #backupFiles, UI_LIST_PAGE_SIZE, "Backups")
     if ImGui.BeginCombo("Backup file##libraryBackupFile", selectedBackupLabel) then
-      for _, backupPath in ipairs(backupFiles) do
+      local firstBackup, lastBackup = pagedRange("backupFiles",
+        #backupFiles, UI_LIST_PAGE_SIZE)
+      for index = firstBackup, lastBackup do
+        local backupPath = backupFiles[index]
         local label = backupPath:match("([^/]+)$") or backupPath
         if ImGui.Selectable(label .. "##backup:" .. backupPath,
             state.backup.selectedFile == backupPath) then

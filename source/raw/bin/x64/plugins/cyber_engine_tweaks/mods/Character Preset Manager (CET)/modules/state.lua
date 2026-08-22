@@ -90,7 +90,7 @@ state = {
     preflight = nil,
     preflightDirty = true,
     preflightPresetName = nil,
-    preflightTimer = 0,
+    recoverySnapshotAvailable = nil,
   },
   trash = {
     items = {},
@@ -118,6 +118,8 @@ state = {
     selectedFile = nil,
     pendingDeleteFile = nil,
     pendingDeleteFingerprint = nil,
+    filesDirty = true,
+    files = {},
   },
   ui = {
     openSections = {
@@ -146,6 +148,7 @@ state = {
     settingsOpen = false,
     debugLogText = "",
     debugLogLines = {},
+    listPages = {},
     bindingCache = {},
     initialWindowPlacementPending = true,
     discoveryNoticePending = false,

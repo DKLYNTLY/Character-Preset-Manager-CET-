@@ -1183,6 +1183,8 @@ function loadPreset()
   if state.load.presetName and not state.load.needsContinue
       and not state.load.pendingChange then
     helpers.releaseFinishedLoadWorkingData()
+    state.invalidatePreflight()
+    if state.app.overlayOpen and state.app.windowOpen then refreshPreflight() end
   end
   return result
 end
@@ -1190,6 +1192,7 @@ end
 function restoreLastAppearance()
   local preset = readPresetFile(LAST_APPEARANCE_FILE)
   if not preset then
+    state.load.recoverySnapshotAvailable = false
     setStatus("load", "No appearance recovery snapshot is available yet.", true)
     return false
   end
@@ -1205,6 +1208,7 @@ function restoreLastAppearance()
 end
 
 refreshPreflight = function()
+  local preflightStarted = helpers.loadClock()
   helpers.syncForceFullLoadSelection()
   state.load.preflight = nil
   state.load.preflightDirty = false
@@ -1219,9 +1223,18 @@ refreshPreflight = function()
     state.library.presetTags = preset.tags or ""
     writeInventory(state.library.presets, state.library.folders)
   end
+  local optionsStarted = helpers.loadClock()
   local _, options = getOptions()
+  local optionsSeconds = math.max(0, helpers.loadClock() - optionsStarted)
   state.app.inCustomization = options ~= nil
-  if not options then return end
+  if not options then
+    if optionsSeconds >= SLOW_PREFLIGHT_SECONDS then
+      log(("[PERFORMANCE] Appearance option retrieval took %.3f seconds while checking '%s'.")
+        :format(optionsSeconds, tostring(state.library.selected)), "warn")
+    end
+    return
+  end
+  local matchingStarted = helpers.loadClock()
   local savedCounts, savedSlotCounts = {}, {}
   for _, entry in ipairs(preset.entries or {}) do
     savedCounts[entry.key] = (savedCounts[entry.key] or 0) + 1
@@ -1290,6 +1303,13 @@ refreshPreflight = function()
     ambiguous = ambiguous,
     invalid = invalid,
   }
+  local totalSeconds = math.max(0, helpers.loadClock() - preflightStarted)
+  if totalSeconds >= SLOW_PREFLIGHT_SECONDS then
+    local matchingSeconds = math.max(0, helpers.loadClock() - matchingStarted)
+    log(("[PERFORMANCE] Preset option check took %.3f seconds: appearance options=%.3f matching=%.3f preset='%s' liveOptions=%d savedOptions=%d.")
+      :format(totalSeconds, optionsSeconds, matchingSeconds,
+        tostring(state.library.selected), #options, #(preset.entries or {})), "warn")
+  end
 end
 
 function cancelLoading()

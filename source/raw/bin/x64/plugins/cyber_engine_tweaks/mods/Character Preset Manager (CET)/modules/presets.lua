@@ -238,7 +238,6 @@ state.invalidatePreflight = function()
   state.load.preflight = nil
   state.load.preflightDirty = true
   state.load.preflightPresetName = nil
-  state.load.preflightTimer = 0
 end
 
 function writePresetContents(path, preset)
@@ -646,6 +645,8 @@ function saveLastAppearanceSnapshot(options)
     entryCount = #entries,
   }
   local wrote = writePresetPath(LAST_APPEARANCE_FILE, preset)
+  state.load.recoverySnapshotAvailable = wrote == true
+    or state.load.recoverySnapshotAvailable == true
   log(("[RECOVERY SNAPSHOT] Saved current appearance options=%d file='%s' success=%s.")
     :format(#entries, LAST_APPEARANCE_FILE, tostring(wrote)), wrote and "info" or "warn")
   return wrote

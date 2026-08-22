@@ -11,6 +11,8 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
     if compactSubsectionButton("Save Location", "Hide Save Location",
         "saveDestination") then
       ImGui.Indent(8)
+      local saveFolders = sortedFolderNames()
+      drawPageControls("saveFolders", #saveFolders, UI_LIST_PAGE_SIZE, "Folders")
       ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)
       if ImGui.Selectable("All Presets##saveDestinationRoot", state.library.selectedFolder == "")
           and state.library.selectedFolder ~= "" then
@@ -19,7 +21,10 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
         setStatus("create", "Save destination changed to All Presets.")
         log("[UI] Save destination changed to '<root>'.", "info")
       end
-      for _, folder in ipairs(sortedFolderNames()) do
+      local firstFolder, lastFolder = pagedRange("saveFolders",
+        #saveFolders, UI_LIST_PAGE_SIZE)
+      for index = firstFolder, lastFolder do
+        local folder = saveFolders[index]
         local label = string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
           (state.library.manualFolders[folder] and " (imported)" or "")
         if ImGui.Selectable(label .. "##saveDestination:" .. folder,
