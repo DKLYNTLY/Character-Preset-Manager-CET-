@@ -22,9 +22,9 @@ used. See the README and in-game Help for current instructions.
   count, and format. **Preset Options** contains **Check Compatibility**, the
   favorite action, and **Force Full Load** so it is less likely to be enabled
   accidentally.
-- Gives optional groups and Help topics the main section buttons' gold-on-dark
-  colors. Full-width arrows and beginning and ending dividers keep opened
-  controls clear. Only the editor and Load sections start open.
+- Replaces custom optional-group buttons with built-in folding headers. Main
+  sections, optional groups, Help topics, and selected preset rows now share
+  the same blue highlight and white text. Only editor and Load start open.
 - Moves every main status card below its section introduction and above the
   controls. Current requirements, warnings, and results are easier to see
   before selecting an action.

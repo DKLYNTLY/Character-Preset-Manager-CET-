@@ -67,15 +67,24 @@ function popTheme()
   ImGui.PopStyleColor(#THEME_COLORS)
 end
 
+function pushFoldingHeaderTheme()
+  ImGui.PushStyleColor(ImGuiCol.Header, 0.24, 0.32, 0.42, 0.65)
+  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.28, 0.38, 0.50, 0.65)
+  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.24, 0.32, 0.42, 0.90)
+  ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
+end
+
+function popFoldingHeaderTheme()
+  ImGui.PopStyleColor(5)
+end
+
 function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
-  ImGui.PushStyleColor(ImGuiCol.Header, 0.055, 0.059, 0.078, 0.98)
-  ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.12, 0.09, 0.04, 0.98)
-  ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.18, 0.12, 0.04, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
+  pushFoldingHeaderTheme()
   local defaultFlag = state.ui.openSections[key] ~= false and 32 or 0
   local open = ImGui.CollapsingHeader(label .. "##CPMSectionV2:" .. key, defaultFlag)
-  ImGui.PopStyleColor(4)
+  popFoldingHeaderTheme()
   if open then ImGui.Spacing() end
   return open
 end
@@ -85,23 +94,14 @@ function fullWidthButton(label, height)
   return ImGui.Button(label, width, height or 32)
 end
 
-function compactSubsectionButton(closedLabel, openLabel, key)
+function compactSubsectionButton(closedLabel, _, key)
   ImGui.Spacing()
   local open = state.ui.openSubsections[key] == true
-  ImGui.PushStyleColor(ImGuiCol.Button, 0.055, 0.059, 0.078, 0.98)
-  ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.12, 0.09, 0.04, 0.98)
-  ImGui.PushStyleColor(ImGuiCol.ButtonActive, 0.18, 0.12, 0.04, 1.0)
-  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
-  ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
-  ImGui.PushStyleVar(ImGuiStyleVar.FrameBorderSize, 1.0)
-  local marker = open and "v  " or ">  "
-  if ImGui.Button(marker .. (open and openLabel or closedLabel) ..
-      "##CPMSubsection:" .. key, ImGui.GetContentRegionAvail(), 28) then
-    open = not open
-    state.ui.openSubsections[key] = open
-  end
-  ImGui.PopStyleVar(1)
-  ImGui.PopStyleColor(5)
+  ImGui.SetNextItemOpen(open, ImGuiCond.Always)
+  pushFoldingHeaderTheme()
+  open = ImGui.CollapsingHeader(closedLabel .. "##CPMSubsection:" .. key)
+  popFoldingHeaderTheme()
+  state.ui.openSubsections[key] = open
   if open then
     ImGui.Spacing()
     ImGui.Separator()

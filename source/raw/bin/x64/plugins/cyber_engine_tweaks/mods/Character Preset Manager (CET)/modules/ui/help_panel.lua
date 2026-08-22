@@ -308,19 +308,16 @@ if state.ui.helpOpen then
         if visible then visibleHelpTopics = visibleHelpTopics + 1 end
         if not visible then return false end
         if appliedHelpQuery ~= "" then return true end
-        ImGui.PushStyleColor(ImGuiCol.Header, 0.055, 0.059, 0.078, 0.98)
-        ImGui.PushStyleColor(ImGuiCol.HeaderHovered, 0.12, 0.09, 0.04, 0.98)
-        ImGui.PushStyleColor(ImGuiCol.HeaderActive, 0.18, 0.12, 0.04, 1.0)
-        ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
+        pushFoldingHeaderTheme()
         local open = ImGui.CollapsingHeader(title .. "##helpTopic:" .. title)
-        ImGui.PopStyleColor(4)
+        popFoldingHeaderTheme()
         return open
       end
 
       if showHelpTopic("Main Window & Help Buttons",
           "button buttons controls interface section header open close settings help log search clear find title window") then
       helpHeading("Main Window & Help Buttons")
-      ImGui.TextWrapped("Select any gold section heading to open or close that section. The window's X closes Character Preset Manager without closing CET.")
+      ImGui.TextWrapped("Select any section heading to open or close that section. The window's X closes Character Preset Manager without closing CET.")
       ImGui.TextWrapped("Each section places its status card below the introductory text and above its controls. Read that card before choosing an action.")
       helpButton("Settings", "Opens or closes the mod's preferences. Opening it closes Help and the Activity Log.")
       helpButton("Help", "Opens or closes this searchable Help panel. Opening it closes Settings and the Activity Log.")
@@ -381,8 +378,8 @@ if state.ui.helpOpen then
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")
       helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorite presets also appear in the Favorites group.")
-      helpButton("Preset Options / Hide Preset Options", "Shows or hides Check Compatibility, Force Full Load, and the favorite action. The compact preset summary stays above it.")
-      ImGui.TextWrapped("Optional groups use a right arrow when closed and a down arrow with dividers when open. Saving and library-management sections start closed so the loading controls are easier to find.")
+      helpButton("Preset Options", "Shows or hides Check Compatibility, Force Full Load, and the favorite action. The compact preset summary stays above it.")
+      ImGui.TextWrapped("Main sections, optional groups, and Help topics use the same blue highlight as selected preset rows. Saving and library-management sections start closed.")
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")
@@ -400,7 +397,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("2. Under Save & Replace Presets, open Save Location.")
       ImGui.TextWrapped("3. Choose a folder or All Presets, then enter a name.")
       ImGui.TextWrapped("4. Select Save New Preset. Only select Confirm Overwrite if you want to replace an existing preset.")
-      helpButton("Save Location / Hide Save Location", "Shows or hides the list of folders where the new preset can be saved.")
+      helpButton("Save Location", "Shows or hides the list of folders where the new preset can be saved.")
       helpButton("All Presets and folder rows", "Chooses the save location. All Presets saves outside every folder.")
       helpButton("Save New Preset", "Saves the appearance currently shown in the open character editor using the entered name and chosen location.")
       helpButton("Confirm Overwrite", "Replaces the existing preset with the same name and location. It appears only after Save New Preset finds that name already in use.")
@@ -418,7 +415,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Windows folders placed inside Character Presets appear with an Imported label. The mod keeps unknown files in those folders safe.")
       helpButton("All Presets and folder rows", "Chooses the destination used by Add Folder and the preset-move buttons. Selecting a folder also makes its management controls available.")
       helpButton("Add Folder", "Creates a folder with the entered name inside the selected folder. Choose All Presets first to create a main folder.")
-      helpButton("Rename / Copy / Move / Delete / Hide Selected Folder Actions", "Shows or hides the actions for the selected folder.")
+      helpButton("Rename / Copy / Move / Delete", "Shows or hides the actions for the selected folder.")
       helpButton("Rename Folder", "Changes the selected folder's displayed name to the entered name.")
       helpButton("Duplicate Selected Folder", "Copies the selected folder, every folder inside it, and all of their presets.")
       helpButton("Move Selected Preset Here", "Moves the preset chosen under Load & Restore Appearance into the selected folder.")
@@ -437,7 +434,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Open Rename & Copy Presets to rename or copy the selected preset. Open Tags, Notes & File to edit extra details or copy its file path.")
       helpButton("Rename Preset", "Renames the selected preset and its .preset file using the name entered above the button.")
       helpButton("Copy Preset", "Creates a separate copy beside the selected preset. It uses Copy, Copy 2, and similar names when needed.")
-      helpButton("Tags, Notes & File / Hide Tags, Notes & File", "Shows or hides the selected preset's file path, tags, notes, and detail-saving controls.")
+      helpButton("Tags, Notes & File", "Shows or hides the selected preset's file path, tags, notes, and detail-saving controls.")
       helpButton("Copy File Path", "Copies the selected preset's complete path from the Cyberpunk 2077 game folder.")
       helpButton("Save Preset Details", "Saves the entered tags and notes. Saving details may update an older preset to the current readable format.")
       end
@@ -498,10 +495,10 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("The mod skips a bundle that was already imported and has not changed. If you deleted its imported folder, you can import the same bundle again.")
       ImGui.TextWrapped("To check a sharing file first, select it under Manage & Remove .cpmfolder Files, then choose View Selected .cpmfolder Contents. The preview does not install or change anything.")
       ImGui.TextWrapped("To remove only a sharing file, open Manage & Remove .cpmfolder Files. Moving the file to Trash does not remove installed presets or folders.")
-      helpButton("Share & Import Folders / Hide Share & Import Folders", "Shows or hides the controls used to create and install .cpmfolder sharing files.")
+      helpButton("Share & Import Folders", "Shows or hides the controls used to create and install .cpmfolder sharing files.")
       helpButton("Export Selected Folder as a .cpmfolder File", "Creates a sharing file containing the selected folder, every folder inside it, and their presets.")
       helpButton("Install .cpmfolder Files from Character Presets", "Finds and installs valid .cpmfolder files placed in Character Presets.")
-      helpButton("Manage & Remove .cpmfolder Files / Hide .cpmfolder File Manager", "Shows or hides the sharing files currently stored in Character Presets. The number shows how many were found.")
+      helpButton("Manage & Remove .cpmfolder Files", "Shows or hides the sharing files currently stored in Character Presets. The number shows how many were found.")
       helpButton("Sharing-file rows", "Chooses which .cpmfolder file to view or move to Trash.")
       helpButton("View Selected .cpmfolder Contents / Hide Selected .cpmfolder Contents", "Checks the file and shows its main folder, nested folders, and every preset without installing it.")
       helpButton("Move Selected .cpmfolder File to Trash", "Moves only the selected sharing file to Trash. It does not remove the folder or presets that were installed from it.")
@@ -513,7 +510,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off and choose how presets are sorted. Open Settings File and select Reload Settings File only after changing Data/Config/Config.txt by hand.")
       helpButton("Customization Reminder: Enabled / Disabled", "Turns the reminder shown when a character customization screen opens on or off. The choice is saved.")
       helpButton("Preset Sort: Name / Last Modified", "Switches the preset list between alphabetical order and newest-changed-first order.")
-      helpButton("Settings File / Hide Settings File", "Shows or hides the manual settings-file control.")
+      helpButton("Settings File", "Shows or hides the manual settings-file control.")
       helpButton("Reload Settings File", "Applies changes made directly to Data/Config/Config.txt without restarting the game.")
       end
 
@@ -537,7 +534,7 @@ if state.ui.helpOpen then
       helpButton("Refresh", "Reads the newest Activity Log contents from disk.")
       helpButton("Copy", "Copies the complete loaded Activity Log text to the clipboard, including pages that are not currently shown.")
       helpButton("Close", "Closes the Activity Log panel.")
-      helpButton("Technical Details / Hide Technical Details", "Shows or hides editor-launch counters used for troubleshooting the Open Full Appearance Editor action.")
+      helpButton("Technical Details", "Shows or hides editor-launch counters used for troubleshooting the Open Full Appearance Editor action.")
       if fullWidthButton("Open Activity Log##openDebugFromHelp", actionButtonHeight) then
         ui.readDiagnosticLog()
         state.ui.debugOpen = true
