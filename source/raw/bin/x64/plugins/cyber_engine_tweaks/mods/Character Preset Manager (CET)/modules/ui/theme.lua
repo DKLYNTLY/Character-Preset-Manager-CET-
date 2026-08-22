@@ -156,6 +156,8 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
   local success = not isError and (kind == "success" or kind == "ready")
   local warning = not isError and kind == "warning"
   local criticalWarning = not isError and kind == "critical_warning"
+  local attention = section == "load"
+    and (state.load.stalled or state.load.remaining > 0)
   local destructiveWarning = (section == "delete"
       and (state.trash.pendingEmpty == true
         or (state.trash.pendingDeleteName ~= nil
@@ -174,9 +176,17 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.97, 0.72, 0.20, 0.90)
     customColors = true
+  elseif attention then
+    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
+    ImGui.PushStyleColor(ImGuiCol.Border, 1.0, 0.55, 0.15, 0.90)
+    customColors = true
   elseif success then
     ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
     ImGui.PushStyleColor(ImGuiCol.Border, 0.22, 0.78, 0.34, 0.90)
+    customColors = true
+  else
+    ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
+    ImGui.PushStyleColor(ImGuiCol.Border, 0.30, 0.55, 0.82, 0.90)
     customColors = true
   end
   local estimatedLines = math.max(1, math.ceil(#tostring(text) / 48))
@@ -209,7 +219,7 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
     ImGui.TextColored(0.3, 1.0, 0.4, 1.0, successLabel)
     drawStatusText(1.0, 1.0, 1.0)
   else
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "STATUS")
+    ImGui.TextColored(0.42, 0.72, 0.95, 1.0, "STATUS")
     drawStatusText(1.0, 1.0, 1.0)
   end
   ImGui.EndChild()

@@ -35,6 +35,9 @@ used. See the README and in-game Help for current instructions.
 - Separates the important value in every status card from its instruction or
   result. Save locations, selected presets, destinations, backup counts, and
   recoverable-item counts appear on their own orange line.
+- Changes neutral status headings and borders from yellow to blue. Orange now
+  identifies the important current value, while green, yellow, and red retain
+  their ready, warning, and error meanings.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
   while a preset is selected. Opening CET, refreshing presets, changing Force
   Full Load, and finishing a load also no longer start the display-only scan.
