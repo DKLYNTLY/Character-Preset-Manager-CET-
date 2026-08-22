@@ -7,15 +7,6 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
     narrowTopRow)
   if collapsibleSectionHeader("EXPORT & IMPORT BACKUPS", "backup") then
     ImGui.TextWrapped("Save or restore the complete preset library, including folders and settings, or permanently delete a selected backup file.")
-    if fullWidthButton("Export Complete Library Backup##exportLibraryBackup",
-        actionButtonHeight) then
-      exportLibraryBackup()
-    end
-    if fullWidthButton("Refresh Backup File List##refreshLibraryBackups",
-        actionButtonHeight) then
-      libraryBackupFiles(true)
-      clearStatus("backup")
-    end
     local backupFiles = libraryBackupFiles()
     local selectedBackupAvailable = false
     for _, backupPath in ipairs(backupFiles) do
@@ -28,6 +19,20 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       state.backup.selectedFile = backupFiles[#backupFiles]
     elseif #backupFiles == 0 then
       state.backup.selectedFile = nil
+    end
+    local backupStatus = #backupFiles == 0
+      and "Export a complete library backup to create your first backup file."
+      or "Choose a backup file to import or permanently delete, or export a new complete backup."
+    drawSectionStatus("backup", "##backupStatus", statusHeight, backupStatus,
+      #backupFiles > 0 and "ready" or "info")
+    if fullWidthButton("Export Complete Library Backup##exportLibraryBackup",
+        actionButtonHeight) then
+      exportLibraryBackup()
+    end
+    if fullWidthButton("Refresh Backup File List##refreshLibraryBackups",
+        actionButtonHeight) then
+      libraryBackupFiles(true)
+      clearStatus("backup")
     end
     local selectedBackupLabel = state.backup.selectedFile
       and state.backup.selectedFile:match("([^/]+)$") or "No library backup found"
@@ -61,12 +66,6 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       deleteSelectedLibraryBackup()
     end
     if #backupFiles == 0 then ImGui.EndDisabled() end
-    local backupStatus = #backupFiles == 0
-      and "Export a complete library backup to create your first backup file."
-      or "Choose a backup file to import or permanently delete, or export a new complete backup."
-    drawSectionStatus("backup", "##backupStatus", statusHeight, backupStatus,
-      #backupFiles > 0 and "ready" or "info")
-
   end
 end
 

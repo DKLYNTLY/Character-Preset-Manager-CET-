@@ -8,6 +8,16 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
     ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.library.selectedFolder))
+    local statusSaveUnavailable = not state.app.inCustomization
+      or validatedPresetName(state.library.newName) == nil
+    local saveStatus = not state.app.inCustomization
+      and "Open the character creator, a mirror, or a ripperdoc to save a preset."
+      or (validatedPresetName(state.library.newName) == nil
+        and "Enter a preset name to enable saving."
+        or ("Ready to save this appearance in %s.")
+          :format(helpers.breadcrumb(state.library.selectedFolder)))
+    drawSectionStatus("create", "##createStatus", statusHeight, saveStatus,
+      statusSaveUnavailable and "info" or "ready")
     if compactSubsectionButton("Save Location", "Hide Save Location",
         "saveDestination") then
       ImGui.Indent(8)
@@ -60,14 +70,6 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
       savePreset(state.library.pendingOverwriteName == pendingCreateName)
     end
     if saveUnavailable then ImGui.EndDisabled() end
-    local saveStatus = not state.app.inCustomization
-      and "Open the character creator, a mirror, or a ripperdoc to save a preset."
-      or (validatedPresetName(state.library.newName) == nil
-        and "Enter a preset name to enable saving."
-        or ("Ready to save this appearance in %s.")
-          :format(helpers.breadcrumb(state.library.selectedFolder)))
-    drawSectionStatus("create", "##createStatus", statusHeight, saveStatus,
-      saveUnavailable and "info" or "ready")
     end
 end
 

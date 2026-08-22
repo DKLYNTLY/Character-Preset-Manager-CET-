@@ -7,6 +7,16 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
     narrowTopRow)
   if collapsibleSectionHeader("SELECT & MANAGE MULTIPLE PRESETS", "bulk") then
     ImGui.TextWrapped("Select several presets, then move them to one folder, export them together, or move them to Trash.")
+    local visibleNames = helpers.filteredPresetNames()
+    local selectedBulkNames = selectedBulkPresetNames()
+    local bulkStatus = #visibleNames == 0
+      and "No presets match the current search."
+      or (#selectedBulkNames == 0
+        and "Select a preset row to add it. Select it again to remove it."
+        or ("%d preset%s selected. Choose an action below.")
+          :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
+    drawSectionStatus("bulk", "##bulkStatus", statusHeight, bulkStatus,
+      #selectedBulkNames > 0 and "ready" or "info")
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
     ImGui.PushItemWidth(-1)
     local previousSearchText = state.library.searchText
@@ -17,8 +27,6 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       state.ui.listPages.bulkPresets = 1
     end
     ImGui.PopItemWidth()
-    local visibleNames = helpers.filteredPresetNames()
-    local selectedBulkNames = selectedBulkPresetNames()
     local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
     if ImGui.Button("Select All Visible##bulkSelectAll",
         bulkButtonWidth, actionButtonHeight) then
@@ -97,14 +105,6 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       requestBulkTrash(selectedBulkNames)
     end
     if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-    local bulkStatus = #visibleNames == 0
-      and "No presets match the current search."
-      or (#selectedBulkNames == 0
-        and "Select a preset row to add it. Select it again to remove it."
-        or ("%d preset%s selected. Choose an action below.")
-          :format(#selectedBulkNames, #selectedBulkNames == 1 and "" or "s"))
-    drawSectionStatus("bulk", "##bulkStatus", statusHeight, bulkStatus,
-      #selectedBulkNames > 0 and "ready" or "info")
   end
 end
 

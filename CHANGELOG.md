@@ -25,6 +25,9 @@ used. See the README and in-game Help for current instructions.
 - Gives optional groups and Help topics the main section buttons' gold-on-dark
   colors. Full-width arrows and beginning and ending dividers keep opened
   controls clear. Only the editor and Load sections start open.
+- Moves every main status card below its section introduction and above the
+  controls. Current requirements, warnings, and results are easier to see
+  before selecting an action.
 - Stops repeating the complete preset compatibility check every 0.75 seconds
   while a preset is selected. Opening CET, refreshing presets, changing Force
   Full Load, and finishing a load also no longer start the display-only scan.

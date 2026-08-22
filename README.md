@@ -73,6 +73,9 @@ than the smaller selection normally available during play.
 - Makes optional groups and Help topics use the same gold-on-dark colors as the
   main section buttons. Full-width arrows and dividers mark opened controls.
   Only the editor and Load sections start open; other sections start closed.
+- Places every section's status card directly below its introductory text and
+  above its controls, so warnings and required steps are visible before an
+  action is selected.
 - Slow compatibility checks identify whether the game option list or preset
   matching took most of the time in the Activity Log.
 - Large preset, folder, Trash, backup, sharing-file, sharing-preview, and

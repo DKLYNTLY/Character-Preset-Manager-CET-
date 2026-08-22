@@ -321,6 +321,7 @@ if state.ui.helpOpen then
           "button buttons controls interface section header open close settings help log search clear find title window") then
       helpHeading("Main Window & Help Buttons")
       ImGui.TextWrapped("Select any gold section heading to open or close that section. The window's X closes Character Preset Manager without closing CET.")
+      ImGui.TextWrapped("Each section places its status card below the introductory text and above its controls. Read that card before choosing an action.")
       helpButton("Settings", "Opens or closes the mod's preferences. Opening it closes Help and the Activity Log.")
       helpButton("Help", "Opens or closes this searchable Help panel. Opening it closes Settings and the Activity Log.")
       helpButton("Log", "Opens or closes the Activity Log and reads its newest contents.")

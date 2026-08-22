@@ -10,6 +10,15 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     ImGui.TextWrapped("Selected destination: " .. helpers.breadcrumb(state.library.selectedFolder))
     coloredWrapped(1.0, 1.0, 1.0, 1.0,
       "Folders made in CET have no set limit. Imported folders are Windows folders inside Character Presets.")
+    local folderStatus = state.library.selectedFolder == ""
+      and (not state.library.selected
+        and "All Presets is selected. Enter a folder name to add one, or select a preset before moving it."
+        or (parentFolder(state.library.selected) == ""
+          and "All Presets is selected. The selected preset is already here."
+          or "All Presets is selected. The selected preset can be moved here."))
+      or ("Folder selected: %s. Add a folder or use the selected folder actions.")
+        :format(helpers.breadcrumb(state.library.selectedFolder))
+    drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready")
     ImGui.Spacing()
     local folderNames = sortedFolderNames()
     drawPageControls("organizeFolders", #folderNames, UI_LIST_PAGE_SIZE, "Folders")
@@ -208,15 +217,6 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         state.status.lastLoggedFolder = state.status.sections.folder.message
       end
     end
-    local folderStatus = state.library.selectedFolder == ""
-      and (not state.library.selected
-        and "All Presets is selected. Enter a folder name to add one, or select a preset before moving it."
-        or (parentFolder(state.library.selected) == ""
-          and "All Presets is selected. The selected preset is already here."
-          or "All Presets is selected. The selected preset can be moved here."))
-      or ("Folder selected: %s. Add a folder or use the selected folder actions.")
-        :format(helpers.breadcrumb(state.library.selectedFolder))
-    drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready")
     end
 end
 

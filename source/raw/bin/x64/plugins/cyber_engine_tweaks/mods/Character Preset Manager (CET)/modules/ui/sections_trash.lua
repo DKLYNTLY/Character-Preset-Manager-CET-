@@ -6,6 +6,18 @@ local _ENV = runtime
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       ImGui.TextWrapped("Move presets, folders, and shared-folder files to Trash. You can restore them later.")
+      state.ensureTrashViewCache()
+      local trashNames = state.trash.cachedNames
+      local trashGroupIds = state.trash.cachedGroupIds
+      local trashBundleNames = state.trash.cachedBundleNames
+      local trashCount = #trashNames + #trashGroupIds + #trashBundleNames
+      local trashStatus = state.library.selected
+        and ("Ready to move %s to Trash. %d recoverable item%s currently in Trash.")
+          :format(state.library.selected, trashCount, trashCount == 1 and "" or "s")
+        or ("Select a preset under Load & Restore Appearance to move it to Trash. %d recoverable item%s currently in Trash.")
+          :format(trashCount, trashCount == 1 and "" or "s")
+      drawSectionStatus("delete", "##trashStatus", statusHeight, trashStatus,
+        state.library.selected and "ready" or "info")
       if state.library.selected then
         local deleteLabel = state.trash.pendingDeleteName == state.library.selected
           and "Confirm Move to Trash##danger"
@@ -19,10 +31,6 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       ImGui.Separator()
       ImGui.Spacing()
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Recover from Trash")
-      state.ensureTrashViewCache()
-      local trashNames = state.trash.cachedNames
-      local trashGroupIds = state.trash.cachedGroupIds
-      local trashBundleNames = state.trash.cachedBundleNames
       if #trashNames == 0 and #trashGroupIds == 0 and #trashBundleNames == 0 then
         ImGui.TextWrapped("Trash is empty.")
       else
@@ -87,14 +95,6 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
           end
         end
       end
-      local trashCount = #trashNames + #trashGroupIds + #trashBundleNames
-      local trashStatus = state.library.selected
-        and ("Ready to move %s to Trash. %d recoverable item%s currently in Trash.")
-          :format(state.library.selected, trashCount, trashCount == 1 and "" or "s")
-        or ("Select a preset under Load & Restore Appearance to move it to Trash. %d recoverable item%s currently in Trash.")
-          :format(trashCount, trashCount == 1 and "" or "s")
-      drawSectionStatus("delete", "##trashStatus", statusHeight, trashStatus,
-        state.library.selected and "ready" or "info")
     end
 end
 

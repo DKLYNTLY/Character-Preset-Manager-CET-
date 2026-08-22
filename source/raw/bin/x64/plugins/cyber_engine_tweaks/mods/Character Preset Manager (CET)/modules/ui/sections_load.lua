@@ -7,6 +7,49 @@ drawLoadSection = function(presetListHeight, statusHeight, actionButtonHeight, e
 helpers.syncForceFullLoadSelection()
 if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
+    local names = helpers.sortedPresetNames()
+    local selectedPreset = state.library.selected
+      and state.library.presets[state.library.selected]
+    local loadStatus, loadStatusKind
+    if #names == 0 then
+      loadStatus = "Save a preset before trying to load an appearance."
+      loadStatusKind = "info"
+    elseif not state.library.selected then
+      loadStatus = "Select a preset to enable loading."
+      loadStatusKind = "info"
+    elseif not state.app.inCustomization then
+      loadStatus = "Open the character creator, a mirror, or a ripperdoc to load the selected preset."
+      loadStatusKind = "info"
+    else
+      local messages = {}
+      local check = state.load.preflight
+      if check then
+        messages[#messages + 1] =
+          ("Option check: %d found, %d missing, %d repeated, %d invalid.")
+            :format(check.available, check.unavailable, check.ambiguous, check.invalid)
+        if check.ambiguous + check.invalid > 0 then
+          loadStatusKind = "critical_warning"
+        elseif check.unavailable > 0 then
+          loadStatusKind = "warning"
+        else
+          loadStatusKind = "ready"
+        end
+      end
+      if state.load.forceFull then
+        local forceWarning, forceWarningKind = helpers.forceFullLoadWarning(selectedPreset)
+        messages[#messages + 1] = forceWarning
+        if forceWarningKind == "critical_warning" or loadStatusKind ~= "critical_warning" then
+          loadStatusKind = forceWarningKind
+        end
+      end
+      if #messages == 0 then
+        messages[1] = ("Ready to load %s."):format(state.library.selected)
+        loadStatusKind = "ready"
+      end
+      loadStatus = table.concat(messages, " ")
+    end
+    drawSectionStatus("load", "##loadStatus", statusHeight, loadStatus,
+      loadStatusKind)
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
     local searchButtonWidth = narrowTopRow
@@ -47,7 +90,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           :format(added, updated, removed, #helpers.sortedPresetNames())
         or "Refresh failed; the previous list was kept.", not refreshed)
     end
-    local names = helpers.sortedPresetNames()
     ensureFilteredViewCache()
     local queryActive = state.cache.queryActive
     local matchedFolders = state.cache.matchedFolders
@@ -243,48 +285,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     end
     if restoreUnavailable then ImGui.EndDisabled() end
 
-    local selectedPreset = state.library.selected
-      and state.library.presets[state.library.selected]
-    local loadStatus, loadStatusKind
-    if #names == 0 then
-      loadStatus = "Save a preset before trying to load an appearance."
-      loadStatusKind = "info"
-    elseif not state.library.selected then
-      loadStatus = "Select a preset to enable loading."
-      loadStatusKind = "info"
-    elseif not state.app.inCustomization then
-      loadStatus = "Open the character creator, a mirror, or a ripperdoc to load the selected preset."
-      loadStatusKind = "info"
-    else
-      local messages = {}
-      local check = state.load.preflight
-      if check then
-        messages[#messages + 1] =
-          ("Option check: %d found, %d missing, %d repeated, %d invalid.")
-            :format(check.available, check.unavailable, check.ambiguous, check.invalid)
-        if check.ambiguous + check.invalid > 0 then
-          loadStatusKind = "critical_warning"
-        elseif check.unavailable > 0 then
-          loadStatusKind = "warning"
-        else
-          loadStatusKind = "ready"
-        end
-      end
-      if state.load.forceFull then
-        local forceWarning, forceWarningKind = helpers.forceFullLoadWarning(selectedPreset)
-        messages[#messages + 1] = forceWarning
-        if forceWarningKind == "critical_warning" or loadStatusKind ~= "critical_warning" then
-          loadStatusKind = forceWarningKind
-        end
-      end
-      if #messages == 0 then
-        messages[1] = ("Ready to load %s."):format(state.library.selected)
-        loadStatusKind = "ready"
-      end
-      loadStatus = table.concat(messages, " ")
-    end
-    drawSectionStatus("load", "##loadStatus", statusHeight, loadStatus,
-      loadStatusKind)
     end
 end
 
