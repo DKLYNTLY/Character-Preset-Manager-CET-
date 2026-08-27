@@ -38,6 +38,10 @@ events.onInit = function()
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
   local config, configLoaded = readConfig()
+  for key, value in pairs(config) do
+    state.preferences[key == "discoveryReminder"
+      and "customizationReminder" or key] = value
+  end
   state.ui.discoveryNoticeIgnored = not config.discoveryReminder
   state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
   if not configLoaded then writeConfig() end
@@ -219,6 +223,8 @@ events.onInit = function()
   log(("Preset files loaded: presets=%d directory='%s'")
     :format(presetCount, PRESET_DIR), "info")
   state.app.ready = true
+  initializeNativeBridge(configLoaded)
+  refreshAppearanceHistory()
   refreshEditorState()
   if recovered then
     setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.",
@@ -250,6 +256,7 @@ end
 
 events.onUpdate = function(delta)
   local elapsed = tonumber(delta) or 0
+  updateNativeBridge(elapsed)
   if not state.editor.openPending and not state.load.auto then
     return
   end
@@ -322,7 +329,7 @@ events.onOverlayOpen = function()
     log("[UI] Character-customization CET discovery notification acknowledged.", "info")
   end
   state.app.overlayOpen = true
-  state.app.windowOpen = true
+  state.app.windowOpen = state.preferences.cetFallback == true
   state.app.optionsMemo = nil
   state.load.recoverySnapshotAvailable = fileExists(LAST_APPEARANCE_FILE)
   state.backup.filesDirty = true

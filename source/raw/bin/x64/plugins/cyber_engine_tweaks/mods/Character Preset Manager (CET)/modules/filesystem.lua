@@ -111,6 +111,7 @@ function resetLoadState()
   state.load.autoTimer = 0
   state.load.autoPasses = 0
   state.load.resetBefore = false
+  state.load.nativeWarningPreset = nil
 end
 
 function cloneMap(source)
@@ -314,6 +315,12 @@ end
 
 log = function(message, level)
   level = level or "info"
+  local technical = tostring(message):find("[PERFORMANCE]", 1, true) == 1
+    or tostring(message):find("[MEASURE]", 1, true) == 1
+    or tostring(message):find("[editor diagnostic]", 1, true) == 1
+  if technical and state and state.preferences
+      and state.preferences.activityLogDetail ~= "technical"
+      and level ~= "error" then return end
   writeLog(message, level)
 end
 

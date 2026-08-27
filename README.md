@@ -1,6 +1,6 @@
 <h1 align="center">Character Preset Manager (CET)</h1>
 
-<p align="center"><em>Save, load, organize, and share complete Cyberpunk 2077 character appearances through CET.</em></p>
+<p align="center"><em>Save, load, compare, and recover complete Cyberpunk 2077 character appearances from the character screen or CET.</em></p>
 
 <p align="center">
   <strong><a href="https://www.nexusmods.com/cyberpunk2077/mods/31886">Download on Nexus Mods</a></strong>
@@ -10,7 +10,7 @@
   <a href="CHANGELOG.md">Full changelog</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.6</strong></p>
+<p align="center"><strong>Current version: 3.0.7</strong></p>
 
 <p align="center">
   <img src="images/Character%20Preset%20Manager%20%28CET%29%20v3.0.3.png" alt="Character Preset Manager feature overview" width="900">
@@ -41,62 +41,42 @@ than the smaller selection normally available during play.
 ## Features
 
 - **Complete appearance presets** — Save and load complete character appearances, including visible CC and CCXL options.
+- **Character-screen preset panel** — Use presets directly in new-game creation, the Full Appearance Editor, apartment mirrors, and ripperdoc appearance editors.
+- **Bundled default choices** — Keep the Corpo, Nomad, and Streetkid starter appearances for both body types after the new panel replaces the game's three preset buttons.
 - **Full Appearance Editor anywhere** — Open the full game character editor during normal play from CET or an optional key.
 - **Full apartment mirror options** — Use the complete character-creation option set through normal apartment mirrors.
 - **One-click loading** — Select a preset once while the mod waits for Cyberpunk to refresh the editor.
 - **Cosmetic cleanup** — After applying a preset, clear visible appearance options that were not part of it.
-- **Search and compatibility checks** — Find presets by name, folder, or tag. Run a compatibility check only when you need it.
+- **Detailed appearance comparison** — See what already matches, what will change, what is missing or uncertain, what is invalid, and which extra options loading will clear.
 - **Unlimited nested folders** — Organize presets in folders and folders inside folders, with no set limit.
 - **Preset and folder copies** — Copy one preset or a complete folder group.
 - **Readable format-8 files** — See the CPM marker, preset name, CET library folder, dates, notes, tags, favorite status, and appearance choices in plain text.
 - **Notes and tags** — Store optional details with current presets.
-- **Favorites and previous-appearance recovery** — Pin useful presets and undo the newest preset load.
+- **Favorites and appearance history** — Pin useful presets and restore up to 10 automatic recovery entries kept outside the normal library.
 - **Complete-library backups** — Export or safely import every preset, the CET folder layout, and settings in one `.cpmbackup` file.
 - **Recoverable Trash** — Move presets and folders to Trash and restore them later.
 - **Preset sharing** — Share one `.preset` file or a complete folder as a `.cpmfolder` file, and inspect a shared folder before installing it.
 - **Activity log** — Review actions, loading results, warnings, and errors inside CET.
 
-### What changed in 3.0.6
+### What changed in 3.0.7
 
-- Selecting a preset shows its name, folder, and saved-option count without
-  scanning the game's appearance options. Open **Preset Options** and select
-  **Check Compatibility** to run the scan once and show its result in the Load
-  status card.
-- Preset details and the saved-option count are read from the selected preset
-  file before they are shown. **Check Compatibility** no longer makes missing
-  notes, tags, or source details suddenly appear.
-- Uses one compact line for the selected preset's name, folder, saved-option
-  count, and format. Source, date, tags, and notes are not repeated in the Load
-  section. **Preset Options** contains actions only.
-- Moves **Force Full Load** under **Preset Options** so it is less likely to be
-  turned on accidentally.
-- Uses one orange family across buttons, selected rows, and section accents.
-  Main sections and Help topics use familiar arrow headers with a near-black
-  background and white text. Optional controls use compact charcoal buttons
-  with white text, centered below the main actions. Their width responds to the
-  window while preserving enough room for long labels. A divider line
-  separates every main section so each block remains easy to identify while scrolling.
-  Status cards use blue for information, green for ready or success, yellow for
-  warnings, and red for errors. Orange is reserved for the important current
-  value. Only editor and Load start open.
-- Places every section's status card directly below its introductory text and
-  above its controls, so warnings and required steps are visible before an
-  action is selected.
-- Keeps the main action path clear by placing optional control bars after
-  the main buttons. Changing details such as the save location now appear in
-  the status card instead of being repeated as separate lines.
-- Gives every status card a separate orange context line for its important
-  value, such as the save location, selected preset, destination, or number of
-  recoverable items. The instruction or result appears separately below it.
-- Slow compatibility checks identify whether the game option list or preset
-  matching took most of the time in the Activity Log.
-- Large preset, folder, Trash, backup, sharing-file, sharing-preview, and
-  Activity Log lists use pages instead of drawing every item on every frame.
-- Help shows compact topic bars. Select one to read it, or search to show
-  matching instructions directly.
-- Backup-file discovery and previous-appearance availability are remembered
-  instead of checking the drive every frame. **Refresh Backup File List** finds
-  backup files added outside the mod.
+- Adds an original Cyberpunk-style preset panel to every supported character
+  customization screen. The CET window remains available for advanced library
+  work and safe recovery.
+- Replaces the new-game screen's three preset choices with the full preset
+  library and includes six default Corpo, Nomad, and Streetkid presets.
+- Adds search, paging, mouse controls, keyboard and controller navigation,
+  selected-preset details, save, replace, load, compare, favorite, deletion,
+  refresh, history, and advanced-manager actions to the character screen.
+- Uses a narrow bridge so the native screen calls the existing Lua preset,
+  matching, loading, folder, backup, and recovery behavior. Preset rules are
+  not duplicated in redscript.
+- Expands comparison results to separate matching, changing, missing,
+  repeated or uncertain, invalid, and cleared options.
+- Replaces the single recovery file with a configurable appearance history of
+  1, 5, or 10 entries. Identical snapshots are skipped.
+- Moves preferences to Cyberpunk's **Mod Settings** menu and keeps a mirrored
+  file for complete-library backups.
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -110,14 +90,25 @@ than the smaller selection normally available during play.
 ### Requirements
 
 - [Cyber Engine Tweaks 1.37.1 or newer](https://www.nexusmods.com/cyberpunk2077/mods/107)
-- No other required mod or program
+- [RED4ext 1.30.0 or newer](https://www.nexusmods.com/cyberpunk2077/mods/2380)
+- [redscript 0.5.31 or newer](https://www.nexusmods.com/cyberpunk2077/mods/1511)
+- [Codeware 1.20.3 or newer](https://www.nexusmods.com/cyberpunk2077/mods/7780)
+- [ArchiveXL 1.27.1 or newer](https://www.nexusmods.com/cyberpunk2077/mods/4198)
+- [Mod Settings 0.2.21 or newer](https://www.nexusmods.com/cyberpunk2077/mods/4885)
+
+TweakXL, Input Loader, Native Settings UI, cybercmd, ACU, and Character
+Customization Anywhere are not required. ACU and Character Customization
+Anywhere are incompatible and must be removed before the game starts.
 
 ### Install the mod
 
 1. [Download the latest release from Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
-2. Extract the downloaded archive into your Cyberpunk 2077 game folder.
-3. Start the game and open the Cyber Engine Tweaks overlay.
-4. Select **Character Preset Manager (CET)**.
+2. Install every required mod listed above.
+3. Remove ACU and Character Customization Anywhere if either one is installed,
+   then fully restart the game.
+4. Extract the downloaded archive into your Cyberpunk 2077 game folder.
+5. Start the game. Open a supported character screen to use the native panel,
+   or open the Cyber Engine Tweaks overlay for the advanced manager.
 
 The window first opens near the right side of the screen. CET remembers its position and size after you move or resize it.
 
@@ -143,12 +134,12 @@ over an older preset updates it to format 8. Saving its optional notes or tags
 also updates that file. Keep a backup before replacing any preset you may still
 want to use with an older mod version.
 
-Do not keep an older copy of the mod beside the current one. Version 3.0.6 does not move loose files left by older releases. For a clean update:
+Do not keep an older copy of the mod beside the current one. Version 3.0.7 does not move loose files left by older releases. For a clean update:
 
 1. Back up the `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
    from `Character Presets`.
 2. Remove the old Character Preset Manager folder.
-3. Install version 3.0.6.
+3. Install version 3.0.7 and its required mods.
 4. Put your saved presets and bundles back in `Character Presets`.
 
 </details>
@@ -159,11 +150,13 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.6 does 
 ### Save a preset
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
-2. Open Character Preset Manager in CET.
-3. Check the orange save-location line in the status card. To change it, open
+2. Enter a name in the character-screen panel and select **Save New Preset**.
+
+For folders, notes, tags, sharing, backups, Trash, and other advanced work,
+open Character Preset Manager in CET. Check the orange save-location line in
+the status card. To change it, open
    **Change Save Location** below the save button and choose a folder or **All
    Presets**.
-4. Enter a name and select **Save New Preset**.
 
 If that name already exists, confirm **Replace Existing Preset** only when you want to overwrite it.
 
@@ -175,19 +168,18 @@ This example shows the complete loading process, including automatic editor
 refreshes and the final appearance.
 
 1. Open one of the supported character screens listed above.
-2. Choose a preset under **Load & Restore Appearance**.
-3. Check its name, folder, and number of saved options.
-4. To compare it with the open editor first, open **Preset Options** below the
-   main load and restore buttons, then select
-   **Check Compatibility**. The Load status card shows the found, missing,
-   repeated, and invalid totals.
-5. Select **Load Selected Preset** once.
-6. Wait for the final result. A green message means every saved option was
+2. Choose a preset in the character-screen panel. Use the search box and
+   **Previous** or **Next** when needed.
+3. Select **Compare** to review matching, changing, missing, uncertain, invalid,
+   and cleared options.
+4. Select **Load Selected Preset** once.
+5. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
 
-**Restore Previous Appearance** is under **Load & Restore Appearance**. Before
-each normal preset load, the mod quietly saves the active appearance. Open a
-supported character screen and use this button to undo the newest preset load.
+Before each normal preset load, the mod quietly saves the active appearance.
+Select **Appearance History**, choose an entry, and select **Restore Previous**.
+The history shows its date, saved-option count, and the action that created it.
+It stays outside the normal preset library, sharing files, and backups.
 
 Cyberpunk may refresh the editor several times. The mod waits and continues on
 its own. It applies the saved appearance before clearing any remaining options,
@@ -483,9 +475,20 @@ equipped clothing while its window is open.
 
 ### Settings
 
-- **Customization Reminder: Enabled/Disabled** turns the character-screen reminder on or off. It starts on and stays off after you disable it.
-- **Preset Sort** sorts presets by name or by the most recently changed preset.
-- Open **Settings File**, then select **Reload Settings File**, to apply manual changes without restarting.
+- **Character-Screen Preset Panel** shows or hides the native panel.
+- **Customization Reminder** shows or hides the character-screen reminder.
+- **Appearance History Size** keeps 1, 5, or 10 recovery entries.
+- **Save Before Restoring History** protects the appearance being replaced.
+- **Preset Sort Order** sorts by name or last changed date.
+- **Show Comparison Details Automatically** opens details after selection.
+- **Show Missing-Option Warnings** warns before loading unmatched choices.
+- **Show Clothing Warning** warns when an active outfit may cause trouble.
+- **Keep CET Window as Fallback** keeps the advanced manager available when the
+  CET overlay opens.
+- **Activity Log Detail** chooses normal or technical troubleshooting detail.
+
+Change these preferences in Cyberpunk's **Mod Settings** menu. CET key choices
+remain under **CET Bindings**.
 
 The same choices are stored in:
 
@@ -493,14 +496,9 @@ The same choices are stored in:
 Data/Config/Config.txt
 ```
 
-Available values:
-
-```text
-discoveryReminder=true
-presetSort=name
-```
-
-`presetSort` accepts `name` or `modified`. The mod creates this file when needed and does not replace an existing copy during installation. No separate settings mod is required.
+The mod imports the older reminder and sort choices the first time 3.0.7 runs.
+Changes made through Mod Settings update this mirror automatically. Do not edit
+the mirror while the game is running.
 
 ### Mod data folders
 
@@ -511,6 +509,7 @@ Data/
 |-- Config/
 |-- Catalog/
 |-- Recovery/
+|   |-- Appearance History/
 |   `-- Trash/
 `-- Logs/
     `-- Archive/
@@ -520,7 +519,7 @@ Folders made inside CET exist only in the mod's folder list. They do not create 
 
 ### Memory use while idle
 
-Version 3.0.6 releases temporary loading data as soon as a load finishes. When
+Version 3.0.7 releases temporary loading data as soon as a load finishes. When
 the mod window is hidden or the CET overlay closes, it also unloads full preset
 contents and clears interface lists that can be rebuilt. Preset names, folders,
 notes, tags, favorites, and other library details stay available.
@@ -566,7 +565,7 @@ formats did not store the slot and choice, so the exact option may be unknown.
 
 ### Can I use older Character Preset Manager or ACU presets?
 
-Yes. Version 3.0.6 can load older Character Preset Manager formats and compatible
+Yes. Version 3.0.7 can load older Character Preset Manager formats and compatible
 ACU presets. New and updated presets use format 8.
 
 ### What happens if the CET folder list is missing an entry?
@@ -592,20 +591,16 @@ and I do not plan to release it.
 </details>
 
 <details>
-<summary><strong>Version 3.0.6 summary</strong></summary>
+<summary><strong>Version 3.0.7 summary</strong></summary>
 
-- Removes the repeating compatibility scan that could cause severe FPS loss
-  after selecting a preset in a large CC or CCXL appearance setup.
-- Logs separate game-option and preset-matching times when a compatibility check
-  is unusually slow.
-- Pages large interface and Activity Log lists so their hidden rows are not
-  redrawn every frame.
-- Keeps every preset, folder, Trash item, sharing file, backup, and log line
-  reachable through Previous and Next controls.
-- Caches backup discovery and previous-appearance availability instead of
-  repeatedly checking the drive.
-- Keeps format-7 and format-8 choice matching, older preset support, loading
-  safety, recovery, Trash protection, and sharing behavior unchanged.
+- Adds an original native character-screen preset panel backed by the existing
+  Lua library and loading engine.
+- Includes six default Corpo, Nomad, and Streetkid starter presets.
+- Adds detailed comparison and a configurable appearance history.
+- Moves preferences into Mod Settings and keeps the CET window as an advanced
+  manager and fallback.
+- Keeps older CPM and compatible ACU preset support without including or
+  requiring ACU code or assets.
 
 See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
 
@@ -616,9 +611,9 @@ See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
 
 ### AI disclosure
 
-I used AI only to help plan and improve the CET menu's layout and appearance. I
-made the final design choices, changed the AI-assisted work to fit the mod, and
-manually tested saving, loading, folders, recovery, and gameplay features.
+I used AI to help plan, write, and review parts of the interface, Lua, redscript,
+documentation, and release checks. I made the final design and release choices
+and reviewed the finished work before publishing it.
 
 ### Credits
 
@@ -634,6 +629,8 @@ manually tested saving, loading, folders, recovery, and gameplay features.
 - **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):**
   **yamashi** created CET, and its contributors maintain it. I use CET's
   scripting and menu system for Character Preset Manager.
+- **RED4ext, redscript, Codeware, ArchiveXL, and Mod Settings:** I use these
+  community tools for the native character-screen panel and in-game preferences.
 - **CD Projekt Red:** I credit CD Projekt Red for Cyberpunk 2077 and its
   character system.
 - **Cyberpunk 2077 modding community:** I appreciate the testing, research,
@@ -641,6 +638,8 @@ manually tested saving, loading, folders, recovery, and gameplay features.
 
 I do not include or require the mods I named as inspiration. Do not install ACU
 or Character Customization Anywhere beside Character Preset Manager.
+The native panel uses my own code and presentation. It does not reuse ACU code,
+interface files, or visual assets.
 
 ### Links
 

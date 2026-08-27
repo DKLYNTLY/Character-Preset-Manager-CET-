@@ -563,32 +563,8 @@ beginLoadPass = function(preset, loadName)
   state.load.cleanupSkipped = {}
   state.load.phase = "apply"
   state.load.returnToCleanup = false
-  local values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey = {}, {}, {}, {}, 0, {}
-  for _, entry in ipairs(preset.entries or {}) do
-    local label = tostring(entry.key or "")
-    if label ~= "" then
-      savedCounts[label] = (savedCounts[label] or 0) + 1
-      local savedKey = label .. "\31" .. tostring(savedCounts[label])
-      values[savedKey] = tonumber(entry.index) or 0
-      local slot = tostring(entry.slot or "")
-      local slotOccurrence = nil
-      if slot ~= "" then
-        savedSlotCounts[slot] = (savedSlotCounts[slot] or 0) + 1
-        slotOccurrence = savedSlotCounts[slot]
-      end
-      table.insert(orderedEntries, {
-        key = savedKey,
-        label = label,
-        index = tonumber(entry.index) or 0,
-        slot = slot ~= "" and slot or nil,
-        slotOccurrence = slotOccurrence,
-        choice = entry.choice,
-        position = #orderedEntries + 1,
-      })
-      savedEntryByKey[savedKey] = orderedEntries[#orderedEntries]
-      valueCount = valueCount + 1
-    end
-  end
+  local values, savedCounts, orderedEntries, savedSlotCounts,
+    valueCount, savedEntryByKey = helpers.preparePresetEntries(preset)
   state.load.values = values
   state.load.savedCounts = savedCounts
   state.load.orderedEntries = orderedEntries
@@ -1172,7 +1148,9 @@ function loadPreset()
     savedSlotCounts = state.load.savedSlotCounts
     valueCount = state.load.valueCount
   else
-    if not state.load.overridePreset then saveLastAppearanceSnapshot(options) end
+    if not state.load.overridePreset then
+      saveAppearanceHistorySnapshot(options, "Before loading " .. tostring(loadName))
+    end
     values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey =
       beginLoadPass(preset, loadName)
   end
@@ -1187,6 +1165,8 @@ function loadPreset()
 end
 
 function restoreLastAppearance()
+  refreshAppearanceHistory()
+  if #state.history.entries > 0 then return restoreAppearanceHistory(1) end
   local preset = readPresetFile(LAST_APPEARANCE_FILE)
   if not preset then
     state.load.recoverySnapshotAvailable = false
@@ -1205,6 +1185,10 @@ function restoreLastAppearance()
 end
 
 refreshPreflight = function()
+  if compareSelectedPreset then
+    compareSelectedPreset()
+    return
+  end
   local preflightStarted = helpers.loadClock()
   helpers.syncForceFullLoadSelection()
   state.load.preflight = nil

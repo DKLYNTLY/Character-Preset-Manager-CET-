@@ -5,7 +5,55 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.6</strong></summary>
+<summary><strong>Latest release — 3.0.7</strong></summary>
+
+## 3.0.7
+
+*Preset controls inside Cyberpunk's character screens, with safer appearance recovery.*
+
+- Adds an original Cyberpunk-style preset panel to new-game character creation,
+  the Full Appearance Editor, apartment mirrors, and ripperdoc appearance
+  editors.
+- Replaces the new-game screen's three preset buttons with the complete preset
+  library. Six packaged starter presets preserve the Corpo, Nomad, and
+  Streetkid choices for both body types.
+- Adds native search, paged scrolling, selected-preset details, save, replace,
+  load, comparison, favorites, confirmed deletion, refresh, history, recovery,
+  and advanced-manager controls.
+- Supports mouse, keyboard, and controller navigation. Actions are unavailable
+  while the editor is refreshing or a preset is loading.
+- Keeps Lua as the only implementation of preset files, matching, loading,
+  folders, backups, Trash, and recovery. The redscript panel sends narrow
+  requests to Lua instead of copying those rules.
+- Leaves the original character screen working when the native bridge is not
+  available. The CET window remains the advanced manager and safe fallback.
+- Expands preset comparison into **Already matching**, **Will change**,
+  **Missing**, **Repeated or uncertain**, **Invalid**, and options that loading
+  will clear.
+- Makes loading and comparison share the same prepared preset identities used
+  for label, occurrence, editor-slot, and saved-choice matching.
+- Replaces the single previous-appearance file with a history of 1, 5, or 10
+  recovery entries. It saves before normal loads, skips identical appearances,
+  records the date, saved-option count, and triggering action, and can save the
+  current appearance before restoring an older entry.
+- Keeps appearance history outside the normal library, sharing files, complete
+  backups, and Trash. Clearing it requires confirmation.
+- Moves preferences to Cyberpunk's **Mod Settings** menu. The existing reminder
+  and sort choices are imported on the first 3.0.7 launch, and a mirrored file
+  remains available to complete-library backups.
+- Adds settings for the native panel, reminder, history size, pre-restore save,
+  sort order, automatic comparison details, missing-option warnings, clothing
+  warnings, CET fallback, and Activity Log detail.
+- Requires Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31,
+  Codeware 1.20.3, ArchiveXL 1.27.1, and Mod Settings 0.2.21 or newer.
+- Keeps older Character Preset Manager and compatible ACU preset files
+  loadable. ACU and Character Customization Anywhere remain incompatible and
+  must be removed before starting the game.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.6</strong></summary>
 
 ## 3.0.6
 

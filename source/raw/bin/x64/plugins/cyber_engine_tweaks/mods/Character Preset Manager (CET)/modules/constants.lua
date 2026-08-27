@@ -4,13 +4,15 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 MOD_NAME = "Character Preset Manager (CET)"
-VERSION = "3.0.6"
+VERSION = "3.0.7"
 PRESET_DIR = "Character Presets"
 DATA_DIR = "Data"
 CONFIG_DIR = DATA_DIR .. "/Config"
 CATALOG_DIR = DATA_DIR .. "/Catalog"
 RECOVERY_DIR = DATA_DIR .. "/Recovery"
 LAST_APPEARANCE_FILE = RECOVERY_DIR .. "/LastAppearance.preset"
+HISTORY_DIR = RECOVERY_DIR .. "/Appearance History"
+HISTORY_FILE_PREFIX = HISTORY_DIR .. "/Appearance "
 TRASH_DIR = RECOVERY_DIR .. "/Trash"
 LOG_DIR = DATA_DIR .. "/Logs"
 LOG_ARCHIVE_DIR = LOG_DIR .. "/Archive"
@@ -64,5 +66,7 @@ MAX_FOLDER_BUNDLE_PRESETS = 512
 FOLDER_BUNDLE_EXTENSION = ".cpmfolder"
 LIBRARY_BACKUP_EXTENSION = ".cpmbackup"
 MAX_LIBRARY_BACKUP_BYTES = 268435456
+NATIVE_BRIDGE_PROTOCOL = 1
+NATIVE_LIST_LIMIT = 96
 
 return _ENV

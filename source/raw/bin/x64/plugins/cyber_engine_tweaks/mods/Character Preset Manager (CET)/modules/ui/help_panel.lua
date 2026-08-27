@@ -206,46 +206,11 @@ if state.ui.settingsOpen then
       ImGui.BeginChild("##settings", 0, 240, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
       ImGui.TextDisabled(CONFIG_FILE)
-      ImGui.TextWrapped("Show the gameplay reminder when a character customization screen opens.")
-      local reminderEnabled = not state.ui.discoveryNoticeIgnored
-      local reminderLabel = reminderEnabled
-        and "Customization Reminder: Enabled"
-        or "Customization Reminder: Disabled"
-      if fullWidthButton(reminderLabel .. "##discoveryPreference", actionButtonHeight) then
-        local saved
-        if reminderEnabled then saved = helpers.ignoreDiscoveryNotice()
-        else saved = helpers.restoreDiscoveryNotice() end
-        local currentState = state.ui.discoveryNoticeIgnored and "disabled" or "enabled"
-        if saved then
-          state.status.settings = "Customization reminder " .. currentState .. ". Settings saved."
-        else
-          state.status.settings = "Customization reminder " .. currentState ..
-            " for this session, but the settings file could not be saved."
-        end
-      end
-      local sortLabel = state.library.sortMode == "modified"
-        and "Preset Sort: Last Modified" or "Preset Sort: Name"
-      if fullWidthButton(sortLabel .. "##presetSort", actionButtonHeight) then
-        state.library.sortMode = state.library.sortMode == "modified" and "name" or "modified"
-        invalidateViewCache()
-        state.status.settings = writeConfig() and "Settings saved." or "The settings file could not be saved."
-      end
+      ImGui.TextWrapped("Preset preferences are now in Cyberpunk's Mod Settings menu. The mirrored file shown here is kept for complete-library backups and recovery.")
       if compactSubsectionButton("Settings File",
           "Hide Settings File", "settingsFile") then
       ImGui.Indent(8)
-      if fullWidthButton("Reload Settings File##reloadConfig", actionButtonHeight) then
-        local config, loaded = readConfig()
-        if loaded then
-          state.ui.discoveryNoticeIgnored = not config.discoveryReminder
-          if state.ui.discoveryNoticeIgnored then state.ui.discoveryNoticePending = false end
-          state.ui.discoveryNoticeLayout = nil
-          state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
-          invalidateViewCache()
-          state.status.settings = "Settings file reloaded."
-        else
-          state.status.settings = "The settings file could not be reloaded."
-        end
-      end
+      ImGui.TextWrapped("This file mirrors Mod Settings automatically. Complete-library backups include it.")
       finishCompactSubsection()
       end
       if state.status.settings ~= "" then
@@ -362,17 +327,18 @@ if state.ui.helpOpen then
           "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue cancel button") then
       helpHeading("Load & Restore Appearance")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Choose a preset under Load & Restore Appearance.")
-      ImGui.TextWrapped("3. Select Load Selected Preset once.")
+      ImGui.TextWrapped("2. Choose a preset in the character-screen panel. The CET Load section remains available as a fallback.")
+      ImGui.TextWrapped("3. Select Compare to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
+      ImGui.TextWrapped("4. Select Load Selected Preset once.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
-        "4. Wait for the final result. Green means every option was confirmed. Yellow means the game did not confirm one or more changes.")
+        "5. Wait for the final result. Green means every option was confirmed. Yellow means the game did not confirm one or more changes.")
       ImGui.TextWrapped("If you change preset files outside CET, select Refresh under Load & Restore Appearance before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
       ImGui.TextWrapped("Open Preset Options below the main load and restore buttons, then select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
       ImGui.TextWrapped("Force Full Load is under Preset Options to reduce accidental use. Its cautions appear in the Load status card.")
-      ImGui.TextWrapped("Restore Previous Appearance follows the normal loading controls. It uses the recovery snapshot saved before the newest normal preset load.")
+      ImGui.TextWrapped("Appearance History keeps the configured 1, 5, or 10 automatic recovery entries. It shows when each entry was made, its saved-option count, and the action that created it.")
       ImGui.TextWrapped("The compact selected-preset line shows its name, folder, saved-option count, and format. Open Preset Options for actions only.")
       helpButton("Preset search", "Filters the preset list by preset name, folder name, or tag as you type.")
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
@@ -383,7 +349,7 @@ if state.ui.helpOpen then
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")
-      helpButton("Restore Previous Appearance", "Restores the recovery snapshot made immediately before the newest normal preset load. It does not load an older preset file.")
+      helpButton("Restore Previous Appearance", "Restores the newest appearance history entry. Use the native panel to choose an older entry.")
       helpButton("Force Full Load: On / Off", "Under Preset Options, this turns saved-position matching on or off. It can help older presets find renamed options, but you should check the result after loading.")
       helpButton("Load Selected Preset", "Starts applying the selected preset to the open character editor.")
       helpButton("Continue Loading Preset", "Continues a load that needs another pass. The mod normally selects this automatically while loading.")
@@ -508,11 +474,9 @@ if state.ui.helpOpen then
       if showHelpTopic("Settings",
           "settings config customization reminder enabled disabled preset sort name last modified file reload hide preferences button") then
       helpHeading("Settings")
-      ImGui.TextWrapped("Use Settings to turn the character-screen reminder on or off and choose how presets are sorted. Open Settings File and select Reload Settings File only after changing Data/Config/Config.txt by hand.")
-      helpButton("Customization Reminder: Enabled / Disabled", "Turns the reminder shown when a character customization screen opens on or off. The choice is saved.")
-      helpButton("Preset Sort: Name / Last Modified", "Switches the preset list between alphabetical order and newest-changed-first order.")
-      helpButton("Settings File", "Shows or hides the manual settings-file control.")
-      helpButton("Reload Settings File", "Applies changes made directly to Data/Config/Config.txt without restarting the game.")
+      ImGui.TextWrapped("Change preset preferences in Cyberpunk's Mod Settings menu. CET key choices remain under CET Bindings.")
+      ImGui.TextWrapped("Mod Settings includes the character-screen panel, reminder, history size, pre-restore save, sort order, comparison details, missing-option warning, clothing warning, CET fallback, and Activity Log detail.")
+      helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")
       end
 
       if showHelpTopic("Export & Import Backups",
