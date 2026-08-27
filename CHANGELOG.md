@@ -17,12 +17,16 @@ used. See the README and in-game Help for current instructions.
 - Replaces the new-game screen's three preset buttons with the complete preset
   library. Six packaged starter presets preserve the Corpo, Nomad, and
   Streetkid choices for both body types.
-- Adds one scrollable native preset list with **Load**, **Save**, and **Delete**
-  modes. Selecting a preset in Load mode starts loading it immediately.
-- Keeps only **Load Preset** and **Restore Preset** as extra actions in Load
-  mode. Save and confirmed deletion have their own native modes. Comparison,
-  favorites, folders, backups, and Trash management remain in CET, and Empty
-  Trash is available only there.
+- Adds a larger native panel near the upper-left side of the character screen.
+  It uses the CET window's charcoal, white, and orange style and moves the
+  game's Randomize controls below it.
+- Places **Search** above one scrollable preset list. Selecting a preset starts
+  loading it immediately.
+- Places **Preset Name**, **Save Location**, and **Save Preset / Confirm
+  Replace** below the list. **Move Preset to Trash** and its separate
+  **Confirm** button are the only native deletion controls.
+- Keeps rename, permanent deletion, Help, comparison, favorites, folders,
+  backups, Trash recovery, and Empty Trash in CET.
 - Supports mouse, keyboard, and controller navigation. Actions are unavailable
   while the editor is refreshing or a preset is loading.
 - Keeps Lua as the only implementation of preset files, matching, loading,

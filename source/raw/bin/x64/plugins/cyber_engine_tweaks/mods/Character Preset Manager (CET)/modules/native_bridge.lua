@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local nativeQuery = ""
 
 local function cleanField(value)
   return tostring(value or ""):gsub("[%c]", " ")
@@ -40,7 +41,7 @@ local function selectedStatus()
   return "Ready.", false
 end
 
-local function listPayload(query)
+local function listPayload(query, overrideMessage, overrideError)
   query = tostring(query or ""):lower()
   local lines = {}
   local selected = state.library.selected and state.library.presets[state.library.selected]
@@ -52,6 +53,10 @@ local function listPayload(query)
     selected and selected.favorite == true and "1" or "0",
   }, "\t")
   local message, isError = selectedStatus()
+  if overrideMessage then
+    message = overrideMessage
+    isError = overrideError == true
+  end
   lines[#lines + 1] = table.concat({ "STATUS", isError and "1" or "0",
     cleanField(message), state.load.auto and "1" or "0" }, "\t")
   local added = 0
@@ -70,6 +75,12 @@ local function listPayload(query)
       added = added + 1
       if added >= NATIVE_LIST_LIMIT then break end
     end
+  end
+  lines[#lines + 1] = table.concat({ "LOCATION", "",
+    state.library.selectedFolder == "" and "1" or "0" }, "\t")
+  for _, folder in ipairs(sortedFolderNames()) do
+    lines[#lines + 1] = table.concat({ "LOCATION", cleanField(folder),
+      state.library.selectedFolder == folder and "1" or "0" }, "\t")
   end
   lines[#lines + 1] = "COUNT\t" .. tostring(added)
   return table.concat(lines, "\n")
@@ -112,7 +123,7 @@ local function startSelectedLoad()
   if #warnings > 0 and state.load.nativeWarningPreset ~= state.library.selected then
     state.load.nativeWarningPreset = state.library.selected
     return false, "Review " .. table.concat(warnings, " and ") ..
-      ". Select the preset again or select Load Preset to continue."
+      ". Select the preset again to continue."
   end
   state.load.nativeWarningPreset = nil
   resetLoadState()
@@ -125,7 +136,10 @@ local function startSelectedLoad()
 end
 
 local function handleNativeRequest(action, payload)
-  if action == "list" then return "list", listPayload(payload) end
+  if action == "list" then
+    nativeQuery = tostring(payload or "")
+    return "list", listPayload(nativeQuery)
+  end
   if action == "select" then
     if state.library.presets[payload] then
       state.library.selected = payload
@@ -150,8 +164,11 @@ local function handleNativeRequest(action, payload)
   end
   if action == "save" then
     state.library.newName = payload
-    savePreset(false)
-    return "list", listPayload("")
+    savePreset(state.library.pendingOverwriteName ~= nil)
+    local status = state.status.sections.create
+    local message = tostring(status.message or "")
+      :gsub("Confirm Overwrite", "Save Preset / Confirm Replace")
+    return "list", listPayload(nativeQuery, message, status.error)
   end
   if action == "replace" then
     if not state.library.selected then return "status", "Select a preset first." end
@@ -170,9 +187,29 @@ local function handleNativeRequest(action, payload)
     toggleSelectedPresetFavorite()
     return "list", listPayload("")
   end
-  if action == "delete" then
+  if action == "save_location" then
+    if payload == "" or folderNameExists(payload) then
+      state.library.selectedFolder = payload
+      cancelConfirmations()
+      return "status", "Save location: " .. (payload == "" and "All Presets" or payload) .. "."
+    end
+    return "status", "That save location is no longer available. Open CET to refresh folders."
+  end
+  if action == "delete_prepare" then
+    if not state.library.selected then return "status", "Select a preset first." end
+    if state.trash.pendingDeleteName ~= state.library.selected then trashPreset() end
+    local message = tostring(state.status.sections.delete.message or "")
+      :gsub("Confirm Move to Trash", "Confirm")
+    return "status", cleanField(message)
+  end
+  if action == "delete_confirm" then
+    if not state.library.selected
+        or state.trash.pendingDeleteName ~= state.library.selected then
+      return "status", "Select Move Preset to Trash first."
+    end
     trashPreset()
-    return "list", listPayload("")
+    local status = state.status.sections.delete
+    return "list", listPayload(nativeQuery, status.message, status.error)
   end
   if action == "refresh" then
     refreshPresets("external")

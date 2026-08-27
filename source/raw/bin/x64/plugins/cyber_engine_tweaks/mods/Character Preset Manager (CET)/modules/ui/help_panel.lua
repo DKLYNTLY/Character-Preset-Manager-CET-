@@ -267,8 +267,8 @@ if state.ui.helpOpen then
           "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue cancel button") then
       helpHeading("Load & Restore Appearance")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Select Load on the right side of the character-screen panel, then scroll or search for a preset.")
-      ImGui.TextWrapped("3. Select the preset to start loading it. If a safety warning appears, select it again or select Load Preset to continue.")
+      ImGui.TextWrapped("2. Scroll through the larger upper-left panel or use Search to find a preset.")
+      ImGui.TextWrapped("3. Select the preset to start loading it. If a safety warning appears, select the preset again to continue.")
       ImGui.TextWrapped("4. Use Check Compatibility in CET when you want to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
         "5. Wait for the final result. Green means every option was confirmed. Yellow means the game did not confirm one or more changes.")
@@ -290,7 +290,7 @@ if state.ui.helpOpen then
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")
-      helpButton("Restore Previous Appearance", "Restores the newest appearance history entry. The native panel calls this Restore Preset.")
+      helpButton("Restore Previous Appearance", "Restores the newest appearance history entry. Recovery controls are available in CET so they cannot be confused with ordinary preset loading.")
       helpButton("Force Full Load: On / Off", "Under Advanced Preset Options, this turns saved-position matching on or off. It can help older presets find renamed options, but you should check the result after loading.")
       helpButton("Load Selected Preset", "Starts applying the selected preset to the open character editor.")
       helpButton("Continue Loading Preset", "Continues a load that needs another pass. The mod normally selects this automatically while loading.")
@@ -301,9 +301,10 @@ if state.ui.helpOpen then
           "save create overwrite confirm replace destination location folder all presets new preset name hide button") then
       helpHeading("Save & Replace Presets")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Check the save location in the status card.")
-      ImGui.TextWrapped("3. Enter a name and select Save New Preset. Only select Confirm Overwrite if you want to replace an existing preset.")
-      ImGui.TextWrapped("4. To use another location, open Change Save Location below the save button and choose a folder or All Presets before saving.")
+      ImGui.TextWrapped("2. In the character-screen panel, enter a name in Preset Name.")
+      ImGui.TextWrapped("3. Select Save Location until it shows All Presets or the folder you want.")
+      ImGui.TextWrapped("4. Select Save Preset / Confirm Replace. If that name already exists, select the same button again only when you want to overwrite it.")
+      ImGui.TextWrapped("The native panel also provides Move Preset to Trash and a separate Confirm button. Open CET for rename, permanent delete, Trash recovery, Empty Trash, Help, and other advanced actions.")
       helpButton("Change Save Location", "Below the main save button, this shows or hides the list of folders where the new preset can be saved.")
       helpButton("All Presets and folder rows", "Chooses the save location. All Presets saves outside every folder.")
       helpButton("Save New Preset", "Saves the appearance currently shown in the open character editor using the entered name and chosen location.")
@@ -417,7 +418,7 @@ if state.ui.helpOpen then
       helpHeading("Settings")
       ImGui.TextWrapped("Change Preset Sort Order through the CET Settings tab, Mod Settings, or Native Settings UI. All three menus use the same value. CET key choices remain under CET Bindings.")
       ImGui.TextWrapped("Preset Sort Order is the only preference. Safety and loading behavior are not optional.")
-      ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET fallback stay enabled. Use Check Compatibility in CET when you want comparison details.")
+      ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET manager stay enabled. Use Check Compatibility in CET when you want comparison details.")
       helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")
       end
 

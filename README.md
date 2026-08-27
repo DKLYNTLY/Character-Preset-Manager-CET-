@@ -65,12 +65,16 @@ than the smaller selection normally available during play.
   work and safe recovery.
 - Replaces the new-game screen's three preset choices with the full preset
   library and includes six default Corpo, Nomad, and Streetkid presets.
-- Adds one scrollable preset list with **Load**, **Save**, and **Delete** modes on
-  the right side of the character screen. Selecting a preset in Load mode starts
+- Adds a larger panel near the upper-left side of the character screen. It uses
+  the same charcoal, white, and orange style as the CET window and keeps the
+  game's Randomize controls below it.
+- Places **Search** above one scrollable preset list. Selecting a preset starts
   loading it immediately.
-- Keeps the native Load mode focused on **Load Preset** and **Restore Preset**.
-  Comparison, favorites, folders, backups, Trash management, and other library
-  tools remain in the CET window. Empty Trash is available only in CET.
+- Places **Preset Name**, **Save Location**, and **Save Preset / Confirm Replace**
+  below the list. **Move Preset to Trash** and its separate **Confirm** button
+  are the only deletion controls in the panel.
+- Keeps rename, permanent deletion, Help, comparison, favorites, folders,
+  backups, Trash recovery, and Empty Trash in the CET window.
 - Uses a narrow bridge so the native screen calls the existing Lua preset,
   matching, loading, folder, backup, and recovery behavior. Preset rules are
   not duplicated in redscript.
@@ -156,8 +160,10 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.7 does 
 ### Save a preset
 
 1. Open the **Full Appearance Editor**, a mirror, a ripperdoc character screen, or the new-game editor.
-2. Select **Save** on the right side of the character-screen panel.
-3. Enter a name and select **Save New Preset**.
+2. Enter a name in **Preset Name** below the preset list.
+3. Select **Save Location** until it shows **All Presets** or the folder you
+   want.
+4. Select **Save Preset / Confirm Replace**.
 
 For folders, notes, tags, sharing, backups, Trash, and other advanced work,
 open Character Preset Manager in CET. Check the orange save-location line in
@@ -165,7 +171,8 @@ the status card. To change it, open
    **Change Save Location** below the save button and choose a folder or **All
    Presets**.
 
-If that name already exists, confirm **Replace Existing Preset** only when you want to overwrite it.
+If that name already exists, the panel asks for confirmation. Select **Save
+Preset / Confirm Replace** again only when you want to overwrite it.
 
 ### Load a preset
 
@@ -175,17 +182,16 @@ This example shows the complete loading process, including automatic editor
 refreshes and the final appearance.
 
 1. Open one of the supported character screens listed above.
-2. Select **Load** on the right side, then scroll or search for a preset.
+2. Scroll through the panel or use **Search** to find a preset.
 3. Select the preset. It starts loading immediately. If the panel shows a
-   compatibility warning, select it again or select **Load Preset**
-   to continue.
+   compatibility warning, select the preset again to continue.
 4. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
 
 Before each normal preset load, the mod quietly saves the active appearance.
-Select **Restore Preset** in the native Load mode to return to the appearance
-from before the last load. Appearance history stays outside the normal preset
-library, sharing files, and backups.
+To recover it, open CET and use **Restore Previous Appearance** or choose an
+entry under **Appearance History**. Appearance history stays outside the normal
+preset library, sharing files, and backups.
 
 Cyberpunk may refresh the editor several times. The mod waits and continues on
 its own. It applies the saved appearance before clearing any remaining options,
@@ -600,10 +606,14 @@ and I do not plan to release it.
 - Adds an original native character-screen preset panel backed by the existing
   Lua library and loading engine.
 - Includes six default Corpo, Nomad, and Streetkid starter presets.
-- Uses one scrollable list with Load, Save, and Delete modes. Selecting a preset
-  in Load mode starts loading it immediately.
-- Keeps comparison, favorites, folders, backups, and Trash management in CET.
-  Empty Trash is available only there.
+- Uses a larger upper-left panel with the CET window's charcoal, white, and
+  orange style. The game's Randomize controls sit below it.
+- Uses one Search field and scrollable list. Selecting a preset starts loading
+  it immediately.
+- Provides Preset Name, Save Location, Save Preset / Confirm Replace, Move
+  Preset to Trash, and a separate Confirm button below the list.
+- Keeps rename, permanent deletion, Help, comparison, favorites, folders,
+  backups, Trash recovery, and Empty Trash in CET.
 - Provides Preset Sort Order through the CET Settings tab, Mod Settings, and
   Native Settings UI while keeping loading and safety behavior fixed.
 - Fixes the native panel's redscript compilation and keeps preset scans tied to
