@@ -44,6 +44,7 @@ end
 local function listPayload(query, overrideMessage, overrideError)
   query = tostring(query or ""):lower()
   local lines = {}
+  local names = helpers.sortedPresetNames()
   local selected = state.library.selected and state.library.presets[state.library.selected]
   if selected then selected = hydrateNamedPresetMetadata(state.library.selected) or selected end
   lines[#lines + 1] = table.concat({
@@ -59,21 +60,70 @@ local function listPayload(query, overrideMessage, overrideError)
   end
   lines[#lines + 1] = table.concat({ "STATUS", isError and "1" or "0",
     cleanField(message), state.load.auto and "1" or "0" }, "\t")
-  local added = 0
-  for _, name in ipairs(helpers.sortedPresetNames()) do
+  lines[#lines + 1] = "CONFIRM\tSAVE\t" ..
+    (state.library.pendingOverwriteName ~= nil and "1" or "0")
+  lines[#lines + 1] = "CONFIRM\tTRASH\t" ..
+    (state.trash.pendingDeleteName == state.library.selected and "1" or "0")
+  local visibleNames = {}
+  local matchedFolders = {}
+  for _, name in ipairs(names) do
     local preset = state.library.presets[name]
     local metadata = preset and (hydrateNamedPresetMetadata(name) or preset)
     local haystack = (name .. " " .. tostring(metadata and metadata.tags or "")):lower()
     if query == "" or haystack:find(query, 1, true) then
-      lines[#lines + 1] = table.concat({
-        "PRESET", cleanField(name),
-        metadata and metadata.favorite == true and "1" or "0",
-        tostring(state.presetEntryCount(metadata)),
-        cleanField(metadata and metadata.modified),
-        cleanField(metadata and metadata.tags),
-      }, "\t")
-      added = added + 1
-      if added >= NATIVE_LIST_LIMIT then break end
+      visibleNames[name] = true
+      local current = parentFolder(name)
+      while current ~= "" do
+        matchedFolders[current] = true
+        current = parentFolder(current)
+      end
+    end
+  end
+  local added = 0
+  local function addRow(kind, value, label)
+    if added >= NATIVE_LIST_LIMIT then return false end
+    lines[#lines + 1] = table.concat({
+      "ROW", kind, cleanField(value), cleanField(label),
+    }, "\t")
+    added = added + 1
+    return true
+  end
+  local favoriteHeadingAdded = false
+  for _, name in ipairs(names) do
+    local preset = state.library.presets[name]
+    if preset and preset.favorite == true and visibleNames[name] then
+      if not favoriteHeadingAdded then
+        addRow("HEADING", "", "FAVORITES")
+        favoriteHeadingAdded = true
+      end
+      if not addRow("PRESET", name, helpers.breadcrumb(name)) then break end
+    end
+  end
+  for _, folder in ipairs(sortedFolderNames()) do
+    local count = state.cache.folderPresetCounts[folder] or 0
+    local folderMatches = query == "" or folder:lower():find(query, 1, true) ~= nil
+    if count > 0 and (folderMatches or matchedFolders[folder]) then
+      local expanded = state.library.expandedLoadFolders[folder] == true
+      local prefix = string.rep("  ", folderDepth(folder)) .. (expanded and "[-] " or "[+] ")
+      if not addRow("FOLDER", folder,
+          prefix .. baseName(folder) .. " (" .. tostring(count) .. ")") then break end
+      if expanded or query ~= "" then
+        for _, name in ipairs(helpers.presetsInFolder(folder)) do
+          if folderMatches or visibleNames[name] then
+            local metadata = state.library.presets[name]
+            local tags = tostring(metadata and metadata.tags or "")
+            local label = string.rep("  ", folderDepth(folder) + 1) .. baseName(name)
+            if tags ~= "" then label = label .. "  -  " .. tags end
+            if not addRow("PRESET", name, label) then break end
+          end
+        end
+      end
+    end
+    if added >= NATIVE_LIST_LIMIT then break end
+  end
+  if added < NATIVE_LIST_LIMIT then
+    for _, name in ipairs(helpers.presetsInFolder("")) do
+      if visibleNames[name] and not addRow("PRESET", name, name) then break end
     end
   end
   lines[#lines + 1] = table.concat({ "LOCATION", "",
@@ -162,13 +212,23 @@ local function handleNativeRequest(action, payload)
     local _, message = startSelectedLoad()
     return "status", cleanField(message)
   end
+  if action == "toggle_folder" then
+    if folderNameExists(payload) then
+      state.library.expandedLoadFolders[payload] =
+        state.library.expandedLoadFolders[payload] ~= true
+    end
+    return "list", listPayload(nativeQuery)
+  end
+  if action == "cancel_save_confirmation" then
+    state.library.pendingOverwriteName = nil
+    state.library.pendingOverwriteFingerprint = nil
+    return "confirm_state", "SAVE\t0"
+  end
   if action == "save" then
     state.library.newName = payload
     savePreset(state.library.pendingOverwriteName ~= nil)
     local status = state.status.sections.create
-    local message = tostring(status.message or "")
-      :gsub("Confirm Overwrite", "Save Preset / Confirm Replace")
-    return "list", listPayload(nativeQuery, message, status.error)
+    return "list", listPayload(nativeQuery, status.message, status.error)
   end
   if action == "replace" then
     if not state.library.selected then return "status", "Select a preset first." end
@@ -195,18 +255,8 @@ local function handleNativeRequest(action, payload)
     end
     return "status", "That save location is no longer available. Open CET to refresh folders."
   end
-  if action == "delete_prepare" then
+  if action == "delete" then
     if not state.library.selected then return "status", "Select a preset first." end
-    if state.trash.pendingDeleteName ~= state.library.selected then trashPreset() end
-    local message = tostring(state.status.sections.delete.message or "")
-      :gsub("Confirm Move to Trash", "Confirm")
-    return "status", cleanField(message)
-  end
-  if action == "delete_confirm" then
-    if not state.library.selected
-        or state.trash.pendingDeleteName ~= state.library.selected then
-      return "status", "Select Move Preset to Trash first."
-    end
     trashPreset()
     local status = state.status.sections.delete
     return "list", listPayload(nativeQuery, status.message, status.error)

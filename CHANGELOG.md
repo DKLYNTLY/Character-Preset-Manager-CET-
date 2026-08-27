@@ -17,14 +17,18 @@ used. See the README and in-game Help for current instructions.
 - Replaces the new-game screen's three preset buttons with the complete preset
   library. Six packaged starter presets preserve the Corpo, Nomad, and
   Streetkid choices for both body types.
-- Adds a larger native panel near the upper-left side of the character screen.
-  It uses the CET window's charcoal, white, and orange style and moves the
-  game's Randomize controls below it.
-- Places **Search** above one scrollable preset list. Selecting a preset starts
-  loading it immediately.
-- Places **Preset Name**, **Save Location**, and **Save Preset / Confirm
-  Replace** below the list. **Move Preset to Trash** and its separate
-  **Confirm** button are the only native deletion controls.
+- Adds a larger native panel farther left on the character screen. It uses the
+  dark red, bright red, and cyan colors from Cyberpunk's character-customization
+  controls, increases the text size, and moves the game's Randomize controls
+  below it.
+- Places **Search** above one scrollable list ordered like CET's **Load & Restore
+  Appearance** list. Folder rows open and close their presets, Favorites stay at
+  the top, and presets outside folders appear last. Mouse-wheel and controller
+  scrolling are handled by the visible list rows.
+- Places **Preset Name**, **Save Location**, **Save Preset**, and **Move Preset
+  to Trash** below the list. When needed, the same button changes to **Confirm
+  Overwrite** or **Confirm Move to Trash** for the second press. No separate
+  confirmation buttons are added.
 - Keeps rename, permanent deletion, Help, comparison, favorites, folders,
   backups, Trash recovery, and Empty Trash in CET.
 - Supports mouse, keyboard, and controller navigation. Actions are unavailable

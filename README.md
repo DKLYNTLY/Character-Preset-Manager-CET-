@@ -65,14 +65,16 @@ than the smaller selection normally available during play.
   work and safe recovery.
 - Replaces the new-game screen's three preset choices with the full preset
   library and includes six default Corpo, Nomad, and Streetkid presets.
-- Adds a larger panel near the upper-left side of the character screen. It uses
-  the same charcoal, white, and orange style as the CET window and keeps the
-  game's Randomize controls below it.
-- Places **Search** above one scrollable preset list. Selecting a preset starts
-  loading it immediately.
-- Places **Preset Name**, **Save Location**, and **Save Preset / Confirm Replace**
-  below the list. **Move Preset to Trash** and its separate **Confirm** button
-  are the only deletion controls in the panel.
+- Adds a larger panel farther left on the character screen. It uses the same
+  dark red, bright red, and cyan colors as Cyberpunk's character-customization
+  controls, with larger text, and keeps the game's Randomize controls below it.
+- Places **Search** above one scrollable list ordered like **Load & Restore
+  Appearance** in CET. Folder rows open and close their presets. Favorites stay
+  at the top, folders follow, and presets outside folders appear last. Selecting
+  a preset starts loading it immediately.
+- Places **Preset Name**, **Save Location**, **Save Preset**, and **Move Preset to
+  Trash** below the list. If confirmation is needed, the same button changes to
+  **Confirm Overwrite** or **Confirm Move to Trash**. No extra buttons appear.
 - Keeps rename, permanent deletion, Help, comparison, favorites, folders,
   backups, Trash recovery, and Empty Trash in the CET window.
 - Uses a narrow bridge so the native screen calls the existing Lua preset,
@@ -163,7 +165,7 @@ Do not keep an older copy of the mod beside the current one. Version 3.0.7 does 
 2. Enter a name in **Preset Name** below the preset list.
 3. Select **Save Location** until it shows **All Presets** or the folder you
    want.
-4. Select **Save Preset / Confirm Replace**.
+4. Select **Save Preset**.
 
 For folders, notes, tags, sharing, backups, Trash, and other advanced work,
 open Character Preset Manager in CET. Check the orange save-location line in
@@ -171,8 +173,8 @@ the status card. To change it, open
    **Change Save Location** below the save button and choose a folder or **All
    Presets**.
 
-If that name already exists, the panel asks for confirmation. Select **Save
-Preset / Confirm Replace** again only when you want to overwrite it.
+If that name already exists, the button changes to **Confirm Overwrite**. Select
+that same button again only when you want to overwrite it.
 
 ### Load a preset
 
@@ -182,8 +184,9 @@ This example shows the complete loading process, including automatic editor
 refreshes and the final appearance.
 
 1. Open one of the supported character screens listed above.
-2. Scroll through the panel or use **Search** to find a preset.
-3. Select the preset. It starts loading immediately. If the panel shows a
+2. Scroll through the panel or use **Search** to find a preset. Select a folder
+   row to show or hide the presets inside it.
+3. Select a preset. It starts loading immediately. If the panel shows a
    compatibility warning, select the preset again to continue.
 4. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
@@ -606,12 +609,15 @@ and I do not plan to release it.
 - Adds an original native character-screen preset panel backed by the existing
   Lua library and loading engine.
 - Includes six default Corpo, Nomad, and Streetkid starter presets.
-- Uses a larger upper-left panel with the CET window's charcoal, white, and
-  orange style. The game's Randomize controls sit below it.
-- Uses one Search field and scrollable list. Selecting a preset starts loading
-  it immediately.
-- Provides Preset Name, Save Location, Save Preset / Confirm Replace, Move
-  Preset to Trash, and a separate Confirm button below the list.
+- Uses a larger panel farther left with Cyberpunk's dark red, bright red, and
+  cyan character-customization colors and larger text. The game's Randomize
+  controls sit below it.
+- Uses one Search field and a scrollable list ordered like CET. Folder rows open
+  and close their presets, while Favorites remain at the top and presets outside
+  folders remain last. Selecting a preset starts loading it immediately.
+- Provides Preset Name, Save Location, Save Preset, and Move Preset to Trash
+  below the list. The same button changes to Confirm Overwrite or Confirm Move
+  to Trash when a second press is required; no extra confirmation buttons appear.
 - Keeps rename, permanent deletion, Help, comparison, favorites, folders,
   backups, Trash recovery, and Empty Trash in CET.
 - Provides Preset Sort Order through the CET Settings tab, Mod Settings, and
