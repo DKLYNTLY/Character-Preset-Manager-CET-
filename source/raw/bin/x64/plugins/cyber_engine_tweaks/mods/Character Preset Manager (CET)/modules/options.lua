@@ -172,27 +172,6 @@ assert(optionIndexIsValid(0)
   and not optionIndexIsValid(4294967296),
   MOD_NAME .. " option-index validation contract failed")
 
-helpers.ignoreDiscoveryNotice = function()
-  state.ui.discoveryNoticeIgnored = true
-  state.ui.discoveryNoticePending = false
-  state.ui.discoveryNoticeLayout = nil
-  local saved = writeConfig and writeConfig()
-  log(saved and "[UI] Discovery reminder disabled by the user."
-    or "[UI] Discovery reminder disabled for this session; config could not be saved.",
-    saved and "info" or "warn")
-  return saved == true
-end
-
-helpers.restoreDiscoveryNotice = function()
-  state.ui.discoveryNoticeIgnored = false
-  state.ui.discoveryNoticeLayout = nil
-  local saved = writeConfig and writeConfig()
-  log(saved and "[UI] Discovery reminder restored by the user."
-    or "[UI] Discovery reminder restored for this session; config could not be saved.",
-    saved and "info" or "warn")
-  return saved == true
-end
-
 function occurrenceKeyParts(value)
   local raw = tostring(value or "")
   local key, occurrence = raw:match("^(.-)\31(%d+)$")

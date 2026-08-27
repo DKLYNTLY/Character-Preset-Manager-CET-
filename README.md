@@ -79,8 +79,8 @@ than the smaller selection normally available during play.
 - Replaces the single recovery file with five protected appearance-history
   entries. Identical snapshots are skipped, and the current appearance is
   always saved before an older entry is restored.
-- Shows four focused preferences through **Mod Settings** and **Native Settings
-  UI**. Both menus share the same values.
+- Shows **Preset Sort Order** in the CET Settings tab, **Mod Settings**, and
+  **Native Settings UI**. All three menus share the same value.
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -177,7 +177,7 @@ refreshes and the final appearance.
 1. Open one of the supported character screens listed above.
 2. Select **Load** on the right side, then scroll or search for a preset.
 3. Select the preset. It starts loading immediately. If the panel shows a
-   compatibility or clothing warning, select it again or select **Load Preset**
+   compatibility warning, select it again or select **Load Preset**
    to continue.
 4. Wait for the final result. A green message means every saved option was
    confirmed. A yellow message names anything the game did not confirm.
@@ -192,7 +192,7 @@ its own. It applies the saved appearance before clearing any remaining options,
 then checks the preset again. Select **Cancel Loading** if you need to stop.
 
 Compatibility is not checked when you select a preset, open CET, refresh the
-preset list, change Force Full Load, or finish loading. Open **Preset Options**
+preset list, change Force Full Load, or finish loading. Open **Advanced Preset Options**
 and select **Check Compatibility** whenever you want a current result. This
 avoids scanning large appearance-option lists while you browse presets.
 
@@ -218,7 +218,7 @@ Always check the result after changing option mods.
 
 Force Full Load turns on automatically for older presets that need position-based
 matching and turns off when you select a current preset. You can still change it
-manually under **Load & Restore Appearance > Preset Options**.
+manually under **Load & Restore Appearance > Advanced Preset Options**.
 
 When Force Full Load applies a renamed option from an older preset, post-load
 cleanup protects that exact live match. The protection remains only while its
@@ -281,7 +281,7 @@ because they were found or loaded.
 - **Copy File Path** inside those optional preset tools copies the selected preset's
   complete path from the Cyberpunk 2077 game folder.
 
-Choose a preset under **Load & Restore Appearance**, then open **Preset Options**
+Choose a preset under **Load & Restore Appearance**, then open **Advanced Preset Options**
 and select **Add Selected Preset to Favorites**. The same button removes it from Favorites
 later. Favorites remain in their original folders and also appear in a pinned
 group above the regular folder list. This choice is stored inside the readable
@@ -481,14 +481,12 @@ equipped clothing while its window is open.
 
 ### Settings
 
-- **Customization Reminder** shows or hides the character-screen reminder.
 - **Preset Sort Order** sorts by name or last changed date.
-- **Show Clothing Warning** warns when an active outfit may cause trouble.
-- **Activity Log Detail** chooses normal or technical troubleshooting detail.
 
-Change these preferences through **Mod Settings** or **Native Settings UI**.
-Native Settings UI Side Menu Add-on places the mod in its side list. Both menus
-update the same values. CET key choices remain under **CET Bindings**.
+Change this preference through the CET **Settings** tab, **Mod Settings**, or
+**Native Settings UI**. Native Settings UI Side Menu Add-on places the mod in
+its side list. All three menus update the same value. CET key choices remain
+under **CET Bindings**.
 
 The character-screen panel, five-entry appearance history, pre-restore safety
 save, missing-option warnings, and CET fallback stay enabled for consistent and
@@ -501,9 +499,10 @@ The same choices are stored in:
 Data/Config/Config.txt
 ```
 
-The mod imports the older reminder and sort choices the first time 3.0.7 runs.
-Changes made through either settings menu update this mirror automatically. Do
-not edit the mirror while the game is running.
+The mod keeps an older sort choice when updating to 3.0.7 and safely ignores
+retired reminder, clothing-warning, and log-detail settings. Changes made
+through any settings menu update this mirror automatically. Do not edit the
+mirror while the game is running.
 
 ### Mod data folders
 
@@ -605,8 +604,8 @@ and I do not plan to release it.
   in Load mode starts loading it immediately.
 - Keeps comparison, favorites, folders, backups, and Trash management in CET.
   Empty Trash is available only there.
-- Provides four focused preferences through Mod Settings and Native Settings
-  UI while keeping the CET window as an advanced manager and fallback.
+- Provides Preset Sort Order through the CET Settings tab, Mod Settings, and
+  Native Settings UI while keeping loading and safety behavior fixed.
 - Fixes the native panel's redscript compilation and keeps preset scans tied to
   explicit actions instead of normal game frames.
 - Keeps older CPM and compatible ACU preset support without including or

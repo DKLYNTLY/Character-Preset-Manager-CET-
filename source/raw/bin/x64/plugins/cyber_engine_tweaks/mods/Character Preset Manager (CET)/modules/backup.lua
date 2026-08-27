@@ -158,10 +158,7 @@ exportLibraryBackup = function()
   local config = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
   if not config then
     local preferences = state.preferences
-    config = "discoveryReminder=" .. tostring(preferences.customizationReminder) .. "\n" ..
-      "presetSort=" .. tostring(preferences.presetSort) .. "\n" ..
-      "clothingWarning=" .. tostring(preferences.clothingWarning) .. "\n" ..
-      "activityLogDetail=" .. tostring(preferences.activityLogDetail) .. "\n"
+    config = "presetSort=" .. tostring(preferences.presetSort) .. "\n"
   end
   local exportError = nil
   local wrote = atomicReplace(filename, function(temporary)
@@ -445,11 +442,7 @@ importLibraryBackup = function()
   state.library.manualFolders, state.library.ignoredPhysicalFolders = newManualFolders, newIgnored
   local config, loaded = readConfig()
   if loaded then
-    for key, value in pairs(config) do
-      state.preferences[key == "discoveryReminder"
-        and "customizationReminder" or key] = value
-    end
-    state.ui.discoveryNoticeIgnored = not config.discoveryReminder
+    state.preferences.presetSort = config.presetSort
     state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
     writeConfig()
   end

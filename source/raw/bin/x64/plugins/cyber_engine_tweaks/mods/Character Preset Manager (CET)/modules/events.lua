@@ -38,18 +38,11 @@ events.onInit = function()
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
   local config, configLoaded = readConfig()
-  for key, value in pairs(config) do
-    state.preferences[key == "discoveryReminder"
-      and "customizationReminder" or key] = value
-  end
-  state.ui.discoveryNoticeIgnored = not config.discoveryReminder
+  state.preferences.presetSort = config.presetSort
   state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
   writeConfig()
-  log(state.ui.discoveryNoticeIgnored
-    and "[UI] Character-customization discovery reminder is disabled by user preference."
-    or "[UI] Character-customization discovery reminder is enabled.", "info")
-  log(("[CONFIG] Loaded '%s': discoveryReminder=%s presetSort=%s.")
-    :format(CONFIG_FILE, tostring(not state.ui.discoveryNoticeIgnored), state.library.sortMode), "info")
+  log(("[CONFIG] Loaded '%s': presetSort=%s.")
+    :format(CONFIG_FILE, state.library.sortMode), "info")
   state.ui.initialWindowPlacementPending = not fileExists(WINDOW_POSITION_STATUS_FILE)
   if state.ui.initialWindowPlacementPending then
     log(("[UI] Window position status '%s' not found; right-side default will be applied once.")
@@ -72,11 +65,7 @@ events.onInit = function()
       state.editor.activeBodyMorphMenu = menu
       state.app.inCustomization = true
       state.invalidatePreflight()
-      state.ui.discoveryNoticePending = not state.ui.discoveryNoticeIgnored
-      state.ui.discoveryNoticeLayout = nil
-      log(state.ui.discoveryNoticeIgnored
-        and "[UI] Character customization opened; discovery reminder is ignored."
-        or "[UI] Character customization opened; CET menu discovery notice scheduled.", "info")
+      log("[UI] Character customization opened; native preset panel is available.", "info")
     end
   )
   local observeExitOk, observeExitError = pcall(
@@ -92,8 +81,6 @@ events.onInit = function()
       state.editor.activeBodyMorphMenu = nil
       state.app.inCustomization = false
       state.invalidatePreflight()
-      state.ui.discoveryNoticePending = false
-      state.ui.discoveryNoticeLayout = nil
       state.editor.openedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
     end
@@ -250,8 +237,6 @@ events.onShutdown = function()
   state.editor.openTimer = 0
   state.editor.openedByLauncher = false
   state.editor.hooksAvailable = false
-  state.ui.discoveryNoticePending = false
-  state.ui.discoveryNoticeLayout = nil
   closeActivityLog()
 end
 
@@ -324,15 +309,10 @@ end
 
 events.onOverlayOpen = function()
   log("[UI] CET overlay opened; showing Character Preset Manager. Use Refresh after changing preset files outside CET.", "info")
-  if state.ui.discoveryNoticePending then
-    state.ui.discoveryNoticePending = false
-    state.ui.discoveryNoticeLayout = nil
-    log("[UI] Character-customization CET discovery notification acknowledged.", "info")
-  end
   state.app.overlayOpen = true
   state.app.windowOpen = true
   state.app.optionsMemo = nil
-  state.load.recoverySnapshotAvailable = fileExists(LAST_APPEARANCE_FILE)
+  refreshAppearanceHistory()
   state.backup.filesDirty = true
   state.ui.bindingCache = {}
   state.ui.windowPositionCached = false
@@ -351,16 +331,6 @@ events.onOverlayClose = function()
 end
 
 events.onDraw = function()
-  if state.ui.discoveryNoticePending and not state.ui.discoveryNoticeIgnored
-      and not state.app.overlayOpen then
-    local noticeOk, noticeError = pcall(drawDiscoveryHudNotice)
-    if not noticeOk then
-      state.ui.discoveryNoticePending = false
-      state.ui.discoveryNoticeLayout = nil
-      log("[UI] Discovery notification rendering disabled after an error: " ..
-        tostring(noticeError), "error")
-    end
-  end
   if state.app.overlayOpen and state.app.windowOpen then draw() end
 end
 

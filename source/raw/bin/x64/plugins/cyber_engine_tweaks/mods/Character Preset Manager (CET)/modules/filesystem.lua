@@ -58,6 +58,7 @@ function cancelConfirmations()
   state.trash.pendingBulkFingerprint = nil
   state.backup.pendingDeleteFile = nil
   state.backup.pendingDeleteFingerprint = nil
+  state.history.pendingClear = false
 end
 
 function resetLoadState()
@@ -318,9 +319,7 @@ log = function(message, level)
   local technical = tostring(message):find("[PERFORMANCE]", 1, true) == 1
     or tostring(message):find("[MEASURE]", 1, true) == 1
     or tostring(message):find("[editor diagnostic]", 1, true) == 1
-  if technical and state and state.preferences
-      and state.preferences.activityLogDetail ~= "technical"
-      and level ~= "error" then return end
+  if technical and level ~= "error" then return end
   writeLog(message, level)
 end
 

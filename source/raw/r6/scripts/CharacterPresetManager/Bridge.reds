@@ -5,18 +5,7 @@ public enum PresetSort {
   Modified = 1
 }
 
-public enum ActivityLogDetail {
-  Normal = 0,
-  Technical = 1
-}
-
 public class NativeBridge extends ScriptableSystem {
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Character screen")
-  @runtimeProperty("ModSettings.displayName", "Customization Reminder")
-  @runtimeProperty("ModSettings.description", "Show a reminder when character customization opens.")
-  public let customizationReminder: Bool = true;
-
   @runtimeProperty("ModSettings.mod", "Character Preset Manager")
   @runtimeProperty("ModSettings.category", "Preset list")
   @runtimeProperty("ModSettings.displayName", "Preset Sort Order")
@@ -24,20 +13,6 @@ public class NativeBridge extends ScriptableSystem {
   @runtimeProperty("ModSettings.displayValues.Name", "Name")
   @runtimeProperty("ModSettings.displayValues.Modified", "Last modified")
   public let presetSort: PresetSort = PresetSort.Name;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Comparison and warnings")
-  @runtimeProperty("ModSettings.displayName", "Show Clothing Warning")
-  @runtimeProperty("ModSettings.description", "Show the clothing notice before appearance changes when it may help.")
-  public let clothingWarning: Bool = true;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Fallback and activity log")
-  @runtimeProperty("ModSettings.displayName", "Activity Log Detail")
-  @runtimeProperty("ModSettings.description", "Normal is easier to read. Technical includes extra details for troubleshooting.")
-  @runtimeProperty("ModSettings.displayValues.Normal", "Normal")
-  @runtimeProperty("ModSettings.displayValues.Technical", "Technical")
-  public let activityLogDetail: ActivityLogDetail = ActivityLogDetail.Normal;
 
   private let configRevision: Int32;
   private let requestSequence: Int32;
@@ -114,11 +89,8 @@ public class NativeBridge extends ScriptableSystem {
     };
   }
 
-  public func ApplyPreferences(reminder: Bool, modifiedSort: Bool, clothingNotice: Bool, technicalLog: Bool) -> Void {
-    this.customizationReminder = reminder;
+  public func ApplyPreferences(modifiedSort: Bool) -> Void {
     this.presetSort = modifiedSort ? PresetSort.Modified : PresetSort.Name;
-    this.clothingWarning = clothingNotice;
-    this.activityLogDetail = technicalLog ? ActivityLogDetail.Technical : ActivityLogDetail.Normal;
   }
 
   public func SetLuaReady(ready: Bool, version: String, protocol: Int32) -> Void {
@@ -131,10 +103,7 @@ public class NativeBridge extends ScriptableSystem {
   public func GetRequestAction() -> String { return this.requestAction; }
   public func GetRequestPayload() -> String { return this.requestPayload; }
   public func GetConfigRevision() -> Int32 { return this.configRevision; }
-  public func GetCustomizationReminder() -> Bool { return this.customizationReminder; }
   public func GetPresetSort() -> Int32 { return EnumInt(this.presetSort); }
-  public func GetClothingWarning() -> Bool { return this.clothingWarning; }
-  public func GetActivityLogDetail() -> Int32 { return EnumInt(this.activityLogDetail); }
   public func IsLuaReady() -> Bool { return this.luaReady && this.protocolVersion == 1; }
   public func IsBusy() -> Bool { return this.busy; }
 }

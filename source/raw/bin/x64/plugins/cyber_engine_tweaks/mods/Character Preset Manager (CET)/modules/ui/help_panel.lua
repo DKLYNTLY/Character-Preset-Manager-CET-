@@ -130,87 +130,27 @@ ui.defaultWindowPosition = function()
   return math.max(20, displayWidth - 440), 40, displayWidth
 end
 
-ui.discoveryViewport = function()
-  if ImGui.GetMainViewport then
-    local viewport = ImGui.GetMainViewport()
-    if viewport and viewport.WorkPos and viewport.WorkSize then
-      return viewport.WorkPos.x, viewport.WorkPos.y,
-        viewport.WorkSize.x, viewport.WorkSize.y
-    end
-  end
-  if ImGui.GetDisplaySize then
-    local width, height = ImGui.GetDisplaySize()
-    if width and height then return 0, 0, width, height end
-  end
-  return 0, 0, 1920, 1080
-end
-
-drawDiscoveryHudNotice = function()
-  if not state.ui.discoveryNoticePending or state.ui.discoveryNoticeIgnored
-      or state.app.overlayOpen then return end
-  local layout = state.ui.discoveryNoticeLayout
-  if not layout then
-    local viewportX, viewportY, viewportWidth = ui.discoveryViewport()
-    local titleWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_TITLE)
-    local messageWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_MESSAGE)
-    local settingsWidth = ImGui.CalcTextSize(DISCOVERY_NOTICE_SETTINGS_MESSAGE)
-    local width = math.min(viewportWidth - 48,
-      math.max(340, math.max(titleWidth, messageWidth, settingsWidth) + 32))
-    layout = {
-      width = width,
-      height = 82,
-      x = viewportX + math.max(24, (viewportWidth - width) * 0.5),
-      y = viewportY + 72,
-      titleX = math.max(14, (width - titleWidth) * 0.5),
-      messageX = math.max(14, (width - messageWidth) * 0.5),
-      settingsX = math.max(14, (width - settingsWidth) * 0.5),
-      flags = bit32.bor(
-        ImGuiWindowFlags.NoTitleBar,
-        ImGuiWindowFlags.NoResize,
-        ImGuiWindowFlags.NoScrollbar,
-        ImGuiWindowFlags.NoScrollWithMouse,
-        ImGuiWindowFlags.NoCollapse,
-        ImGuiWindowFlags.NoSavedSettings,
-        ImGuiWindowFlags.NoMove,
-        ImGuiWindowFlags.NoInputs
-      ),
-    }
-    state.ui.discoveryNoticeLayout = layout
-  end
-  ImGui.SetNextWindowPos(layout.x, layout.y, ImGuiCond.Always)
-  ImGui.SetNextWindowSize(layout.width, layout.height, ImGuiCond.Always)
-  ImGui.PushStyleColor(ImGuiCol.WindowBg, 0.055, 0.059, 0.078, 0.94)
-  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.85)
-  ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
-  ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
-  ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 7.0)
-  if ImGui.Begin("##CharacterPresetManagerDiscovery", true, layout.flags) then
-    ImGui.SetCursorPosX(layout.titleX)
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0,
-      DISCOVERY_NOTICE_TITLE)
-    ImGui.SetCursorPosX(layout.messageX)
-    ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
-      DISCOVERY_NOTICE_MESSAGE)
-    ImGui.SetCursorPosX(layout.settingsX)
-    ImGui.TextColored(0.64, 0.67, 0.73, 1.0,
-      DISCOVERY_NOTICE_SETTINGS_MESSAGE)
-  end
-  ImGui.End()
-  ImGui.PopStyleVar(3)
-  ImGui.PopStyleColor(2)
-end
-
 drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if state.ui.settingsOpen then
       ImGui.Spacing()
       ImGui.BeginChild("##settings", 0, 240, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
+      ImGui.TextWrapped("Preset Sort Order")
+      if ImGui.Selectable("Name##settingsSortName",
+          state.preferences.presetSort == "name") then
+        setPresetSortPreference("name")
+      end
+      if ImGui.Selectable("Last modified##settingsSortModified",
+          state.preferences.presetSort == "modified") then
+        setPresetSortPreference("modified")
+      end
+      ImGui.Spacing()
+      ImGui.TextWrapped("This is the same setting shown in Mod Settings and Native Settings UI.")
       ImGui.TextDisabled(CONFIG_FILE)
-      ImGui.TextWrapped("Preset preferences are available through Mod Settings and Native Settings UI. Both menus use the same values. The mirrored file shown here is kept for complete-library backups and recovery.")
       if compactSubsectionButton("Settings File",
           "Hide Settings File", "settingsFile") then
       ImGui.Indent(8)
-      ImGui.TextWrapped("This file mirrors both settings menus automatically. Complete-library backups include it.")
+      ImGui.TextWrapped("This file mirrors the shared setting automatically. Complete-library backups include it.")
       finishCompactSubsection()
       end
       if state.status.settings ~= "" then
@@ -336,21 +276,22 @@ if state.ui.helpOpen then
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
-      ImGui.TextWrapped("Open Preset Options below the main load and restore buttons, then select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
-      ImGui.TextWrapped("Force Full Load is under Preset Options to reduce accidental use. Its cautions appear in the Load status card.")
-      ImGui.TextWrapped("Appearance History keeps five automatic recovery entries. Restore Preset in the native Load mode returns to the appearance from before the last load.")
-      ImGui.TextWrapped("The compact selected-preset line shows its name, folder, saved-option count, and format. Open Preset Options for actions only.")
+      ImGui.TextWrapped("Open Advanced Preset Options below the restore controls, then select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
+      ImGui.TextWrapped("Force Full Load is under Advanced Preset Options to reduce accidental use. Its cautions appear in the Load status card.")
+      ImGui.TextWrapped("Appearance History is directly below Restore Previous Appearance. It keeps five automatic recovery entries and lets you restore any one of them.")
+      ImGui.TextWrapped("The compact selected-preset line shows its name, folder, saved-option count, and format. Open Advanced Preset Options for actions only.")
       helpButton("Preset search", "Filters the preset list by preset name, folder name, or tag as you type.")
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")
       helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorite presets also appear in the Favorites group.")
-      helpButton("Preset Options", "Below the main load and restore buttons, this shows or hides Check Compatibility, Force Full Load, and the favorite action.")
+      helpButton("Appearance History", "Below Restore Previous Appearance, this shows the five newest recovery appearances and lets you restore one or clear the list.")
+      helpButton("Advanced Preset Options", "Below Appearance History, this shows or hides Check Compatibility, Force Full Load, and the favorite action.")
       ImGui.TextWrapped("Main sections, Help topics, buttons, and selected preset rows use one orange color family. Main headers use white text. Optional controls are responsive centered charcoal buttons with white text, keeping them separate from main sections. Saving and library-management sections start closed.")
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")
       helpButton("Restore Previous Appearance", "Restores the newest appearance history entry. The native panel calls this Restore Preset.")
-      helpButton("Force Full Load: On / Off", "Under Preset Options, this turns saved-position matching on or off. It can help older presets find renamed options, but you should check the result after loading.")
+      helpButton("Force Full Load: On / Off", "Under Advanced Preset Options, this turns saved-position matching on or off. It can help older presets find renamed options, but you should check the result after loading.")
       helpButton("Load Selected Preset", "Starts applying the selected preset to the open character editor.")
       helpButton("Continue Loading Preset", "Continues a load that needs another pass. The mod normally selects this automatically while loading.")
       helpButton("Cancel Loading", "Stops the active preset load before it finishes.")
@@ -374,7 +315,7 @@ if state.ui.helpOpen then
       helpHeading("Create & Organize Folders")
       ImGui.TextWrapped("The status card shows the destination used by the folder and preset actions.")
       ImGui.TextWrapped("Select a folder row under Load & Restore Appearance to open or close it. Presets that are not in a folder appear under All Presets.")
-      ImGui.TextWrapped("To favorite a preset, choose it under Load & Restore Appearance, open Preset Options, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
+      ImGui.TextWrapped("To favorite a preset, choose it under Load & Restore Appearance, open Advanced Preset Options, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
       ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
       ImGui.TextWrapped("Remove Folder, Keep Presets is under Create & Organize Folders. It removes the folder but moves everything inside it to the folder above, and it never deletes unknown files.")
@@ -472,10 +413,10 @@ if state.ui.helpOpen then
       end
 
       if showHelpTopic("Settings",
-          "settings config customization reminder enabled disabled preset sort name last modified file reload hide preferences button") then
+          "settings config preset sort name last modified file hide preferences button") then
       helpHeading("Settings")
-      ImGui.TextWrapped("Change preset preferences through Mod Settings or Native Settings UI. Both menus use the same values. CET key choices remain under CET Bindings.")
-      ImGui.TextWrapped("The available preferences are Customization Reminder, Preset Sort Order, Show Clothing Warning, and Activity Log Detail.")
+      ImGui.TextWrapped("Change Preset Sort Order through the CET Settings tab, Mod Settings, or Native Settings UI. All three menus use the same value. CET key choices remain under CET Bindings.")
+      ImGui.TextWrapped("Preset Sort Order is the only preference. Safety and loading behavior are not optional.")
       ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET fallback stay enabled. Use Check Compatibility in CET when you want comparison details.")
       helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")
       end

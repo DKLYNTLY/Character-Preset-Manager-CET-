@@ -109,11 +109,6 @@ local function startSelectedLoad()
       :format(comparison.missing + comparison.ambiguous + comparison.invalid,
         comparison.missing + comparison.ambiguous + comparison.invalid == 1 and "" or "s")
   end
-  local clothingActive = false
-  if state.preferences.clothingWarning and not state.editor.newGameCharacterCreator then
-    clothingActive = helpers.activeWardrobeSetEquipped()
-    if clothingActive then warnings[#warnings + 1] = "an active clothing outfit" end
-  end
   if #warnings > 0 and state.load.nativeWarningPreset ~= state.library.selected then
     state.load.nativeWarningPreset = state.library.selected
     return false, "Review " .. table.concat(warnings, " and ") ..
@@ -209,27 +204,23 @@ local function syncNativeSettingsWidgets()
   if not nativeSettings then return end
   local options = state.app.nativeSettingsOptions
   state.app.nativeSettingsSyncing = true
-  pcall(nativeSettings.setOption, options.customizationReminder,
-    state.preferences.customizationReminder)
   pcall(nativeSettings.setOption, options.presetSort,
     state.preferences.presetSort == "modified" and 2 or 1)
-  pcall(nativeSettings.setOption, options.clothingWarning,
-    state.preferences.clothingWarning)
-  pcall(nativeSettings.setOption, options.activityLogDetail,
-    state.preferences.activityLogDetail == "technical" and 2 or 1)
   state.app.nativeSettingsSyncing = false
 end
 
-local function applyPreference(key, value)
+setPresetSortPreference = function(value)
   if state.app.nativeSettingsSyncing then return end
-  state.preferences[key] = value
-  state.ui.discoveryNoticeIgnored = not state.preferences.customizationReminder
-  state.library.sortMode = state.preferences.presetSort
+  local sort = value == "modified" and "modified" or "name"
+  state.preferences.presetSort = sort
+  state.library.sortMode = sort
   invalidateViewCache()
-  bridgeCall("ApplyPreferences", state.preferences.customizationReminder,
-    state.preferences.presetSort == "modified", state.preferences.clothingWarning,
-    state.preferences.activityLogDetail == "technical")
+  bridgeCall("ApplyPreferences", sort == "modified")
+  syncNativeSettingsWidgets()
   writeConfig()
+  state.status.settings = sort == "modified"
+    and "Presets are sorted by the date they were last changed."
+    or "Presets are sorted by name."
 end
 
 initializeNativeSettings = function()
@@ -250,25 +241,10 @@ initializeNativeSettings = function()
     nativeSettings.addSubcategory(settingsPath, "Preferences")
   end
   local options = {}
-  options.customizationReminder = nativeSettings.addSwitch(settingsPath,
-    "Customization Reminder",
-    "Show the short Character Preset Manager reminder when character customization opens.",
-    state.preferences.customizationReminder, true,
-    function(value) applyPreference("customizationReminder", value == true) end)
   options.presetSort = nativeSettings.addSelectorString(settingsPath,
     "Preset Sort Order", "Sort presets by name or by the date they were last changed.",
     { "Name", "Last modified" }, state.preferences.presetSort == "modified" and 2 or 1, 1,
-    function(value) applyPreference("presetSort", tonumber(value) == 2 and "modified" or "name") end)
-  options.clothingWarning = nativeSettings.addSwitch(settingsPath,
-    "Show Clothing Warning",
-    "Show a notice when an active outfit may affect an appearance change.",
-    state.preferences.clothingWarning, true,
-    function(value) applyPreference("clothingWarning", value == true) end)
-  options.activityLogDetail = nativeSettings.addSelectorString(settingsPath,
-    "Activity Log Detail",
-    "Normal is easier to read. Technical includes extra troubleshooting details.",
-    { "Normal", "Technical" }, state.preferences.activityLogDetail == "technical" and 2 or 1, 1,
-    function(value) applyPreference("activityLogDetail", tonumber(value) == 2 and "technical" or "normal") end)
+    function(value) setPresetSortPreference(tonumber(value) == 2 and "modified" or "name") end)
   state.app.nativeSettings = nativeSettings
   state.app.nativeSettingsOptions = options
   log("[SETTINGS] Native Settings UI connected.", "info")
@@ -279,22 +255,10 @@ local function syncModSettingsPreferences()
   local ok, revision = bridgeCall("GetConfigRevision")
   revision = ok and tonumber(revision) or nil
   if not revision or revision == state.preferences.nativeRevision then return end
-  local getters = {
-    customizationReminder = "GetCustomizationReminder",
-    clothingWarning = "GetClothingWarning",
-  }
-  for key, getter in pairs(getters) do
-    local valueOk, value = bridgeCall(getter)
-    if valueOk then state.preferences[key] = value == true end
-  end
   local sortOk, sort = bridgeCall("GetPresetSort")
-  local detailOk, detail = bridgeCall("GetActivityLogDetail")
   state.preferences.presetSort = sortOk and tonumber(sort) == 1 and "modified" or "name"
-  state.preferences.activityLogDetail = detailOk and tonumber(detail) == 1
-    and "technical" or "normal"
   state.preferences.nativeRevision = revision
   state.library.sortMode = state.preferences.presetSort
-  state.ui.discoveryNoticeIgnored = not state.preferences.customizationReminder
   invalidateViewCache()
   syncNativeSettingsWidgets()
   writeConfig()
@@ -311,9 +275,7 @@ initializeNativeBridge = function(configLoaded)
   end
   state.app.nativeBridgeUnavailableLogged = false
   state.app.nativeBridgeRetryTimer = 0
-  bridgeCall("ApplyPreferences", state.preferences.customizationReminder,
-    state.preferences.presetSort == "modified", state.preferences.clothingWarning,
-    state.preferences.activityLogDetail == "technical")
+  bridgeCall("ApplyPreferences", state.preferences.presetSort == "modified")
   bridgeCall("SetLuaReady", true, VERSION, NATIVE_BRIDGE_PROTOCOL)
   syncModSettingsPreferences()
   log("[NATIVE PANEL] Native bridge connected.", "info")

@@ -41,10 +41,15 @@ used. See the README and in-game Help for current instructions.
   appearance before restoring an older entry.
 - Keeps appearance history outside the normal library, sharing files, complete
   backups, and Trash. Clearing it requires confirmation.
-- Provides the reminder, sort order, clothing warning, and Activity Log detail
-  through both **Mod Settings** and **Native Settings UI**. Both menus share the
-  same values, and a mirrored file remains available to complete-library
-  backups.
+- Shows all five recovery entries under **Appearance History** directly below
+  **Restore Previous Appearance** in CET. Each entry can be restored, and the
+  complete history can be cleared with confirmation.
+- Renames **Preset Options** to **Advanced Preset Options** for compatibility
+  checks, Force Full Load, and Favorites.
+- Keeps only **Preset Sort Order** as a preference. It is available in the CET
+  Settings tab, Mod Settings, and Native Settings UI. The reminder notification,
+  clothing-warning setting and behavior, and Activity Log detail setting are
+  removed.
 - Keeps the native panel, five-entry history, pre-restore safety save,
   missing-option warnings, and CET fallback enabled instead of exposing settings
   that could weaken normal operation. Comparison details remain available in

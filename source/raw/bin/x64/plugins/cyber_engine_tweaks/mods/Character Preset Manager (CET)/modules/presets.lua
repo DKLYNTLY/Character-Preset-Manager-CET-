@@ -320,10 +320,7 @@ writeConfig = function()
   local result = atomicReplace(CONFIG_FILE, function(temporary)
     return writeFileSafely(temporary, "wb", function(file)
       return file:write(
-        "discoveryReminder=" .. tostring(preferences.customizationReminder) .. "\n" ..
-        "presetSort=" .. tostring(preferences.presetSort) .. "\n" ..
-        "clothingWarning=" .. tostring(preferences.clothingWarning) .. "\n" ..
-        "activityLogDetail=" .. tostring(preferences.activityLogDetail) .. "\n"
+        "presetSort=" .. tostring(preferences.presetSort) .. "\n"
       ) ~= nil and file:flush() ~= nil
     end)
   end, "config")
@@ -332,12 +329,12 @@ end
 
 readConfig = function()
   local config = {
-    discoveryReminder = true,
     presetSort = "name",
-    clothingWarning = true,
-    activityLogDetail = "normal",
   }
   local retiredSettings = {
+    discoveryReminder = true,
+    clothingWarning = true,
+    activityLogDetail = true,
     nativePanel = true,
     historySize = true,
     saveBeforeHistoryRestore = true,
@@ -357,14 +354,8 @@ readConfig = function()
   end
   for line in file:lines() do
     local key, value = line:match("^%s*([%a%d]+)%s*=%s*([%a%d]+)%s*$")
-    if key == "discoveryReminder" and (value == "true" or value == "false") then
-      config.discoveryReminder = value == "true"
-    elseif key == "presetSort" and (value == "name" or value == "modified") then
+    if key == "presetSort" and (value == "name" or value == "modified") then
       config.presetSort = value
-    elseif key == "clothingWarning" and (value == "true" or value == "false") then
-      config.clothingWarning = value == "true"
-    elseif key == "activityLogDetail" and (value == "normal" or value == "technical") then
-      config.activityLogDetail = value
     elseif retiredSettings[key] then
     elseif line:match("%S") and not line:match("^%s*#") then
       log("[CONFIG] Ignored unsupported config line: " .. tostring(line), "warn")

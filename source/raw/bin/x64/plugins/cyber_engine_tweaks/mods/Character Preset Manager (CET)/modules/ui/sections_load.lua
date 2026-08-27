@@ -247,8 +247,39 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     end
     if restoreUnavailable then ImGui.EndDisabled() end
 
-    if compactSubsectionButton("Preset Options",
-        "Hide Preset Options", "loadFavorites") then
+    if compactSubsectionButton("Appearance History",
+        "Hide Appearance History", "appearanceHistory") then
+      ImGui.Indent(8)
+      local historyEntries = state.history.entries
+      if #historyEntries == 0 then
+        ImGui.TextWrapped("No recovery appearances are available yet. The mod adds one before each normal preset load.")
+      else
+        ImGui.TextWrapped("Choose an entry to restore it. The newest appearance is first.")
+        for visibleIndex, entry in ipairs(historyEntries) do
+          local label = ("Restore %d: %s | %d options | %s##appearanceHistory:%d")
+            :format(visibleIndex, tostring(entry.date), tonumber(entry.count) or 0,
+              tostring(entry.action), visibleIndex)
+          local unavailable = not state.app.inCustomization
+            or state.load.auto or state.load.needsContinue
+          if unavailable then ImGui.BeginDisabled() end
+          if fullWidthButton(label, actionButtonHeight) then
+            restoreAppearanceHistory(visibleIndex)
+          end
+          if unavailable then ImGui.EndDisabled() end
+        end
+        local clearLabel = state.history.pendingClear
+          and "Confirm Clear Appearance History##clearAppearanceHistory"
+          or "Clear Appearance History##clearAppearanceHistory"
+        if dangerButton(clearLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
+          local cleared, message = clearAppearanceHistory(state.history.pendingClear == true)
+          setStatus("load", message, not cleared and not state.history.pendingClear)
+        end
+      end
+      finishCompactSubsection()
+    end
+
+    if compactSubsectionButton("Advanced Preset Options",
+        "Hide Advanced Preset Options", "loadFavorites") then
       ImGui.Indent(8)
       local optionalPreset = state.library.selected
         and state.library.presets[state.library.selected]

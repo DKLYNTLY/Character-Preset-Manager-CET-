@@ -148,6 +148,10 @@ public class PresetPanel extends inkCustomController {
     this.replaceAction = this.AddAction(root, "REPLACE SELECTED", 320.0, 1008.0, n"OnReplace");
     this.deleteAction = this.AddAction(root, "DELETE SELECTED / CONFIRM", 28.0, 1008.0, n"OnDelete");
     this.deleteAction.SetWidth(562.0);
+    let advancedText: ref<inkText> = this.MakeText("For advanced options, use the CET menu: compatibility checks, favorites, folders, backups, and Trash.", 18, 28.0, 1080.0, 562.0, 66.0);
+    advancedText.SetWrapping(true, 550.0);
+    advancedText.SetTintColor(HDRColor(0.517647, 0.709804, 0.729412, 1.0));
+    advancedText.Reparent(root);
     this.SetRootWidget(root);
     return true;
   }
