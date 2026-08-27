@@ -145,7 +145,7 @@ if state.ui.settingsOpen then
         setPresetSortPreference("modified")
       end
       ImGui.Spacing()
-      ImGui.TextWrapped("This is the same setting shown in Mod Settings and Native Settings UI.")
+      ImGui.TextWrapped("This setting is available here in CET.")
       ImGui.TextDisabled(CONFIG_FILE)
       if compactSubsectionButton("Settings File",
           "Hide Settings File", "settingsFile") then
@@ -268,14 +268,17 @@ if state.ui.helpOpen then
       helpHeading("Load & Restore Appearance")
       ImGui.TextWrapped("1. Open a supported character editor.")
       ImGui.TextWrapped("2. Scroll through the larger panel on the left or use Search to find a preset. Select a folder row to show or hide the presets inside it.")
-      ImGui.TextWrapped("3. Select the preset to start loading it. If a safety warning appears, select the preset again to continue.")
-      ImGui.TextWrapped("4. Use Check Compatibility in CET when you want to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
+      ImGui.TextWrapped("3. Select a preset to start loading it. Use Check Compatibility in CET when you want to review the preset before loading.")
+      ImGui.TextWrapped("4. Watch Panel Status below the native preset list. It reports overwrite and Trash actions, loading progress, the final result, and failures without opening CET. A red marker means the action needs attention.")
+      ImGui.TextWrapped("5. Use Check Compatibility in CET when you want to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
-        "5. Wait for the final result. Green means every option was confirmed. Yellow means the game did not confirm one or more changes.")
+        "6. Wait for the final result. The native Panel Status and CET Load status both explain whether every option was confirmed.")
+      ImGui.TextWrapped("After you select a preset, folder, save location, Save, or Trash action, the panel releases that button so Q and E can rotate the character again. Search and Preset Name keep keyboard focus while you are typing.")
       ImGui.TextWrapped("If you change preset files outside CET, select Refresh under Load & Restore Appearance before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
         "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
+      ImGui.TextWrapped("Every preset uses the proven verified loader. It applies and checks changes individually, waits for dependent editor options to settle, clears genuine leftovers, and verifies the final appearance.")
       ImGui.TextWrapped("Open Advanced Preset Options below the restore controls, then select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
       ImGui.TextWrapped("Force Full Load is under Advanced Preset Options to reduce accidental use. Its cautions appear in the Load status card.")
       ImGui.TextWrapped("Appearance History is directly below Restore Previous Appearance. It keeps five automatic recovery entries and lets you restore any one of them.")
@@ -286,7 +289,7 @@ if state.ui.helpOpen then
       helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorite presets also appear in the Favorites group.")
       helpButton("Appearance History", "Below Restore Previous Appearance, this shows the five newest recovery appearances and lets you restore one or clear the list.")
       helpButton("Advanced Preset Options", "Below Appearance History, this shows or hides Check Compatibility, Force Full Load, and the favorite action.")
-      ImGui.TextWrapped("Main sections, Help topics, buttons, and selected preset rows use one orange color family. Main headers use white text. Optional controls are responsive centered charcoal buttons with white text, keeping them separate from main sections. Saving and library-management sections start closed.")
+      ImGui.TextWrapped("Main sections, Help topics, buttons, and selected preset rows use one orange color family. Main headers use white text. Optional controls are responsive centered charcoal buttons with white text, keeping them separate from main sections. Only Open & Edit Appearance starts open. Every other main section starts closed.")
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")
@@ -416,7 +419,7 @@ if state.ui.helpOpen then
       if showHelpTopic("Settings",
           "settings config preset sort name last modified file hide preferences button") then
       helpHeading("Settings")
-      ImGui.TextWrapped("Change Preset Sort Order through the CET Settings tab, Mod Settings, or Native Settings UI. All three menus use the same value. CET key choices remain under CET Bindings.")
+      ImGui.TextWrapped("Change Preset Sort Order through the CET Settings tab. CET key choices remain under CET Bindings.")
       ImGui.TextWrapped("Preset Sort Order is the only preference. Safety and loading behavior are not optional.")
       ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET manager stay enabled. Use Check Compatibility in CET when you want comparison details.")
       helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")

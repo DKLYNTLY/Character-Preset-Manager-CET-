@@ -18,9 +18,76 @@ used. See the README and in-game Help for current instructions.
   library. Six packaged starter presets preserve the Corpo, Nomad, and
   Streetkid choices for both body types.
 - Adds a larger native panel farther left on the character screen. It uses the
-  dark red, bright red, and cyan colors from Cyberpunk's character-customization
-  controls, increases the text size, and moves the game's Randomize controls
-  below it.
+  red and cyan colors from Cyberpunk's character-customization controls,
+  increases the text size, and moves the game's Randomize controls below it.
+- Removes the solid black panel behind the native controls. The character stays
+  visible through the panel, while Search and Preset Name keep their dark input
+  fields. Buttons now use translucent charcoal-black surfaces with red labels
+  and a cyan selected state instead of solid bright red blocks.
+- Shortens the native panel on its character-facing side so it covers less of
+  the appearance preview. Removes the distracting scroll caption and static
+  scrollbar; mouse-wheel, stick, and navigation scrolling continue to work.
+- Extends the panel downward to just above Randomize and shows ten preset rows
+  at once. The remaining room gives Panel Status more space while the save
+  controls stay together.
+- Narrows the panel's character-facing edge by another 170 interface units so
+  buttons no longer cover the hairstyle preview. Shorter headings and help text
+  keep the same controls readable at the smaller width.
+- Uses a standard hyphen in the combined Panel Status line because the game's
+  font could leave the whole message invisible when it contained a long dash.
+- Removes the cyan preset-availability subtitle and raises **Character Preset
+  Manager** to align with the game's **Customize Your Look** heading. Search
+  and the preset list move upward, giving Panel Status more than twice its
+  previous message height without moving the bottom controls.
+- Matches every preset and action button's resting transparency to the Search
+  and Preset Name fields. Red and cyan labels remain fully readable, with a
+  temporary stronger surface only while a button is pressed.
+- Tightens the gap between preset rows from 22 to 8 interface units. Panel
+  Status begins directly below the tenth row and receives the recovered space.
+- Keeps strong references to the Panel Status text and color rail so the game
+  cannot discard them while the panel remains open.
+- Makes Panel Status event-driven and hidden when there is nothing important to
+  report. It no longer repeats old CET editor guidance, search counts, folder
+  browsing, or save-location changes. Loading, overwrite, Trash, and error
+  messages remain visible, and Trash messages persist through list refreshes.
+- Adds a reminder to native Trash confirmations and completed moves that CET is
+  where the preset can be restored or deleted permanently.
+- Reduces the required supporting mods from eight to four. ArchiveXL, Mod
+  Settings, Native Settings UI, and Native Settings UI Side Menu Add-on are no
+  longer required. Preset Sort Order remains available in CET Settings.
+- Shows a ready message whenever the native character-screen panel opens, with
+  short loading instructions and a reminder that logs, settings, renaming, and
+  other advanced tools are in CET.
+- Removes the native panel's compatibility-review interruption. Selecting a
+  preset starts loading directly; Check Compatibility remains available in CET.
+- Applies button transparency through the widget itself so resting charcoal
+  backgrounds remain translucent in the game instead of appearing opaque.
+- Fixes native overwrite confirmation being canceled when Save released focus
+  from an unchanged Preset Name field. Only an actual name edit now cancels the
+  pending confirmation, preserving the existing fingerprint safety check.
+- Changes preset and action button surfaces from maroon to translucent
+  charcoal-black like the CET window. The **Character Preset Manager** title
+  now uses the same cyan as folder rows.
+- Rewrites the native panel introduction around its everyday actions and adds
+  one clearly labeled **Panel Status** area. Search results, folder changes,
+  saves, Trash confirmations, loading progress, final results, and failures now
+  appear there without requiring the CET overlay. Errors use a red marker.
+- Keeps the panel's original single-click preset loading behavior.
+- Combines the native status heading and message into one always-visible line
+  so search, selection, loading, save, and Trash results cannot appear in an
+  empty area below a separate heading.
+- Releases a clicked native button's UI focus after its action so Cyberpunk's
+  Q and E character rotation keeps working. Search and Preset Name still keep
+  keyboard focus while the player is typing.
+- Starts with only **Open & Edit Appearance** expanded in the CET window. Every
+  other main section starts collapsed and can still be opened normally.
+- Keeps the native preset panel synchronized after presets are restored,
+  renamed, moved, or removed in CET. The native Trash button is unavailable
+  until a preset is selected, and only that button's first press can change it
+  to **Confirm Move to Trash**.
+- Uses the proven verified loader from version 3.0.6 for every preset. It keeps
+  the same deliberate waits, dependency handling, cleanup, and final checks
+  instead of using the experimental Fast Load path.
 - Places **Search** above one scrollable list ordered like CET's **Load & Restore
   Appearance** list. Folder rows open and close their presets, Favorites stay at
   the top, and presets outside folders appear last. Mouse-wheel and controller
@@ -55,22 +122,21 @@ used. See the README and in-game Help for current instructions.
 - Renames **Preset Options** to **Advanced Preset Options** for compatibility
   checks, Force Full Load, and Favorites.
 - Keeps only **Preset Sort Order** as a preference. It is available in the CET
-  Settings tab, Mod Settings, and Native Settings UI. The reminder notification,
+  Settings tab. The reminder notification,
   clothing-warning setting and behavior, and Activity Log detail setting are
   removed.
 - Keeps the native panel, five-entry history, pre-restore safety save,
   missing-option warnings, and CET fallback enabled instead of exposing settings
   that could weaken normal operation. Comparison details remain available in
   CET.
-- Polls the native request bridge 20 times per second and Mod Settings twice per
-  second. Preset comparison and library refresh work runs only after a matching
+- Polls the native request bridge 20 times per second. Preset comparison and
+  library refresh work runs only after a matching
   user action, preventing repeating scans during normal frames.
 - Fixes the native panel's redscript compilation against the installed game
   definitions by using supported color values, string comparison, and widget
   removal calls.
-- Requires Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31,
-  Codeware 1.20.3, ArchiveXL 1.27.1, Mod Settings 0.2.21, Native Settings UI
-  1.96, and Native Settings UI Side Menu Add-on 1.5.1 or newer.
+- Requires only Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31,
+  and Codeware 1.20.3 or newer.
 - Keeps older Character Preset Manager and compatible ACU preset files
   loadable. ACU and Character Customization Anywhere remain incompatible and
   must be removed before starting the game.

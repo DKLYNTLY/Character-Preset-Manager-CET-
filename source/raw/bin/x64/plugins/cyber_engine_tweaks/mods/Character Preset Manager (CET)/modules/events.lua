@@ -211,7 +211,6 @@ events.onInit = function()
     :format(presetCount, PRESET_DIR), "info")
   state.app.ready = true
   initializeNativeBridge(configLoaded)
-  initializeNativeSettings()
   refreshAppearanceHistory()
   refreshEditorState()
   if recovered then

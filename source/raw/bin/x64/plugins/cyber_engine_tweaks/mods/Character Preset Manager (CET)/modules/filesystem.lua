@@ -52,6 +52,8 @@ function cancelConfirmations()
   state.library.pendingOverwriteFingerprint = nil
   state.trash.pendingDeleteName = nil
   state.trash.pendingDeleteFingerprint = nil
+  state.trash.nativePendingDeleteName = nil
+  state.trash.nativePendingDeleteFingerprint = nil
   state.library.pendingRemoveFolder = nil
   state.trash.pendingEmpty = false
   state.trash.pendingBulkAction = nil
@@ -112,7 +114,6 @@ function resetLoadState()
   state.load.autoTimer = 0
   state.load.autoPasses = 0
   state.load.resetBefore = false
-  state.load.nativeWarningPreset = nil
 end
 
 function cloneMap(source)

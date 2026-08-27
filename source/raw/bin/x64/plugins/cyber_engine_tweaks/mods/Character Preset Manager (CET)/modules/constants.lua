@@ -67,6 +67,6 @@ NATIVE_BRIDGE_PROTOCOL = 1
 NATIVE_LIST_LIMIT = 96
 APPEARANCE_HISTORY_LIMIT = 5
 NATIVE_REQUEST_POLL_SECONDS = 0.05
-MOD_SETTINGS_POLL_SECONDS = 0.50
+NATIVE_READY_STATUS = "Ready to load a preset. Select one to load it. Open CET for logs, settings, renaming, and other advanced tools."
 
 return _ENV

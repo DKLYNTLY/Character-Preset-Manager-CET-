@@ -31,14 +31,10 @@ local function findNativeBridge()
   return nil
 end
 
-local function selectedStatus()
-  for _, section in ipairs({ "load", "create", "delete", "rename" }) do
-    local status = state.status.sections[section]
-    if status and tostring(status.message or "") ~= "" then
-      return status.message, status.error == true
-    end
-  end
-  return "Ready.", false
+local function nativeStatus(message, isError)
+  state.app.nativePanelStatus = tostring(message or "")
+  state.app.nativePanelStatusError = isError == true
+  return isError and "error" or "status", cleanField(message)
 end
 
 local function listPayload(query, overrideMessage, overrideError)
@@ -53,17 +49,21 @@ local function listPayload(query, overrideMessage, overrideError)
     tostring(state.presetEntryCount(selected)),
     selected and selected.favorite == true and "1" or "0",
   }, "\t")
-  local message, isError = selectedStatus()
-  if overrideMessage then
-    message = overrideMessage
+  local message = tostring(state.app.nativePanelStatus or "")
+  local isError = state.app.nativePanelStatusError == true
+  if overrideMessage ~= nil then
+    message = tostring(overrideMessage or "")
     isError = overrideError == true
+    state.app.nativePanelStatus = message
+    state.app.nativePanelStatusError = isError
   end
   lines[#lines + 1] = table.concat({ "STATUS", isError and "1" or "0",
     cleanField(message), state.load.auto and "1" or "0" }, "\t")
   lines[#lines + 1] = "CONFIRM\tSAVE\t" ..
     (state.library.pendingOverwriteName ~= nil and "1" or "0")
   lines[#lines + 1] = "CONFIRM\tTRASH\t" ..
-    (state.trash.pendingDeleteName == state.library.selected and "1" or "0")
+    (state.library.selected ~= nil
+      and state.trash.nativePendingDeleteName == state.library.selected and "1" or "0")
   local visibleNames = {}
   local matchedFolders = {}
   for _, name in ipairs(names) do
@@ -163,19 +163,6 @@ end
 local function startSelectedLoad()
   if not state.library.selected then return false, "Select a preset first." end
   if not state.app.inCustomization then return false, "Open a customization screen first." end
-  local warnings = {}
-  local comparison = compareSelectedPreset()
-  if comparison and comparison.missing + comparison.ambiguous + comparison.invalid > 0 then
-    warnings[#warnings + 1] = ("%d missing, repeated, uncertain, or invalid option%s")
-      :format(comparison.missing + comparison.ambiguous + comparison.invalid,
-        comparison.missing + comparison.ambiguous + comparison.invalid == 1 and "" or "s")
-  end
-  if #warnings > 0 and state.load.nativeWarningPreset ~= state.library.selected then
-    state.load.nativeWarningPreset = state.library.selected
-    return false, "Review " .. table.concat(warnings, " and ") ..
-      ". Select the preset again to continue."
-  end
-  state.load.nativeWarningPreset = nil
   resetLoadState()
   state.load.autoTimer = 0
   state.load.autoPasses = 0
@@ -186,6 +173,10 @@ local function startSelectedLoad()
 end
 
 local function handleNativeRequest(action, payload)
+  if action == "open" then
+    nativeQuery = ""
+    return "list", listPayload(nativeQuery, NATIVE_READY_STATUS, false)
+  end
   if action == "list" then
     nativeQuery = tostring(payload or "")
     return "list", listPayload(nativeQuery)
@@ -197,27 +188,27 @@ local function handleNativeRequest(action, payload)
       cancelConfirmations()
       resetLoadState()
     end
-    return "list", listPayload("")
+    return "list", listPayload(nativeQuery)
   end
   if action == "select_load" then
     if not state.library.presets[payload] then
-      return "status", "That preset is no longer available."
+      return nativeStatus("That preset is no longer available.", true)
     end
-    local warningPreset = state.load.nativeWarningPreset
     state.library.selected = payload
     state.invalidatePreflight()
     cancelConfirmations()
     resetLoadState()
-    if warningPreset == payload then state.load.nativeWarningPreset = warningPreset end
-    local _, message = startSelectedLoad()
-    return "status", cleanField(message)
+    local started, message = startSelectedLoad()
+    return nativeStatus(message, not started)
   end
   if action == "toggle_folder" then
     if folderNameExists(payload) then
       state.library.expandedLoadFolders[payload] =
         state.library.expandedLoadFolders[payload] ~= true
+      return "list", listPayload(nativeQuery)
     end
-    return "list", listPayload(nativeQuery)
+    return "list", listPayload(nativeQuery,
+      "That folder is no longer available. Open CET to refresh the list.", true)
   end
   if action == "cancel_save_confirmation" then
     state.library.pendingOverwriteName = nil
@@ -239,8 +230,8 @@ local function handleNativeRequest(action, payload)
     return "list", listPayload("")
   end
   if action == "load" then
-    local _, message = startSelectedLoad()
-    return "status", cleanField(message)
+    local started, message = startSelectedLoad()
+    return nativeStatus(message, not started)
   end
   if action == "compare" then return "comparison", comparisonPayload() end
   if action == "favorite" then
@@ -251,15 +242,21 @@ local function handleNativeRequest(action, payload)
     if payload == "" or folderNameExists(payload) then
       state.library.selectedFolder = payload
       cancelConfirmations()
-      return "status", "Save location: " .. (payload == "" and "All Presets" or payload) .. "."
+      return "list", listPayload(nativeQuery)
     end
-    return "status", "That save location is no longer available. Open CET to refresh folders."
+    return nativeStatus("That save location is no longer available. Open CET to refresh folders.", true)
   end
   if action == "delete" then
-    if not state.library.selected then return "status", "Select a preset first." end
-    trashPreset()
+    if not state.library.selected then return nativeStatus("Select a preset first.", true) end
+    trashPreset("native")
     local status = state.status.sections.delete
-    return "list", listPayload(nativeQuery, status.message, status.error)
+    local message = tostring(status.message or "")
+    if status.error ~= true then
+      message = message .. (state.trash.nativePendingDeleteName ~= nil
+        and " After moving it, open CET to restore it or delete it permanently."
+        or " Open CET to restore it or delete it permanently.")
+    end
+    return "list", listPayload(nativeQuery, message, status.error)
   end
   if action == "refresh" then
     refreshPresets("external")
@@ -269,11 +266,13 @@ local function handleNativeRequest(action, payload)
   if action == "history" then return "history", historyPayload() end
   if action == "restore_history" then
     restoreAppearanceHistory(tonumber(payload))
-    return "status", cleanField(state.status.sections.load.message)
+    return nativeStatus(state.status.sections.load.message,
+      state.status.sections.load.error == true)
   end
   if action == "restore_previous" then
     restoreLastAppearance()
-    return "status", cleanField(state.status.sections.load.message)
+    return nativeStatus(state.status.sections.load.message,
+      state.status.sections.load.error == true)
   end
   if action == "clear_history" then
     local cleared, message = clearAppearanceHistory(payload == "confirm")
@@ -283,72 +282,18 @@ local function handleNativeRequest(action, payload)
     state.app.windowOpen = true
     return "status", "Open the CET overlay to use the advanced preset manager."
   end
-  return "status", "The native panel sent an unsupported request."
-end
-
-local function syncNativeSettingsWidgets()
-  local nativeSettings = state.app.nativeSettings
-  if not nativeSettings then return end
-  local options = state.app.nativeSettingsOptions
-  state.app.nativeSettingsSyncing = true
-  pcall(nativeSettings.setOption, options.presetSort,
-    state.preferences.presetSort == "modified" and 2 or 1)
-  state.app.nativeSettingsSyncing = false
+  return nativeStatus("The native panel sent an unsupported request.", true)
 end
 
 setPresetSortPreference = function(value)
-  if state.app.nativeSettingsSyncing then return end
   local sort = value == "modified" and "modified" or "name"
   state.preferences.presetSort = sort
   state.library.sortMode = sort
   invalidateViewCache()
-  bridgeCall("ApplyPreferences", sort == "modified")
-  syncNativeSettingsWidgets()
   writeConfig()
   state.status.settings = sort == "modified"
     and "Presets are sorted by the date they were last changed."
     or "Presets are sorted by name."
-end
-
-initializeNativeSettings = function()
-  local ok, nativeSettings = pcall(GetMod, "nativeSettings")
-  local version = nativeSettings and tonumber(nativeSettings.version) or nil
-  if not ok or not nativeSettings or not version or version < 1.96 then
-    log("[SETTINGS] Native Settings UI 1.96 or newer is unavailable.", "warn")
-    return false
-  end
-  local tabPath = "/characterPresetManager"
-  local settingsPath = tabPath .. "/preferences"
-  local existsOk, exists = pcall(nativeSettings.pathExists, tabPath)
-  if not existsOk or not exists then
-    nativeSettings.addTab(tabPath, "Character Preset Manager")
-  end
-  local categoryOk, categoryExists = pcall(nativeSettings.pathExists, settingsPath)
-  if not categoryOk or not categoryExists then
-    nativeSettings.addSubcategory(settingsPath, "Preferences")
-  end
-  local options = {}
-  options.presetSort = nativeSettings.addSelectorString(settingsPath,
-    "Preset Sort Order", "Sort presets by name or by the date they were last changed.",
-    { "Name", "Last modified" }, state.preferences.presetSort == "modified" and 2 or 1, 1,
-    function(value) setPresetSortPreference(tonumber(value) == 2 and "modified" or "name") end)
-  state.app.nativeSettings = nativeSettings
-  state.app.nativeSettingsOptions = options
-  log("[SETTINGS] Native Settings UI connected.", "info")
-  return true
-end
-
-local function syncModSettingsPreferences()
-  local ok, revision = bridgeCall("GetConfigRevision")
-  revision = ok and tonumber(revision) or nil
-  if not revision or revision == state.preferences.nativeRevision then return end
-  local sortOk, sort = bridgeCall("GetPresetSort")
-  state.preferences.presetSort = sortOk and tonumber(sort) == 1 and "modified" or "name"
-  state.preferences.nativeRevision = revision
-  state.library.sortMode = state.preferences.presetSort
-  invalidateViewCache()
-  syncNativeSettingsWidgets()
-  writeConfig()
 end
 
 initializeNativeBridge = function(configLoaded)
@@ -362,9 +307,7 @@ initializeNativeBridge = function(configLoaded)
   end
   state.app.nativeBridgeUnavailableLogged = false
   state.app.nativeBridgeRetryTimer = 0
-  bridgeCall("ApplyPreferences", state.preferences.presetSort == "modified")
   bridgeCall("SetLuaReady", true, VERSION, NATIVE_BRIDGE_PROTOCOL)
-  syncModSettingsPreferences()
   log("[NATIVE PANEL] Native bridge connected.", "info")
   return true
 end
@@ -379,18 +322,34 @@ updateNativeBridge = function(delta)
     if not initializeNativeBridge(true) then return end
   end
   local elapsed = math.max(0, tonumber(delta) or 0)
-  state.app.modSettingsPollTimer = state.app.modSettingsPollTimer + elapsed
-  if state.app.modSettingsPollTimer >= MOD_SETTINGS_POLL_SECONDS then
-    state.app.modSettingsPollTimer = 0
-    syncModSettingsPreferences()
-  end
   local busy = state.load.auto or state.load.needsContinue
-  local status = busy and ("Loading pass " .. tostring(state.load.pass) .. "...")
-    or tostring(state.status.sections.load.message or "")
-  if state.app.nativeBusy ~= busy or state.app.nativeStatus ~= status then
-    bridgeCall("SetBusy", busy, status)
+  local wasBusy = state.app.nativeBusy == true
+  local status = busy and ("Loading pass " .. tostring(state.load.pass) .. "...") or ""
+  local statusError = false
+  if not busy and wasBusy then
+    status = tostring(state.status.sections.load.message or "")
+    statusError = state.status.sections.load.error == true
+    state.app.nativePanelStatus = status
+    state.app.nativePanelStatusError = statusError
+  end
+  if state.app.nativeBusy ~= busy or (busy and state.app.nativeStatus ~= status)
+      or (not busy and wasBusy) then
+    bridgeCall("SetBusy", busy, status, statusError)
     state.app.nativeBusy = busy
     state.app.nativeStatus = status
+    state.app.nativeStatusError = statusError
+  end
+  local listSelection = tostring(state.library.selected or "") .. "\31" ..
+    tostring(state.trash.nativePendingDeleteName or "") .. "\31" ..
+    tostring(state.library.selectedFolder or "")
+  if state.app.nativeListRevision ~= state.cache.revision
+      or state.app.nativeListSelection ~= listSelection then
+    local panelsOk, hasPanels = bridgeCall("HasPanels")
+    if panelsOk and hasPanels then
+      bridgeCall("Sync", "list", listPayload(nativeQuery), busy)
+    end
+    state.app.nativeListRevision = state.cache.revision
+    state.app.nativeListSelection = listSelection
   end
   state.app.nativeRequestPollTimer = state.app.nativeRequestPollTimer + elapsed
   if state.app.nativeRequestPollTimer < NATIVE_REQUEST_POLL_SECONDS then return end
@@ -401,12 +360,13 @@ updateNativeBridge = function(delta)
   local actionOk, action = bridgeCall("GetRequestAction")
   local payloadOk, payload = bridgeCall("GetRequestPayload")
   state.app.nativeBridgeSequence = sequence
-  local responseKind, responsePayload = "status", "The native request could not be read."
+  local responseKind, responsePayload = "error", "The native request could not be read."
   if actionOk and payloadOk then
     local handled, kind, data = pcall(handleNativeRequest,
       tostring(action or ""), tostring(payload or ""))
     if handled then responseKind, responsePayload = kind, data
     else
+      responseKind = "error"
       responsePayload = "The native request failed safely. Use the CET interface."
       log("[NATIVE PANEL] Request failed: " .. tostring(kind), "error")
     end

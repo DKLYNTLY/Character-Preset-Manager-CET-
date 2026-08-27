@@ -23,8 +23,15 @@
 
 ![Character Preset Manager's CET interface for saving, loading, and organizing presets](images/UI%20v3.0.4.gif)
 
+The controls built into Cyberpunk's character screens use a transparent panel
+so your character remains visible. Search and Preset Name keep dark input fields,
+and the buttons use translucent charcoal-black surfaces with red and cyan labels.
+
 The main CET interface keeps saving, loading, folders, sharing, Trash, settings,
 and help in one window.
+
+Only **Open & Edit Appearance** starts expanded. Every other main section starts
+collapsed and can be opened when needed.
 
 </details>
 
@@ -65,16 +72,56 @@ than the smaller selection normally available during play.
   work and safe recovery.
 - Replaces the new-game screen's three preset choices with the full preset
   library and includes six default Corpo, Nomad, and Streetkid presets.
-- Adds a larger panel farther left on the character screen. It uses the same
-  dark red, bright red, and cyan colors as Cyberpunk's character-customization
-  controls, with larger text, and keeps the game's Randomize controls below it.
+- Adds a larger transparent panel farther left on the character screen. Search
+  and Preset Name keep dark fields, while buttons use translucent charcoal-black
+  surfaces with red and cyan labels. Randomize remains below the panel.
+- Trims the character-facing edge of the panel and removes the distracting
+  scroll caption and static scrollbar. Mouse-wheel, stick, and navigation
+  scrolling continue to work.
+- Extends the panel down to just above Randomize and shows ten preset rows at
+  once, leaving more room for Panel Status and the save controls.
+- Narrows the character-facing side further so buttons do not cover the
+  hairstyle preview. Headings and instructions are shorter to remain readable.
+- Uses a normal hyphen in **Panel Status** so Cyberpunk's font always displays
+  the status message.
+- Removes the cyan subtitle and aligns **Character Preset Manager** with the
+  game's **Customize Your Look** heading. The list moves upward and the Panel
+  Status message receives more than twice as much vertical space.
+- Gives every preset and action button the same resting transparency as Search
+  and Preset Name. The panel applies that transparency directly so the game does
+  not render the charcoal background as opaque. Button labels and the cyan
+  selected state remain clear.
+- Tightens the spacing between preset rows and places the larger Panel Status
+  area directly below the tenth visible row.
+- Keeps Panel Status alive for the full character-screen session and fixes
+  **Confirm Overwrite** so losing focus from an unchanged name no longer cancels
+  it. Editing the name still cancels confirmation normally.
+- Hides Panel Status until a load, overwrite, Trash action, or error has
+  something important to report. Old CET guidance, search counts, folder
+  browsing, and save-location changes no longer replace the message. Trash
+  confirmations and results remain visible after the list refreshes.
+- Trash status messages explain that CET is where a moved preset can be
+  restored or deleted permanently.
+- Uses translucent charcoal-black button surfaces like the CET window instead
+  of maroon. The **Character Preset Manager** title uses the folder-row cyan.
+- Adds one clearly labeled **Panel Status** area below the preset list. It shows
+  overwrite and Trash messages, live loading progress, the final load result,
+  and failures without requiring the CET overlay. A red marker means the action
+  needs attention.
+- Loads a preset with one click, matching the panel's original behavior.
+- Keeps the game's Q and E character rotation available after selecting a
+  preset, folder, save location, Save, or Trash action. Search and Preset Name
+  keep the keyboard only while text is being entered.
 - Places **Search** above one scrollable list ordered like **Load & Restore
   Appearance** in CET. Folder rows open and close their presets. Favorites stay
   at the top, folders follow, and presets outside folders appear last. Selecting
   a preset starts loading it immediately.
 - Places **Preset Name**, **Save Location**, **Save Preset**, and **Move Preset to
   Trash** below the list. If confirmation is needed, the same button changes to
-  **Confirm Overwrite** or **Confirm Move to Trash**. No extra buttons appear.
+  **Confirm Overwrite** or **Confirm Move to Trash**. The Trash confirmation is
+  armed only by its own first press and clears when the selection changes. The
+  Trash button is unavailable when no preset is selected. No extra buttons
+  appear.
 - Keeps rename, permanent deletion, Help, comparison, favorites, folders,
   backups, Trash recovery, and Empty Trash in the CET window.
 - Uses a narrow bridge so the native screen calls the existing Lua preset,
@@ -85,8 +132,7 @@ than the smaller selection normally available during play.
 - Replaces the single recovery file with five protected appearance-history
   entries. Identical snapshots are skipped, and the current appearance is
   always saved before an older entry is restored.
-- Shows **Preset Sort Order** in the CET Settings tab, **Mod Settings**, and
-  **Native Settings UI**. All three menus share the same value.
+- Shows **Preset Sort Order** in the CET Settings tab.
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -103,14 +149,11 @@ than the smaller selection normally available during play.
 - [RED4ext 1.30.0 or newer](https://www.nexusmods.com/cyberpunk2077/mods/2380)
 - [redscript 0.5.31 or newer](https://www.nexusmods.com/cyberpunk2077/mods/1511)
 - [Codeware 1.20.3 or newer](https://www.nexusmods.com/cyberpunk2077/mods/7780)
-- [ArchiveXL 1.27.1 or newer](https://www.nexusmods.com/cyberpunk2077/mods/4198)
-- [Mod Settings 0.2.21 or newer](https://www.nexusmods.com/cyberpunk2077/mods/4885)
-- **Native Settings UI 1.96 or newer**
-- **Native Settings UI Side Menu Add-on 1.5.1 or newer**
 
+ArchiveXL, Mod Settings, Native Settings UI, Native Settings UI Side Menu Add-on,
 TweakXL, Input Loader, cybercmd, ACU, and Character Customization Anywhere are
-not required. ACU and Character Customization Anywhere are incompatible and
-must be removed before the game starts.
+not required. ACU and Character Customization Anywhere are incompatible and must
+be removed before the game starts.
 
 ### Install the mod
 
@@ -186,10 +229,13 @@ refreshes and the final appearance.
 1. Open one of the supported character screens listed above.
 2. Scroll through the panel or use **Search** to find a preset. Select a folder
    row to show or hide the presets inside it.
-3. Select a preset. It starts loading immediately. If the panel shows a
-   compatibility warning, select the preset again to continue.
-4. Wait for the final result. A green message means every saved option was
-   confirmed. A yellow message names anything the game did not confirm.
+3. Select a preset to load it. Compatibility review is available separately
+   through **Check Compatibility** in CET.
+4. When the panel opens, its ready message explains how to load a preset and
+   points to CET for logs, settings, renaming, and other advanced tools. During
+   loading, **Panel Status** shows progress and the final
+   result. A red marker means the load needs attention and the message explains
+   what did not load. Open CET only when you want the detailed Activity Log.
 
 Before each normal preset load, the mod quietly saves the active appearance.
 To recover it, open CET and use **Restore Previous Appearance** or choose an
@@ -205,13 +251,10 @@ preset list, change Force Full Load, or finish loading. Open **Advanced Preset O
 and select **Check Compatibility** whenever you want a current result. This
 avoids scanning large appearance-option lists while you browse presets.
 
-Automatic loading checks a pending change quickly, then leaves more time between
-ordinary passes. It reuses the option list during the same update and avoids
-rebuilding the full option-list fingerprint unless the list count changes or a
-recent change may affect dependent options. If a change adds, removes, disables,
-or rearranges an option, the mod waits longer for the editor to settle. A final
-read-only check confirms any late changes before the summary. Saved-choice
-matches are reused only after the current option still proves that they match.
+Every preset uses the proven verified loader from version 3.0.6. It applies and
+checks changes individually, waits when Cyberpunk rebuilds dependent options,
+clears genuine leftovers, and verifies the final appearance before reporting
+the result.
 
 Loading stops if the same options are still missing after three checks. The mod does not guess. Missing options usually mean that character-option mods, their versions, or their load order changed. Correct the appearance and save the preset again.
 
@@ -492,9 +535,7 @@ equipped clothing while its window is open.
 
 - **Preset Sort Order** sorts by name or last changed date.
 
-Change this preference through the CET **Settings** tab, **Mod Settings**, or
-**Native Settings UI**. Native Settings UI Side Menu Add-on places the mod in
-its side list. All three menus update the same value. CET key choices remain
+Change this preference through the CET **Settings** tab. CET key choices remain
 under **CET Bindings**.
 
 The character-screen panel, five-entry appearance history, pre-restore safety
@@ -609,9 +650,8 @@ and I do not plan to release it.
 - Adds an original native character-screen preset panel backed by the existing
   Lua library and loading engine.
 - Includes six default Corpo, Nomad, and Streetkid starter presets.
-- Uses a larger panel farther left with Cyberpunk's dark red, bright red, and
-  cyan character-customization colors and larger text. The game's Randomize
-  controls sit below it.
+- Uses a larger panel farther left with translucent charcoal-black surfaces,
+  Cyberpunk's red and cyan labels, and larger text. Randomize sits below it.
 - Uses one Search field and a scrollable list ordered like CET. Folder rows open
   and close their presets, while Favorites remain at the top and presets outside
   folders remain last. Selecting a preset starts loading it immediately.
@@ -620,8 +660,8 @@ and I do not plan to release it.
   to Trash when a second press is required; no extra confirmation buttons appear.
 - Keeps rename, permanent deletion, Help, comparison, favorites, folders,
   backups, Trash recovery, and Empty Trash in CET.
-- Provides Preset Sort Order through the CET Settings tab, Mod Settings, and
-  Native Settings UI while keeping loading and safety behavior fixed.
+- Provides Preset Sort Order through the CET Settings tab while keeping loading
+  and safety behavior fixed.
 - Fixes the native panel's redscript compilation and keeps preset scans tied to
   explicit actions instead of normal game frames.
 - Keeps older CPM and compatible ACU preset support without including or
@@ -654,9 +694,8 @@ and reviewed the finished work before publishing it.
 - **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):**
   **yamashi** created CET, and its contributors maintain it. I use CET's
   scripting and menu system for Character Preset Manager.
-- **RED4ext, redscript, Codeware, ArchiveXL, Mod Settings, Native Settings UI,
-  and Native Settings UI Side Menu Add-on:** I use these community tools for
-  the native character-screen panel and in-game preferences.
+- **RED4ext, redscript, and Codeware:** I use these community tools for the
+  native character-screen panel.
 - **CD Projekt Red:** I credit CD Projekt Red for Cyberpunk 2077 and its
   character system.
 - **Cyberpunk 2077 modding community:** I appreciate the testing, research,

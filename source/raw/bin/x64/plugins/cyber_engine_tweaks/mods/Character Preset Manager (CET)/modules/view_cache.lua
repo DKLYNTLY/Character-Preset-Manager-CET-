@@ -47,6 +47,7 @@ function invalidateBulkSelectionCache()
 end
 
 function invalidateViewCache()
+  state.cache.revision = (state.cache.revision or 0) + 1
   state.cache.viewDirty = true
   invalidateFilteredViewCache()
   invalidateBulkSelectionCache()

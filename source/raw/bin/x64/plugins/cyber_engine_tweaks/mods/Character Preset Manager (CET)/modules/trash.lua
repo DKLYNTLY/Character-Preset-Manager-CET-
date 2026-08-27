@@ -378,11 +378,20 @@ restoreTrashBundle = function(filename)
     :format(filename, restoredFilename), "complete")
 end
 
-trashPreset = function()
+trashPreset = function(source)
   helpers.auditSection("TRASH PRESET")
+  local nativeRequest = source == "native"
+  local pendingName, pendingFingerprint
+  if nativeRequest then
+    pendingName = state.trash.nativePendingDeleteName
+    pendingFingerprint = state.trash.nativePendingDeleteFingerprint
+  else
+    pendingName = state.trash.pendingDeleteName
+    pendingFingerprint = state.trash.pendingDeleteFingerprint
+  end
   log(("[PRESET] Trash requested: selected='%s' confirmed=%s")
     :format(tostring(state.library.selected),
-      tostring(state.trash.pendingDeleteName == state.library.selected)), "info")
+      tostring(state.library.selected ~= nil and pendingName == state.library.selected)), "info")
   if not state.library.selected then return end
   local old = state.library.selected
   local preset = state.library.presets[old]
@@ -396,20 +405,27 @@ trashPreset = function()
     setStatus("delete", "The selected preset file could not be verified safely.", true)
     return
   end
-  if state.trash.pendingDeleteName ~= old then
-    state.trash.pendingDeleteName = old
-    state.trash.pendingDeleteFingerprint = currentFingerprint
+  if pendingName ~= old then
+    if nativeRequest then
+      state.trash.nativePendingDeleteName = old
+      state.trash.nativePendingDeleteFingerprint = currentFingerprint
+    else
+      state.trash.pendingDeleteName = old
+      state.trash.pendingDeleteFingerprint = currentFingerprint
+    end
     setStatus("delete", ("Move \"%s\" to Trash? Select Confirm Move to Trash.")
       :format(old))
     return
   end
-  if state.trash.pendingDeleteFingerprint ~= currentFingerprint then
+  if pendingFingerprint ~= currentFingerprint then
     cancelConfirmations()
     setStatus("delete", "The preset changed after confirmation. Review it and start deletion again.", true)
     return
   end
   state.trash.pendingDeleteName = nil
   state.trash.pendingDeleteFingerprint = nil
+  state.trash.nativePendingDeleteName = nil
+  state.trash.nativePendingDeleteFingerprint = nil
 
   local oldPath = presetPath(old)
   local trashFilename = uniqueTrashFilename(old)
@@ -527,6 +543,7 @@ restoreTrashPreset = function(filename)
   state.library.selected = logicalName
   state.library.presetNotes = preset.notes or ""
   state.library.presetTags = preset.tags or ""
+  cancelConfirmations()
   invalidatePresetAndTrashCaches()
   local inventorySaved = writeInventory(state.library.presets, state.library.folders)
   setStatus("delete", "Restored \"" .. logicalName .. "\" from Trash." ..
@@ -669,6 +686,7 @@ restoreTrashGroup = function(groupId)
     state.library.presetNotes = plans[1].preset.notes or ""
     state.library.presetTags = plans[1].preset.tags or ""
   end
+  cancelConfirmations()
   invalidatePresetAndTrashCaches()
   resetLoadState()
   local inventorySaved = writeInventory(newPresets, newFolders)
