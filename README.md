@@ -73,10 +73,11 @@ than the smaller selection normally available during play.
   not duplicated in redscript.
 - Expands comparison results to separate matching, changing, missing,
   repeated or uncertain, invalid, and cleared options.
-- Replaces the single recovery file with a configurable appearance history of
-  1, 5, or 10 entries. Identical snapshots are skipped.
-- Moves preferences to Cyberpunk's **Mod Settings** menu and keeps a mirrored
-  file for complete-library backups.
+- Replaces the single recovery file with five protected appearance-history
+  entries. Identical snapshots are skipped, and the current appearance is
+  always saved before an older entry is restored.
+- Shows four focused preferences through **Mod Settings** and **Native Settings
+  UI**. Both menus share the same values.
 
 > [!IMPORTANT]
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
@@ -95,10 +96,12 @@ than the smaller selection normally available during play.
 - [Codeware 1.20.3 or newer](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 - [ArchiveXL 1.27.1 or newer](https://www.nexusmods.com/cyberpunk2077/mods/4198)
 - [Mod Settings 0.2.21 or newer](https://www.nexusmods.com/cyberpunk2077/mods/4885)
+- **Native Settings UI 1.96 or newer**
+- **Native Settings UI Side Menu Add-on 1.5.1 or newer**
 
-TweakXL, Input Loader, Native Settings UI, cybercmd, ACU, and Character
-Customization Anywhere are not required. ACU and Character Customization
-Anywhere are incompatible and must be removed before the game starts.
+TweakXL, Input Loader, cybercmd, ACU, and Character Customization Anywhere are
+not required. ACU and Character Customization Anywhere are incompatible and
+must be removed before the game starts.
 
 ### Install the mod
 
@@ -475,20 +478,18 @@ equipped clothing while its window is open.
 
 ### Settings
 
-- **Character-Screen Preset Panel** shows or hides the native panel.
 - **Customization Reminder** shows or hides the character-screen reminder.
-- **Appearance History Size** keeps 1, 5, or 10 recovery entries.
-- **Save Before Restoring History** protects the appearance being replaced.
 - **Preset Sort Order** sorts by name or last changed date.
-- **Show Comparison Details Automatically** opens details after selection.
-- **Show Missing-Option Warnings** warns before loading unmatched choices.
 - **Show Clothing Warning** warns when an active outfit may cause trouble.
-- **Keep CET Window as Fallback** keeps the advanced manager available when the
-  CET overlay opens.
 - **Activity Log Detail** chooses normal or technical troubleshooting detail.
 
-Change these preferences in Cyberpunk's **Mod Settings** menu. CET key choices
-remain under **CET Bindings**.
+Change these preferences through **Mod Settings** or **Native Settings UI**.
+Native Settings UI Side Menu Add-on places the mod in its side list. Both menus
+update the same values. CET key choices remain under **CET Bindings**.
+
+The character-screen panel, five-entry appearance history, pre-restore safety
+save, missing-option warnings, and CET fallback stay enabled for consistent and
+safe behavior. Comparison details appear only when you select **Compare**.
 
 The same choices are stored in:
 
@@ -497,8 +498,8 @@ Data/Config/Config.txt
 ```
 
 The mod imports the older reminder and sort choices the first time 3.0.7 runs.
-Changes made through Mod Settings update this mirror automatically. Do not edit
-the mirror while the game is running.
+Changes made through either settings menu update this mirror automatically. Do
+not edit the mirror while the game is running.
 
 ### Mod data folders
 
@@ -597,8 +598,10 @@ and I do not plan to release it.
   Lua library and loading engine.
 - Includes six default Corpo, Nomad, and Streetkid starter presets.
 - Adds detailed comparison and a configurable appearance history.
-- Moves preferences into Mod Settings and keeps the CET window as an advanced
-  manager and fallback.
+- Provides four focused preferences through Mod Settings and Native Settings
+  UI while keeping the CET window as an advanced manager and fallback.
+- Fixes the native panel's redscript compilation and keeps preset scans tied to
+  explicit compare, load, or refresh actions instead of normal game frames.
 - Keeps older CPM and compatible ACU preset support without including or
   requiring ACU code or assets.
 
@@ -629,8 +632,9 @@ and reviewed the finished work before publishing it.
 - **[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107):**
   **yamashi** created CET, and its contributors maintain it. I use CET's
   scripting and menu system for Character Preset Manager.
-- **RED4ext, redscript, Codeware, ArchiveXL, and Mod Settings:** I use these
-  community tools for the native character-screen panel and in-game preferences.
+- **RED4ext, redscript, Codeware, ArchiveXL, Mod Settings, Native Settings UI,
+  and Native Settings UI Side Menu Add-on:** I use these community tools for
+  the native character-screen panel and in-game preferences.
 - **CD Projekt Red:** I credit CD Projekt Red for Cyberpunk 2077 and its
   character system.
 - **Cyberpunk 2077 modding community:** I appreciate the testing, research,

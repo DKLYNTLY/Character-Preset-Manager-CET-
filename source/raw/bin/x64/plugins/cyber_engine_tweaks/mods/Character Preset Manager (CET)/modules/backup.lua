@@ -158,15 +158,9 @@ exportLibraryBackup = function()
   local config = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
   if not config then
     local preferences = state.preferences
-    config = "nativePanel=" .. tostring(preferences.nativePanel) .. "\n" ..
-      "discoveryReminder=" .. tostring(preferences.customizationReminder) .. "\n" ..
-      "historySize=" .. tostring(preferences.historySize) .. "\n" ..
-      "saveBeforeHistoryRestore=" .. tostring(preferences.saveBeforeHistoryRestore) .. "\n" ..
+    config = "discoveryReminder=" .. tostring(preferences.customizationReminder) .. "\n" ..
       "presetSort=" .. tostring(preferences.presetSort) .. "\n" ..
-      "comparisonDetails=" .. tostring(preferences.comparisonDetails) .. "\n" ..
-      "missingWarnings=" .. tostring(preferences.missingWarnings) .. "\n" ..
       "clothingWarning=" .. tostring(preferences.clothingWarning) .. "\n" ..
-      "cetFallback=" .. tostring(preferences.cetFallback) .. "\n" ..
       "activityLogDetail=" .. tostring(preferences.activityLogDetail) .. "\n"
   end
   local exportError = nil
@@ -457,6 +451,7 @@ importLibraryBackup = function()
     end
     state.ui.discoveryNoticeIgnored = not config.discoveryReminder
     state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
+    writeConfig()
   end
   state.library.selectedFolder = root
   if root ~= "" then state.library.expandedLoadFolders[root] = true end

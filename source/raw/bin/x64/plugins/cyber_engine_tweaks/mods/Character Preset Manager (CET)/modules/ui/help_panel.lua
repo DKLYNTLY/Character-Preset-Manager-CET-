@@ -206,11 +206,11 @@ if state.ui.settingsOpen then
       ImGui.BeginChild("##settings", 0, 240, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
       ImGui.TextDisabled(CONFIG_FILE)
-      ImGui.TextWrapped("Preset preferences are now in Cyberpunk's Mod Settings menu. The mirrored file shown here is kept for complete-library backups and recovery.")
+      ImGui.TextWrapped("Preset preferences are available through Mod Settings and Native Settings UI. Both menus use the same values. The mirrored file shown here is kept for complete-library backups and recovery.")
       if compactSubsectionButton("Settings File",
           "Hide Settings File", "settingsFile") then
       ImGui.Indent(8)
-      ImGui.TextWrapped("This file mirrors Mod Settings automatically. Complete-library backups include it.")
+      ImGui.TextWrapped("This file mirrors both settings menus automatically. Complete-library backups include it.")
       finishCompactSubsection()
       end
       if state.status.settings ~= "" then
@@ -474,8 +474,9 @@ if state.ui.helpOpen then
       if showHelpTopic("Settings",
           "settings config customization reminder enabled disabled preset sort name last modified file reload hide preferences button") then
       helpHeading("Settings")
-      ImGui.TextWrapped("Change preset preferences in Cyberpunk's Mod Settings menu. CET key choices remain under CET Bindings.")
-      ImGui.TextWrapped("Mod Settings includes the character-screen panel, reminder, history size, pre-restore save, sort order, comparison details, missing-option warning, clothing warning, CET fallback, and Activity Log detail.")
+      ImGui.TextWrapped("Change preset preferences through Mod Settings or Native Settings UI. Both menus use the same values. CET key choices remain under CET Bindings.")
+      ImGui.TextWrapped("The available preferences are Customization Reminder, Preset Sort Order, Show Clothing Warning, and Activity Log Detail.")
+      ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET fallback stay enabled. Comparison details appear only when you choose Compare.")
       helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")
       end
 

@@ -13,12 +13,12 @@ public class PanelButton extends CustomButton {
 
     let fill: ref<inkRectangle> = new inkRectangle();
     fill.SetAnchor(inkEAnchor.Fill);
-    fill.SetTintColor(new Color(16u, 25u, 32u, 235u));
+    fill.SetTintColor(HDRColor(0.062745, 0.098039, 0.125490, 0.921569));
     fill.Reparent(root);
 
     let frame: ref<inkRectangle> = new inkRectangle();
     frame.SetAnchor(inkEAnchor.Fill);
-    frame.SetTintColor(new Color(112u, 176u, 184u, 255u));
+    frame.SetTintColor(HDRColor(0.439216, 0.690196, 0.721569, 1.0));
     frame.SetOpacity(0.22);
     frame.Reparent(root);
 
@@ -30,7 +30,7 @@ public class PanelButton extends CustomButton {
     label.SetLetterCase(textLetterCase.UpperCase);
     label.SetHorizontalAlignment(textHorizontalAlignment.Center);
     label.SetVerticalAlignment(textVerticalAlignment.Center);
-    label.SetTintColor(new Color(218u, 235u, 232u, 255u));
+    label.SetTintColor(HDRColor(0.854902, 0.921569, 0.909804, 1.0));
     label.SetText("BUTTON");
     label.Reparent(root);
 
@@ -51,14 +51,14 @@ public class PanelButton extends CustomButton {
 
   protected func ApplyPressedState() -> Void {
     this.fill.SetTintColor(this.m_isPressed
-      ? new Color(95u, 20u, 29u, 245u)
-      : new Color(16u, 25u, 32u, 235u));
+      ? HDRColor(0.372549, 0.078431, 0.113725, 0.960784)
+      : HDRColor(0.062745, 0.098039, 0.125490, 0.921569));
   }
 
   public func SetSelected(selected: Bool) -> Void {
     this.frame.SetTintColor(selected
-      ? new Color(255u, 77u, 94u, 255u)
-      : new Color(112u, 176u, 184u, 255u));
+      ? HDRColor(1.0, 0.301961, 0.368627, 1.0)
+      : HDRColor(0.439216, 0.690196, 0.721569, 1.0));
     this.frame.SetOpacity(selected ? 0.82 : 0.22);
   }
 
@@ -101,20 +101,20 @@ public class PresetPanel extends inkCustomController {
 
     let background: ref<inkRectangle> = new inkRectangle();
     background.SetAnchor(inkEAnchor.Fill);
-    background.SetTintColor(new Color(5u, 10u, 14u, 244u));
+    background.SetTintColor(HDRColor(0.019608, 0.039216, 0.054902, 0.956863));
     background.Reparent(root);
 
     let rail: ref<inkRectangle> = new inkRectangle();
     rail.SetSize(7.0, 1170.0);
-    rail.SetTintColor(new Color(232u, 50u, 67u, 255u));
+    rail.SetTintColor(HDRColor(0.909804, 0.196078, 0.262745, 1.0));
     rail.Reparent(root);
 
     let title: ref<inkText> = this.MakeText("CHARACTER PRESET MANAGER", 32, 26.0, 20.0, 560.0, 48.0);
-    title.SetTintColor(new Color(232u, 68u, 82u, 255u));
+    title.SetTintColor(HDRColor(0.909804, 0.266667, 0.321569, 1.0));
     title.Reparent(root);
 
     let subtitle: ref<inkText> = this.MakeText("PRESETS AVAILABLE DURING CHARACTER CUSTOMIZATION", 18, 28.0, 62.0, 560.0, 32.0);
-    subtitle.SetTintColor(new Color(132u, 181u, 186u, 255u));
+    subtitle.SetTintColor(HDRColor(0.517647, 0.709804, 0.729412, 1.0));
     subtitle.Reparent(root);
 
     this.search = HubTextInput.Create();
@@ -143,12 +143,12 @@ public class PresetPanel extends inkCustomController {
     let scrollTrack: ref<inkRectangle> = new inkRectangle();
     scrollTrack.SetSize(4.0, 458.0);
     scrollTrack.SetMargin(new inkMargin(602.0, 264.0, 0.0, 0.0));
-    scrollTrack.SetTintColor(new Color(55u, 78u, 82u, 210u));
+    scrollTrack.SetTintColor(HDRColor(0.215686, 0.305882, 0.321569, 0.823529));
     scrollTrack.Reparent(root);
     this.scrollThumb = new inkRectangle();
     this.scrollThumb.SetSize(4.0, 458.0);
     this.scrollThumb.SetMargin(new inkMargin(602.0, 264.0, 0.0, 0.0));
-    this.scrollThumb.SetTintColor(new Color(232u, 68u, 82u, 255u));
+    this.scrollThumb.SetTintColor(HDRColor(0.909804, 0.266667, 0.321569, 1.0));
     this.scrollThumb.Reparent(root);
 
     let previous: ref<PanelButton> = this.AddAction(root, "PREVIOUS", 28.0, 734.0, n"OnPrevious");
@@ -161,7 +161,7 @@ public class PresetPanel extends inkCustomController {
 
     this.detailsText = this.MakeText("Select a preset to see its saved details.", 19, 28.0, 798.0, 562.0, 90.0);
     this.detailsText.SetWrapping(true, 550.0);
-    this.detailsText.SetTintColor(new Color(190u, 210u, 207u, 255u));
+    this.detailsText.SetTintColor(HDRColor(0.745098, 0.823529, 0.811765, 1.0));
     this.detailsText.Reparent(root);
 
     this.AddAction(root, "SAVE NEW PRESET", 28.0, 902.0, n"OnSave");
@@ -210,7 +210,7 @@ public class PresetPanel extends inkCustomController {
     widget.SetText(text);
     widget.SetMargin(new inkMargin(x, y, 0.0, 0.0));
     widget.SetSize(width, height);
-    widget.SetTintColor(new Color(225u, 233u, 230u, 255u));
+    widget.SetTintColor(HDRColor(0.882353, 0.913725, 0.901961, 1.0));
     return widget;
   }
 
@@ -273,7 +273,7 @@ public class PresetPanel extends inkCustomController {
   protected cb func OnDelete(widget: wref<inkWidget>) -> Bool { this.bridge.Request("delete", ""); return true; }
   protected cb func OnRefresh(widget: wref<inkWidget>) -> Bool { this.historyMode = false; this.bridge.Request("refresh", ""); return true; }
   protected cb func OnClearHistory(widget: wref<inkWidget>) -> Bool {
-    this.bridge.Request("clear_history", this.statusText.GetText() == "Select Clear Appearance History again to confirm." ? "confirm" : "");
+    this.bridge.Request("clear_history", Equals(this.statusText.GetText(), "Select Clear Appearance History again to confirm.") ? "confirm" : "");
     return true;
   }
   protected cb func OnAdvanced(widget: wref<inkWidget>) -> Bool { this.bridge.Request("open_advanced", ""); return true; }
@@ -368,9 +368,6 @@ public class PresetPanel extends inkCustomController {
       index += 1;
     };
     this.UpdateRows();
-    if StrLen(this.selectedName) > 0 && this.bridge.GetComparisonDetails() {
-      this.bridge.Request("compare", "");
-    };
   }
 
   private func ReadHistory(payload: String) -> Void {
@@ -452,7 +449,9 @@ public class PresetPanel extends inkCustomController {
 
   public func Detach() -> Void {
     if IsDefined(this.bridge) { this.bridge.UnregisterPanel(this); };
-    this.GetRootWidget().RemoveFromParent();
+    let root: ref<inkWidget> = this.GetRootWidget();
+    let parent: ref<inkCompoundWidget> = root.GetParentWidget() as inkCompoundWidget;
+    if IsDefined(parent) { parent.RemoveChild(root); };
   }
 }
 
@@ -465,7 +464,7 @@ protected cb func OnInitialize() -> Bool {
   let player: wref<GameObject> = this.GetPlayerControlledObject();
   if IsDefined(player) {
     let bridge: ref<NativeBridge> = GameInstance.GetScriptableSystemsContainer(player.GetGame()).Get(n"CPM.NativeBridge") as NativeBridge;
-    if IsDefined(bridge) && bridge.GetNativePanel() && bridge.IsLuaReady() {
+    if IsDefined(bridge) && bridge.IsLuaReady() {
       this.cpmPresetPanel = PresetPanel.Create(bridge);
       this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
       inkWidgetRef.SetVisible(this.m_presetsLabel, false);

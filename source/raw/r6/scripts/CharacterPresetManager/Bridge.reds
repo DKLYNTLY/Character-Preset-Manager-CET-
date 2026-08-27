@@ -1,11 +1,5 @@
 module CPM
 
-public enum HistorySize {
-  One = 1,
-  Five = 5,
-  Ten = 10
-}
-
 public enum PresetSort {
   Name = 0,
   Modified = 1
@@ -19,30 +13,9 @@ public enum ActivityLogDetail {
 public class NativeBridge extends ScriptableSystem {
   @runtimeProperty("ModSettings.mod", "Character Preset Manager")
   @runtimeProperty("ModSettings.category", "Character screen")
-  @runtimeProperty("ModSettings.displayName", "Character-Screen Preset Panel")
-  @runtimeProperty("ModSettings.description", "Show the preset panel inside supported character customization screens.")
-  public let nativePanel: Bool = true;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Character screen")
   @runtimeProperty("ModSettings.displayName", "Customization Reminder")
   @runtimeProperty("ModSettings.description", "Show a reminder when character customization opens.")
   public let customizationReminder: Bool = true;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Appearance history")
-  @runtimeProperty("ModSettings.displayName", "Appearance History Size")
-  @runtimeProperty("ModSettings.description", "Choose how many automatic appearance recovery entries to keep.")
-  @runtimeProperty("ModSettings.displayValues.One", "1")
-  @runtimeProperty("ModSettings.displayValues.Five", "5")
-  @runtimeProperty("ModSettings.displayValues.Ten", "10")
-  public let historySize: HistorySize = HistorySize.Five;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Appearance history")
-  @runtimeProperty("ModSettings.displayName", "Save Before Restoring History")
-  @runtimeProperty("ModSettings.description", "Save the current appearance before restoring an older history entry.")
-  public let saveBeforeHistoryRestore: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Character Preset Manager")
   @runtimeProperty("ModSettings.category", "Preset list")
@@ -54,27 +27,9 @@ public class NativeBridge extends ScriptableSystem {
 
   @runtimeProperty("ModSettings.mod", "Character Preset Manager")
   @runtimeProperty("ModSettings.category", "Comparison and warnings")
-  @runtimeProperty("ModSettings.displayName", "Show Comparison Details Automatically")
-  @runtimeProperty("ModSettings.description", "Open the detailed option list after comparing a preset.")
-  public let comparisonDetails: Bool = false;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Comparison and warnings")
-  @runtimeProperty("ModSettings.displayName", "Show Missing-Option Warnings")
-  @runtimeProperty("ModSettings.description", "Warn when the current editor does not provide an option saved in a preset.")
-  public let missingWarnings: Bool = true;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Comparison and warnings")
   @runtimeProperty("ModSettings.displayName", "Show Clothing Warning")
   @runtimeProperty("ModSettings.description", "Show the clothing notice before appearance changes when it may help.")
   public let clothingWarning: Bool = true;
-
-  @runtimeProperty("ModSettings.mod", "Character Preset Manager")
-  @runtimeProperty("ModSettings.category", "Fallback and activity log")
-  @runtimeProperty("ModSettings.displayName", "Keep CET Window as Fallback")
-  @runtimeProperty("ModSettings.description", "Keep the full CET preset manager available for advanced library work and recovery.")
-  public let cetFallback: Bool = true;
 
   @runtimeProperty("ModSettings.mod", "Character Preset Manager")
   @runtimeProperty("ModSettings.category", "Fallback and activity log")
@@ -84,7 +39,6 @@ public class NativeBridge extends ScriptableSystem {
   @runtimeProperty("ModSettings.displayValues.Technical", "Technical")
   public let activityLogDetail: ActivityLogDetail = ActivityLogDetail.Normal;
 
-  private persistent let configurationInitialized: Bool;
   private let configRevision: Int32;
   private let requestSequence: Int32;
   private let requestAction: String;
@@ -160,12 +114,11 @@ public class NativeBridge extends ScriptableSystem {
     };
   }
 
-  public func ImportLegacyConfig(reminder: Bool, modifiedSort: Bool) -> Void {
-    if this.configurationInitialized { return; };
+  public func ApplyPreferences(reminder: Bool, modifiedSort: Bool, clothingNotice: Bool, technicalLog: Bool) -> Void {
     this.customizationReminder = reminder;
     this.presetSort = modifiedSort ? PresetSort.Modified : PresetSort.Name;
-    this.configurationInitialized = true;
-    this.configRevision += 1;
+    this.clothingWarning = clothingNotice;
+    this.activityLogDetail = technicalLog ? ActivityLogDetail.Technical : ActivityLogDetail.Normal;
   }
 
   public func SetLuaReady(ready: Bool, version: String, protocol: Int32) -> Void {
@@ -178,15 +131,9 @@ public class NativeBridge extends ScriptableSystem {
   public func GetRequestAction() -> String { return this.requestAction; }
   public func GetRequestPayload() -> String { return this.requestPayload; }
   public func GetConfigRevision() -> Int32 { return this.configRevision; }
-  public func GetNativePanel() -> Bool { return this.nativePanel; }
   public func GetCustomizationReminder() -> Bool { return this.customizationReminder; }
-  public func GetHistorySize() -> Int32 { return EnumInt(this.historySize); }
-  public func GetSaveBeforeHistoryRestore() -> Bool { return this.saveBeforeHistoryRestore; }
   public func GetPresetSort() -> Int32 { return EnumInt(this.presetSort); }
-  public func GetComparisonDetails() -> Bool { return this.comparisonDetails; }
-  public func GetMissingWarnings() -> Bool { return this.missingWarnings; }
   public func GetClothingWarning() -> Bool { return this.clothingWarning; }
-  public func GetCetFallback() -> Bool { return this.cetFallback; }
   public func GetActivityLogDetail() -> Int32 { return EnumInt(this.activityLogDetail); }
   public func IsLuaReady() -> Bool { return this.luaReady && this.protocolVersion == 1; }
   public func IsBusy() -> Bool { return this.busy; }

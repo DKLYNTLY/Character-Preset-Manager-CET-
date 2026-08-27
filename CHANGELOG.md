@@ -32,20 +32,29 @@ used. See the README and in-game Help for current instructions.
   will clear.
 - Makes loading and comparison share the same prepared preset identities used
   for label, occurrence, editor-slot, and saved-choice matching.
-- Replaces the single previous-appearance file with a history of 1, 5, or 10
-  recovery entries. It saves before normal loads, skips identical appearances,
-  records the date, saved-option count, and triggering action, and can save the
-  current appearance before restoring an older entry.
+- Replaces the single previous-appearance file with five recovery entries. It
+  saves before normal loads, skips identical appearances, records the date,
+  saved-option count, and triggering action, and always saves the current
+  appearance before restoring an older entry.
 - Keeps appearance history outside the normal library, sharing files, complete
   backups, and Trash. Clearing it requires confirmation.
-- Moves preferences to Cyberpunk's **Mod Settings** menu. The existing reminder
-  and sort choices are imported on the first 3.0.7 launch, and a mirrored file
-  remains available to complete-library backups.
-- Adds settings for the native panel, reminder, history size, pre-restore save,
-  sort order, automatic comparison details, missing-option warnings, clothing
-  warnings, CET fallback, and Activity Log detail.
+- Provides the reminder, sort order, clothing warning, and Activity Log detail
+  through both **Mod Settings** and **Native Settings UI**. Both menus share the
+  same values, and a mirrored file remains available to complete-library
+  backups.
+- Keeps the native panel, five-entry history, pre-restore safety save,
+  missing-option warnings, and CET fallback enabled instead of exposing settings
+  that could weaken normal operation. Comparison details remain an explicit
+  action.
+- Polls the native request bridge 20 times per second and Mod Settings twice per
+  second. Preset comparison and library refresh work runs only after a matching
+  user action, preventing repeating scans during normal frames.
+- Fixes the native panel's redscript compilation against the installed game
+  definitions by using supported color values, string comparison, and widget
+  removal calls.
 - Requires Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31,
-  Codeware 1.20.3, ArchiveXL 1.27.1, and Mod Settings 0.2.21 or newer.
+  Codeware 1.20.3, ArchiveXL 1.27.1, Mod Settings 0.2.21, Native Settings UI
+  1.96, and Native Settings UI Side Menu Add-on 1.5.1 or newer.
 - Keeps older Character Preset Manager and compatible ACU preset files
   loadable. ACU and Character Customization Anywhere remain incompatible and
   must be removed before starting the game.

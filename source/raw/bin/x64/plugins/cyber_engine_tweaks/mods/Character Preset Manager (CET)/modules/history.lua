@@ -58,8 +58,7 @@ end
 
 refreshAppearanceHistory = function()
   state.history.entries = {}
-  local limit = tonumber(state.preferences.historySize) or 5
-  if limit ~= 1 and limit ~= 5 and limit ~= 10 then limit = 5 end
+  local limit = APPEARANCE_HISTORY_LIMIT
   for index = 1, limit do
     local path = historyPath(index)
     local preset = readPresetFile(path)
@@ -80,8 +79,7 @@ refreshAppearanceHistory = function()
 end
 
 trimAppearanceHistory = function()
-  local limit = tonumber(state.preferences.historySize) or 5
-  if limit ~= 1 and limit ~= 5 and limit ~= 10 then limit = 5 end
+  local limit = APPEARANCE_HISTORY_LIMIT
   for index = limit + 1, 10 do
     local path = historyPath(index)
     if fileExists(path) then os.remove(path) end
@@ -100,8 +98,7 @@ saveAppearanceHistorySnapshot = function(options, action)
     log("[APPEARANCE HISTORY] Skipped an identical recovery snapshot.", "info")
     return true
   end
-  local limit = tonumber(state.preferences.historySize) or 5
-  if limit ~= 1 and limit ~= 5 and limit ~= 10 then limit = 5 end
+  local limit = APPEARANCE_HISTORY_LIMIT
   for index = limit, 2, -1 do
     local older = readPresetFile(historyPath(index - 1))
     if older and not writePresetPath(historyPath(index), older) then
@@ -130,7 +127,7 @@ restoreAppearanceHistory = function(index)
   end
   local preset = entry.preset
   local _, options = getOptions()
-  if state.preferences.saveBeforeHistoryRestore and options then
+  if options then
     saveAppearanceHistorySnapshot(options, "Before restoring appearance history")
   end
   resetLoadState()

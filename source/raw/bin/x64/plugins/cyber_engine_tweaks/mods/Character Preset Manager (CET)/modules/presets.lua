@@ -320,15 +320,9 @@ writeConfig = function()
   local result = atomicReplace(CONFIG_FILE, function(temporary)
     return writeFileSafely(temporary, "wb", function(file)
       return file:write(
-        "nativePanel=" .. tostring(preferences.nativePanel) .. "\n" ..
         "discoveryReminder=" .. tostring(preferences.customizationReminder) .. "\n" ..
-        "historySize=" .. tostring(preferences.historySize) .. "\n" ..
-        "saveBeforeHistoryRestore=" .. tostring(preferences.saveBeforeHistoryRestore) .. "\n" ..
         "presetSort=" .. tostring(preferences.presetSort) .. "\n" ..
-        "comparisonDetails=" .. tostring(preferences.comparisonDetails) .. "\n" ..
-        "missingWarnings=" .. tostring(preferences.missingWarnings) .. "\n" ..
         "clothingWarning=" .. tostring(preferences.clothingWarning) .. "\n" ..
-        "cetFallback=" .. tostring(preferences.cetFallback) .. "\n" ..
         "activityLogDetail=" .. tostring(preferences.activityLogDetail) .. "\n"
       ) ~= nil and file:flush() ~= nil
     end)
@@ -338,16 +332,18 @@ end
 
 readConfig = function()
   local config = {
-    nativePanel = true,
     discoveryReminder = true,
-    historySize = 5,
-    saveBeforeHistoryRestore = true,
     presetSort = "name",
-    comparisonDetails = false,
-    missingWarnings = true,
     clothingWarning = true,
-    cetFallback = true,
     activityLogDetail = "normal",
+  }
+  local retiredSettings = {
+    nativePanel = true,
+    historySize = true,
+    saveBeforeHistoryRestore = true,
+    comparisonDetails = true,
+    missingWarnings = true,
+    cetFallback = true,
   }
   local file = io.open(CONFIG_FILE, "rb")
   if not file then return config, false end
@@ -361,26 +357,15 @@ readConfig = function()
   end
   for line in file:lines() do
     local key, value = line:match("^%s*([%a%d]+)%s*=%s*([%a%d]+)%s*$")
-    if key == "nativePanel" and (value == "true" or value == "false") then
-      config.nativePanel = value == "true"
-    elseif key == "discoveryReminder" and (value == "true" or value == "false") then
+    if key == "discoveryReminder" and (value == "true" or value == "false") then
       config.discoveryReminder = value == "true"
-    elseif key == "historySize" and (value == "1" or value == "5" or value == "10") then
-      config.historySize = tonumber(value)
-    elseif key == "saveBeforeHistoryRestore" and (value == "true" or value == "false") then
-      config.saveBeforeHistoryRestore = value == "true"
     elseif key == "presetSort" and (value == "name" or value == "modified") then
       config.presetSort = value
-    elseif key == "comparisonDetails" and (value == "true" or value == "false") then
-      config.comparisonDetails = value == "true"
-    elseif key == "missingWarnings" and (value == "true" or value == "false") then
-      config.missingWarnings = value == "true"
     elseif key == "clothingWarning" and (value == "true" or value == "false") then
       config.clothingWarning = value == "true"
-    elseif key == "cetFallback" and (value == "true" or value == "false") then
-      config.cetFallback = value == "true"
     elseif key == "activityLogDetail" and (value == "normal" or value == "technical") then
       config.activityLogDetail = value
+    elseif retiredSettings[key] then
     elseif line:match("%S") and not line:match("^%s*#") then
       log("[CONFIG] Ignored unsupported config line: " .. tostring(line), "warn")
     end

@@ -44,7 +44,7 @@ events.onInit = function()
   end
   state.ui.discoveryNoticeIgnored = not config.discoveryReminder
   state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
-  if not configLoaded then writeConfig() end
+  writeConfig()
   log(state.ui.discoveryNoticeIgnored
     and "[UI] Character-customization discovery reminder is disabled by user preference."
     or "[UI] Character-customization discovery reminder is enabled.", "info")
@@ -224,6 +224,7 @@ events.onInit = function()
     :format(presetCount, PRESET_DIR), "info")
   state.app.ready = true
   initializeNativeBridge(configLoaded)
+  initializeNativeSettings()
   refreshAppearanceHistory()
   refreshEditorState()
   if recovered then
@@ -329,7 +330,7 @@ events.onOverlayOpen = function()
     log("[UI] Character-customization CET discovery notification acknowledged.", "info")
   end
   state.app.overlayOpen = true
-  state.app.windowOpen = state.preferences.cetFallback == true
+  state.app.windowOpen = true
   state.app.optionsMemo = nil
   state.load.recoverySnapshotAvailable = fileExists(LAST_APPEARANCE_FILE)
   state.backup.filesDirty = true
