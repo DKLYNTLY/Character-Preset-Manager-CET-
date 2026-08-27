@@ -17,9 +17,12 @@ used. See the README and in-game Help for current instructions.
 - Replaces the new-game screen's three preset buttons with the complete preset
   library. Six packaged starter presets preserve the Corpo, Nomad, and
   Streetkid choices for both body types.
-- Adds native search, paged scrolling, selected-preset details, save, replace,
-  load, comparison, favorites, confirmed deletion, refresh, history, recovery,
-  and advanced-manager controls.
+- Adds one scrollable native preset list with **Load**, **Save**, and **Delete**
+  modes. Selecting a preset in Load mode starts loading it immediately.
+- Keeps only **Load Preset** and **Restore Preset** as extra actions in Load
+  mode. Save and confirmed deletion have their own native modes. Comparison,
+  favorites, folders, backups, and Trash management remain in CET, and Empty
+  Trash is available only there.
 - Supports mouse, keyboard, and controller navigation. Actions are unavailable
   while the editor is refreshing or a preset is loading.
 - Keeps Lua as the only implementation of preset files, matching, loading,
@@ -44,8 +47,8 @@ used. See the README and in-game Help for current instructions.
   backups.
 - Keeps the native panel, five-entry history, pre-restore safety save,
   missing-option warnings, and CET fallback enabled instead of exposing settings
-  that could weaken normal operation. Comparison details remain an explicit
-  action.
+  that could weaken normal operation. Comparison details remain available in
+  CET.
 - Polls the native request bridge 20 times per second and Mod Settings twice per
   second. Preset comparison and library refresh work runs only after a matching
   user action, preventing repeating scans during normal frames.

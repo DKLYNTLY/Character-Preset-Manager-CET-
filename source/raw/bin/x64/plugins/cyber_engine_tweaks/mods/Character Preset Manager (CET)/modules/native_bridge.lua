@@ -117,7 +117,7 @@ local function startSelectedLoad()
   if #warnings > 0 and state.load.nativeWarningPreset ~= state.library.selected then
     state.load.nativeWarningPreset = state.library.selected
     return false, "Review " .. table.concat(warnings, " and ") ..
-      ". Select Load Selected again to continue."
+      ". Select the preset again or select Load Preset to continue."
   end
   state.load.nativeWarningPreset = nil
   resetLoadState()
@@ -139,6 +139,19 @@ local function handleNativeRequest(action, payload)
       resetLoadState()
     end
     return "list", listPayload("")
+  end
+  if action == "select_load" then
+    if not state.library.presets[payload] then
+      return "status", "That preset is no longer available."
+    end
+    local warningPreset = state.load.nativeWarningPreset
+    state.library.selected = payload
+    state.invalidatePreflight()
+    cancelConfirmations()
+    resetLoadState()
+    if warningPreset == payload then state.load.nativeWarningPreset = warningPreset end
+    local _, message = startSelectedLoad()
+    return "status", cleanField(message)
   end
   if action == "save" then
     state.library.newName = payload

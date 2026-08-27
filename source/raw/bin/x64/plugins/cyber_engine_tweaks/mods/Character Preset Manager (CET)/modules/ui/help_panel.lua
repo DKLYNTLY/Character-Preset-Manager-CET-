@@ -327,9 +327,9 @@ if state.ui.helpOpen then
           "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue cancel button") then
       helpHeading("Load & Restore Appearance")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Choose a preset in the character-screen panel. The CET Load section remains available as a fallback.")
-      ImGui.TextWrapped("3. Select Compare to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
-      ImGui.TextWrapped("4. Select Load Selected Preset once.")
+      ImGui.TextWrapped("2. Select Load on the right side of the character-screen panel, then scroll or search for a preset.")
+      ImGui.TextWrapped("3. Select the preset to start loading it. If a safety warning appears, select it again or select Load Preset to continue.")
+      ImGui.TextWrapped("4. Use Check Compatibility in CET when you want to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
         "5. Wait for the final result. Green means every option was confirmed. Yellow means the game did not confirm one or more changes.")
       ImGui.TextWrapped("If you change preset files outside CET, select Refresh under Load & Restore Appearance before using them.")
@@ -338,7 +338,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
       ImGui.TextWrapped("Open Preset Options below the main load and restore buttons, then select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
       ImGui.TextWrapped("Force Full Load is under Preset Options to reduce accidental use. Its cautions appear in the Load status card.")
-      ImGui.TextWrapped("Appearance History keeps the configured 1, 5, or 10 automatic recovery entries. It shows when each entry was made, its saved-option count, and the action that created it.")
+      ImGui.TextWrapped("Appearance History keeps five automatic recovery entries. Restore Preset in the native Load mode returns to the appearance from before the last load.")
       ImGui.TextWrapped("The compact selected-preset line shows its name, folder, saved-option count, and format. Open Preset Options for actions only.")
       helpButton("Preset search", "Filters the preset list by preset name, folder name, or tag as you type.")
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
@@ -349,7 +349,7 @@ if state.ui.helpOpen then
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")
-      helpButton("Restore Previous Appearance", "Restores the newest appearance history entry. Use the native panel to choose an older entry.")
+      helpButton("Restore Previous Appearance", "Restores the newest appearance history entry. The native panel calls this Restore Preset.")
       helpButton("Force Full Load: On / Off", "Under Preset Options, this turns saved-position matching on or off. It can help older presets find renamed options, but you should check the result after loading.")
       helpButton("Load Selected Preset", "Starts applying the selected preset to the open character editor.")
       helpButton("Continue Loading Preset", "Continues a load that needs another pass. The mod normally selects this automatically while loading.")
@@ -476,7 +476,7 @@ if state.ui.helpOpen then
       helpHeading("Settings")
       ImGui.TextWrapped("Change preset preferences through Mod Settings or Native Settings UI. Both menus use the same values. CET key choices remain under CET Bindings.")
       ImGui.TextWrapped("The available preferences are Customization Reminder, Preset Sort Order, Show Clothing Warning, and Activity Log Detail.")
-      ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET fallback stay enabled. Comparison details appear only when you choose Compare.")
+      ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET fallback stay enabled. Use Check Compatibility in CET when you want comparison details.")
       helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")
       end
 
