@@ -55,6 +55,8 @@ used. See the README and in-game Help for current instructions.
   selected-preset details, load controls, status, and save controls.
 - Reorganizes the README into a clearer feature summary, version overview,
   previews, and expandable instruction sections.
+- Refreshes the README's character customization preview with the finished
+  v3.0.8 panel layout.
 
 </details>
 
