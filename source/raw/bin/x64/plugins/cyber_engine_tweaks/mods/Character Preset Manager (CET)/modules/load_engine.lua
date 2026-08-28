@@ -1135,6 +1135,9 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       (cleanupSkipped > 0 or unconfirmed > 0) and "warn" or "complete")
     helpers.logLoadMeasurements("complete")
     if cleanupSkipped > 0 or unconfirmed > 0 then
+      state.app.nativeLoadSummary = ("Loaded %d options. %d could not be confirmed; check the appearance.")
+        :format(valueCount, unconfirmed + cleanupSkipped)
+      state.app.nativePanelShowDetails = true
       local details = {}
       if unconfirmed > 0 then
         details[#details + 1] = ("%d saved option%s could not be confirmed")
@@ -1148,12 +1151,18 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
         ". Check the appearance and Activity Log before confirming the editor.",
         false, "warning")
     elseif forced > 0 then
+      state.app.nativeLoadSummary = ("Loaded %d options. %d used less certain matching; check the appearance.")
+        :format(valueCount, forced)
+      state.app.nativePanelShowDetails = true
       setStatus("load", (
         "Preset fully applied: %d options applied in %d pass%s. Force Full Load matched %d option%s. " ..
         "Check the hair, hair color, and other forced options."
       ):format(valueCount, state.load.pass, state.load.pass == 1 and "" or "es", forced,
         forced == 1 and "" or "s"), false, "success")
     else
+      state.app.nativeLoadSummary = ("Loaded %d options. All saved options were confirmed.")
+        :format(valueCount)
+      state.app.nativePanelShowDetails = false
       setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
         :format(valueCount, state.load.pass, state.load.pass == 1 and "" or "es"),
         false, "success")

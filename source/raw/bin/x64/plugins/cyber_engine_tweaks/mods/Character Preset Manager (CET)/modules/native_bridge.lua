@@ -3,6 +3,12 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local nativeQuery = ""
+local nativeViewRevision = 0
+local nativeRowsCacheKey = nil
+local nativeRowsCache = {}
+local nativeRowsCount = 0
+local nativeLocationsRevision = -1
+local nativeLocationsCache = {}
 
 local function cleanField(value)
   return tostring(value or ""):gsub("[%c]", " ")
@@ -53,6 +59,8 @@ local function listPayload(query, overrideMessage, overrideError)
     cleanField(selected and selected.notes), cleanField(selected and selected.tags),
     tostring(state.presetEntryCount(selected)),
     selected and selected.favorite == true and "1" or "0",
+    tostring(selected and selected.format or ""),
+    cleanField(helpers.breadcrumb(parentFolder(state.library.selected or ""))),
   }, "\t")
   local message = tostring(state.app.nativePanelStatus or "")
   local isError = state.app.nativePanelStatusError == true
@@ -63,81 +71,99 @@ local function listPayload(query, overrideMessage, overrideError)
     state.app.nativePanelStatusError = isError
   end
   lines[#lines + 1] = table.concat({ "STATUS", isError and "1" or "0",
-    cleanField(message), state.load.auto and "1" or "0" }, "\t")
+    cleanField(message), state.load.auto and "1" or "0",
+    state.app.nativePanelShowDetails and "1" or "0" }, "\t")
   lines[#lines + 1] = "CONFIRM\tSAVE\t" ..
     (state.library.pendingOverwriteName ~= nil and "1" or "0")
   lines[#lines + 1] = "CONFIRM\tTRASH\t" ..
     (state.library.selected ~= nil
       and state.trash.nativePendingDeleteName == state.library.selected and "1" or "0")
-  local visibleNames = {}
-  local matchedFolders = {}
-  for _, name in ipairs(names) do
-    local preset = state.library.presets[name]
-    local metadata = preset and (hydrateNamedPresetMetadata(name) or preset)
-    local haystack = (name .. " " .. tostring(metadata and metadata.tags or "")):lower()
-    if query == "" or haystack:find(query, 1, true) then
-      visibleNames[name] = true
-      local current = parentFolder(name)
-      while current ~= "" do
-        matchedFolders[current] = true
-        current = parentFolder(current)
-      end
-    end
-  end
-  local added = 0
-  local function addRow(kind, value, label)
-    if added >= NATIVE_LIST_LIMIT then return false end
-    lines[#lines + 1] = table.concat({
-      "ROW", kind, cleanField(value), cleanField(label),
-    }, "\t")
-    added = added + 1
-    return true
-  end
-  local favoriteHeadingAdded = false
-  for _, name in ipairs(names) do
-    local preset = state.library.presets[name]
-    if preset and preset.favorite == true and visibleNames[name] then
-      if not favoriteHeadingAdded then
-        addRow("HEADING", "", "FAVORITES")
-        favoriteHeadingAdded = true
-      end
-      if not addRow("PRESET", name, helpers.breadcrumb(name)) then break end
-    end
-  end
-  for _, folder in ipairs(sortedFolderNames()) do
-    local count = state.cache.folderPresetCounts[folder] or 0
-    local folderMatches = query == "" or folder:lower():find(query, 1, true) ~= nil
-    if count > 0 and (folderMatches or matchedFolders[folder]) then
-      local expanded = state.library.expandedLoadFolders[folder] == true
-      local prefix = string.rep("  ", folderDepth(folder)) .. (expanded and "[-] " or "[+] ")
-      if not addRow("FOLDER", folder,
-          prefix .. baseName(folder) .. " (" .. tostring(count) .. ")") then break end
-      if expanded or query ~= "" then
-        for _, name in ipairs(helpers.presetsInFolder(folder)) do
-          if folderMatches or visibleNames[name] then
-            local metadata = state.library.presets[name]
-            local tags = tostring(metadata and metadata.tags or "")
-            local label = string.rep("  ", folderDepth(folder) + 1) .. baseName(name)
-            if tags ~= "" then label = label .. "  -  " .. tags end
-            if not addRow("PRESET", name, label) then break end
-          end
+  lines[#lines + 1] = "RECOVERY\t" ..
+    (state.load.recoverySnapshotAvailable == true and "1" or "0")
+  local rowsKey = table.concat({ tostring(state.cache.revision), query,
+    tostring(nativeViewRevision) }, "\31")
+  if nativeRowsCacheKey ~= rowsKey then
+    local visibleNames = {}
+    local matchedFolders = {}
+    for _, name in ipairs(names) do
+      local preset = state.library.presets[name]
+      local metadata = preset and (hydrateNamedPresetMetadata(name) or preset)
+      local haystack = (name .. " " .. tostring(metadata and metadata.tags or "")):lower()
+      if query == "" or haystack:find(query, 1, true) then
+        visibleNames[name] = true
+        local current = parentFolder(name)
+        while current ~= "" do
+          matchedFolders[current] = true
+          current = parentFolder(current)
         end
       end
     end
-    if added >= NATIVE_LIST_LIMIT then break end
-  end
-  if added < NATIVE_LIST_LIMIT then
-    for _, name in ipairs(helpers.presetsInFolder("")) do
-      if visibleNames[name] and not addRow("PRESET", name, name) then break end
+    local cachedRows = {}
+    local added = 0
+    local function addRow(kind, value, label)
+      if added >= NATIVE_LIST_LIMIT then return false end
+      cachedRows[#cachedRows + 1] = table.concat({
+        "ROW", kind, cleanField(value), cleanField(label),
+      }, "\t")
+      added = added + 1
+      return true
     end
+    local favoriteHeadingAdded = false
+    for _, name in ipairs(names) do
+      local preset = state.library.presets[name]
+      if preset and preset.favorite == true and visibleNames[name] then
+        if not favoriteHeadingAdded then
+          addRow("HEADING", "", "FAVORITES")
+          favoriteHeadingAdded = true
+        end
+        if not addRow("PRESET", name, helpers.breadcrumb(name)) then break end
+      end
+    end
+    for _, folder in ipairs(sortedFolderNames()) do
+      local count = state.cache.folderPresetCounts[folder] or 0
+      local folderMatches = query == "" or folder:lower():find(query, 1, true) ~= nil
+      if count > 0 and (folderMatches or matchedFolders[folder]) then
+        local expanded = state.library.expandedLoadFolders[folder] == true
+        local prefix = string.rep("  ", folderDepth(folder)) .. (expanded and "[-] " or "[+] ")
+        if not addRow("FOLDER", folder,
+            prefix .. baseName(folder) .. " (" .. tostring(count) .. ")") then break end
+        if expanded or query ~= "" then
+          for _, name in ipairs(helpers.presetsInFolder(folder)) do
+            if folderMatches or visibleNames[name] then
+              local metadata = state.library.presets[name]
+              local tags = tostring(metadata and metadata.tags or "")
+              local label = string.rep("  ", folderDepth(folder) + 1) .. baseName(name)
+              if tags ~= "" then label = label .. "  -  " .. tags end
+              if not addRow("PRESET", name, label) then break end
+            end
+          end
+        end
+      end
+      if added >= NATIVE_LIST_LIMIT then break end
+    end
+    if added < NATIVE_LIST_LIMIT then
+      for _, name in ipairs(helpers.presetsInFolder("")) do
+        if visibleNames[name] and not addRow("PRESET", name, name) then break end
+      end
+    end
+    nativeRowsCacheKey = rowsKey
+    nativeRowsCache = cachedRows
+    nativeRowsCount = added
   end
-  lines[#lines + 1] = table.concat({ "LOCATION", "",
-    state.library.selectedFolder == "" and "1" or "0" }, "\t")
-  for _, folder in ipairs(sortedFolderNames()) do
-    lines[#lines + 1] = table.concat({ "LOCATION", cleanField(folder),
-      state.library.selectedFolder == folder and "1" or "0" }, "\t")
+  for _, row in ipairs(nativeRowsCache) do lines[#lines + 1] = row end
+  if nativeLocationsRevision ~= state.cache.revision then
+    local locations = { "LOCATION\t\tAll Presets" }
+    for _, folder in ipairs(sortedFolderNames()) do
+      locations[#locations + 1] = table.concat({
+        "LOCATION", cleanField(folder), cleanField(helpers.breadcrumb(folder)),
+      }, "\t")
+    end
+    nativeLocationsCache = locations
+    nativeLocationsRevision = state.cache.revision
   end
-  lines[#lines + 1] = "COUNT\t" .. tostring(added)
+  lines[#lines + 1] = "SELECTED_LOCATION\t" .. cleanField(state.library.selectedFolder)
+  for _, location in ipairs(nativeLocationsCache) do lines[#lines + 1] = location end
+  lines[#lines + 1] = "COUNT\t" .. tostring(nativeRowsCount)
   return table.concat(lines, "\n")
 end
 
@@ -168,6 +194,8 @@ end
 local function startSelectedLoad()
   if not state.library.selected then return false, "Select a preset first." end
   if not state.app.inCustomization then return false, "Open a customization screen first." end
+  state.app.nativeLoadSummary = nil
+  state.app.nativePanelShowDetails = false
   resetLoadState()
   state.load.autoTimer = 0
   state.load.autoPasses = 0
@@ -210,6 +238,7 @@ local function handleNativeRequest(action, payload)
     if folderNameExists(payload) then
       state.library.expandedLoadFolders[payload] =
         state.library.expandedLoadFolders[payload] ~= true
+      nativeViewRevision = nativeViewRevision + 1
       return "list", listPayload(nativeQuery)
     end
     return "list", listPayload(nativeQuery,
@@ -266,15 +295,19 @@ local function handleNativeRequest(action, payload)
   if action == "refresh" then
     refreshPresets("external")
     refreshTrash()
-    return "list", listPayload("")
+    return "list", listPayload(nativeQuery)
   end
   if action == "history" then return "history", historyPayload() end
   if action == "restore_history" then
+    state.app.nativeLoadSummary = nil
+    state.app.nativePanelShowDetails = false
     restoreAppearanceHistory(tonumber(payload))
     return nativeStatus(state.status.sections.load.message,
       state.status.sections.load.error == true)
   end
   if action == "restore_previous" then
+    state.app.nativeLoadSummary = nil
+    state.app.nativePanelShowDetails = false
     restoreLastAppearance()
     return nativeStatus(state.status.sections.load.message,
       state.status.sections.load.error == true)
@@ -285,7 +318,12 @@ local function handleNativeRequest(action, payload)
   end
   if action == "open_advanced" then
     state.app.windowOpen = true
-    return "status", "Press your CET binding, then go to the Character Preset Manager menu located on the right."
+    return "status", "Press your CET binding, then open Character Preset Manager on the right."
+  end
+  if action == "open_load_details" then
+    state.app.windowOpen = true
+    state.ui.openSections.load = true
+    return "status", "Press your CET binding. Load details are open in Character Preset Manager."
   end
   return nativeStatus("The native panel sent an unsupported request.", true)
 end
@@ -325,7 +363,9 @@ initializeNativeBridge = function(configLoaded, preferredBridge)
     state.app.nativeListRevision = state.cache.revision
     state.app.nativeListSelection = tostring(state.library.selected or "") .. "\31" ..
       tostring(state.trash.nativePendingDeleteName or "") .. "\31" ..
-      tostring(state.library.selectedFolder or "")
+      tostring(state.library.selectedFolder or "") .. "\31" ..
+      tostring(state.app.nativePanelShowDetails == true) .. "\31" ..
+      tostring(state.load.recoverySnapshotAvailable == true)
   end
   log("[NATIVE PANEL] Native bridge connected.", "info")
   return true
@@ -356,10 +396,13 @@ updateNativeBridge = function(delta)
   local status = busy and ("Loading pass " .. tostring(state.load.pass) .. "...") or ""
   local statusError = false
   if not busy and wasBusy then
-    status = tostring(state.status.sections.load.message or "")
+    status = tostring(state.app.nativeLoadSummary
+      or state.status.sections.load.message or "")
     statusError = state.status.sections.load.error == true
     state.app.nativePanelStatus = status
     state.app.nativePanelStatusError = statusError
+    state.app.nativePanelShowDetails = state.app.nativePanelShowDetails
+      or statusError
   end
   if state.app.nativeBusy ~= busy or (busy and state.app.nativeStatus ~= status)
       or (not busy and wasBusy) then
@@ -370,7 +413,9 @@ updateNativeBridge = function(delta)
   end
   local listSelection = tostring(state.library.selected or "") .. "\31" ..
     tostring(state.trash.nativePendingDeleteName or "") .. "\31" ..
-    tostring(state.library.selectedFolder or "")
+    tostring(state.library.selectedFolder or "") .. "\31" ..
+    tostring(state.app.nativePanelShowDetails == true) .. "\31" ..
+    tostring(state.load.recoverySnapshotAvailable == true)
   if state.app.nativeListRevision ~= state.cache.revision
       or state.app.nativeListSelection ~= listSelection then
     local panelsOk, hasPanels = bridgeCall("HasPanels")

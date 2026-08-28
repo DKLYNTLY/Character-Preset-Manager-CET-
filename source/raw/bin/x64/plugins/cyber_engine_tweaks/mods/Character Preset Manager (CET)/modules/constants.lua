@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 MOD_NAME = "Character Preset Manager (CET)"
-VERSION = "3.0.7"
+VERSION = "3.0.8"
 PRESET_DIR = "Character Presets"
 DATA_DIR = "Data"
 CONFIG_DIR = DATA_DIR .. "/Config"
@@ -67,6 +67,6 @@ NATIVE_BRIDGE_PROTOCOL = 1
 NATIVE_LIST_LIMIT = 96
 APPEARANCE_HISTORY_LIMIT = 5
 NATIVE_REQUEST_POLL_SECONDS = 0.05
-NATIVE_READY_STATUS = "Ready to load a preset. Select one to load it. Open CET for logs, settings, renaming, and other advanced tools."
+NATIVE_READY_STATUS = "Ready. Choose a preset to load it, or save the current appearance below."
 
 return _ENV

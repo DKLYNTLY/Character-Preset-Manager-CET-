@@ -8,7 +8,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.7</strong></p>
+<p align="center"><strong>Current version: 3.0.8</strong></p>
 
 Character Preset Manager adds a complete preset library to Cyberpunk's character
 screens and a larger management window inside Cyber Engine Tweaks. You can use
@@ -27,9 +27,10 @@ deletion.
 
 ![Character Preset Manager's simple menu inside Cyberpunk's appearance editor](images/Simple%20Menu.png)
 
-The simple menu stays inside the active character screen. It provides quick
-searching, one-click preset loading, saving, a recoverable Trash action, and a
-button that points you to the complete CET manager.
+The simple menu stays inside the active character screen. It provides search,
+one-click loading, selected-preset details, recovery, a save-location picker,
+quick saving, a recoverable Trash action, and a button for the advanced CET
+manager.
 
 ### Advanced CET menu
 
@@ -50,9 +51,9 @@ the smaller selection normally available during play.
 
 - **Complete appearance presets** — Save and load every visible vanilla, CC,
   and CCXL character option available in the active editor.
-- **Native character-screen panel** — Browse, load, save, and move presets to
-  Trash from new-game creation, the Full Appearance Editor, apartment mirrors,
-  and supported ripperdoc screens.
+- **Native character-screen panel** — Browse, refresh, load, recover, save, and
+  move presets to Trash from new-game creation, the Full Appearance Editor,
+  apartment mirrors, and supported ripperdoc screens.
 - **Full Appearance Editor anywhere** — Open Cyberpunk's full character editor
   during normal play from CET or an optional key.
 - **Full apartment mirrors** — Use the complete character-creation option list
@@ -80,31 +81,25 @@ the smaller selection normally available during play.
 - **Activity Log and searchable Help** — Review results in plain language and
   find instructions without leaving CET.
 
-## What changed in 3.0.7
+## What changed in 3.0.8
 
-Version 3.0.7 adds the Character Preset Manager panel directly to supported
-character screens. The panel uses Cyberpunk-style red and cyan controls, shows
-ten preset rows, loads a preset with one click, and keeps quick save and Trash
-actions together. Its translucent charcoal background covers the complete menu
-but stops at the title area's right edge so it does not extend farther over the
-character.
+Version 3.0.8 expands the character-screen panel without making it wider or
+covering more of the character. **Refresh** sits beside Search. The selected
+preset now shows its folder, option count, format, and tags. **Undo Last Load**
+restores the newest recovery appearance, while **Recovery History** uses the
+same scrollable area as the preset list to show up to five older appearances.
 
-The native panel connects to the exact bridge used by each active appearance
-screen. This allows mirrors and the Full Appearance Editor to receive the preset
-list immediately instead of remaining on a connecting message. The **Open CET
-Menu** button explains how to reach the full manager for advanced options,
-permanent deletion, and Help.
+**Save Location** now opens a scrollable folder picker instead of cycling
+through every folder one press at a time. The preset list, folder picker, and
+recovery list share the same space. The panel gives loads a short result such
+as the number of confirmed options. When a result needs review, **View Load
+Details in CET** opens the matching advanced section.
 
-Loading now clears exposed dependent choices before applying a preset, waits
-for Cyberpunk to rebuild the option list, and verifies the final editor state.
-This prevents hidden eye, color, makeup, and similar choices from carrying into
-another preset. These checks run only during preset work and use the normal load
-interval, so the large repeated scans that caused frame-rate loss in 3.0.5 do
-not run during browsing or ordinary gameplay.
-
-The release also includes six starter presets that preserve the original
-Corpo, Nomad, and Streetkid appearances for both body types. See
-[CHANGELOG.md](CHANGELOG.md) for the full release history.
+The native bridge caches its prepared preset rows and save-location rows until
+the library, search, or open folders change. Appearance history is read only
+when requested, and editor options are still checked only during an explicit
+load or recovery action. See [CHANGELOG.md](CHANGELOG.md) for the complete
+release history.
 
 ## Requirements
 
@@ -135,7 +130,7 @@ and position after you move or resize it.
 1. Back up any `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
    from `Character Presets`.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
-3. Install version 3.0.7 and its current requirements.
+3. Install version 3.0.8 and its current requirements.
 4. Return your saved presets and sharing files to `Character Presets`.
 5. Fully restart the game so the redscript panel and bridge are rebuilt.
 
@@ -173,23 +168,37 @@ or restoring an appearance.
 
 Select a preset once to load it. Folder rows open and close their contents,
 Favorites remain near the top, and presets outside folders appear under **All
-Presets**. Use Search to filter the visible library.
+Presets**. Use Search to filter the visible library, or select **Refresh** after
+adding or changing preset files outside the game. The selected-preset card shows
+the folder, saved-option count, file format, and tags.
+
+Select **Undo Last Load** to restore the newest recovery appearance. Select
+**Recovery History** to replace the preset rows with up to five recovery
+entries, newest first. Choose an entry to restore it, or select **Back** to
+return to the preset library. The mod saves the current appearance before it
+restores an older entry.
 
 To save, enter a name in **Preset Name**, choose **Save Location**, and select
-**Save Preset**. If the name already exists, the same button changes to
-**Confirm Overwrite**. Select it again only when you intend to replace the
-existing preset.
+**Save Preset**. Save Location opens a scrollable folder picker in the preset
+list area. Choose **All Presets** or a folder, then save normally. If the name
+already exists, the same button changes to **Confirm Overwrite**. Select it
+again only when you intend to replace the existing preset.
+
+Panel Status gives a short loading result. A normal result confirms how many
+saved options were checked. If some choices could not be confirmed, select
+**View Load Details in CET** to open the advanced Load section and review the
+complete message.
 
 Select a preset before using **Move Preset to Trash**. The same button changes
 to **Confirm Move to Trash** for the second press. Restoration and permanent
 deletion remain in CET so those actions cannot be confused with the quick panel
 control.
 
-**Open CET Menu** does not open the overlay by itself. After pressing it, use
-your CET binding and choose **Character Preset Manager** from the menu on the
-right. The CET window contains comparison, renaming, notes, tags, favorites,
-folders, sharing, backups, recovery, permanent deletion, settings, logs, and
-Help.
+**Advanced Preset Manager** does not open the overlay by itself. After pressing
+it, use your CET binding and choose **Character Preset Manager** from the menu
+on the right. The CET window contains comparison, renaming, notes, tags,
+favorites, folder management, sharing, backups, permanent deletion, settings,
+logs, and Help.
 
 ## Saving a preset in CET
 
@@ -564,7 +573,7 @@ setup.
 
 ### A previous option remains visible
 
-Read the final Panel Status or Activity Log result. Version 3.0.7 clears exposed
+Read the final Panel Status or Activity Log result. The current loader clears exposed
 dependent choices first and verifies genuine leftovers at the end. If the log
 still names an uncleared option, include the newest Activity Log when reporting
 the problem.
@@ -572,8 +581,8 @@ the problem.
 ### The CET window is not visible
 
 Open the CET overlay and choose **Character Preset Manager** from the menu on
-the right. The native **Open CET Menu** button displays this instruction but
-cannot open the overlay for you.
+the right. The native **Advanced Preset Manager** button displays this
+instruction but cannot open the overlay for you.
 
 ## Frequently asked questions
 

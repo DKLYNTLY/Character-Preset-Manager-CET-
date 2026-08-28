@@ -5,7 +5,42 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.7</strong></summary>
+<summary><strong>Latest release — 3.0.8</strong></summary>
+
+## 3.0.8
+
+*More recovery and library controls in the character screen, using the same compact space.*
+
+- Adds **Refresh** beside Search so preset files changed outside the game can
+  be shown without opening CET.
+- Adds a selected-preset card with its folder, saved-option count, file format,
+  and tags.
+- Adds **Undo Last Load** for the newest recovery appearance and **Recovery
+  History** for choosing from the five saved recovery entries.
+- Reuses the preset-row area for recovery history instead of widening the panel
+  or adding a second permanent list.
+- Changes **Save Location** from a one-folder-at-a-time cycle into a scrollable
+  folder picker. The picker also reuses the preset-row area and includes **All
+  Presets**.
+- Gives completed loads a short Panel Status result with the number of saved
+  options. Loads with unconfirmed or less certain matches offer **View Load
+  Details in CET** and open the advanced Load section.
+- Renames **Open CET Menu** to **Advanced Preset Manager** and moves it below
+  the everyday load, recovery, save, and Trash controls.
+- Shortens the panel introduction and shows nine preset, folder, recovery, or
+  save-location rows in the shared list area.
+- Disables conflicting save, Trash, search, and recovery controls while a
+  picker is open or an appearance operation is running.
+- Caches the native panel's prepared preset rows by library, search, and folder
+  state. Save-location rows are cached separately until the library changes.
+- Reads appearance-history files only when the player opens Recovery History.
+  No editor scan, compatibility check, or preset refresh was added to the
+  normal frame-update path.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.7</strong></summary>
 
 ## 3.0.7
 
