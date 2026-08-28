@@ -15,12 +15,12 @@ public class PanelButton extends CustomButton {
     let fill: ref<inkRectangle> = new inkRectangle();
     fill.SetAnchor(inkEAnchor.Fill);
     fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
-    fill.SetOpacity(0.48);
+    fill.SetOpacity(0.0);
     fill.Reparent(root);
     let frame: ref<inkRectangle> = new inkRectangle();
     frame.SetAnchor(inkEAnchor.Fill);
     frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-    frame.SetOpacity(0.16);
+    frame.SetOpacity(0.0);
     frame.Reparent(root);
     let label: ref<inkText> = new inkText();
     label.SetAnchor(inkEAnchor.Fill);
@@ -41,7 +41,7 @@ public class PanelButton extends CustomButton {
   }
 
   protected func ApplyDisabledState() -> Void { this.m_root.SetOpacity(this.m_isDisabled ? 0.32 : 1.0); }
-  protected func ApplyHoveredState() -> Void { this.frame.SetOpacity(this.m_isHovered && !this.m_isDisabled ? 0.34 : (this.selected ? 0.28 : 0.16)); }
+  protected func ApplyHoveredState() -> Void { this.frame.SetOpacity(this.m_isHovered && !this.m_isDisabled ? 0.34 : (this.selected ? 0.28 : 0.0)); }
   protected func ApplyPressedState() -> Void {
     if this.selected {
       this.fill.SetTintColor(HDRColor(0.012, 0.07, 0.08, 1.0));
@@ -60,12 +60,12 @@ public class PanelButton extends CustomButton {
         };
       };
     };
-    this.fill.SetOpacity(this.m_isPressed ? 0.68 : 0.48);
+    this.fill.SetOpacity(this.m_isPressed ? 0.68 : (this.selected ? 0.48 : 0.0));
   }
   public func SetSelected(selected: Bool) -> Void {
     this.selected = selected;
     this.frame.SetTintColor(selected ? HDRColor(0.10, 0.72, 0.80, 1.0) : HDRColor(0.05, 0.06, 0.07, 1.0));
-    this.frame.SetOpacity(selected ? 0.28 : 0.16);
+    this.frame.SetOpacity(selected ? 0.28 : 0.0);
     this.m_label.SetTintColor(selected ? HDRColor(0.22, 0.92, 1.0, 1.0) : (this.style == 3 ? HDRColor(0.22, 0.92, 1.0, 1.0) : HDRColor(1.0, 0.24, 0.22, 1.0)));
     this.ApplyPressedState();
   }
@@ -117,6 +117,16 @@ public class PresetPanel extends inkCustomController {
     root.SetSize(730.0, 1538.0);
     root.SetInteractive(true);
     root.SetSupportFocus(true);
+    let panelFill: ref<inkRectangle> = new inkRectangle();
+    panelFill.SetAnchor(inkEAnchor.Fill);
+    panelFill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+    panelFill.SetOpacity(0.48);
+    panelFill.Reparent(root);
+    let panelFrame: ref<inkRectangle> = new inkRectangle();
+    panelFrame.SetAnchor(inkEAnchor.Fill);
+    panelFrame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
+    panelFrame.SetOpacity(0.16);
+    panelFrame.Reparent(root);
     let rail: ref<inkRectangle> = new inkRectangle();
     rail.SetSize(7.0, 1538.0);
     rail.SetTintColor(HDRColor(1.0, 0.22, 0.20, 1.0));
@@ -188,8 +198,8 @@ public class PresetPanel extends inkCustomController {
     this.RegisterToGlobalInputCallback(n"OnPostOnRelease", this, n"OnGlobalRelease");
     if IsDefined(this.bridge) {
       this.bridge.RegisterPanel(this);
-      if this.bridge.IsLuaReady() { this.bridge.Request("open", ""); }
-      else { this.SetStatus("The preset library is not ready. Open CET for details.", true); };
+      this.bridge.Request("open", "");
+      if !this.bridge.IsLuaReady() { this.SetStatus("The preset library is connecting.", false); };
     };
     return true;
   }
@@ -215,16 +225,6 @@ public class PresetPanel extends inkCustomController {
     if IsDefined(root) {
       let background: ref<inkWidget> = root.GetWidgetByPathName(n"theme/bg");
       if IsDefined(background) { background.SetOpacity(0.0); };
-      let fill: ref<inkRectangle> = new inkRectangle();
-      fill.SetAnchor(inkEAnchor.Fill);
-      fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
-      fill.SetOpacity(0.48);
-      fill.Reparent(root, 0);
-      let frame: ref<inkRectangle> = new inkRectangle();
-      frame.SetAnchor(inkEAnchor.Fill);
-      frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-      frame.SetOpacity(0.16);
-      frame.Reparent(root, 1);
     };
   }
   private func AddAction(parent: ref<inkCanvas>, text: String, x: Float, y: Float, callback: CName) -> ref<PanelButton> {

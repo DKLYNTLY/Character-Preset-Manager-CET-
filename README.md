@@ -79,9 +79,14 @@ The panel has an **Open CET Menu** button below its white instructions and above
 Search. Preset rows and the lower action buttons use tighter spacing.
 Pressing that button shows how to use the CET binding and select Character
 Preset Manager from the menu on the right.
-Search, Preset Name, preset rows, and action buttons share the same transparent
-charcoal background layers. The instructions say to click a preset once and
-point to CET for extra options, permanent preset deletion, and Help.
+One transparent charcoal background continues behind the title, instructions,
+controls, preset list, Panel Status, and lower actions. The instructions say to
+click a preset once and point to CET for extra options, permanent preset
+deletion, and Help.
+
+If a mirror or the Full Appearance Editor opens while the preset library is
+connecting, the panel keeps its list request and fills itself as soon as the
+connection is ready.
 
 Cleanup checks now read a fresh editor state and wait for dependent options to
 settle. Successful clears are no longer reported as unconfirmed simply because
@@ -94,9 +99,9 @@ They do not run every frame or during ordinary gameplay.
   work and safe recovery.
 - Replaces the new-game screen's three preset choices with the full preset
   library and includes six default Corpo, Nomad, and Streetkid presets.
-- Adds a larger transparent panel farther left on the character screen. Search
-  and Preset Name keep dark fields, while buttons use translucent charcoal-black
-  surfaces with red and cyan labels. Randomize remains below the panel.
+- Adds a larger transparent panel farther left on the character screen. One
+  translucent charcoal background sits behind all panel content, while controls
+  retain their red and cyan labels. Randomize remains below the panel.
 - Trims the character-facing edge of the panel and removes the distracting
   scroll caption and static scrollbar. Mouse-wheel, stick, and navigation
   scrolling continue to work.

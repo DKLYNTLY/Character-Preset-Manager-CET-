@@ -307,7 +307,13 @@ initializeNativeBridge = function(configLoaded)
   end
   state.app.nativeBridgeUnavailableLogged = false
   state.app.nativeBridgeRetryTimer = 0
-  bridgeCall("SetLuaReady", true, VERSION, NATIVE_BRIDGE_PROTOCOL)
+  local readyOk = bridgeCall("SetLuaReady", true, VERSION, NATIVE_BRIDGE_PROTOCOL)
+  if not readyOk then return false end
+  local sequenceOk, sequence = bridgeCall("GetRequestSequence")
+  state.app.nativeBridgeSequence = sequenceOk
+    and math.max(0, tonumber(sequence) or 0) or 0
+  state.app.nativeListRevision = -1
+  state.app.nativeListSelection = nil
   log("[NATIVE PANEL] Native bridge connected.", "info")
   return true
 end
