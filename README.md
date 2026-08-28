@@ -77,6 +77,8 @@ connecting.
 
 The panel has an **Open CET Menu** button below its white instructions and above
 Search. Preset rows and the lower action buttons use tighter spacing.
+Pressing that button shows how to use the CET binding and select Character
+Preset Manager from the Mods menu on the right.
 Search, Preset Name, preset rows, and action buttons share the same transparent
 background strength. The instructions say to click a preset once and point to
 CET for extra options, permanent preset deletion, and Help.

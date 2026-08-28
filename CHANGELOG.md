@@ -20,6 +20,8 @@ used. See the README and in-game Help for current instructions.
   moment.
 - Adds an **Open CET Menu** button below the panel instructions and above
   Search. Preset rows and the lower action buttons now sit closer together.
+- After **Open CET Menu** is pressed, Panel Status explains how to use the CET
+  binding and select Character Preset Manager from the Mods menu on the right.
 - Uses the same transparent background strength for Search, Preset Name, preset
   rows, and action buttons. The short panel instructions now say to click once
   and explain that CET contains extra options, permanent deletion, and Help.
