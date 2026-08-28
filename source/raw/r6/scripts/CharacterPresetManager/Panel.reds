@@ -125,7 +125,7 @@ public class PresetPanel extends inkCustomController {
     title.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     title.Reparent(root);
 
-    let advancedText: ref<inkText> = this.MakeText("Double-click a preset to load it. Enter a name below to save. Open CET for extra tools and Help.", 29, 34.0, 52.0, 654.0, 82.0);
+    let advancedText: ref<inkText> = this.MakeText("Click a preset to load it. Open CET Menu for extra options, permanent preset deletion, and Help.", 29, 34.0, 52.0, 654.0, 82.0);
     advancedText.SetWrapping(true, 644.0);
     advancedText.SetTintColor(HDRColor(1.0, 1.0, 1.0, 1.0));
     advancedText.Reparent(root);
@@ -137,6 +137,7 @@ public class PresetPanel extends inkCustomController {
     this.search.SetDefaultText("SEARCH");
     this.search.SetWidth(654.0);
     this.search.SetMaxLength(64);
+    this.SetInputTransparency(this.search);
     this.search.GetRootWidget().SetMargin(new inkMargin(34.0, 204.0, 0.0, 0.0));
     this.search.RegisterToCallback(n"OnInput", this, n"OnSearchChanged");
     this.search.Reparent(root, this.GetGameController());
@@ -168,6 +169,7 @@ public class PresetPanel extends inkCustomController {
     this.presetName.SetDefaultText("PRESET NAME");
     this.presetName.SetWidth(654.0);
     this.presetName.SetMaxLength(64);
+    this.SetInputTransparency(this.presetName);
     this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1230.0, 0.0, 0.0));
     this.presetName.RegisterToCallback(n"OnInput", this, n"OnPresetNameChanged");
     this.presetName.Reparent(root, this.GetGameController());
@@ -207,6 +209,13 @@ public class PresetPanel extends inkCustomController {
     widget.SetSize(width, height);
     widget.SetTintColor(HDRColor(0.882353, 0.913725, 0.901961, 1.0));
     return widget;
+  }
+  private func SetInputTransparency(input: ref<HubTextInput>) -> Void {
+    let root: ref<inkCompoundWidget> = input.GetRootWidget() as inkCompoundWidget;
+    if IsDefined(root) {
+      let background: ref<inkWidget> = root.GetWidgetByPathName(n"theme/bg");
+      if IsDefined(background) { background.SetOpacity(0.48); };
+    };
   }
   private func AddAction(parent: ref<inkCanvas>, text: String, x: Float, y: Float, callback: CName) -> ref<PanelButton> {
     let button: ref<PanelButton> = PanelButton.Create(text);

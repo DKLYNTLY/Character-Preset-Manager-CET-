@@ -20,6 +20,12 @@ used. See the README and in-game Help for current instructions.
   moment.
 - Adds an **Open CET Menu** button below the panel instructions and above
   Search. Preset rows and the lower action buttons now sit closer together.
+- Uses the same transparent background strength for Search, Preset Name, preset
+  rows, and action buttons. The short panel instructions now say to click once
+  and explain that CET contains extra options, permanent deletion, and Help.
+- Checks a fresh editor state while clearing old options and gives the editor
+  time to settle. This prevents successful clears from being reported as
+  unconfirmed while preserving warnings for options that truly remain set.
 - Adds an original Cyberpunk-style preset panel to new-game character creation,
   the Full Appearance Editor, apartment mirrors, and ripperdoc appearance
   editors.

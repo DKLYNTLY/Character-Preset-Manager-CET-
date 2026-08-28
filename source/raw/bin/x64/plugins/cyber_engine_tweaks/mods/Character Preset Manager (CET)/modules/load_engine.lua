@@ -260,7 +260,8 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
     + math.max(0, helpers.loadClock() - started)
   if not ok then return false, applyError end
   attempts[trackingKey] = (attempts[trackingKey] or 0) + 1
-  local longSettle = helpers.loadOptionNeedsLongSettle(exposedOption, trackingKey)
+  local longSettle = kind ~= "apply"
+    or helpers.loadOptionNeedsLongSettle(exposedOption, trackingKey)
   exposedOption.choiceShape = helpers.loadChoiceShape(exposedOption.option)
   local identity = state.loadOptionIdentity(
     exposedOption.option, exposedOption.label, exposedOption.occurrence)
@@ -1175,7 +1176,9 @@ function loadPreset()
     return
   end
   local optionsStarted = helpers.loadClock()
-  local system, options, optionsError = getOptions()
+  local refreshCleanup = state.load.pendingChange
+    and state.load.pendingChange.kind ~= "apply"
+  local system, options, optionsError = getOptions(refreshCleanup)
   state.load.optionsSeconds = state.load.optionsSeconds
     + math.max(0, helpers.loadClock() - optionsStarted)
   state.load.optionCalls = state.load.optionCalls + 1
