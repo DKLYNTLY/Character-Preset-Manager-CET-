@@ -117,6 +117,7 @@ public class PresetPanel extends inkCustomController {
   private let presetNameValue: String;
   private let scrollOffset: Int32;
   private let busy: Bool;
+  private let cancelRequested: Bool;
   private let mode: Int32;
   private let recoveryAvailable: Bool;
   private let showLoadDetails: Bool;
@@ -171,23 +172,30 @@ public class PresetPanel extends inkCustomController {
     this.selectedInfo.SetWrapping(true, 644.0);
     this.selectedInfo.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.selectedInfo.Reparent(root);
-    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 770.0, n"OnRestorePrevious");
+    this.cancelLoadAction = PanelButton.Create("CANCEL LOAD");
+    this.cancelLoadAction.SetPosition(34.0, 770.0);
+    this.cancelLoadAction.SetWidth(654.0);
+    this.cancelLoadAction.SetStyle(2);
+    this.cancelLoadAction.SetDisabled(true);
+    this.cancelLoadAction.RegisterToCallback(n"OnBtnClick", this, n"OnCancelLoad");
+    this.cancelLoadAction.Reparent(root, this.GetGameController());
+    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 828.0, n"OnRestorePrevious");
     this.undoAction.SetWidth(323.0);
-    this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 770.0, n"OnHistory");
+    this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 828.0, n"OnHistory");
     this.historyAction.SetWidth(323.0);
     this.historyAction.SetStyle(3);
     this.statusRail = new inkRectangle();
     this.statusRail.SetSize(5.0, 166.0);
-    this.statusRail.SetMargin(new inkMargin(34.0, 840.0, 0.0, 0.0));
+    this.statusRail.SetMargin(new inkMargin(34.0, 898.0, 0.0, 0.0));
     this.statusRail.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.statusRail.SetVisible(false);
     this.statusRail.Reparent(root);
-    this.statusText = this.MakeText("", 28, 52.0, 830.0, 636.0, 176.0);
+    this.statusText = this.MakeText("", 28, 52.0, 888.0, 636.0, 176.0);
     this.statusText.SetWrapping(true, 626.0);
     this.statusText.SetTintColor(HDRColor(0.94, 0.97, 1.0, 1.0));
     this.statusText.SetVisible(false);
     this.statusText.Reparent(root);
-    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 34.0, 1018.0, n"OnLoadDetails");
+    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 34.0, 1076.0, n"OnLoadDetails");
     this.detailsAction.SetWidth(654.0);
     this.detailsAction.SetStyle(3);
     this.detailsAction.GetRootWidget().SetVisible(false);
@@ -197,22 +205,18 @@ public class PresetPanel extends inkCustomController {
     this.presetName.SetWidth(654.0);
     this.presetName.SetMaxLength(64);
     this.SetInputTransparency(this.presetName);
-    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1086.0, 0.0, 0.0));
+    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1136.0, 0.0, 0.0));
     this.presetName.RegisterToCallback(n"OnInput", this, n"OnPresetNameChanged");
     this.presetName.Reparent(root, this.GetGameController());
-    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1178.0, n"OnSaveLocation");
+    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1224.0, n"OnSaveLocation");
     this.locationButton.SetWidth(654.0);
     this.locationButton.SetStyle(3);
-    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1236.0, n"OnSave");
+    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1282.0, n"OnSave");
     this.saveAction.SetWidth(654.0);
-    this.cancelLoadAction = this.AddAction(root, "CANCEL LOAD", 34.0, 1294.0, n"OnCancelLoad");
-    this.cancelLoadAction.SetWidth(654.0);
-    this.cancelLoadAction.SetStyle(2);
-    this.cancelLoadAction.GetRootWidget().SetVisible(false);
-    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1352.0, n"OnMoveToTrash");
+    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1340.0, n"OnMoveToTrash");
     this.trashAction.SetWidth(654.0);
     this.trashAction.SetStyle(2);
-    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1410.0, n"OnOpenCET");
+    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1398.0, n"OnOpenCET");
     this.openCETAction.SetWidth(654.0);
     this.SetRootWidget(root);
     return true;
@@ -389,6 +393,11 @@ public class PresetPanel extends inkCustomController {
   protected cb func OnMoveToTrash(widget: wref<inkWidget>) -> Bool { this.bridge.Request("delete", ""); this.ReleaseButtonFocus(); return true; }
 
   protected cb func OnCancelLoad(widget: wref<inkWidget>) -> Bool {
+    if !this.busy || this.cancelRequested { return true; };
+    this.cancelRequested = true;
+    this.cancelLoadAction.SetText("CANCELING LOAD...");
+    this.cancelLoadAction.SetDisabled(true);
+    this.SetStatus("Canceling load...", false);
     this.bridge.Request("cancel_load", "");
     this.ReleaseButtonFocus();
     return true;
@@ -424,7 +433,7 @@ public class PresetPanel extends inkCustomController {
     this.historyAction.SetDisabled(this.busy);
     this.refreshAction.SetDisabled(this.busy);
     this.locationButton.SetDisabled(this.busy);
-    this.cancelLoadAction.SetDisabled(!this.busy);
+    this.cancelLoadAction.SetDisabled(!this.busy || this.cancelRequested);
     this.search.GetRootWidget().SetInteractive(!this.busy && this.mode == 0);
     this.presetName.GetRootWidget().SetInteractive(!this.busy && this.mode == 0);
   }
@@ -479,14 +488,15 @@ public class PresetPanel extends inkCustomController {
 
   public func OnBusyChanged(isBusy: Bool, message: String, isError: Bool) -> Void {
     this.busy = isBusy;
+    if !isBusy {
+      this.cancelRequested = false;
+      this.cancelLoadAction.SetText("CANCEL LOAD");
+    };
     let index: Int32 = 0;
     while index < ArraySize(this.actionButtons) {
       this.actionButtons[index].SetDisabled(isBusy);
       index += 1;
     };
-    this.cancelLoadAction.GetRootWidget().SetVisible(isBusy);
-    this.trashAction.SetPosition(34.0, isBusy ? 1352.0 : 1294.0);
-    this.openCETAction.SetPosition(34.0, isBusy ? 1410.0 : 1352.0);
     this.UpdateRows();
     this.UpdateActionAvailability();
     if StrLen(message) > 0 { this.SetStatus(message, isError); };
@@ -541,7 +551,8 @@ public class PresetPanel extends inkCustomController {
         } else {
           let details: String = fields[7] + " | " + fields[4] + " OPTIONS | FORMAT " + fields[6];
           if StrLen(fields[3]) > 0 { details = details + " | " + fields[3]; };
-          this.selectedInfoValue = this.selectedName + "\n" + (StrLen(details) > 90 ? StrLeft(details, 87) + "..." : details);
+          let selectedLine: String = this.selectedName + " | " + details;
+          this.selectedInfoValue = StrLen(selectedLine) > 92 ? StrLeft(selectedLine, 89) + "..." : selectedLine;
         };
       };
       if ArraySize(fields) > 1 && Equals(fields[0], "RECOVERY") {

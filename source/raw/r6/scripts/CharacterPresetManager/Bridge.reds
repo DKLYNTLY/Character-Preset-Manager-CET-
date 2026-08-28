@@ -31,6 +31,7 @@ public class NativeBridge extends ScriptableSystem {
 
   public func Request(action: String, payload: String) -> Void {
     if this.busy && NotEquals(action, "list") && NotEquals(action, "cancel_load") { return; };
+    if this.busy && Equals(this.requestAction, "cancel_load") && NotEquals(action, "cancel_load") { return; };
     this.requestAction = action;
     this.requestPayload = payload;
     this.requestSequence += 1;
@@ -38,6 +39,8 @@ public class NativeBridge extends ScriptableSystem {
 
   public func Respond(sequence: Int32, kind: String, payload: String, isBusy: Bool) -> Void {
     if sequence != this.requestSequence { return; };
+    this.requestAction = "";
+    this.requestPayload = "";
     this.busy = isBusy;
     let index: Int32 = ArraySize(this.panels) - 1;
     while index >= 0 {

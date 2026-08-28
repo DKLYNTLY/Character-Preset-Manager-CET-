@@ -14,7 +14,7 @@ used. See the README and in-game Help for current instructions.
 - Adds **Refresh** beside Search so preset files changed outside the game can
   be shown without opening CET.
 - Adds a selected-preset card with its folder, saved-option count, file format,
-  and tags.
+  and tags. The preset name and details now share one compact line.
 - Adds **Undo Last Load** for the newest recovery appearance and **Recovery
   History** for choosing from the five saved recovery entries.
 - Reuses the preset-row area for recovery history instead of widening the panel
@@ -41,10 +41,12 @@ used. See the README and in-game Help for current instructions.
   farther down the available panel height.
 - Changes **Save Preset** to the same cyan style as **Save Location** whenever
   Preset Name contains text. Clearing the field returns it to red.
-- Adds a red **Cancel Load** action while a preset or recovery appearance is
-  loading. The button can reach the bridge while other actions are paused.
-- Uses the Cancel Load row only during loading. Trash and **Advanced Preset
-  Manager** move up when it is hidden, avoiding a permanent empty gap.
+- Keeps a red **Cancel Load** action directly above **Undo Last Load** and
+  **Recovery History**. It is disabled until a preset or recovery appearance
+  starts loading.
+- Gives the first Cancel Load press priority over list updates that can happen
+  when button focus is released. The panel immediately changes the button and
+  status to **Canceling load...** while Lua completes the request.
 
 </details>
 
