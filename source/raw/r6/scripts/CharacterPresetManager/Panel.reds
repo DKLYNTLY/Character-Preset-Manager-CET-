@@ -15,12 +15,12 @@ public class PanelButton extends CustomButton {
     let fill: ref<inkRectangle> = new inkRectangle();
     fill.SetAnchor(inkEAnchor.Fill);
     fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
-    fill.SetOpacity(0.0);
+    fill.SetOpacity(0.48);
     fill.Reparent(root);
     let frame: ref<inkRectangle> = new inkRectangle();
     frame.SetAnchor(inkEAnchor.Fill);
     frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-    frame.SetOpacity(0.0);
+    frame.SetOpacity(0.16);
     frame.Reparent(root);
     let label: ref<inkText> = new inkText();
     label.SetAnchor(inkEAnchor.Fill);
@@ -41,7 +41,7 @@ public class PanelButton extends CustomButton {
   }
 
   protected func ApplyDisabledState() -> Void { this.m_root.SetOpacity(this.m_isDisabled ? 0.32 : 1.0); }
-  protected func ApplyHoveredState() -> Void { this.frame.SetOpacity(this.m_isHovered && !this.m_isDisabled ? 0.34 : (this.selected ? 0.28 : 0.0)); }
+  protected func ApplyHoveredState() -> Void { this.frame.SetOpacity(this.m_isHovered && !this.m_isDisabled ? 0.34 : (this.selected ? 0.28 : 0.16)); }
   protected func ApplyPressedState() -> Void {
     if this.selected {
       this.fill.SetTintColor(HDRColor(0.012, 0.07, 0.08, 1.0));
@@ -60,12 +60,12 @@ public class PanelButton extends CustomButton {
         };
       };
     };
-    this.fill.SetOpacity(this.m_isPressed ? 0.68 : (this.selected ? 0.48 : 0.0));
+    this.fill.SetOpacity(this.m_isPressed ? 0.68 : 0.48);
   }
   public func SetSelected(selected: Bool) -> Void {
     this.selected = selected;
     this.frame.SetTintColor(selected ? HDRColor(0.10, 0.72, 0.80, 1.0) : HDRColor(0.05, 0.06, 0.07, 1.0));
-    this.frame.SetOpacity(selected ? 0.28 : 0.0);
+    this.frame.SetOpacity(selected ? 0.28 : 0.16);
     this.m_label.SetTintColor(selected ? HDRColor(0.22, 0.92, 1.0, 1.0) : (this.style == 3 ? HDRColor(0.22, 0.92, 1.0, 1.0) : HDRColor(1.0, 0.24, 0.22, 1.0)));
     this.ApplyPressedState();
   }
@@ -92,6 +92,8 @@ public class PresetPanel extends inkCustomController {
   private let presetName: ref<HubTextInput>;
   private let statusText: ref<inkText>;
   private let statusRail: ref<inkRectangle>;
+  private let statusFill: ref<inkRectangle>;
+  private let statusFrame: ref<inkRectangle>;
   private let openCETAction: ref<PanelButton>;
   private let locationButton: ref<PanelButton>;
   private let saveAction: ref<PanelButton>;
@@ -117,16 +119,7 @@ public class PresetPanel extends inkCustomController {
     root.SetSize(730.0, 1538.0);
     root.SetInteractive(true);
     root.SetSupportFocus(true);
-    let panelFill: ref<inkRectangle> = new inkRectangle();
-    panelFill.SetAnchor(inkEAnchor.Fill);
-    panelFill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
-    panelFill.SetOpacity(0.48);
-    panelFill.Reparent(root);
-    let panelFrame: ref<inkRectangle> = new inkRectangle();
-    panelFrame.SetAnchor(inkEAnchor.Fill);
-    panelFrame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-    panelFrame.SetOpacity(0.16);
-    panelFrame.Reparent(root);
+    this.AddSurface(root, 18.0, -20.0, 688.0, 154.0);
     let rail: ref<inkRectangle> = new inkRectangle();
     rail.SetSize(7.0, 1538.0);
     rail.SetTintColor(HDRColor(1.0, 0.22, 0.20, 1.0));
@@ -163,6 +156,20 @@ public class PresetPanel extends inkCustomController {
       ArrayPush(this.listButtons, listButton);
       index += 1;
     };
+    this.statusFill = new inkRectangle();
+    this.statusFill.SetSize(654.0, 154.0);
+    this.statusFill.SetMargin(new inkMargin(34.0, 828.0, 0.0, 0.0));
+    this.statusFill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+    this.statusFill.SetOpacity(0.48);
+    this.statusFill.SetVisible(false);
+    this.statusFill.Reparent(root);
+    this.statusFrame = new inkRectangle();
+    this.statusFrame.SetSize(654.0, 154.0);
+    this.statusFrame.SetMargin(new inkMargin(34.0, 828.0, 0.0, 0.0));
+    this.statusFrame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
+    this.statusFrame.SetOpacity(0.16);
+    this.statusFrame.SetVisible(false);
+    this.statusFrame.Reparent(root);
     this.statusRail = new inkRectangle();
     this.statusRail.SetSize(5.0, 372.0);
     this.statusRail.SetMargin(new inkMargin(34.0, 844.0, 0.0, 0.0));
@@ -225,7 +232,31 @@ public class PresetPanel extends inkCustomController {
     if IsDefined(root) {
       let background: ref<inkWidget> = root.GetWidgetByPathName(n"theme/bg");
       if IsDefined(background) { background.SetOpacity(0.0); };
+      let fill: ref<inkRectangle> = new inkRectangle();
+      fill.SetAnchor(inkEAnchor.Fill);
+      fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+      fill.SetOpacity(0.48);
+      fill.Reparent(root, 0);
+      let frame: ref<inkRectangle> = new inkRectangle();
+      frame.SetAnchor(inkEAnchor.Fill);
+      frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
+      frame.SetOpacity(0.16);
+      frame.Reparent(root, 1);
     };
+  }
+  private func AddSurface(parent: ref<inkCanvas>, x: Float, y: Float, width: Float, height: Float) -> Void {
+    let fill: ref<inkRectangle> = new inkRectangle();
+    fill.SetSize(width, height);
+    fill.SetMargin(new inkMargin(x, y, 0.0, 0.0));
+    fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+    fill.SetOpacity(0.48);
+    fill.Reparent(parent);
+    let frame: ref<inkRectangle> = new inkRectangle();
+    frame.SetSize(width, height);
+    frame.SetMargin(new inkMargin(x, y, 0.0, 0.0));
+    frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
+    frame.SetOpacity(0.16);
+    frame.Reparent(parent);
   }
   private func AddAction(parent: ref<inkCanvas>, text: String, x: Float, y: Float, callback: CName) -> ref<PanelButton> {
     let button: ref<PanelButton> = PanelButton.Create(text);
@@ -238,6 +269,8 @@ public class PresetPanel extends inkCustomController {
     return button;
   }
   private func SetStatus(message: String, isError: Bool) -> Void {
+    this.statusFill.SetVisible(true);
+    this.statusFrame.SetVisible(true);
     this.statusText.SetVisible(true);
     this.statusRail.SetVisible(true);
     this.statusText.SetText("PANEL STATUS - " + message);
@@ -245,6 +278,8 @@ public class PresetPanel extends inkCustomController {
     this.statusRail.SetTintColor(isError ? HDRColor(1.0, 0.24, 0.22, 1.0) : HDRColor(0.22, 0.92, 1.0, 1.0));
   }
   private func ClearStatus() -> Void {
+    this.statusFill.SetVisible(false);
+    this.statusFrame.SetVisible(false);
     this.statusText.SetText("");
     this.statusText.SetVisible(false);
     this.statusRail.SetVisible(false);
@@ -469,23 +504,20 @@ private let cpmPresetPanel: ref<PresetPanel>;
 protected cb func OnInitialize() -> Bool {
   wrappedMethod();
   inkWidgetRef.SetTranslation(this.m_randomizeGroup, new Vector2(0.0, 700.0));
-  let player: wref<GameObject> = this.GetPlayerControlledObject();
-  if IsDefined(player) {
-    let bridge: ref<NativeBridge> = GameInstance.GetScriptableSystemsContainer(player.GetGame()).Get(n"CPM.NativeBridge") as NativeBridge;
-    if IsDefined(bridge) {
-      this.cpmPresetPanel = PresetPanel.Create(bridge);
-      this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
-      inkWidgetRef.SetVisible(this.m_presetsLabel, false);
-      inkWidgetRef.SetVisible(this.m_preset1, false);
-      inkWidgetRef.SetVisible(this.m_preset2, false);
-      inkWidgetRef.SetVisible(this.m_preset3, false);
-      inkWidgetRef.SetVisible(this.m_preset1Group, false);
-      inkWidgetRef.SetVisible(this.m_preset2Group, false);
-      inkWidgetRef.SetVisible(this.m_preset3Group, false);
-      inkWidgetRef.SetInteractive(this.m_preset1, false);
-      inkWidgetRef.SetInteractive(this.m_preset2, false);
-      inkWidgetRef.SetInteractive(this.m_preset3, false);
-    };
+  let bridge: ref<NativeBridge> = GameInstance.GetScriptableSystemsContainer(GetGameInstance()).Get(n"CPM.NativeBridge") as NativeBridge;
+  if IsDefined(bridge) {
+    this.cpmPresetPanel = PresetPanel.Create(bridge);
+    this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
+    inkWidgetRef.SetVisible(this.m_presetsLabel, false);
+    inkWidgetRef.SetVisible(this.m_preset1, false);
+    inkWidgetRef.SetVisible(this.m_preset2, false);
+    inkWidgetRef.SetVisible(this.m_preset3, false);
+    inkWidgetRef.SetVisible(this.m_preset1Group, false);
+    inkWidgetRef.SetVisible(this.m_preset2Group, false);
+    inkWidgetRef.SetVisible(this.m_preset3Group, false);
+    inkWidgetRef.SetInteractive(this.m_preset1, false);
+    inkWidgetRef.SetInteractive(this.m_preset2, false);
+    inkWidgetRef.SetInteractive(this.m_preset3, false);
   };
 }
 

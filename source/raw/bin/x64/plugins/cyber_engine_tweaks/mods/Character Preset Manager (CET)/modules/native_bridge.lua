@@ -25,7 +25,12 @@ local function findNativeBridge()
   local ok, container = pcall(Game.GetScriptableSystemsContainer)
   if not ok or not container then return nil end
   for _, name in ipairs({ "CPM.NativeBridge", "NativeBridge" }) do
-    local foundOk, bridge = pcall(container.Get, container, name)
+    local identifier = name
+    if CName and CName.new then
+      local cnameOk, cname = pcall(CName.new, name)
+      if cnameOk and cname then identifier = cname end
+    end
+    local foundOk, bridge = pcall(container.Get, container, identifier)
     if foundOk and bridge then return bridge end
   end
   return nil
