@@ -94,7 +94,8 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
     or state.load.forceStructureScan
     or (pendingChange and pendingChange.longSettle)
   state.load.forceStructureScan = false
-  local fullExposure = state.load.forceFull or state.load.phase == "cleanup"
+  local fullExposure = state.load.forceFull or state.load.phase == "precleanup"
+    or state.load.phase == "cleanup"
   for position, option in ipairs(options) do
     local label = optionKey(option)
     local slot = optionSlot(option)
@@ -250,8 +251,8 @@ helpers.pollPendingOption = function(options)
 end
 
 helpers.beginPendingChange = function(system, exposedOption, target, kind, trackingKey, current)
-  local attempts = kind == "cleanup" and state.load.cleanupAttempts
-    or state.load.applyAttempts
+  local attempts = kind == "apply" and state.load.applyAttempts
+    or state.load.cleanupAttempts
   local started = helpers.loadClock()
   local ok, applyError = pcall(
     system.ApplyChangeToOption, system, exposedOption.option, target)
@@ -367,6 +368,8 @@ helpers.checkPendingChange = function(system, scan)
       state.load.satisfied[pending.trackingKey] = true
       state.load.unconfirmed[pending.trackingKey] = nil
       if pending.forced then state.load.forcedKeys[pending.trackingKey] = true end
+    elseif pending.kind == "precleanup" then
+      state.load.phase = "precleanup"
     else
       state.load.phase = "verify"
       state.load.returnToCleanup = true
@@ -389,11 +392,15 @@ helpers.checkPendingChange = function(system, scan)
   state.load.pendingChange = nil
   state.load.nextInterval = AUTO_LOAD_TIMING.passInterval
   state.load.forceStructureScan = true
-  if pending.kind == "cleanup" then
+  if pending.kind ~= "apply" then
     state.load.cleanupSkipped[pending.trackingKey] = true
-    state.load.phase = "verify"
-    state.load.returnToCleanup = true
-    helpers.clearVisibleLoadSatisfaction(scan)
+    if pending.kind == "precleanup" then
+      state.load.phase = "precleanup"
+    else
+      state.load.phase = "verify"
+      state.load.returnToCleanup = true
+      helpers.clearVisibleLoadSatisfaction(scan)
+    end
     state.logLoadOnce("cleanup-not-confirmed:" .. pending.trackingKey,
       ("[UNCONFIRMED] The game did not expose whether a remaining option cleared after %.3fs. It was not applied again: %s")
         :format(waited, pending.identity), "warn")
@@ -561,7 +568,7 @@ beginLoadPass = function(preset, loadName)
   state.load.unconfirmed = {}
   state.load.cleanupAttempts = {}
   state.load.cleanupSkipped = {}
-  state.load.phase = "apply"
+  state.load.phase = state.load.resetBefore and "precleanup" or "apply"
   state.load.returnToCleanup = false
   local values, savedCounts, orderedEntries, savedSlotCounts,
     valueCount, savedEntryByKey = helpers.preparePresetEntries(preset)
@@ -609,6 +616,14 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     return
   end
 
+  if state.load.phase == "precleanup" and scan.structureChanged then
+    state.load.remaining = valueCount
+    state.load.needsContinue = true
+    log("PRECLEANUP | The editor structure changed while old dependent options were being cleared. Checking the updated option list.", "info")
+    setStatus("load", "The editor changed while old options were cleared. Checking again.")
+    return
+  end
+
   if state.load.phase == "cleanup" and scan.structureChanged then
     state.load.phase = "verify"
     state.load.returnToCleanup = true
@@ -621,7 +636,14 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     return
   end
 
-  if state.load.phase == "cleanup" then
+  if state.load.phase == "precleanup" or state.load.phase == "cleanup" then
+    local isPrecleanup = state.load.phase == "precleanup"
+    local savedEntryBySlot = {}
+    for _, entry in ipairs(orderedEntries or {}) do
+      if entry.slot and entry.slotOccurrence then
+        savedEntryBySlot[entry.slot .. "\31" .. tostring(entry.slotOccurrence)] = entry
+      end
+    end
     for _, exposedOption in ipairs(exposed) do
       local label = exposedOption.label
       local occurrence = exposedOption.occurrence
@@ -642,11 +664,23 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       if remap and not keepRemap then
         state.load.dependencyRemaps[cleanupKey] = nil
       end
-      if cleanupKey and occurrence > (savedCounts[label] or 0)
+      local savedSlotEntry = nil
+      if exposedOption.slot and exposedOption.slotOccurrence
+          and (activeSlotCounts[exposedOption.slot] or 0)
+            == (savedSlotCounts[exposedOption.slot] or 0) then
+        savedSlotEntry = savedEntryBySlot[exposedOption.slot .. "\31" ..
+          tostring(exposedOption.slotOccurrence)]
+      end
+      local extraByLabel = occurrence > (savedCounts[label] or 0)
+      local clearSlotReplacement = savedSlotEntry
+        and tonumber(savedSlotEntry.index) == 0
+      if cleanupKey and extraByLabel
+          and (not savedSlotEntry or clearSlotReplacement)
           and current ~= 0 and not keepRemap
           and not state.load.cleanupSkipped[cleanupKey] then
         local ok, clearError = helpers.beginPendingChange(
-          system, exposedOption, 0, "cleanup", cleanupKey, current)
+          system, exposedOption, 0, isPrecleanup and "precleanup" or "cleanup",
+          cleanupKey, current)
         if not ok then
           state.load.resetBefore = false
           state.load.needsContinue = false
@@ -660,14 +694,27 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
             true)
           helpers.logLoadMeasurements("cleanup-failed")
         else
-          log(("CHANGE | pass=%d | %s | index %d -> 0 | post-apply leftover cleanup")
+          log(("CHANGE | pass=%d | %s | index %d -> 0 | %s")
             :format(state.load.pass,
               state.loadOptionIdentity(exposedOption.option, label, occurrence),
-              current), "info")
-          setStatus("load", "Clearing one remaining option. Waiting for the editor.")
+              current, isPrecleanup and "pre-apply dependent cleanup"
+                or "post-apply leftover cleanup"), "info")
+          setStatus("load", isPrecleanup
+            and "Clearing an old dependent option before applying the preset."
+            or "Clearing one remaining option. Waiting for the editor.")
         end
         return
       end
+    end
+    if isPrecleanup then
+      state.load.phase = "apply"
+      state.load.remaining = valueCount
+      state.load.needsContinue = true
+      state.load.previousUnresolvedSignature = nil
+      state.load.unresolvedRepeatCount = 0
+      log("PRECLEANUP | Old exposed dependent options were cleared before applying the preset.", "info")
+      setStatus("load", "Old dependent options cleared. Applying the preset.")
+      return
     end
     state.load.phase = "verify"
     state.load.returnToCleanup = false

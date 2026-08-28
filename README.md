@@ -67,6 +67,17 @@ than the smaller selection normally available during play.
 
 ### What changed in 3.0.7
 
+Preset loading now clears old dependent choices before it changes the options
+that control whether those choices are visible. This prevents settings such as
+heterochromia and separate eye colors from an earlier preset remaining on a
+bundled default preset. The character-screen preset panel also opens reliably
+in the Full Appearance Editor, apartment mirrors, ripperdocs, and new-game
+character creation when the screen appears while the preset library is still
+connecting.
+
+The panel has an **Open CET Menu** button below its white instructions and above
+Search. Preset rows and the lower action buttons use tighter spacing.
+
 - Adds an original Cyberpunk-style preset panel to every supported character
   customization screen. The CET window remains available for advanced library
   work and safe recovery.

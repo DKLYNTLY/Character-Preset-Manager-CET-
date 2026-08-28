@@ -92,6 +92,7 @@ public class PresetPanel extends inkCustomController {
   private let presetName: ref<HubTextInput>;
   private let statusText: ref<inkText>;
   private let statusRail: ref<inkRectangle>;
+  private let openCETAction: ref<PanelButton>;
   private let locationButton: ref<PanelButton>;
   private let saveAction: ref<PanelButton>;
   private let trashAction: ref<PanelButton>;
@@ -129,18 +130,20 @@ public class PresetPanel extends inkCustomController {
     advancedText.SetTintColor(HDRColor(1.0, 1.0, 1.0, 1.0));
     advancedText.Reparent(root);
 
+    this.openCETAction = this.AddAction(root, "OPEN CET MENU", 34.0, 140.0, n"OnOpenCET");
+    this.openCETAction.SetWidth(654.0);
     this.search = HubTextInput.Create();
     this.search.SetName(n"PresetSearch");
     this.search.SetDefaultText("SEARCH");
     this.search.SetWidth(654.0);
     this.search.SetMaxLength(64);
-    this.search.GetRootWidget().SetMargin(new inkMargin(34.0, 140.0, 0.0, 0.0));
+    this.search.GetRootWidget().SetMargin(new inkMargin(34.0, 204.0, 0.0, 0.0));
     this.search.RegisterToCallback(n"OnInput", this, n"OnSearchChanged");
     this.search.Reparent(root, this.GetGameController());
     let index: Int32 = 0;
     while index < 10 {
       let listButton: ref<PanelButton> = PanelButton.Create("");
-      listButton.SetPosition(34.0, 226.0 + Cast<Float>(index) * 60.0);
+      listButton.SetPosition(34.0, 286.0 + Cast<Float>(index) * 54.0);
       listButton.SetWidth(654.0);
       listButton.RegisterToCallback(n"OnBtnClick", this, n"OnListClick");
       listButton.GetRootWidget().RegisterToCallback(n"OnAxis", this, n"OnPanelScroll");
@@ -170,9 +173,9 @@ public class PresetPanel extends inkCustomController {
     this.presetName.Reparent(root, this.GetGameController());
     this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1318.0, n"OnSaveLocation");
     this.locationButton.SetWidth(654.0);
-    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1392.0, n"OnSave");
+    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1376.0, n"OnSave");
     this.saveAction.SetWidth(654.0);
-    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1466.0, n"OnMoveToTrash");
+    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1434.0, n"OnMoveToTrash");
     this.trashAction.SetWidth(654.0);
     this.trashAction.SetStyle(2);
     this.SetRootWidget(root);
@@ -234,6 +237,11 @@ public class PresetPanel extends inkCustomController {
   protected cb func OnSearchChanged(widget: wref<inkWidget>) -> Bool {
     this.scrollOffset = 0;
     this.bridge.Request("list", this.search.GetText());
+    return true;
+  }
+  protected cb func OnOpenCET(widget: wref<inkWidget>) -> Bool {
+    this.bridge.Request("open_advanced", "");
+    this.ReleaseButtonFocus();
     return true;
   }
   protected cb func OnListClick(target: wref<inkWidget>) -> Bool {
@@ -445,7 +453,7 @@ protected cb func OnInitialize() -> Bool {
   let player: wref<GameObject> = this.GetPlayerControlledObject();
   if IsDefined(player) {
     let bridge: ref<NativeBridge> = GameInstance.GetScriptableSystemsContainer(player.GetGame()).Get(n"CPM.NativeBridge") as NativeBridge;
-    if IsDefined(bridge) && bridge.IsLuaReady() {
+    if IsDefined(bridge) {
       this.cpmPresetPanel = PresetPanel.Create(bridge);
       this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
       inkWidgetRef.SetVisible(this.m_presetsLabel, false);

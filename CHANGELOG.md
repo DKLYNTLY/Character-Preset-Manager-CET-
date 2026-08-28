@@ -11,6 +11,15 @@ used. See the README and in-game Help for current instructions.
 
 *Preset controls inside Cyberpunk's character screens, with safer appearance recovery.*
 
+- Clears old dependent choices before applying a preset, preventing hidden
+  options such as Alina's heterochromia and separate eye colors from remaining
+  on bundled default presets.
+- Shows the character-screen preset panel reliably in the Full Appearance
+  Editor, apartment mirrors, ripperdocs, and new-game character creation even
+  when the preset library is still connecting during the screen's first setup
+  moment.
+- Adds an **Open CET Menu** button below the panel instructions and above
+  Search. Preset rows and the lower action buttons now sit closer together.
 - Adds an original Cyberpunk-style preset panel to new-game character creation,
   the Full Appearance Editor, apartment mirrors, and ripperdoc appearance
   editors.
