@@ -22,12 +22,11 @@ used. See the README and in-game Help for current instructions.
   Search. Preset rows and the lower action buttons now sit closer together.
 - After **Open CET Menu** is pressed, Panel Status explains how to use the CET
   binding and find the Character Preset Manager menu on the right.
-- Uses matching translucent charcoal surfaces behind each content area,
-  including the title and white instructions. The unused center space remains
-  clear instead of placing one large dark block over the character.
-- Connects the panel through the main game instance instead of the mirror or
-  Full Appearance Editor preview character. It also keeps the first list
-  request and forces a fresh list sync whenever the native bridge reconnects.
+- Uses one translucent charcoal background behind the complete panel. Its
+  right edge stops at the title area instead of extending over the character.
+- Connects CET to the exact bridge used by each active appearance screen and
+  sends the preset list immediately. This prevents mirrors and the Full
+  Appearance Editor from remaining on **connecting**.
 - The short panel instructions now say to click once and explain that CET
   contains extra options, permanent deletion, and Help.
 - Checks a fresh editor state while clearing old options and gives the editor

@@ -92,8 +92,6 @@ public class PresetPanel extends inkCustomController {
   private let presetName: ref<HubTextInput>;
   private let statusText: ref<inkText>;
   private let statusRail: ref<inkRectangle>;
-  private let statusFill: ref<inkRectangle>;
-  private let statusFrame: ref<inkRectangle>;
   private let openCETAction: ref<PanelButton>;
   private let locationButton: ref<PanelButton>;
   private let saveAction: ref<PanelButton>;
@@ -119,7 +117,7 @@ public class PresetPanel extends inkCustomController {
     root.SetSize(730.0, 1538.0);
     root.SetInteractive(true);
     root.SetSupportFocus(true);
-    this.AddSurface(root, 18.0, -20.0, 688.0, 154.0);
+    this.AddSurface(root, 18.0, -20.0, 688.0, 1558.0);
     let rail: ref<inkRectangle> = new inkRectangle();
     rail.SetSize(7.0, 1538.0);
     rail.SetTintColor(HDRColor(1.0, 0.22, 0.20, 1.0));
@@ -156,20 +154,6 @@ public class PresetPanel extends inkCustomController {
       ArrayPush(this.listButtons, listButton);
       index += 1;
     };
-    this.statusFill = new inkRectangle();
-    this.statusFill.SetSize(654.0, 154.0);
-    this.statusFill.SetMargin(new inkMargin(34.0, 828.0, 0.0, 0.0));
-    this.statusFill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
-    this.statusFill.SetOpacity(0.48);
-    this.statusFill.SetVisible(false);
-    this.statusFill.Reparent(root);
-    this.statusFrame = new inkRectangle();
-    this.statusFrame.SetSize(654.0, 154.0);
-    this.statusFrame.SetMargin(new inkMargin(34.0, 828.0, 0.0, 0.0));
-    this.statusFrame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-    this.statusFrame.SetOpacity(0.16);
-    this.statusFrame.SetVisible(false);
-    this.statusFrame.Reparent(root);
     this.statusRail = new inkRectangle();
     this.statusRail.SetSize(5.0, 372.0);
     this.statusRail.SetMargin(new inkMargin(34.0, 844.0, 0.0, 0.0));
@@ -269,8 +253,6 @@ public class PresetPanel extends inkCustomController {
     return button;
   }
   private func SetStatus(message: String, isError: Bool) -> Void {
-    this.statusFill.SetVisible(true);
-    this.statusFrame.SetVisible(true);
     this.statusText.SetVisible(true);
     this.statusRail.SetVisible(true);
     this.statusText.SetText("PANEL STATUS - " + message);
@@ -278,8 +260,6 @@ public class PresetPanel extends inkCustomController {
     this.statusRail.SetTintColor(isError ? HDRColor(1.0, 0.24, 0.22, 1.0) : HDRColor(0.22, 0.92, 1.0, 1.0));
   }
   private func ClearStatus() -> Void {
-    this.statusFill.SetVisible(false);
-    this.statusFrame.SetVisible(false);
     this.statusText.SetText("");
     this.statusText.SetVisible(false);
     this.statusRail.SetVisible(false);
@@ -500,11 +480,16 @@ public class PresetPanel extends inkCustomController {
 @addField(characterCreationBodyMorphMenu)
 private let cpmPresetPanel: ref<PresetPanel>;
 
+@addMethod(characterCreationBodyMorphMenu)
+public func CPMGetNativeBridge() -> ref<NativeBridge> {
+  return GameInstance.GetScriptableSystemsContainer(GetGameInstance()).Get(n"CPM.NativeBridge") as NativeBridge;
+}
+
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnInitialize() -> Bool {
   wrappedMethod();
   inkWidgetRef.SetTranslation(this.m_randomizeGroup, new Vector2(0.0, 700.0));
-  let bridge: ref<NativeBridge> = GameInstance.GetScriptableSystemsContainer(GetGameInstance()).Get(n"CPM.NativeBridge") as NativeBridge;
+  let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
   if IsDefined(bridge) {
     this.cpmPresetPanel = PresetPanel.Create(bridge);
     this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);

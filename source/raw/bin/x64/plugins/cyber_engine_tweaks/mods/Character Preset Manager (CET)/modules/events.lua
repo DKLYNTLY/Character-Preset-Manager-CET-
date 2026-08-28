@@ -65,6 +65,7 @@ events.onInit = function()
       state.editor.activeBodyMorphMenu = menu
       state.app.inCustomization = true
       state.invalidatePreflight()
+      connectNativeBridgeForMenu(menu)
       log("[UI] Character customization opened; native preset panel is available.", "info")
     end
   )

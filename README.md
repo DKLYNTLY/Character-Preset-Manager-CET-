@@ -23,9 +23,9 @@
 
 ![Character Preset Manager's CET interface for saving, loading, and organizing presets](images/UI%20v3.0.4.gif)
 
-The controls built into Cyberpunk's character screens use a transparent panel
-so your character remains visible. Search and Preset Name keep dark input fields,
-and the buttons use translucent charcoal-black surfaces with red and cyan labels.
+The controls built into Cyberpunk's character screens use a translucent
+charcoal-black background that stops at the title area's right edge. Search,
+Preset Name, and the buttons keep their dark surfaces with red and cyan labels.
 
 The main CET interface keeps saving, loading, folders, sharing, Trash, settings,
 and help in one window.
@@ -79,15 +79,15 @@ The panel has an **Open CET Menu** button below its white instructions and above
 Search. Preset rows and the lower action buttons use tighter spacing.
 Pressing that button shows how to use the CET binding and select Character
 Preset Manager from the menu on the right.
-Matching transparent charcoal surfaces sit behind the title, instructions,
-controls, preset rows, visible Panel Status message, and lower actions. Unused
-space stays clear so the panel does not place a large dark block over the
-character. The instructions say to click a preset once and point to CET for
-extra options, permanent preset deletion, and Help.
+One transparent charcoal background covers the complete panel from the title
+through the lower actions. Its right edge stops at the title area so it does
+not extend farther over the character. The instructions say to click a preset
+once and point to CET for extra options, permanent preset deletion, and Help.
 
-Mirrors and the Full Appearance Editor connect through the main game instance,
-not their preview character. If either screen opens while the preset library is
-connecting, the panel keeps its list request and fills itself when ready.
+Mirrors and the Full Appearance Editor give CET the exact bridge used by their
+active screen and receive the preset list immediately. If either screen opens
+while the preset library is connecting, the panel fills itself when ready
+instead of remaining on **connecting**.
 
 Cleanup checks now read a fresh editor state and wait for dependent options to
 settle. Successful clears are no longer reported as unconfirmed simply because
@@ -100,9 +100,10 @@ They do not run every frame or during ordinary gameplay.
   work and safe recovery.
 - Replaces the new-game screen's three preset choices with the full preset
   library and includes six default Corpo, Nomad, and Streetkid presets.
-- Adds a larger transparent panel farther left on the character screen.
-  Matching translucent charcoal surfaces sit only behind visible panel content,
-  while controls retain their red and cyan labels. Randomize remains below it.
+- Adds a larger transparent panel farther left on the character screen. One
+  translucent charcoal surface covers the complete panel without extending
+  past the title area. Controls retain their red and cyan labels, and Randomize
+  remains below it.
 - Trims the character-facing edge of the panel and removes the distracting
   scroll caption and static scrollbar. Mouse-wheel, stick, and navigation
   scrolling continue to work.

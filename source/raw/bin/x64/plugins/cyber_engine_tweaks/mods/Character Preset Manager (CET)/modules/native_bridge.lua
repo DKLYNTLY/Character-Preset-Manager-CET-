@@ -301,8 +301,8 @@ setPresetSortPreference = function(value)
     or "Presets are sorted by name."
 end
 
-initializeNativeBridge = function(configLoaded)
-  state.app.nativeBridge = findNativeBridge()
+initializeNativeBridge = function(configLoaded, preferredBridge)
+  state.app.nativeBridge = preferredBridge or findNativeBridge()
   if not state.app.nativeBridge then
     if not state.app.nativeBridgeUnavailableLogged then
       log("[NATIVE PANEL] Native bridge is unavailable. The CET interface remains available.", "warn")
@@ -319,8 +319,26 @@ initializeNativeBridge = function(configLoaded)
     and math.max(0, tonumber(sequence) or 0) or 0
   state.app.nativeListRevision = -1
   state.app.nativeListSelection = nil
+  local panelsOk, hasPanels = bridgeCall("HasPanels")
+  if panelsOk and hasPanels then
+    bridgeCall("Sync", "list", listPayload(nativeQuery, NATIVE_READY_STATUS, false), false)
+    state.app.nativeListRevision = state.cache.revision
+    state.app.nativeListSelection = tostring(state.library.selected or "") .. "\31" ..
+      tostring(state.trash.nativePendingDeleteName or "") .. "\31" ..
+      tostring(state.library.selectedFolder or "")
+  end
   log("[NATIVE PANEL] Native bridge connected.", "info")
   return true
+end
+
+connectNativeBridgeForMenu = function(menu)
+  if not menu then return false end
+  local ok, bridge = pcall(function() return menu:CPMGetNativeBridge() end)
+  if not ok or not bridge then
+    log("[NATIVE PANEL] The active appearance screen bridge could not be found.", "warn")
+    return false
+  end
+  return initializeNativeBridge(true, bridge)
 end
 
 updateNativeBridge = function(delta)
