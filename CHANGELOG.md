@@ -32,6 +32,8 @@ used. See the README and in-game Help for current instructions.
 - Rewrites the README as a cleaner section-by-section guide. Features and Trash
   keep concise lists, while installation, controls, preset behavior, sharing,
   compatibility, troubleshooting, and credits use clear explanations.
+- Adds dedicated preview media for the simple character-screen menu and the
+  advanced CET manager to their matching README sections.
 - Checks a fresh editor state while clearing old options and gives the editor
   time to settle. This prevents successful clears from being reported as
   unconfirmed while preserving warnings for options that truly remain set.

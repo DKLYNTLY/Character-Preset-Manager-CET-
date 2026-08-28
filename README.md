@@ -23,9 +23,17 @@ deletion.
 
 ## Interface previews
 
-### Character Preset Manager in CET
+### Simple character-screen menu
 
-![Character Preset Manager's CET interface for saving, loading, and organizing presets](images/UI%20v3.0.4.gif)
+![Character Preset Manager's simple menu inside Cyberpunk's appearance editor](images/Simple%20Menu.png)
+
+The simple menu stays inside the active character screen. It provides quick
+searching, one-click preset loading, saving, a recoverable Trash action, and a
+button that points you to the complete CET manager.
+
+### Advanced CET menu
+
+![Character Preset Manager's advanced CET menu for managing the complete preset library](images/Advanced%20Menu.gif)
 
 The CET window keeps the complete library in one place. Its main sections cover
 loading, saving, folders, bulk actions, sharing, backups, Trash, settings, the
