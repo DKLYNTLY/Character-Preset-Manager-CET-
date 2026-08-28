@@ -1,4 +1,4 @@
-# Character Preset Manager (CET)
+<h1 align="center">Character Preset Manager (CET)</h1>
 
 <p align="center"><em>Save, load, organize, recover, and share complete Cyberpunk 2077 character appearances.</em></p>
 
@@ -20,32 +20,6 @@ deletion.
 > Remove **Appearance Change Unlocker (ACU)** and **Character Customization
 > Anywhere** before using this mod. They change the same character screens and
 > are not compatible. Fully restart the game after removing either mod.
-
-## Interface previews
-
-### Simple character-screen menu
-
-![Character Preset Manager's simple menu inside Cyberpunk's appearance editor](images/Simple%20Menu.png)
-
-The simple menu stays inside the active character screen. It provides search,
-one-click loading, selected-preset details, recovery, a save-location picker,
-quick saving, a recoverable Trash action, and a button for the advanced CET
-manager.
-
-### Advanced CET menu
-
-![Character Preset Manager's advanced CET menu for managing the complete preset library](images/Advanced%20Menu.gif)
-
-The CET window keeps the complete library in one place. Its main sections cover
-loading, saving, folders, bulk actions, sharing, backups, Trash, settings, the
-Activity Log, and searchable Help.
-
-### Full apartment mirror options
-
-![The full character editor opened from an apartment mirror](images/Mirror.gif)
-
-Apartment mirrors show the full set of character-creation options instead of
-the smaller selection normally available during play.
 
 ## Features
 
@@ -83,33 +57,59 @@ the smaller selection normally available during play.
 
 ## What changed in 3.0.8
 
-Version 3.0.8 expands the character-screen panel without making it wider or
-covering more of the character. **Refresh** sits beside Search. The selected
-preset now shows its folder, option count, format, and tags. **Undo Last Load**
-restores the newest recovery appearance, while **Recovery History** uses the
-same scrollable area as the preset list to show up to five older appearances.
-The selected name and those details share one compact line.
+- **Expanded character-screen panel** — Refresh the library and view the
+  selected preset's folder, option count, format, and tags without making the
+  panel wider.
+- **Clearer section layout** — Centered labels, improved spacing, and thin
+  dividers separate Search, presets, selected details, load controls, status,
+  and save controls. The title and Panel Status remain left-aligned.
+- **Faster recovery controls** — **Undo Last Load** restores the newest saved
+  appearance. **Recovery History** shows up to five older entries in the preset
+  list area.
+- **Reliable load cancellation** — **Cancel Load** stays above the recovery
+  controls, works on the first press, and immediately changes to **Canceling
+  Load...** while the request finishes.
+- **Simpler saving** — **Save Preset** changes from red to cyan after a name is
+  entered. **Save Location** opens a scrollable folder picker instead of
+  cycling through every folder.
+- **Short results with full details available** — Panel Status gives a compact
+  result. **View Load Details in CET** opens the matching advanced section when
+  more information is available.
+- **Cached panel data** — Prepared preset and save-location rows remain cached
+  until their source changes. History is read only when requested, and editor
+  options are checked only during a load or recovery action.
 
-The panel now leaves more room between its introduction, Search, preset list,
-status, and lower actions. A clear gap below Search keeps the first preset
-folder away from the field border. **Save Preset** changes from red to cyan as
-soon as text is entered in Preset Name. **Cancel Load** stays directly above
-**Undo Last Load** and **Recovery History**. It is available only while loading.
-All panel text is centered except the main title and Panel Status message. Thin
-lines separate Search, the preset list, selected details, load controls, status,
-and save controls into clear sections.
+See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
 
-**Save Location** now opens a scrollable folder picker instead of cycling
-through every folder one press at a time. The preset list, folder picker, and
-recovery list share the same space. The panel gives loads a short result such
-as the number of confirmed options. When a result needs review, **View Load
-Details in CET** opens the matching advanced section.
+## Interface previews
 
-The native bridge caches its prepared preset rows and save-location rows until
-the library, search, or open folders change. Appearance history is read only
-when requested, and editor options are still checked only during an explicit
-load or recovery action. See [CHANGELOG.md](CHANGELOG.md) for the complete
-release history.
+### Character customization screen
+
+![Character Preset Manager's simple menu inside Cyberpunk's appearance editor](images/Simple%20Menu.png)
+
+The character-screen panel provides Search, one-click loading, selected-preset
+details, load cancellation, recovery history, quick saving, recoverable Trash,
+and access to the advanced CET manager.
+
+### Advanced CET menu
+
+![Character Preset Manager's advanced CET menu for managing the complete preset library](images/Advanced%20Menu.gif)
+
+The CET window keeps the complete library in one place. Its sections cover
+loading, saving, folders, bulk actions, sharing, backups, Trash, settings, the
+Activity Log, and searchable Help.
+
+### Full apartment mirror options
+
+![The full character editor opened from an apartment mirror](images/Mirror.gif)
+
+Apartment mirrors show the full set of character-creation options instead of
+the smaller selection normally available during play.
+
+---
+
+<details>
+<summary><strong>Requirements and installation</strong></summary>
 
 ## Requirements
 
@@ -149,6 +149,11 @@ does not rewrite an old preset just because it finds or loads it. Overwriting
 that preset, or saving its notes or tags, updates the file to format 8. Keep a
 backup if you may need to use the old copy with an earlier mod version.
 
+</details>
+
+<details>
+<summary><strong>Optional keys and supported screens</strong></summary>
+
 ## Optional keys
 
 1. Open CET and select **Bindings**.
@@ -173,6 +178,11 @@ Photo Mode and Appearance Menu Mod may stay installed, but their own menus do
 not expose the normal character editor data required by Character Preset
 Manager. Open one of the supported screens before saving, loading, comparing,
 or restoring an appearance.
+
+</details>
+
+<details>
+<summary><strong>Using the character-screen panel</strong></summary>
 
 ## Using the character-screen panel
 
@@ -210,6 +220,11 @@ it, use your CET binding and choose **Character Preset Manager** from the menu
 on the right. The CET window contains comparison, renaming, notes, tags,
 favorites, folder management, sharing, backups, permanent deletion, settings,
 logs, and Help.
+
+</details>
+
+<details>
+<summary><strong>Saving, loading, and compatibility checks</strong></summary>
 
 ## Saving a preset in CET
 
@@ -268,6 +283,11 @@ An older file knows less about the original choice, so a shifted hairstyle or
 color list may point to a different item. Correct the result once and save the
 preset again in format 8.
 
+</details>
+
+<details>
+<summary><strong>Appearance history and preset files</strong></summary>
+
 ## Appearance history and recovery
 
 Before each normal preset load, Character Preset Manager saves the current
@@ -318,6 +338,11 @@ LocKey#9502141975964618858:50
 Normal comment lines are ignored while reading. `CPM Preset` identifies a file
 saved by this mod. `Name` and `Library folder` allow the catalog to rebuild a
 missing folder-list entry. `/` means **All Presets**.
+
+</details>
+
+<details>
+<summary><strong>Preset files and organization</strong></summary>
 
 ## Preset location and sharing one preset
 
@@ -381,6 +406,11 @@ one remains in place. Linked folders and Windows junctions are not supported.
 The safety scan stops when an entry cannot be confirmed or when a physical
 folder is more than 12 levels deep.
 
+</details>
+
+<details>
+<summary><strong>Sharing and backups</strong></summary>
+
 ## Sharing a complete folder
 
 A `.cpmfolder` file contains one CET folder, every nested folder, and all
@@ -438,6 +468,11 @@ Library** folder instead of overwriting anything. A backup cannot exceed
 file. It does not delete presets already installed in the library. Confirm the
 displayed filename before using the permanent action.
 
+</details>
+
+<details>
+<summary><strong>Bulk actions, Trash, and recovery</strong></summary>
+
 ## Bulk actions
 
 **Select & Manage Multiple Presets** lets you build a selection from any folder
@@ -464,6 +499,11 @@ presets can be moved to one folder, exported together, or moved to Trash.
 The native panel can move a selected preset to Trash, but restoration and
 permanent deletion are available only in CET. This keeps the destructive choice
 separate from the quick character-screen controls.
+
+</details>
+
+<details>
+<summary><strong>Settings, data, and performance</strong></summary>
 
 ## Settings
 
@@ -507,6 +547,11 @@ is hidden or the overlay closes, the mod also unloads full preset contents and
 rebuildable interface lists. Names, folders, notes, tags, favorites, and other
 library details remain ready for the next use.
 
+</details>
+
+<details>
+<summary><strong>Compatibility and known issue</strong></summary>
+
 ## Compatibility
 
 ### CC and CCXL character-option mods
@@ -542,6 +587,11 @@ wardrobe outfits, Equipment-EX, and detailed outfits may make it more likely.
 
 If it happens, remove all clothing and select **No Outfit** before opening the
 editor. Put the clothing and outfit back on afterward.
+
+</details>
+
+<details>
+<summary><strong>Activity Log, Help, and troubleshooting</strong></summary>
 
 ## Activity Log
 
@@ -595,6 +645,11 @@ Open the CET overlay and choose **Character Preset Manager** from the menu on
 the right. The native **Advanced Preset Manager** button displays this
 instruction but cannot open the overlay for you.
 
+</details>
+
+<details>
+<summary><strong>Frequently asked questions</strong></summary>
+
 ## Frequently asked questions
 
 ### Can older Character Preset Manager or ACU presets be used?
@@ -612,6 +667,8 @@ files remain loadable but do not contain the same recovery details.
 
 No. The screenshots demonstrate the mod. My personal character preset is not
 included, and I do not plan to release it.
+
+</details>
 
 ## AI disclosure
 

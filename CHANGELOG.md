@@ -53,6 +53,8 @@ used. See the README and in-game Help for current instructions.
   rows, and action labels. The main title and Panel Status stay left-aligned.
 - Adds thin divider lines between the description, Search, preset list,
   selected-preset details, load controls, status, and save controls.
+- Reorganizes the README into a clearer feature summary, version overview,
+  previews, and expandable instruction sections.
 
 </details>
 
