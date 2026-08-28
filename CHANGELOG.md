@@ -26,6 +26,9 @@ used. See the README and in-game Help for current instructions.
 - Checks a fresh editor state while clearing old options and gives the editor
   time to settle. This prevents successful clears from being reported as
   unconfirmed while preserving warnings for options that truly remain set.
+- Paces fresh cleanup checks at the normal loading interval and reuses the
+  confirmed state during its short stability wait. Large appearance lists are
+  never rescanned every frame or at the faster native-panel polling rate.
 - Adds an original Cyberpunk-style preset panel to new-game character creation,
   the Full Appearance Editor, apartment mirrors, and ripperdoc appearance
   editors.

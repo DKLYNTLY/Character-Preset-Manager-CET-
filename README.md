@@ -84,6 +84,8 @@ CET for extra options, permanent preset deletion, and Help.
 Cleanup checks now read a fresh editor state and wait for dependent options to
 settle. Successful clears are no longer reported as unconfirmed simply because
 the earlier option list had not updated yet.
+Fresh cleanup reads use the normal loading interval and stop when loading ends.
+They do not run every frame or during ordinary gameplay.
 
 - Adds an original Cyberpunk-style preset panel to every supported character
   customization screen. The CET window remains available for advanced library

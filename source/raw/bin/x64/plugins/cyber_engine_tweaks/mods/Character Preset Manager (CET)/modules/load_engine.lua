@@ -290,7 +290,8 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
     longSettle = longSettle,
   }
   state.load.pendingElapsed = 0
-  state.load.nextInterval = AUTO_LOAD_TIMING.pollInterval
+  state.load.nextInterval = kind == "apply" and AUTO_LOAD_TIMING.pollInterval
+    or AUTO_LOAD_TIMING.passInterval
   state.load.forceStructureScan = true
   state.load.needsContinue = true
   state.load.previousUnresolvedSignature = nil
@@ -384,7 +385,8 @@ helpers.checkPendingChange = function(system, scan)
   end
   local sinceAttempt = state.load.elapsed - pending.attemptStartedAt
   if pending.longSettle and sinceAttempt < AUTO_LOAD_TIMING.dependencyTimeout then
-    state.load.nextInterval = AUTO_LOAD_TIMING.pollInterval
+    state.load.nextInterval = pending.kind == "apply"
+      and AUTO_LOAD_TIMING.pollInterval or AUTO_LOAD_TIMING.passInterval
     state.load.pendingElapsed = math.max(0, state.load.elapsed - pending.startedAt)
     return "waiting"
   end
@@ -1178,6 +1180,7 @@ function loadPreset()
   local optionsStarted = helpers.loadClock()
   local refreshCleanup = state.load.pendingChange
     and state.load.pendingChange.kind ~= "apply"
+    and state.load.pendingChange.confirmedAt == nil
   local system, options, optionsError = getOptions(refreshCleanup)
   state.load.optionsSeconds = state.load.optionsSeconds
     + math.max(0, helpers.loadClock() - optionsStarted)
