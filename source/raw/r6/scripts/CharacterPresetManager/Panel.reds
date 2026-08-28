@@ -142,8 +142,10 @@ public class PresetPanel extends inkCustomController {
 
     let advancedText: ref<inkText> = this.MakeText("Choose a preset to load it. Use the advanced manager to organize, share, or troubleshoot presets.", 29, 34.0, 52.0, 654.0, 58.0);
     advancedText.SetWrapping(true, 644.0);
+    advancedText.SetHorizontalAlignment(textHorizontalAlignment.Center);
     advancedText.SetTintColor(HDRColor(1.0, 1.0, 1.0, 1.0));
     advancedText.Reparent(root);
+    this.AddDivider(root, 126.0);
 
     this.search = HubTextInput.Create();
     this.search.SetName(n"PresetSearch");
@@ -151,15 +153,17 @@ public class PresetPanel extends inkCustomController {
     this.search.SetWidth(492.0);
     this.search.SetMaxLength(64);
     this.SetInputTransparency(this.search);
+    this.CenterInputText(this.search);
     this.search.GetRootWidget().SetMargin(new inkMargin(34.0, 144.0, 0.0, 0.0));
     this.search.RegisterToCallback(n"OnInput", this, n"OnSearchChanged");
     this.search.Reparent(root, this.GetGameController());
     this.refreshAction = this.AddAction(root, "REFRESH", 534.0, 144.0, n"OnRefresh");
     this.refreshAction.SetWidth(154.0);
+    this.AddDivider(root, 236.0);
     let index: Int32 = 0;
     while index < 9 {
       let listButton: ref<PanelButton> = PanelButton.Create("");
-      listButton.SetPosition(34.0, 220.0 + Cast<Float>(index) * 54.0);
+      listButton.SetPosition(34.0, 252.0 + Cast<Float>(index) * 54.0);
       listButton.SetWidth(654.0);
       listButton.RegisterToCallback(n"OnBtnClick", this, n"OnListClick");
       listButton.GetRootWidget().RegisterToCallback(n"OnAxis", this, n"OnPanelScroll");
@@ -168,55 +172,61 @@ public class PresetPanel extends inkCustomController {
       ArrayPush(this.listButtons, listButton);
       index += 1;
     };
-    this.selectedInfo = this.MakeText("SELECTED PRESET - NONE", 27, 34.0, 716.0, 654.0, 54.0);
+    this.AddDivider(root, 746.0);
+    this.selectedInfo = this.MakeText("SELECTED PRESET - NONE", 27, 34.0, 758.0, 654.0, 54.0);
     this.selectedInfo.SetWrapping(true, 644.0);
+    this.selectedInfo.SetHorizontalAlignment(textHorizontalAlignment.Center);
     this.selectedInfo.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.selectedInfo.Reparent(root);
+    this.AddDivider(root, 820.0);
     this.cancelLoadAction = PanelButton.Create("CANCEL LOAD");
-    this.cancelLoadAction.SetPosition(34.0, 782.0);
+    this.cancelLoadAction.SetPosition(34.0, 834.0);
     this.cancelLoadAction.SetWidth(654.0);
     this.cancelLoadAction.SetStyle(2);
     this.cancelLoadAction.SetDisabled(true);
     this.cancelLoadAction.RegisterToCallback(n"OnBtnClick", this, n"OnCancelLoad");
     this.cancelLoadAction.Reparent(root, this.GetGameController());
-    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 840.0, n"OnRestorePrevious");
+    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 892.0, n"OnRestorePrevious");
     this.undoAction.SetWidth(323.0);
-    this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 840.0, n"OnHistory");
+    this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 892.0, n"OnHistory");
     this.historyAction.SetWidth(323.0);
     this.historyAction.SetStyle(3);
+    this.AddDivider(root, 956.0);
     this.statusRail = new inkRectangle();
-    this.statusRail.SetSize(5.0, 166.0);
-    this.statusRail.SetMargin(new inkMargin(34.0, 910.0, 0.0, 0.0));
+    this.statusRail.SetSize(5.0, 136.0);
+    this.statusRail.SetMargin(new inkMargin(34.0, 980.0, 0.0, 0.0));
     this.statusRail.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.statusRail.SetVisible(false);
     this.statusRail.Reparent(root);
-    this.statusText = this.MakeText("", 28, 52.0, 900.0, 636.0, 176.0);
+    this.statusText = this.MakeText("", 28, 52.0, 970.0, 636.0, 146.0);
     this.statusText.SetWrapping(true, 626.0);
     this.statusText.SetTintColor(HDRColor(0.94, 0.97, 1.0, 1.0));
     this.statusText.SetVisible(false);
     this.statusText.Reparent(root);
-    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 34.0, 1088.0, n"OnLoadDetails");
+    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 34.0, 1128.0, n"OnLoadDetails");
     this.detailsAction.SetWidth(654.0);
     this.detailsAction.SetStyle(3);
     this.detailsAction.GetRootWidget().SetVisible(false);
+    this.AddDivider(root, 1192.0);
     this.presetName = HubTextInput.Create();
     this.presetName.SetName(n"PresetName");
     this.presetName.SetDefaultText("PRESET NAME");
     this.presetName.SetWidth(654.0);
     this.presetName.SetMaxLength(64);
     this.SetInputTransparency(this.presetName);
-    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1148.0, 0.0, 0.0));
+    this.CenterInputText(this.presetName);
+    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1206.0, 0.0, 0.0));
     this.presetName.RegisterToCallback(n"OnInput", this, n"OnPresetNameChanged");
     this.presetName.Reparent(root, this.GetGameController());
-    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1236.0, n"OnSaveLocation");
+    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1298.0, n"OnSaveLocation");
     this.locationButton.SetWidth(654.0);
     this.locationButton.SetStyle(3);
-    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1294.0, n"OnSave");
+    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1356.0, n"OnSave");
     this.saveAction.SetWidth(654.0);
-    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1352.0, n"OnMoveToTrash");
+    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1414.0, n"OnMoveToTrash");
     this.trashAction.SetWidth(654.0);
     this.trashAction.SetStyle(2);
-    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1410.0, n"OnOpenCET");
+    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1472.0, n"OnOpenCET");
     this.openCETAction.SetWidth(654.0);
     this.SetRootWidget(root);
     return true;
@@ -264,6 +274,21 @@ public class PresetPanel extends inkCustomController {
       frame.SetOpacity(0.16);
       frame.Reparent(root, 1);
     };
+  }
+  private func CenterInputText(input: ref<HubTextInput>) -> Void {
+    let root: ref<inkCompoundWidget> = input.GetRootWidget() as inkCompoundWidget;
+    if IsDefined(root) {
+      let content: ref<inkWidget> = root.GetWidgetByPathName(n"viewport/content");
+      if IsDefined(content) { content.SetHAlign(inkEHorizontalAlign.Center); };
+    };
+  }
+  private func AddDivider(parent: ref<inkCanvas>, y: Float) -> Void {
+    let divider: ref<inkRectangle> = new inkRectangle();
+    divider.SetSize(654.0, 2.0);
+    divider.SetMargin(new inkMargin(34.0, y, 0.0, 0.0));
+    divider.SetTintColor(HDRColor(1.0, 0.22, 0.20, 1.0));
+    divider.SetOpacity(0.32);
+    divider.Reparent(parent);
   }
   private func AddSurface(parent: ref<inkCanvas>, x: Float, y: Float, width: Float, height: Float) -> Void {
     let fill: ref<inkRectangle> = new inkRectangle();

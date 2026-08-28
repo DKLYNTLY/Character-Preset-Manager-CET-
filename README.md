@@ -95,6 +95,9 @@ status, and lower actions. A clear gap below Search keeps the first preset
 folder away from the field border. **Save Preset** changes from red to cyan as
 soon as text is entered in Preset Name. **Cancel Load** stays directly above
 **Undo Last Load** and **Recovery History**. It is available only while loading.
+All panel text is centered except the main title and Panel Status message. Thin
+lines separate Search, the preset list, selected details, load controls, status,
+and save controls into clear sections.
 
 **Save Location** now opens a scrollable folder picker instead of cycling
 through every folder one press at a time. The preset list, folder picker, and

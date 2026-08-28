@@ -49,6 +49,10 @@ used. See the README and in-game Help for current instructions.
   status to **Canceling load...** while Lua completes the request.
 - Adds a clear gap below Search so the first preset folder no longer touches
   or clips into the Search field border.
+- Centers the description, text-entry fields, selected-preset details, preset
+  rows, and action labels. The main title and Panel Status stay left-aligned.
+- Adds thin divider lines between the description, Search, preset list,
+  selected-preset details, load controls, status, and save controls.
 
 </details>
 
