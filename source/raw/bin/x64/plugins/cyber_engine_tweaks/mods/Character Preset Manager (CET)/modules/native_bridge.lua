@@ -280,7 +280,7 @@ local function handleNativeRequest(action, payload)
   end
   if action == "open_advanced" then
     state.app.windowOpen = true
-    return "status", "Press your CET binding, then select Character Preset Manager from the Mods menu on the right."
+    return "status", "Press your CET binding, then go to the Character Preset Manager menu located on the right."
   end
   return nativeStatus("The native panel sent an unsupported request.", true)
 end
