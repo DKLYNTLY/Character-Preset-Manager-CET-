@@ -214,7 +214,17 @@ public class PresetPanel extends inkCustomController {
     let root: ref<inkCompoundWidget> = input.GetRootWidget() as inkCompoundWidget;
     if IsDefined(root) {
       let background: ref<inkWidget> = root.GetWidgetByPathName(n"theme/bg");
-      if IsDefined(background) { background.SetOpacity(0.48); };
+      if IsDefined(background) { background.SetOpacity(0.0); };
+      let fill: ref<inkRectangle> = new inkRectangle();
+      fill.SetAnchor(inkEAnchor.Fill);
+      fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+      fill.SetOpacity(0.48);
+      fill.Reparent(root, 0);
+      let frame: ref<inkRectangle> = new inkRectangle();
+      frame.SetAnchor(inkEAnchor.Fill);
+      frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
+      frame.SetOpacity(0.16);
+      frame.Reparent(root, 1);
     };
   }
   private func AddAction(parent: ref<inkCanvas>, text: String, x: Float, y: Float, callback: CName) -> ref<PanelButton> {

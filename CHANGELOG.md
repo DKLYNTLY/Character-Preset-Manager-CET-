@@ -25,6 +25,8 @@ used. See the README and in-game Help for current instructions.
 - Uses the same transparent background strength for Search, Preset Name, preset
   rows, and action buttons. The short panel instructions now say to click once
   and explain that CET contains extra options, permanent deletion, and Help.
+- Replaces the built-in Search and Preset Name field background with the exact
+  same charcoal layers used by the preset and action buttons.
 - Checks a fresh editor state while clearing old options and gives the editor
   time to settle. This prevents successful clears from being reported as
   unconfirmed while preserving warnings for options that truly remain set.
