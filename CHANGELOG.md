@@ -47,6 +47,8 @@ used. See the README and in-game Help for current instructions.
 - Gives the first Cancel Load press priority over list updates that can happen
   when button focus is released. The panel immediately changes the button and
   status to **Canceling load...** while Lua completes the request.
+- Adds a clear gap below Search so the first preset folder no longer touches
+  or clips into the Search field border.
 
 </details>
 

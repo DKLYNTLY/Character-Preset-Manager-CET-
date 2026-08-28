@@ -91,9 +91,10 @@ same scrollable area as the preset list to show up to five older appearances.
 The selected name and those details share one compact line.
 
 The panel now leaves more room between its introduction, Search, preset list,
-status, and lower actions. **Save Preset** changes from red to cyan as soon as
-text is entered in Preset Name. **Cancel Load** stays directly above **Undo Last
-Load** and **Recovery History**. It is available only while loading.
+status, and lower actions. A clear gap below Search keeps the first preset
+folder away from the field border. **Save Preset** changes from red to cyan as
+soon as text is entered in Preset Name. **Cancel Load** stays directly above
+**Undo Last Load** and **Recovery History**. It is available only while loading.
 
 **Save Location** now opens a scrollable folder picker instead of cycling
 through every folder one press at a time. The preset list, folder picker, and
