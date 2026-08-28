@@ -89,6 +89,11 @@ preset now shows its folder, option count, format, and tags. **Undo Last Load**
 restores the newest recovery appearance, while **Recovery History** uses the
 same scrollable area as the preset list to show up to five older appearances.
 
+The panel now leaves more room between its introduction, Search, preset list,
+status, and lower actions. **Save Preset** changes from red to cyan as soon as
+text is entered in Preset Name. **Cancel Load** appears during loading and uses
+the otherwise hidden row without leaving an empty gap during normal use.
+
 **Save Location** now opens a scrollable folder picker instead of cycling
 through every folder one press at a time. The preset list, folder picker, and
 recovery list share the same space. The panel gives loads a short result such
@@ -187,7 +192,8 @@ again only when you intend to replace the existing preset.
 Panel Status gives a short loading result. A normal result confirms how many
 saved options were checked. If some choices could not be confirmed, select
 **View Load Details in CET** to open the advanced Load section and review the
-complete message.
+complete message. While a preset or recovery appearance is loading, select
+**Cancel Load** if you need to stop before it finishes.
 
 Select a preset before using **Move Preset to Trash**. The same button changes
 to **Confirm Move to Trash** for the second press. Restoration and permanent

@@ -36,6 +36,15 @@ used. See the README and in-game Help for current instructions.
 - Reads appearance-history files only when the player opens Recovery History.
   No editor scan, compatibility check, or preset refresh was added to the
   normal frame-update path.
+- Adds clear space below the three-line panel introduction and distributes the
+  preset list, selected details, recovery controls, status, and save controls
+  farther down the available panel height.
+- Changes **Save Preset** to the same cyan style as **Save Location** whenever
+  Preset Name contains text. Clearing the field returns it to red.
+- Adds a red **Cancel Load** action while a preset or recovery appearance is
+  loading. The button can reach the bridge while other actions are paused.
+- Uses the Cancel Load row only during loading. Trash and **Advanced Preset
+  Manager** move up when it is hidden, avoiding a permanent empty gap.
 
 </details>
 

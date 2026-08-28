@@ -312,6 +312,13 @@ local function handleNativeRequest(action, payload)
     return nativeStatus(state.status.sections.load.message,
       state.status.sections.load.error == true)
   end
+  if action == "cancel_load" then
+    state.app.nativeLoadSummary = nil
+    state.app.nativePanelShowDetails = false
+    cancelLoading()
+    return nativeStatus(state.status.sections.load.message,
+      state.status.sections.load.error == true)
+  end
   if action == "clear_history" then
     local cleared, message = clearAppearanceHistory(payload == "confirm")
     return cleared and "history" or "confirm_clear", cleared and historyPayload() or message
