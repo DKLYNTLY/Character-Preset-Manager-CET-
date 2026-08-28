@@ -115,10 +115,6 @@ Install the following versions or newer:
 - [redscript 0.5.31](https://www.nexusmods.com/cyberpunk2077/mods/1511)
 - [Codeware 1.20.3](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 
-ArchiveXL, TweakXL, Input Loader, cybercmd, Mod Settings, Native Settings UI,
-and Native Settings UI Side Menu Add-on are not required. ACU and Character
-Customization Anywhere are not requirements and must not remain installed.
-
 ## Installation
 
 1. Download the latest release from
@@ -135,9 +131,6 @@ The CET window opens near the right side on first use. CET remembers its size
 and position after you move or resize it.
 
 ## Updating from an older release
-
-Do not keep two Character Preset Manager installations beside each other.
-Version 3.0.7 does not move loose files left by older releases.
 
 1. Back up any `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
    from `Character Presets`.
@@ -458,11 +451,6 @@ separate from the quick character-screen controls.
 library by name or by the date a preset was last changed. CET key assignments
 remain under **Bindings**.
 
-The character-screen panel, five-entry appearance history, safety snapshots,
-missing-option warnings, and CET fallback behavior remain enabled for
-consistent recovery. Older reminder, clothing-warning, and log-detail settings
-are retired and safely ignored.
-
 The settings mirror is stored at `Data/Config/Config.txt`. Changes made through
 CET update it automatically. Do not edit that file while the game is running.
 
@@ -481,8 +469,6 @@ Data/
 `-- Logs/
     `-- Archive/
 ```
-
-CET folders exist in the catalog and do not create matching Windows folders.
 
 ## Performance and memory use
 
@@ -511,11 +497,6 @@ are supported. Keep the same mods, versions, body and eye choices, and load
 order used to create the preset. Review the appearance whenever that setup
 changes.
 
-[EKT Custom Character Creator - FEMV ONLY](https://www.nexusmods.com/cyberpunk2077/mods/12807)
-is one supported example when it uses the game's normal character system.
-Character Preset Manager does not change body models, skeletons, archive files,
-or files owned by other mods.
-
 ### Appearance Change Unlocker
 
 ACU is not compatible. Remove it and fully restart the game. Compatible ACU
@@ -540,8 +521,7 @@ editor closes. This also happens without Character Preset Manager. Clothing,
 wardrobe outfits, Equipment-EX, and detailed outfits may make it more likely.
 
 If it happens, remove all clothing and select **No Outfit** before opening the
-editor. Put the clothing and outfit back on afterward. Character Preset Manager
-does not scan equipped clothing while its window is open.
+editor. Put the clothing and outfit back on afterward.
 
 ## Activity Log
 
@@ -608,15 +588,6 @@ A format-8 CPM preset records its own name and library folder. The catalog can
 use those lines to rebuild the missing entry. `/` means **All Presets**. Older
 files remain loadable but do not contain the same recovery details.
 
-### Can ACU or Character Customization Anywhere remain installed?
-
-No. Remove both and fully restart the game.
-
-### Can Photo Mode or Appearance Menu Mod remain installed?
-
-Yes, but save and load through a supported character screen instead of their
-menus.
-
 ### Is the character shown in the screenshots included?
 
 No. The screenshots demonstrate the mod. My personal character preset is not
@@ -638,8 +609,7 @@ presets so existing collections are not lost, while using my own current
 format, code, interface, and controls.
 
 [Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
-by **keanuWheeze** inspired my Full Appearance Editor. It is not included and
-must not be installed beside Character Preset Manager.
+by **keanuWheeze** inspired my Full Appearance Editor.
 
 [Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107) was
 created by **yamashi** and is maintained by its contributors. Character Preset

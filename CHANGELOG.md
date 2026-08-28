@@ -34,6 +34,8 @@ used. See the README and in-game Help for current instructions.
   compatibility, troubleshooting, and credits use clear explanations.
 - Adds dedicated preview media for the simple character-screen menu and the
   advanced CET manager to their matching README sections.
+- Removes redundant dependency exclusions, repeated compatibility answers, and
+  other low-value text from the README.
 - Checks a fresh editor state while clearing old options and gives the editor
   time to settle. This prevents successful clears from being reported as
   unconfirmed while preserving warnings for options that truly remain set.
