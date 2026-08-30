@@ -5,7 +5,23 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.8</strong></summary>
+<summary><strong>Latest release — 3.0.9</strong></summary>
+
+## 3.0.9
+
+*Smoother character-editor opening when a preset library is present.*
+
+- Moves preset-file detail reads out of the character screen's opening frame.
+- Prepares two preset records per frame before connecting the character-screen
+  panel, instead of preparing the whole library while Cyberpunk builds the
+  editor.
+- Keeps search, favorites, tags, selected-preset details, and all panel actions
+  unchanged. The panel shows its connecting state until preparation finishes.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.8</strong></summary>
 
 ## 3.0.8
 

@@ -9,6 +9,8 @@ local nativeRowsCache = {}
 local nativeRowsCount = 0
 local nativeLocationsRevision = -1
 local nativeLocationsCache = {}
+local nativeMetadataQueue = nil
+local nativeMetadataIndex = 1
 
 local function cleanField(value)
   return tostring(value or ""):gsub("[%c]", " ")
@@ -385,11 +387,36 @@ connectNativeBridgeForMenu = function(menu)
     log("[NATIVE PANEL] The active appearance screen bridge could not be found.", "warn")
     return false
   end
-  return initializeNativeBridge(true, bridge)
+  state.app.nativeBridge = bridge
+  bridgeCall("SetLuaReady", false, VERSION, NATIVE_BRIDGE_PROTOCOL)
+  nativeMetadataQueue = helpers.sortedPresetNames()
+  nativeMetadataIndex = 1
+  log(("[NATIVE PANEL] Preparing %d preset record%s without delaying the character screen.")
+    :format(#nativeMetadataQueue, #nativeMetadataQueue == 1 and "" or "s"), "info")
+  return true
 end
 
 updateNativeBridge = function(delta)
   if not state.app.ready then return end
+  if nativeMetadataQueue then
+    if not state.app.nativeBridge then
+      nativeMetadataQueue = nil
+      nativeMetadataIndex = 1
+      return
+    end
+    local finalIndex = math.min(#nativeMetadataQueue,
+      nativeMetadataIndex + NATIVE_METADATA_FILES_PER_FRAME - 1)
+    for index = nativeMetadataIndex, finalIndex do
+      hydrateNamedPresetMetadata(nativeMetadataQueue[index])
+    end
+    nativeMetadataIndex = finalIndex + 1
+    if nativeMetadataIndex <= #nativeMetadataQueue then return end
+    local bridge = state.app.nativeBridge
+    nativeMetadataQueue = nil
+    nativeMetadataIndex = 1
+    initializeNativeBridge(true, bridge)
+    return
+  end
   if not state.app.nativeBridge then
     state.app.nativeBridgeRetryTimer = state.app.nativeBridgeRetryTimer
       + math.max(0, tonumber(delta) or 0)

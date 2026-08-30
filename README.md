@@ -8,7 +8,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.8</strong></p>
+<p align="center"><strong>Current version: 3.0.9</strong></p>
 
 Character Preset Manager adds a complete preset library to Cyberpunk's character
 screens and a larger management window inside Cyber Engine Tweaks. You can use
@@ -54,6 +54,15 @@ deletion.
   separate permanent-deletion action.
 - **Activity Log and searchable Help** — Review results in plain language and
   find instructions without leaving CET.
+
+## What changed in 3.0.9
+
+- **Smoother editor opening** — The character-screen preset panel now prepares
+  preset file details a few at a time after the character screen appears. This
+  avoids reading the full preset library while Cyberpunk is building the editor.
+- **No feature loss** — Search, favorites, tags, selected-preset details, and
+  the rest of the character-screen panel become available as soon as that short
+  preparation finishes.
 
 ## What changed in 3.0.8
 
@@ -140,7 +149,7 @@ and position after you move or resize it.
 1. Back up any `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
    from `Character Presets`.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
-3. Install version 3.0.8 and its current requirements.
+3. Install version 3.0.9 and its current requirements.
 4. Return your saved presets and sharing files to `Character Presets`.
 5. Fully restart the game so the redscript panel and bridge are rebuilt.
 
