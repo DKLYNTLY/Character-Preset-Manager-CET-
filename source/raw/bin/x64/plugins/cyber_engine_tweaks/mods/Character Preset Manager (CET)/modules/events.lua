@@ -211,6 +211,7 @@ events.onInit = function()
   log(("Preset files loaded: presets=%d directory='%s'")
     :format(presetCount, PRESET_DIR), "info")
   state.app.ready = true
+  initializeAcuImport()
   initializeNativeBridge(configLoaded)
   refreshAppearanceHistory()
   refreshEditorState()
@@ -242,6 +243,7 @@ end
 
 events.onUpdate = function(delta)
   local elapsed = tonumber(delta) or 0
+  updateAcuImport(elapsed)
   updateNativeBridge(elapsed)
   if not state.editor.openPending and not state.load.auto then
     return

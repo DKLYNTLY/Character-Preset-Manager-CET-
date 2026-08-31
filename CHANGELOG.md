@@ -5,7 +5,31 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.9</strong></summary>
+<summary><strong>Latest release — 3.0.10</strong></summary>
+
+## 3.0.10
+
+*Focused ACU preset importing without changing the proven CET manager or loading engine.*
+
+- Adds a small RED4ext background service that checks
+  `AppearanceChangeUnlocker/character-presets` after a short startup delay.
+- Checks the ACU folder again only when **Refresh** is selected in CET or the
+  character-screen panel. It never scans that folder every frame or whenever a
+  menu opens.
+- Imports safe files into the physical `Character Presets/ACU Presets` folder
+  and preserves their ACU subfolders.
+- Checks file names, sizes, and modified dates before reading changed contents.
+  A saved import record prevents unchanged files from being copied again.
+- Supports the camel-case JSON layout from ACU 3.0.0, the snake-case JSON layout
+  from ACU 3.0.1, and the text or native JSON layouts supported by ACU 3.2.1.
+- Adds imported presets to CET at no more than two files per frame.
+- Keeps the full CET manager, native panel, recovery tools, and existing loading
+  engine unchanged as the normal fallback if the import service is unavailable.
+
+</details>
+
+<details>
+<summary><strong>Version 3.0.9</strong></summary>
 
 ## 3.0.9
 

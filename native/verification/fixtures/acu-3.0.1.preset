@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "is_male_vo": true,
+  "options": [
+    {"name": "LocKey#300", "value": 7, "is_active": true},
+    {"name": "LocKey#400", "value": 2, "is_active": false}
+  ]
+}

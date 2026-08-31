@@ -145,6 +145,17 @@ state = {
     filesDirty = true,
     files = {},
   },
+  acuImport = {
+    pollTimer = 0,
+    generation = nil,
+    queue = {},
+    queueIndex = 1,
+    imported = 0,
+    rejected = 0,
+    skipped = 0,
+    requestSequence = 0,
+    requested = false,
+  },
   ui = {
     openSections = {
       editor = true,

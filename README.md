@@ -8,7 +8,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.9</strong></p>
+<p align="center"><strong>Current version: 3.0.10</strong></p>
 
 Character Preset Manager adds a complete preset library to Cyberpunk's character
 screens and a larger management window inside Cyber Engine Tweaks. You can use
@@ -17,9 +17,9 @@ want folders, comparison tools, sharing, backups, recovery, or permanent
 deletion.
 
 > [!IMPORTANT]
-> Remove **Appearance Change Unlocker (ACU)** and **Character Customization
-> Anywhere** before using this mod. They change the same character screens and
-> are not compatible. Fully restart the game after removing either mod.
+> Remove **Character Customization Anywhere** before using this mod. ACU preset
+> files are supported in 3.0.10, but use Character Preset Manager's controls to
+> load the imported copies. Do not start a second load from ACU at the same time.
 
 ## Features
 
@@ -48,12 +48,27 @@ deletion.
 - **Readable format-8 files** — Keep names, folders, dates, details, and saved
   choices in plain text while retaining support for older CPM and compatible
   ACU presets.
+- **Automatic ACU imports** — Copy new or updated ACU presets into a separate
+  `ACU Presets` folder after startup or when you select **Refresh**.
 - **Sharing and backups** — Send one preset, export a complete folder, combine
   selected presets, or protect the entire library in one backup.
 - **Recoverable Trash** — Restore presets and folder groups before choosing the
   separate permanent-deletion action.
 - **Activity Log and searchable Help** — Review results in plain language and
   find instructions without leaving CET.
+
+## What changed in 3.0.10
+
+- **Focused ACU import service** — A small RED4ext service checks ACU's preset
+  folder once after startup and again only when you select **Refresh**.
+- **Three ACU layouts supported** — Load the JSON layout used by ACU 3.0.0,
+  the renamed JSON fields used by 3.0.1, and the text or JSON presets supported
+  by 3.2.1.
+- **No repeated copies** — The importer checks each safe file name, size, and
+  modified date against its saved import record before opening the file.
+- **Smooth library updates** — New imports enter the CET library two files per
+  frame. The complete CET manager and its existing loading engine remain the
+  normal way to save, organize, and load appearances.
 
 ## What changed in 3.0.9
 
@@ -134,8 +149,9 @@ Install the following versions or newer:
 1. Download the latest release from
    [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
 2. Install the four requirements listed above.
-3. Remove ACU and Character Customization Anywhere if either is installed, then
-   fully restart the game.
+3. Remove Character Customization Anywhere if it is installed, then fully
+   restart the game. ACU may remain installed when you want its preset folder
+   imported, but use Character Preset Manager to load the imported copies.
 4. Extract the archive into the main `Cyberpunk 2077` game folder. The included
    `bin` and `r6` folders should merge with the folders already there.
 5. Start the game and open a supported character screen for the native panel.
@@ -149,11 +165,12 @@ and position after you move or resize it.
 1. Back up any `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
    from `Character Presets`.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
-3. Install version 3.0.9 and its current requirements.
+3. Install version 3.0.10 and its current requirements.
 4. Return your saved presets and sharing files to `Character Presets`.
 5. Fully restart the game so the redscript panel and bridge are rebuilt.
 
-Older CPM formats and compatible ACU `.preset` files remain readable. The mod
+Older CPM formats and ACU 3.0.0, 3.0.1, and 3.2.1 preset layouts remain
+readable. The mod
 does not rewrite an old preset just because it finds or loads it. Overwriting
 that preset, or saving its notes or tags, updates the file to format 8. Keep a
 backup if you may need to use the old copy with an earlier mod version.
@@ -546,6 +563,12 @@ editor reads run only while loading, use the normal load interval, and stop
 when the operation ends. The native panel polls only its small request bridge;
 it does not scan the appearance list during ordinary frames.
 
+The ACU import service checks
+`AppearanceChangeUnlocker/character-presets` once after a short startup delay.
+It checks that folder again only after you select **Refresh**. It compares file
+names, sizes, and modified dates with its saved record before reading changed
+files. CET adds no more than two imported presets to its library per frame.
+
 Large preset, folder, Trash, sharing, backup, preview, and Activity Log lists
 use pages instead of drawing every item at once. Backup discovery and
 previous-appearance availability are remembered rather than checked every
@@ -573,9 +596,12 @@ changes.
 
 ### Appearance Change Unlocker
 
-ACU is not compatible. Remove it and fully restart the game. Compatible ACU
-preset files remain loadable after ACU is gone, but new and updated presets use
-Character Preset Manager's current format.
+Character Preset Manager imports supported ACU files from
+`AppearanceChangeUnlocker/character-presets` into the physical
+`Character Presets/ACU Presets` folder. It preserves ACU subfolders and supports
+the preset layouts used by ACU 3.0.0, 3.0.1, and 3.2.1. Use Character Preset
+Manager's controls for the imported copy, and do not start an ACU load at the
+same time. New or updated Character Preset Manager files use format 8.
 
 ### Character Customization Anywhere
 
@@ -663,7 +689,8 @@ instruction but cannot open the overlay for you.
 
 ### Can older Character Preset Manager or ACU presets be used?
 
-Yes. Older CPM formats and compatible ACU presets remain readable. New presets
+Yes. Older CPM formats remain readable. ACU 3.0.0 camel-case JSON, ACU 3.0.1
+snake-case JSON, and ACU 3.2.1 text and JSON layouts are supported. New presets
 and files updated by this release use format 8.
 
 ### What happens if the CET folder list loses an entry?

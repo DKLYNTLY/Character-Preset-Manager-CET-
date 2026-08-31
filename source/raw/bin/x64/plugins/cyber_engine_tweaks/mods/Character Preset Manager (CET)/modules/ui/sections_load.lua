@@ -79,6 +79,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     if clearSearchUnavailable then ImGui.EndDisabled() end
     ImGui.SameLine()
     if ImGui.Button("Refresh##presetRefresh", searchButtonWidth, actionButtonHeight) then
+      requestAcuImport("CET Refresh")
       local _, refreshed, changes = refreshPresets("external")
       refreshTrash()
       if state.library.selected and state.library.presets[state.library.selected] then
@@ -89,7 +90,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       local removed = changes and changes.removed or 0
       local updated = changes and changes.modified or 0
       setStatus("load", refreshed
-        and ("Refreshed: %d added, %d updated, %d removed; %d available.")
+        and ("Refreshed: %d added, %d updated, %d removed; %d available. Checking ACU presets in the background.")
           :format(added, updated, removed, #helpers.sortedPresetNames())
         or "Refresh failed; the previous list was kept.", not refreshed)
     end

@@ -295,6 +295,7 @@ local function handleNativeRequest(action, payload)
     return "list", listPayload(nativeQuery, message, status.error)
   end
   if action == "refresh" then
+    requestAcuImport("native Refresh")
     refreshPresets("external")
     refreshTrash()
     return "list", listPayload(nativeQuery)

@@ -1,0 +1,8 @@
+{
+  "version": 1,
+  "isMaleVO": false,
+  "values": [
+    {"optionName": "LocKey#100", "value": 4, "isActive": true},
+    {"optionName": "LocKey#200", "value": 9, "isActive": false}
+  ]
+}

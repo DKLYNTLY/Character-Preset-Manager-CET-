@@ -3,6 +3,202 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
+local function decodeJsonPreset(contents)
+  local position, length = 1, #contents
+  local function skipSpace()
+    while position <= length and contents:sub(position, position):match("%s") do
+      position = position + 1
+    end
+  end
+  local parseValue
+  local function parseString()
+    if contents:sub(position, position) ~= '"' then return nil, false end
+    position = position + 1
+    local parts = {}
+    while position <= length do
+      local character = contents:sub(position, position)
+      if character == '"' then
+        position = position + 1
+        return table.concat(parts), true
+      end
+      if character == "\\" then
+        local escaped = contents:sub(position + 1, position + 1)
+        local replacements = {
+          ['"'] = '"', ["\\"] = "\\", ["/"] = "/", b = "\b",
+          f = "\f", n = "\n", r = "\r", t = "\t",
+        }
+        if replacements[escaped] then
+          parts[#parts + 1] = replacements[escaped]
+          position = position + 2
+        elseif escaped == "u" then
+          local hexadecimal = contents:sub(position + 2, position + 5)
+          local codepoint = #hexadecimal == 4 and tonumber(hexadecimal, 16) or nil
+          if not codepoint then return nil, false end
+          position = position + 6
+          if codepoint >= 0xD800 and codepoint <= 0xDBFF
+              and contents:sub(position, position + 1) == "\\u" then
+            local trailing = tonumber(contents:sub(position + 2, position + 5), 16)
+            if trailing and trailing >= 0xDC00 and trailing <= 0xDFFF then
+              codepoint = 0x10000 + (codepoint - 0xD800) * 0x400
+                + trailing - 0xDC00
+              position = position + 6
+            end
+          end
+          local encodedOk, encoded = false, nil
+          if utf8 and utf8.char then
+            encodedOk, encoded = pcall(utf8.char, codepoint)
+          end
+          if encodedOk then
+            parts[#parts + 1] = encoded
+          else
+            parts[#parts + 1] = "?"
+          end
+        else
+          return nil, false
+        end
+      else
+        if character:byte() < 32 then return nil, false end
+        parts[#parts + 1] = character
+        position = position + 1
+      end
+    end
+    return nil, false
+  end
+  local function parseNumber()
+    local remaining = contents:sub(position)
+    local token = remaining:match("^-?%d+%.?%d*[eE]?[+-]?%d*")
+    if not token or token == "" then return nil, false end
+    local value = tonumber(token)
+    if not value then return nil, false end
+    position = position + #token
+    return value, true
+  end
+  local function parseArray(depth)
+    position = position + 1
+    local result = {}
+    skipSpace()
+    if contents:sub(position, position) == "]" then
+      position = position + 1
+      return result, true
+    end
+    while position <= length do
+      local value, ok = parseValue(depth + 1)
+      if not ok then return nil, false end
+      result[#result + 1] = value
+      skipSpace()
+      local separator = contents:sub(position, position)
+      if separator == "]" then
+        position = position + 1
+        return result, true
+      end
+      if separator ~= "," then return nil, false end
+      position = position + 1
+      skipSpace()
+    end
+    return nil, false
+  end
+  local function parseObject(depth)
+    position = position + 1
+    local result = {}
+    skipSpace()
+    if contents:sub(position, position) == "}" then
+      position = position + 1
+      return result, true
+    end
+    while position <= length do
+      local key, keyOk = parseString()
+      if not keyOk then return nil, false end
+      skipSpace()
+      if contents:sub(position, position) ~= ":" then return nil, false end
+      position = position + 1
+      local value, valueOk = parseValue(depth + 1)
+      if not valueOk then return nil, false end
+      result[key] = value
+      skipSpace()
+      local separator = contents:sub(position, position)
+      if separator == "}" then
+        position = position + 1
+        return result, true
+      end
+      if separator ~= "," then return nil, false end
+      position = position + 1
+      skipSpace()
+    end
+    return nil, false
+  end
+  parseValue = function(depth)
+    if depth > 16 then return nil, false end
+    skipSpace()
+    local character = contents:sub(position, position)
+    if character == '"' then return parseString() end
+    if character == "{" then return parseObject(depth) end
+    if character == "[" then return parseArray(depth) end
+    if contents:sub(position, position + 3) == "true" then
+      position = position + 4
+      return true, true
+    end
+    if contents:sub(position, position + 4) == "false" then
+      position = position + 5
+      return false, true
+    end
+    if contents:sub(position, position + 3) == "null" then
+      position = position + 4
+      return false, true
+    end
+    return parseNumber()
+  end
+  local result, ok = parseValue(0)
+  skipSpace()
+  if not ok or position <= length then return nil end
+  return result
+end
+
+local function readAcuJsonPreset(file, path, metadataOnly)
+  local contents = file:read("*a")
+  if type(contents) ~= "string" then return nil end
+  local decoded = decodeJsonPreset(contents)
+  if type(decoded) ~= "table" then
+    log(("[FILES] ACU JSON preset could not be read: file='%s'.")
+      :format(path), "warn")
+    return nil
+  end
+  local options = decoded.options or decoded.values
+  if type(options) ~= "table" and #decoded > 0 then options = decoded end
+  if type(options) ~= "table" then return nil end
+  local entries = {}
+  for _, option in ipairs(options) do
+    if type(option) == "table" then
+      local key = option.name or option.optionName or option.key
+      local index = option.value
+      if index == nil then index = option.index end
+      local active = option.is_active
+      if active == nil then active = option.isActive end
+      local numericIndex = tonumber(index)
+      if active ~= false and type(key) == "string" and key ~= ""
+          and #key <= MAX_PRESET_KEY_BYTES
+          and not optionIndexValidationError(numericIndex) then
+        if #entries >= MAX_PRESET_ENTRIES then return nil end
+        entries[#entries + 1] = { key = key, index = numericIndex }
+      end
+    end
+  end
+  if #entries == 0 then return nil end
+  local style = decoded.isMaleVO ~= nil and "3.0.0" or "3.0.1 or newer"
+  return {
+    format = 4,
+    source = "ACU " .. style .. " JSON preset",
+    notes = "",
+    tags = "ACU",
+    favorite = false,
+    managedByCpm = false,
+    entries = not metadataOnly and entries or nil,
+    entryCount = #entries,
+    entryCountKnown = true,
+    metadataLoaded = true,
+    lazy = metadataOnly == true,
+  }
+end
+
 function readPresetFile(path, metadataOnly)
   local file = io.open(path, "r")
   if not file then return nil end
@@ -15,6 +211,19 @@ function readPresetFile(path, metadataOnly)
   end
   local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
   if not rewindOk or rewindResult == nil then file:close(); return nil end
+  local firstCharacter
+  while true do
+    firstCharacter = file:read(1)
+    if not firstCharacter or not firstCharacter:match("%s") then break end
+  end
+  local jsonPreset = firstCharacter == "{" or firstCharacter == "["
+  local jsonRewindOk, jsonRewindResult = pcall(file.seek, file, "set", 0)
+  if not jsonRewindOk or jsonRewindResult == nil then file:close(); return nil end
+  if jsonPreset then
+    local preset = readAcuJsonPreset(file, path, metadataOnly)
+    file:close()
+    return preset
+  end
   local entries = {}
   local entryCount = 0
   local metadata = { format = 4, source = "Legacy or ACU-compatible" }

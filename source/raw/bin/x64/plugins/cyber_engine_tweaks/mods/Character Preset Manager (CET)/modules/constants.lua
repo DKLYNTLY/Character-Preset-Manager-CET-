@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 MOD_NAME = "Character Preset Manager (CET)"
-VERSION = "3.0.9"
+VERSION = "3.0.10"
 PRESET_DIR = "Character Presets"
 DATA_DIR = "Data"
 CONFIG_DIR = DATA_DIR .. "/Config"
@@ -21,6 +21,8 @@ TRANSACTION_FILE = RECOVERY_DIR .. "/Recovery Journal.txt"
 CATALOG_FILE = CATALOG_DIR .. "/Virtual Folders.txt"
 INVENTORY_FILE = CATALOG_DIR .. "/Preset Inventory.txt"
 IMPORTED_BUNDLES_FILE = CATALOG_DIR .. "/Imported Bundles.txt"
+ACU_IMPORT_REQUEST_FILE = CONFIG_DIR .. "/ACU Import Request.txt"
+ACU_IMPORT_RESULTS_FILE = CATALOG_DIR .. "/ACU Import Results.txt"
 LOG_FILE = LOG_DIR .. "/Activity.log"
 LOG_ARCHIVE_PREFIX = "Activity "
 WINDOW_POSITION_STATUS_FILE = CONFIG_DIR .. "/Window Position Status.txt"
@@ -68,6 +70,8 @@ NATIVE_LIST_LIMIT = 96
 APPEARANCE_HISTORY_LIMIT = 5
 NATIVE_REQUEST_POLL_SECONDS = 0.05
 NATIVE_METADATA_FILES_PER_FRAME = 2
+ACU_IMPORT_FILES_PER_FRAME = 2
+ACU_IMPORT_POLL_SECONDS = 0.25
 NATIVE_READY_STATUS = "Ready. Choose a preset to load it, or save the current appearance below."
 
 return _ENV
