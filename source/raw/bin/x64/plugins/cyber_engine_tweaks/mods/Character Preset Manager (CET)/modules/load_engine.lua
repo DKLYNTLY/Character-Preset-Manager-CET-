@@ -1277,6 +1277,9 @@ refreshPreflight = function()
     end
     return
   end
+  if logAcuDangerousOptions then
+    logAcuDangerousOptions(preset, options, state.library.selected)
+  end
   local matchingStarted = helpers.loadClock()
   local savedCounts, savedSlotCounts = {}, {}
   for _, entry in ipairs(preset.entries or {}) do

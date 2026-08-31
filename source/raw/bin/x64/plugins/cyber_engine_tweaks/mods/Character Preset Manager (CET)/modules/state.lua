@@ -155,6 +155,7 @@ state = {
     skipped = 0,
     requestSequence = 0,
     requested = false,
+    dangerousLogged = {},
   },
   ui = {
     openSections = {

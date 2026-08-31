@@ -56,6 +56,7 @@ import_lua.execute(
     r"""
 resultContents = "generation\told\nsummary\t0\t0\n"
 readCount = 0
+messages = {}
 presetCount = function(presets)
   local count = 0
   for _ in pairs(presets) do count = count + 1 end
@@ -95,7 +96,8 @@ runtime = {
   invalidateViewCache = function() end,
   resetLoadState = function() end,
   setStatus = function() end,
-  log = function() end,
+  optionKey = function(option) return option.key end,
+  log = function(message) messages[#messages + 1] = message end,
   atomicReplace = function() return true end,
   writeFileSafely = function() return true end,
 }
@@ -125,3 +127,31 @@ import_runtime.updateAcuImport(0)
 assert import_lua.globals().readCount == 0
 assert import_lua.globals().presetCount(import_runtime.state.library.presets) == 3
 assert len(import_runtime.state.acuImport.queue) == 0
+import_lua.execute("messages = {}")
+
+dangerous_preset = import_lua.table_from({
+    "storage": "ACU Presets/female/Dangerous",
+    "fingerprint": "dangerous-fingerprint",
+    "entries": import_lua.table_from([
+        import_lua.table_from({"key": "lockEyes", "index": 1}),
+        import_lua.table_from({"key": "LocKey#700", "index": 2}),
+        import_lua.table_from({"key": "LocKey#800", "index": 3}),
+        import_lua.table_from({"key": "LocKey#900", "index": 4}),
+    ]),
+})
+live_options = import_lua.table_from([
+    import_lua.table_from({"key": "LocKey#700", "isEditable": False, "isActive": True}),
+    import_lua.table_from({"key": "LocKey#800", "isEditable": True, "isActive": True}),
+])
+dangerous_count = import_runtime.logAcuDangerousOptions(
+    dangerous_preset, live_options, "ACU Presets/female/Dangerous"
+)
+assert dangerous_count == 2
+assert len(import_lua.globals().messages) == 2
+assert "lockEyes" in import_lua.globals().messages[1]
+assert "LocKey#700" in import_lua.globals().messages[2]
+assert "LocKey#900" not in "\n".join(import_lua.globals().messages.values())
+import_runtime.logAcuDangerousOptions(
+    dangerous_preset, live_options, "ACU Presets/female/Dangerous"
+)
+assert len(import_lua.globals().messages) == 2

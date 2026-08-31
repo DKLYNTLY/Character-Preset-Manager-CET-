@@ -27,6 +27,10 @@ used. See the README and in-game Help for current instructions.
   preset library. CET adds no more than two lightweight records per frame.
 - Defers full imported-preset reads until the preset is selected, checked, or
   loaded. Character-screen initialization no longer opens preset files.
+- Compares a selected ACU preset with the game's current editor options. The
+  Activity Log names internal eye locks and other saved options that the game
+  marks inactive or not editable. The imported file is kept unchanged, and the
+  warning does not change loading.
 - Keeps the full CET manager, native panel, recovery tools, and existing loading
   engine unchanged as the normal fallback if the import service is unavailable.
 

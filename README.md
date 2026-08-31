@@ -71,6 +71,10 @@ deletion.
   lightweight records, two per frame. Full contents stay unread until a preset
   is selected, checked, or loaded. Character-screen initialization does not
   open preset files.
+- **Dangerous ACU options are reported** — When an imported preset is checked,
+  the Activity Log names saved options such as internal eye locks that the game
+  marks inactive or not editable. The preset remains imported and unchanged.
+  This warning does not change loading.
 
 ## What changed in 3.0.9
 
