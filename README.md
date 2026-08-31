@@ -10,16 +10,38 @@
 
 <p align="center"><strong>Current version: 3.1.0</strong></p>
 
-Character Preset Manager adds a complete preset library to Cyberpunk's character
-screens and a larger management window inside Cyber Engine Tweaks. You can use
-the in-game panel for quick saving and one-click loading, then open CET when you
-want folders, comparison tools, sharing, backups, recovery, or permanent
-deletion.
+Character Preset Manager is the successor to Appearance Change Unlocker (ACU).
+It carries ACU preset collections forward and expands the idea into a complete
+appearance library with safer loading, folders, compatibility checks, recovery,
+sharing, backups, and clear activity records.
+
+The mod has two interfaces. Use the simple panel inside Cyberpunk's character
+screens for quick saving and one-click loading. Open the complete manager in the
+Cyber Engine Tweaks overlay when you want every feature or need a dependable
+fallback.
 
 > [!IMPORTANT]
 > Remove **Character Customization Anywhere** before using this mod. ACU preset
 > files are supported in 3.1.0, but use Character Preset Manager's controls to
 > load the imported copies. Do not start a second load from ACU at the same time.
+
+> [!NOTE]
+> **Future Cyberpunk versions:** the simple character-screen panel is connected
+> directly to the game's interface and may need an update after a major game
+> patch. The complete CET manager will remain the backup interface for saving,
+> loading, organizing, and recovering presets while the simple panel is being
+> updated. Open the CET overlay and choose **Character Preset Manager**. CET and
+> the other required frameworks must also support the new game version.
+
+## Choose the interface you need
+
+| Interface | Best for | After a major game update |
+|---|---|---|
+| **Simple character-screen panel** | Quick saving, searching, loading, Refresh, recovery, and Trash | May need a compatibility update if Cyberpunk changes its character-screen interface |
+| **Complete CET manager** | Every preset feature, detailed checks, folders, sharing, backups, logs, Help, and permanent deletion | Use this as the backup when the simple panel is unavailable |
+
+Both interfaces use the same preset library and loading engine. A missing simple
+panel does not mean your presets were deleted.
 
 ## Features
 
@@ -50,6 +72,8 @@ deletion.
   ACU presets.
 - **Automatic ACU imports** — Copy new or updated ACU presets into a separate
   `ACU Presets` folder after startup or when you select **Refresh**.
+- **Successor to ACU** — Keep compatible ACU 3.0.0, 3.0.1, and 3.2.1 preset
+  collections while moving to one maintained manager and current preset format.
 - **Sharing and backups** — Send one preset, export a complete folder, combine
   selected presets, or protect the entire library in one backup.
 - **Recoverable Trash** — Restore presets and folder groups before choosing the
@@ -176,10 +200,83 @@ and position after you move or resize it.
 5. Fully restart the game so the redscript panel and bridge are rebuilt.
 
 Older CPM formats and ACU 3.0.0, 3.0.1, and 3.2.1 preset layouts remain
-readable. The mod
-does not rewrite an old preset just because it finds or loads it. Overwriting
-that preset, or saving its notes or tags, updates the file to format 8. Keep a
+readable. The mod does not rewrite an old preset just because it finds or loads
+it. Overwriting that preset, or saving its notes or tags, updates the file to
+format 8. Keep a
 backup if you may need to use the old copy with an earlier mod version.
+
+</details>
+
+<details open>
+<summary><strong>Importing presets from Appearance Change Unlocker (ACU)</strong></summary>
+
+## What the ACU importer does
+
+Character Preset Manager automatically copies compatible presets from ACU's
+folder into its own library. Your original ACU files are not moved, renamed, or
+rewritten. Imported copies appear in the physical **ACU Presets** folder and in
+the same folder inside Character Preset Manager.
+
+The importer supports these ACU layouts:
+
+- ACU 3.0.0 JSON presets
+- ACU 3.0.1 JSON presets
+- ACU 3.2.1 text and JSON presets
+
+## Import ACU presets step by step
+
+1. Confirm that the ACU files end in `.preset` and are stored here:
+
+   ```text
+   bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets
+   ```
+
+2. Install Character Preset Manager 3.1.0 and all four requirements.
+3. Fully restart the game. The importer waits briefly after startup before it
+   checks ACU's folder.
+4. Open the CET overlay and choose **Character Preset Manager**.
+5. Look for the **ACU Presets** folder in the preset list.
+6. If the files are not shown yet, select **Refresh** once and wait a moment.
+7. Select an imported preset and use **Check Compatibility** when you want to
+   review it before loading.
+8. Load the imported copy through Character Preset Manager. Do not start a
+   second load from ACU at the same time.
+
+After the copies appear, removing ACU does not remove them from Character Preset
+Manager. Keep your original files until you have checked the imported copies and
+made a separate backup.
+
+## Where imported presets are stored
+
+Imported copies are written here:
+
+```text
+bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets/ACU Presets
+```
+
+ACU subfolders are preserved. New or changed source files are copied again when
+needed. Unchanged files are skipped, so they are not repeatedly copied whenever
+you open a menu.
+
+## If ACU presets do not appear
+
+Check these items in order:
+
+1. Make sure the source folder is named exactly `AppearanceChangeUnlocker` and
+   contains the `character-presets` folder shown above.
+2. Make sure each file ends in `.preset`, is not empty, and is no larger than
+   1 MB.
+3. Confirm that RED4ext and the other required frameworks are installed and
+   support your Cyberpunk version.
+4. Fully restart the game. Reloading a save is not the same as restarting.
+5. Open the CET manager and select **Refresh** once.
+6. Open **Log** and look for an **ACU IMPORT** or **ACU SAFETY** message. Include
+   that message when asking for help.
+
+An imported preset may contain an internal option, such as an eye-lock field,
+that the game marks inactive or not editable. Character Preset Manager keeps the
+preset unchanged and records the exact option in the Activity Log. The warning
+does not reject the imported file or change loading.
 
 </details>
 
@@ -214,9 +311,9 @@ or restoring an appearance.
 </details>
 
 <details>
-<summary><strong>Using the character-screen panel</strong></summary>
+<summary><strong>Quick interface: using the simple character-screen panel</strong></summary>
 
-## Using the character-screen panel
+## Using the simple character-screen panel
 
 Select a preset once to load it. Folder rows open and close their contents,
 Favorites remain near the top, and presets outside folders appear under **All
@@ -256,7 +353,7 @@ logs, and Help.
 </details>
 
 <details>
-<summary><strong>Saving, loading, and compatibility checks</strong></summary>
+<summary><strong>Complete CET manager: saving, loading, and compatibility checks</strong></summary>
 
 ## Saving a preset in CET
 
@@ -596,6 +693,19 @@ library details remain ready for the next use.
 
 ## Compatibility
 
+### Future Cyberpunk versions and the CET fallback
+
+The simple panel is added directly to Cyberpunk's character screens. A major
+game update may change those screens, so the simple panel may need a matching
+Character Preset Manager update before it appears or works correctly again.
+
+The complete CET manager is the backup interface. If the simple panel is not
+ready for a new game version, open the CET overlay and choose **Character Preset
+Manager**. You can continue using the same preset library, saving, loading,
+folders, recovery, sharing, backups, compatibility checks, logs, and Help from
+CET. Update CET, RED4ext, redscript, and Codeware to versions that support the
+new Cyberpunk release first.
+
 ### CC and CCXL character-option mods
 
 These mods are supported when their options appear in Cyberpunk's normal
@@ -670,6 +780,14 @@ message does not change, verify all four requirements, reinstall the current
 archive, and fully restart the game. A redscript change cannot be refreshed in
 an existing session.
 
+### The simple panel is missing after a Cyberpunk update
+
+Open the CET overlay and choose **Character Preset Manager**. The complete CET
+manager is the backup while the simple panel is updated for the changed game
+interface. Your presets are still in the same library. Update all four required
+frameworks, check for a current Character Preset Manager release, and fully
+restart the game after installing updates.
+
 ### A preset reports missing choices
 
 Confirm that the same character-option mods, versions, body and eye choices,
@@ -696,6 +814,14 @@ instruction but cannot open the overlay for you.
 <summary><strong>Frequently asked questions</strong></summary>
 
 ## Frequently asked questions
+
+### Is Character Preset Manager the successor to ACU?
+
+Yes. Character Preset Manager carries compatible ACU preset collections forward
+and replaces ACU's preset workflow with a maintained library, verified loading,
+folders, recovery, sharing, backups, compatibility checks, logs, and two user
+interfaces. Import the ACU files once, then use Character Preset Manager to load
+the imported copies.
 
 ### Can older Character Preset Manager or ACU presets be used?
 
@@ -727,9 +853,10 @@ release choices and reviewed the finished work before publishing it.
 I created and maintain Character Preset Manager as **dklyntly**.
 
 [ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850)
-by **PotatoOfDoom** inspired this project. I kept support for compatible ACU
-presets so existing collections are not lost, while using my own current
-format, code, interface, and controls.
+by **PotatoOfDoom** is the predecessor to this project. I built Character Preset
+Manager as its successor and kept support for compatible ACU presets so existing
+collections are not lost. My current format, code, interfaces, loading system,
+and controls are separate implementations.
 
 [Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
 by **keanuWheeze** inspired my Full Appearance Editor.

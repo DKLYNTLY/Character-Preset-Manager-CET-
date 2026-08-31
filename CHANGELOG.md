@@ -33,6 +33,10 @@ used. See the README and in-game Help for current instructions.
   warning does not change loading.
 - Keeps the full CET manager, native panel, recovery tools, and existing loading
   engine unchanged as the normal fallback if the import service is unavailable.
+- Rewrites the main description and ACU import instructions with clearly labeled
+  setup, folder, troubleshooting, and future-version fallback sections. It also
+  identifies Character Preset Manager as ACU's successor and explains that the
+  complete CET manager remains the backup when the simple panel needs an update.
 
 </details>
 

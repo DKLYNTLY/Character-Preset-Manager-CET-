@@ -241,11 +241,12 @@ if state.ui.helpOpen then
       end
 
       if showHelpTopic("Problems & Compatibility",
-          "bug bugs issue issues problem problems error errors troubleshooting stuck infinite loading screen clothing clothes wardrobe outfit no outfit ACU appearance change unlocker character customization anywhere photo mode appearance menu mod incompatible incompatibility compatibility") then
+          "bug bugs issue issues problem problems error errors troubleshooting stuck infinite loading screen clothing clothes wardrobe outfit no outfit ACU appearance change unlocker character customization anywhere photo mode appearance menu mod incompatible incompatibility compatibility future update patch simple panel missing successor backup") then
       helpHeading("Problems & Compatibility")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
         "Remove Character Customization Anywhere, then restart the game. It changes the same character screens and cannot be used with Character Preset Manager.")
       ImGui.TextWrapped("ACU preset files are imported after startup. A background watcher detects later changes, and Refresh requests a check when watching is unavailable. Use Character Preset Manager to load the imported copies, and do not start an ACU load at the same time.")
+      ImGui.TextWrapped("Character Preset Manager is ACU's successor. If a future Cyberpunk update changes the simple character-screen panel, open Character Preset Manager in the CET overlay and use the complete CET manager as the backup interface. Your presets remain in the same library.")
       ImGui.TextWrapped("Keep the same character option mods, versions, and load order that were used to make the preset. If they change, check the appearance and save the preset again.")
       ImGui.TextWrapped("Photo Mode and Appearance Menu Mod may stay installed, but you cannot save or load presets inside their menus. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
@@ -385,12 +386,10 @@ if state.ui.helpOpen then
       end
 
       if showHelpTopic("Share One Preset",
-          "share sharing send install import export preset file path character presets download upload bug issue wrong option legacy older ACU") then
+          "share sharing send install export preset file path character presets download upload bug issue wrong option legacy older") then
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load & Restore Appearance.")
-      ImGui.TextWrapped("A current format-8 CPM preset records its preset name and CET folder. The mod uses those details when the saved folder list has no entry for the preset. Older Character Preset Manager files and the preset layouts used by ACU 3.0.0, 3.0.1, and 3.2.1 can still be loaded.")
-      ImGui.TextWrapped("The ACU import service checks AppearanceChangeUnlocker/character-presets after startup. A folder watcher detects later changes, and Refresh is the fallback. Imported files appear under ACU Presets as lightweight records, no more than two per frame. Their full contents are read only after you select, check, or load them.")
-      ImGui.TextWrapped("When you check an imported ACU preset, the Activity Log names internal eye locks and other saved options that the game marks inactive or not editable. The preset stays imported and unchanged. The warning does not change loading.")
+      ImGui.TextWrapped("A current format-8 CPM preset records its preset name and CET folder. The mod uses those details when the saved folder list has no entry for the preset. Older Character Preset Manager files remain readable.")
       ImGui.TextWrapped("New format-8 preset files begin with CPM Preset and use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
       ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
       ui.pathCallout("##presetFolderPath", "Preset Folder",
@@ -400,6 +399,17 @@ if state.ui.helpOpen then
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       end
       helpButton("Copy Preset Folder Path", "Copies the displayed Character Presets folder path so you can paste it into File Explorer or a message.")
+      end
+
+      if showHelpTopic("Import ACU Presets",
+          "ACU appearance change unlocker successor import importing migrate migration preset presets 3.0.0 3.0.1 3.2.1 missing refresh watcher safety dangerous lock eyes") then
+      helpHeading("Import ACU Presets")
+      ImGui.TextWrapped("Character Preset Manager is ACU's successor and supports the preset layouts used by ACU 3.0.0, 3.0.1, and 3.2.1.")
+      ImGui.TextWrapped("Place the .preset files in bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets, then fully restart the game. The importer checks that folder shortly after startup.")
+      ImGui.TextWrapped("Open Character Preset Manager in CET and look under ACU Presets. If the copies are not shown, select Refresh once and wait a moment. Load the imported copies through Character Preset Manager, not ACU.")
+      ImGui.TextWrapped("The original ACU files stay unchanged. New or changed files are copied when needed, and unchanged files are skipped. ACU subfolders are preserved.")
+      ImGui.TextWrapped("If a preset does not appear, confirm that it ends in .preset, is not empty, is no larger than 1 MB, and is in the exact ACU folder above. Then check the Activity Log for ACU IMPORT or ACU SAFETY messages.")
+      ImGui.TextWrapped("The Activity Log names internal eye locks and other options that the game marks inactive or not editable. The imported preset stays unchanged, and the warning does not change loading.")
       end
 
       if showHelpTopic("Share a Folder",
