@@ -119,7 +119,10 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       local folderMatches = state.cache.folderMatches[folder] == true
       local matchingPresets = state.cache.matchingPresetsByFolder[folder] or EMPTY_LIST
       local descendantMatches = matchedFolders[folder] == true
-      if subtreeCount > 0 and (folderMatches or #matchingPresets > 0 or descendantMatches) then
+      local parentVisible = queryActive
+        or folderAncestorsExpanded(folder, state.library.expandedLoadFolders)
+      if subtreeCount > 0 and parentVisible
+          and (folderMatches or #matchingPresets > 0 or descendantMatches) then
         local expanded = state.library.expandedLoadFolders[folder] == true
         loadRows[#loadRows + 1] = {
           kind = "folder", folder = folder, count = subtreeCount, expanded = expanded
@@ -187,12 +190,21 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           local expanded = row.expanded
           local folderKind = state.library.manualFolders[folder]
             and " (imported)" or ""
+          local depth = folderDepth(folder)
+          local branch = depth > 0
+            and string.rep("  ", depth - 1) .. "> " or ""
           ImGui.SetNextItemOpen(expanded or queryActive, ImGuiCond.Always)
           local treeFlags = 8 + 2048 + (expanded and 1 or 0)
+          if depth > 0 then
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
+          else
+            ImGui.PushStyleColor(ImGuiCol.Text, 0.22, 0.92, 1.0, 1.0)
+          end
           local nodeOpen = ImGui.TreeNodeEx(
-            string.rep("  ", folderDepth(folder)) .. baseName(folder) ..
+            branch .. baseName(folder) ..
               (" (%d)"):format(row.count) .. folderKind .. "##loadFolder:" .. folder,
             treeFlags)
+          ImGui.PopStyleColor(1)
           if not queryActive then
             state.library.expandedLoadFolders[folder] = nodeOpen
           end

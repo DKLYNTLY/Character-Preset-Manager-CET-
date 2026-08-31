@@ -295,6 +295,15 @@ function folderDepth(name)
   return depth
 end
 
+function folderAncestorsExpanded(name, expandedFolders)
+  local current = parentFolder(tostring(name or ""))
+  while current ~= "" do
+    if not (expandedFolders or {})[current] then return false end
+    current = parentFolder(current)
+  end
+  return true
+end
+
 function presetPath(name)
   local preset = state.library.presets[name]
   local storage = preset and preset.storage or name

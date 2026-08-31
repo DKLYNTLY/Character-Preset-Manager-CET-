@@ -99,6 +99,9 @@ panel does not mean your presets were deleted.
   the Activity Log names saved options such as internal eye locks that the game
   marks inactive or not editable. The preset remains imported and unchanged.
   This warning does not change loading.
+- **Correct folder trees** — Collapsed folders now hide their subfolders and
+  presets in both the simple panel and CET manager. Expanded subfolders use a
+  separate yellow label and child marker so each folder level is clear.
 
 ## What changed in 3.0.9
 
@@ -320,6 +323,10 @@ Favorites remain near the top, and presets outside folders appear under **All
 Presets**. Use Search to filter the visible library, or select **Refresh** after
 adding or changing preset files outside the game. The selected-preset card shows
 the folder, saved-option count, file format, and tags.
+
+A collapsed folder hides all of its subfolders and presets. Expand it to show
+its direct contents. Main folders are cyan, while nested folders are yellow and
+begin with `>` so the hierarchy remains visible at every screen resolution.
 
 Select **Undo Last Load** to restore the newest recovery appearance. Select
 **Recovery History** to replace the preset rows with up to five recovery

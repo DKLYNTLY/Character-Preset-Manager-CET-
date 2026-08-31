@@ -37,6 +37,10 @@ used. See the README and in-game Help for current instructions.
   setup, folder, troubleshooting, and future-version fallback sections. It also
   identifies Character Preset Manager as ACU's successor and explains that the
   complete CET manager remains the backup when the simple panel needs an update.
+- Fixes collapsed folders showing nested folders in the simple panel and CET
+  manager. Nested folders now appear only when every parent is expanded, except
+  during a search, and use a yellow child marker to separate them from cyan
+  main folders.
 
 </details>
 

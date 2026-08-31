@@ -66,15 +66,19 @@ public class PanelButton extends CustomButton {
     this.selected = selected;
     this.frame.SetTintColor(selected ? HDRColor(0.10, 0.72, 0.80, 1.0) : HDRColor(0.05, 0.06, 0.07, 1.0));
     this.frame.SetOpacity(selected ? 0.28 : 0.16);
-    this.m_label.SetTintColor(selected ? HDRColor(0.22, 0.92, 1.0, 1.0) : (this.style == 3 ? HDRColor(0.22, 0.92, 1.0, 1.0) : HDRColor(1.0, 0.24, 0.22, 1.0)));
+    this.m_label.SetTintColor(selected ? HDRColor(0.22, 0.92, 1.0, 1.0) : (this.style == 4 ? HDRColor(1.0, 0.76, 0.20, 1.0) : (this.style == 3 ? HDRColor(0.22, 0.92, 1.0, 1.0) : HDRColor(1.0, 0.24, 0.22, 1.0))));
     this.ApplyPressedState();
   }
   public func SetStyle(value: Int32) -> Void {
     this.style = value;
-    if value == 3 {
-      this.m_label.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
+    if value == 4 {
+      this.m_label.SetTintColor(HDRColor(1.0, 0.76, 0.20, 1.0));
     } else {
-      this.m_label.SetTintColor(HDRColor(1.0, 0.24, 0.22, 1.0));
+      if value == 3 {
+      this.m_label.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
+      } else {
+        this.m_label.SetTintColor(HDRColor(1.0, 0.24, 0.22, 1.0));
+      };
     };
     this.ApplyPressedState();
   }
@@ -379,7 +383,7 @@ public class PresetPanel extends inkCustomController {
           return true;
         };
         if absolute < ArraySize(this.rowKinds) {
-          if Equals(this.rowKinds[absolute], "FOLDER") {
+          if Equals(this.rowKinds[absolute], "FOLDER") || Equals(this.rowKinds[absolute], "SUBFOLDER") {
             this.bridge.Request("toggle_folder", this.rowValues[absolute]);
             this.ReleaseButtonFocus();
           } else {
@@ -665,7 +669,7 @@ public class PresetPanel extends inkCustomController {
           };
         };
         this.listButtons[index].SetText(StrLen(label) > 50 ? StrLeft(label, 47) + "..." : label);
-        this.listButtons[index].SetStyle(Equals(kind, "FOLDER") || Equals(kind, "HEADING") || Equals(kind, "LOCATION") || Equals(kind, "HISTORY") ? 3 : 0);
+        this.listButtons[index].SetStyle(Equals(kind, "SUBFOLDER") ? 4 : (Equals(kind, "FOLDER") || Equals(kind, "HEADING") || Equals(kind, "LOCATION") || Equals(kind, "HISTORY") ? 3 : 0));
         this.listButtons[index].SetSelected((Equals(kind, "PRESET") && Equals(value, this.selectedName)) || (Equals(kind, "LOCATION") && Equals(value, this.selectedSaveLocation)));
       };
       index += 1;

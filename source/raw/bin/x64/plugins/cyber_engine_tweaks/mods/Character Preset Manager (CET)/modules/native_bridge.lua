@@ -120,10 +120,15 @@ local function listPayload(query, overrideMessage, overrideError)
     for _, folder in ipairs(sortedFolderNames()) do
       local count = state.cache.folderPresetCounts[folder] or 0
       local folderMatches = query == "" or folder:lower():find(query, 1, true) ~= nil
-      if count > 0 and (folderMatches or matchedFolders[folder]) then
+      local parentVisible = query ~= ""
+        or folderAncestorsExpanded(folder, state.library.expandedLoadFolders)
+      if count > 0 and parentVisible and (folderMatches or matchedFolders[folder]) then
         local expanded = state.library.expandedLoadFolders[folder] == true
-        local prefix = string.rep("  ", folderDepth(folder)) .. (expanded and "[-] " or "[+] ")
-        if not addRow("FOLDER", folder,
+        local depth = folderDepth(folder)
+        local prefix = depth > 0
+          and string.rep("  ", depth - 1) .. "> " or ""
+        prefix = prefix .. (expanded and "[-] " or "[+] ")
+        if not addRow(depth > 0 and "SUBFOLDER" or "FOLDER", folder,
             prefix .. baseName(folder) .. " (" .. tostring(count) .. ")") then break end
         if expanded or query ~= "" then
           for _, name in ipairs(helpers.presetsInFolder(folder)) do
