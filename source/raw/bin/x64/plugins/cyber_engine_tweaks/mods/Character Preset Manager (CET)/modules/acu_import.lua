@@ -74,22 +74,20 @@ local function addPhysicalFolders(storage)
 end
 
 local function importStorage(storage)
-  local path = PRESET_DIR .. "/" .. storage .. ".preset"
-  local preset = readPresetFile(path, true)
-  if not preset then
-    log(("[ACU IMPORT] Skipped an unreadable or incompatible preset: '%s'.")
-      :format(path), "warn")
-    return false
-  end
-  preset.storage = storage
-  preset.fingerprint = fileFingerprint(path, MAX_PRESET_BYTES)
-  if not preset.fingerprint then return false end
+  local preset = {
+    storage = storage,
+    entryCount = 0,
+    entryCountKnown = false,
+    metadataLoaded = false,
+    lazy = true,
+  }
   local logicalName = uniqueImportedName(storage)
   if not logicalName then return false end
   state.library.presets[logicalName] = preset
   addFolderAncestors(state.library.folders, parentFolder(logicalName))
   addPhysicalFolders(storage)
-  log(("[ACU IMPORT] Added or updated '%s'."):format(logicalName), "info")
+  log(("[ACU IMPORT] Added or updated the lightweight record for '%s'.")
+    :format(logicalName), "info")
   return true
 end
 

@@ -9,8 +9,6 @@ local nativeRowsCache = {}
 local nativeRowsCount = 0
 local nativeLocationsRevision = -1
 local nativeLocationsCache = {}
-local nativeMetadataQueue = nil
-local nativeMetadataIndex = 1
 
 local function cleanField(value)
   return tostring(value or ""):gsub("[%c]", " ")
@@ -55,7 +53,6 @@ local function listPayload(query, overrideMessage, overrideError)
   local lines = {}
   local names = helpers.sortedPresetNames()
   local selected = state.library.selected and state.library.presets[state.library.selected]
-  if selected then selected = hydrateNamedPresetMetadata(state.library.selected) or selected end
   lines[#lines + 1] = table.concat({
     "SELECTED", cleanField(state.library.selected),
     cleanField(selected and selected.notes), cleanField(selected and selected.tags),
@@ -88,8 +85,7 @@ local function listPayload(query, overrideMessage, overrideError)
     local visibleNames = {}
     local matchedFolders = {}
     for _, name in ipairs(names) do
-      local preset = state.library.presets[name]
-      local metadata = preset and (hydrateNamedPresetMetadata(name) or preset)
+      local metadata = state.library.presets[name]
       local haystack = (name .. " " .. tostring(metadata and metadata.tags or "")):lower()
       if query == "" or haystack:find(query, 1, true) then
         visibleNames[name] = true
@@ -219,6 +215,7 @@ local function handleNativeRequest(action, payload)
   if action == "select" then
     if state.library.presets[payload] then
       state.library.selected = payload
+      hydrateNamedPresetMetadata(payload)
       state.invalidatePreflight()
       cancelConfirmations()
       resetLoadState()
@@ -389,35 +386,16 @@ connectNativeBridgeForMenu = function(menu)
     return false
   end
   state.app.nativeBridge = bridge
-  bridgeCall("SetLuaReady", false, VERSION, NATIVE_BRIDGE_PROTOCOL)
-  nativeMetadataQueue = helpers.sortedPresetNames()
-  nativeMetadataIndex = 1
-  log(("[NATIVE PANEL] Preparing %d preset record%s without delaying the character screen.")
-    :format(#nativeMetadataQueue, #nativeMetadataQueue == 1 and "" or "s"), "info")
-  return true
+  local connected = initializeNativeBridge(true, bridge)
+  log(connected
+    and "[NATIVE PANEL] Connected without reading preset files during character-screen initialization."
+    or "[NATIVE PANEL] The bridge did not finish connecting.",
+    connected and "info" or "warn")
+  return connected
 end
 
 updateNativeBridge = function(delta)
   if not state.app.ready then return end
-  if nativeMetadataQueue then
-    if not state.app.nativeBridge then
-      nativeMetadataQueue = nil
-      nativeMetadataIndex = 1
-      return
-    end
-    local finalIndex = math.min(#nativeMetadataQueue,
-      nativeMetadataIndex + NATIVE_METADATA_FILES_PER_FRAME - 1)
-    for index = nativeMetadataIndex, finalIndex do
-      hydrateNamedPresetMetadata(nativeMetadataQueue[index])
-    end
-    nativeMetadataIndex = finalIndex + 1
-    if nativeMetadataIndex <= #nativeMetadataQueue then return end
-    local bridge = state.app.nativeBridge
-    nativeMetadataQueue = nil
-    nativeMetadataIndex = 1
-    initializeNativeBridge(true, bridge)
-    return
-  end
   if not state.app.nativeBridge then
     state.app.nativeBridgeRetryTimer = state.app.nativeBridgeRetryTimer
       + math.max(0, tonumber(delta) or 0)

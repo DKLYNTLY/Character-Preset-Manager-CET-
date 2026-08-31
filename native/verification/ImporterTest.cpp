@@ -55,6 +55,21 @@ int main()
         if (copied != "LocKey#123:8\n")
             return 5;
     }
+    g_stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+    if (!g_stopEvent)
+        return 6;
+    DirectoryWatcher watcher;
+    if (!watcher.Start(paths.source))
+        return 7;
+    {
+        std::ofstream output(paths.source / L"female" / L"Watched.preset", std::ios::binary);
+        output << "LocKey#456:2\n";
+    }
+    if (watcher.Wait(std::chrono::seconds(2)) != DirectoryWatcher::Result::Changed)
+        return 8;
+    watcher.Close();
+    CloseHandle(g_stopEvent);
+    g_stopEvent = nullptr;
     fs::remove_all(root, error);
     return 0;
 }

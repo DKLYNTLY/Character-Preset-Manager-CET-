@@ -6,6 +6,7 @@
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
+#include <cstddef>
 #include <cstdlib>
 #include <cstdint>
 #include <cwctype>
@@ -26,12 +27,14 @@ namespace fs = std::filesystem;
 constexpr std::uintmax_t kMaximumPresetBytes = 1048576;
 constexpr auto kStartupDelay = std::chrono::seconds(5);
 constexpr auto kRequestPoll = std::chrono::milliseconds(250);
+constexpr auto kWatcherDebounce = std::chrono::milliseconds(750);
 
 RED4ext::v1::PluginHandle g_handle;
 const RED4ext::v1::Sdk* g_sdk = nullptr;
 std::mutex g_waitMutex;
 std::condition_variable g_waitCondition;
 std::jthread g_worker;
+HANDLE g_stopEvent = nullptr;
 
 struct Record
 {
@@ -212,7 +215,9 @@ bool AtomicWrite(const fs::path& destination, const std::string& contents)
                        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
 }
 
-bool CopyPreset(const fs::path& source, const fs::path& destination)
+bool CopyPreset(const fs::path& source, const fs::path& destination,
+                const std::uintmax_t expectedSize,
+                const fs::file_time_type expectedModified)
 {
     std::error_code error;
     fs::create_directories(destination.parent_path(), error);
@@ -224,6 +229,18 @@ bool CopyPreset(const fs::path& source, const fs::path& destination)
     error.clear();
     if (!fs::copy_file(source, temporary, fs::copy_options::overwrite_existing, error) || error)
         return false;
+    const auto copiedSize = fs::file_size(temporary, error);
+    if (error || copiedSize != expectedSize)
+    {
+        fs::remove(temporary, error);
+        return false;
+    }
+    const auto currentSize = fs::file_size(source, error);
+    if (error || currentSize != expectedSize || fs::last_write_time(source, error) != expectedModified || error)
+    {
+        fs::remove(temporary, error);
+        return false;
+    }
     if (MoveFileExW(temporary.c_str(), destination.c_str(),
                     MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) == FALSE)
     {
@@ -313,7 +330,7 @@ void Scan(const Paths& paths)
             found->second.modified == modified && found->second.destination == destinationRelative &&
             destinationReady)
             continue;
-        if (!CopyPreset(entry.path(), destination))
+        if (!CopyPreset(entry.path(), destination, size, modifiedTime))
         {
             ++skipped;
             continue;
@@ -343,6 +360,111 @@ bool WaitFor(std::stop_token stop, const std::chrono::milliseconds duration)
     return g_waitCondition.wait_for(lock, duration, [&] { return stop.stop_requested(); });
 }
 
+class DirectoryWatcher
+{
+public:
+    enum class Result
+    {
+        Timeout,
+        Changed,
+        Stopped,
+        Failed,
+    };
+
+    ~DirectoryWatcher()
+    {
+        Close();
+    }
+
+    bool Start(const fs::path& path)
+    {
+        Close();
+        directory_ = CreateFileW(path.c_str(), FILE_LIST_DIRECTORY,
+            FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, nullptr,
+            OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, nullptr);
+        if (directory_ == INVALID_HANDLE_VALUE)
+            return false;
+        changeEvent_ = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        if (!changeEvent_)
+        {
+            Close();
+            return false;
+        }
+        overlapped_ = {};
+        overlapped_.hEvent = changeEvent_;
+        if (!Arm())
+        {
+            Close();
+            return false;
+        }
+        return true;
+    }
+
+    void Close()
+    {
+        if (directory_ != INVALID_HANDLE_VALUE)
+        {
+            CancelIoEx(directory_, &overlapped_);
+            CloseHandle(directory_);
+            directory_ = INVALID_HANDLE_VALUE;
+        }
+        if (changeEvent_)
+        {
+            CloseHandle(changeEvent_);
+            changeEvent_ = nullptr;
+        }
+        overlapped_ = {};
+    }
+
+    bool Active() const
+    {
+        return directory_ != INVALID_HANDLE_VALUE && changeEvent_;
+    }
+
+    Result Wait(const std::chrono::milliseconds timeout)
+    {
+        const auto bounded = static_cast<DWORD>(std::clamp<std::int64_t>(
+            timeout.count(), 0, static_cast<std::int64_t>(INFINITE - 1)));
+        if (!Active())
+        {
+            const auto wait = WaitForSingleObject(g_stopEvent, bounded);
+            return wait == WAIT_OBJECT_0 ? Result::Stopped :
+                wait == WAIT_TIMEOUT ? Result::Timeout : Result::Failed;
+        }
+        const HANDLE events[] = {g_stopEvent, changeEvent_};
+        const auto wait = WaitForMultipleObjects(2, events, FALSE, bounded);
+        if (wait == WAIT_OBJECT_0)
+            return Result::Stopped;
+        if (wait == WAIT_TIMEOUT)
+            return Result::Timeout;
+        if (wait != WAIT_OBJECT_0 + 1)
+            return Result::Failed;
+        DWORD bytes = 0;
+        if (!GetOverlappedResult(directory_, &overlapped_, &bytes, FALSE))
+            return Result::Failed;
+        if (!Arm())
+            return Result::Failed;
+        return bytes > 0 ? Result::Changed : Result::Failed;
+    }
+
+private:
+    bool Arm()
+    {
+        ResetEvent(changeEvent_);
+        DWORD ignored = 0;
+        return ReadDirectoryChangesW(directory_, buffer_.data(),
+            static_cast<DWORD>(buffer_.size()), TRUE,
+            FILE_NOTIFY_CHANGE_FILE_NAME | FILE_NOTIFY_CHANGE_SIZE |
+                FILE_NOTIFY_CHANGE_LAST_WRITE | FILE_NOTIFY_CHANGE_CREATION,
+            &ignored, &overlapped_, nullptr) != FALSE;
+    }
+
+    HANDLE directory_ = INVALID_HANDLE_VALUE;
+    HANDLE changeEvent_ = nullptr;
+    OVERLAPPED overlapped_{};
+    std::vector<std::byte> buffer_ = std::vector<std::byte>(65536);
+};
+
 void Worker(std::stop_token stop)
 {
     const auto paths = ResolvePaths();
@@ -354,17 +476,52 @@ void Worker(std::stop_token stop)
     auto requestTime = RequestTime(paths->request);
     if (WaitFor(stop, std::chrono::duration_cast<std::chrono::milliseconds>(kStartupDelay)))
         return;
+    DirectoryWatcher watcher;
+    if (watcher.Start(paths->source))
+        LogInfo("Character Preset Manager: ACU folder watcher started");
+    else
+        LogWarning("Character Preset Manager: ACU folder watcher is unavailable; Refresh remains available");
     Scan(*paths);
     requestTime = RequestTime(paths->request);
+    bool watcherChangePending = false;
+    auto watcherScanDue = std::chrono::steady_clock::time_point{};
     while (!stop.stop_requested())
     {
-        if (WaitFor(stop, std::chrono::duration_cast<std::chrono::milliseconds>(kRequestPoll)))
+        auto timeout = kRequestPoll;
+        const auto beforeWait = std::chrono::steady_clock::now();
+        if (watcherChangePending)
+        {
+            if (beforeWait >= watcherScanDue)
+            {
+                Scan(*paths);
+                watcherChangePending = false;
+                requestTime = RequestTime(paths->request);
+                continue;
+            }
+            timeout = std::min(timeout, std::chrono::duration_cast<std::chrono::milliseconds>(
+                watcherScanDue - beforeWait));
+        }
+        const auto watcherResult = watcher.Wait(timeout);
+        if (watcherResult == DirectoryWatcher::Result::Stopped)
             break;
+        if (watcherResult == DirectoryWatcher::Result::Changed)
+        {
+            watcherChangePending = true;
+            watcherScanDue = std::chrono::steady_clock::now() + kWatcherDebounce;
+        }
+        else if (watcherResult == DirectoryWatcher::Result::Failed && watcher.Active())
+        {
+            watcher.Close();
+            LogWarning("Character Preset Manager: ACU folder watcher stopped; Refresh remains available");
+        }
         const auto current = RequestTime(paths->request);
         if (current && (!requestTime || *current != *requestTime))
         {
             requestTime = current;
             Scan(*paths);
+            watcherChangePending = false;
+            if (!watcher.Active() && watcher.Start(paths->source))
+                LogInfo("Character Preset Manager: ACU folder watcher started after Refresh");
         }
     }
 }
@@ -378,6 +535,9 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
     {
         g_handle = handle;
         g_sdk = sdk;
+        g_stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
+        if (!g_stopEvent)
+            return false;
         g_worker = std::jthread(Worker);
         LogInfo("Character Preset Manager: ACU import service loaded");
     }
@@ -386,7 +546,15 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
         g_worker.request_stop();
         g_waitCondition.notify_all();
         if (g_worker.joinable())
+        {
+            SetEvent(g_stopEvent);
             g_worker.join();
+        }
+        if (g_stopEvent)
+        {
+            CloseHandle(g_stopEvent);
+            g_stopEvent = nullptr;
+        }
         g_sdk = nullptr;
     }
     return true;

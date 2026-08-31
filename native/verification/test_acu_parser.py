@@ -56,6 +56,11 @@ import_lua.execute(
     r"""
 resultContents = "generation\told\nsummary\t0\t0\n"
 readCount = 0
+presetCount = function(presets)
+  local count = 0
+  for _ in pairs(presets) do count = count + 1 end
+  return count
+end
 runtime = {
   MAX_PRESET_BYTES = 1048576, ACU_IMPORT_RESULTS_FILE = "results",
   ACU_IMPORT_REQUEST_FILE = "request", ACU_IMPORT_FILES_PER_FRAME = 2,
@@ -110,7 +115,13 @@ import_lua.globals().resultContents = (
 import_runtime.updateAcuImport(0.25)
 assert import_lua.globals().readCount == 0
 import_runtime.updateAcuImport(0)
-assert import_lua.globals().readCount == 2
+assert import_lua.globals().readCount == 0
+assert import_lua.globals().presetCount(import_runtime.state.library.presets) == 2
+first_import = import_runtime.state.library.presets["ACU Presets/female/A"]
+assert first_import.lazy is True
+assert first_import.metadataLoaded is False
+assert first_import.entryCountKnown is False
 import_runtime.updateAcuImport(0)
-assert import_lua.globals().readCount == 3
+assert import_lua.globals().readCount == 0
+assert import_lua.globals().presetCount(import_runtime.state.library.presets) == 3
 assert len(import_runtime.state.acuImport.queue) == 0

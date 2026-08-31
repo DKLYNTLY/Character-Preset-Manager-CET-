@@ -60,15 +60,17 @@ deletion.
 ## What changed in 3.0.10
 
 - **Focused ACU import service** — A small RED4ext service checks ACU's preset
-  folder once after startup and again only when you select **Refresh**.
+  folder once after startup. A background folder watcher detects later changes,
+  and **Refresh** remains available if the watcher is unavailable.
 - **Three ACU layouts supported** — Load the JSON layout used by ACU 3.0.0,
   the renamed JSON fields used by 3.0.1, and the text or JSON presets supported
   by 3.2.1.
 - **No repeated copies** — The importer checks each safe file name, size, and
   modified date against its saved import record before opening the file.
-- **Smooth library updates** — New imports enter the CET library two files per
-  frame. The complete CET manager and its existing loading engine remain the
-  normal way to save, organize, and load appearances.
+- **Smooth, lazy library updates** — New imports enter the CET library as
+  lightweight records, two per frame. Full contents stay unread until a preset
+  is selected, checked, or loaded. Character-screen initialization does not
+  open preset files.
 
 ## What changed in 3.0.9
 
@@ -565,9 +567,13 @@ it does not scan the appearance list during ordinary frames.
 
 The ACU import service checks
 `AppearanceChangeUnlocker/character-presets` once after a short startup delay.
-It checks that folder again only after you select **Refresh**. It compares file
-names, sizes, and modified dates with its saved record before reading changed
-files. CET adds no more than two imported presets to its library per frame.
+A background folder watcher signals later changes without scheduled rescans.
+**Refresh** requests a check when the watcher is unavailable. The service
+compares file names, sizes, and modified dates with its saved record before
+reading changed files. It stages each changed file before moving it into the
+library. CET adds no more than two lightweight imported records per frame and
+does not open their preset contents until they are selected, checked, or loaded.
+Character-screen initialization does not read preset files.
 
 Large preset, folder, Trash, sharing, backup, preview, and Activity Log lists
 use pages instead of drawing every item at once. Backup discovery and

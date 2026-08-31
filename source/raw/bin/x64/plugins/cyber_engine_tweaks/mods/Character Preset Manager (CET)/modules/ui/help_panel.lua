@@ -245,7 +245,7 @@ if state.ui.helpOpen then
       helpHeading("Problems & Compatibility")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
         "Remove Character Customization Anywhere, then restart the game. It changes the same character screens and cannot be used with Character Preset Manager.")
-      ImGui.TextWrapped("ACU preset files are imported after startup and when you select Refresh. Use Character Preset Manager to load the imported copies, and do not start an ACU load at the same time.")
+      ImGui.TextWrapped("ACU preset files are imported after startup. A background watcher detects later changes, and Refresh requests a check when watching is unavailable. Use Character Preset Manager to load the imported copies, and do not start an ACU load at the same time.")
       ImGui.TextWrapped("Keep the same character option mods, versions, and load order that were used to make the preset. If they change, check the appearance and save the preset again.")
       ImGui.TextWrapped("Photo Mode and Appearance Menu Mod may stay installed, but you cannot save or load presets inside their menus. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
@@ -389,7 +389,7 @@ if state.ui.helpOpen then
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load & Restore Appearance.")
       ImGui.TextWrapped("A current format-8 CPM preset records its preset name and CET folder. The mod uses those details when the saved folder list has no entry for the preset. Older Character Preset Manager files and the preset layouts used by ACU 3.0.0, 3.0.1, and 3.2.1 can still be loaded.")
-      ImGui.TextWrapped("The ACU import service checks AppearanceChangeUnlocker/character-presets after startup and when you select Refresh. Imported files appear under ACU Presets. No more than two enter the library per frame.")
+      ImGui.TextWrapped("The ACU import service checks AppearanceChangeUnlocker/character-presets after startup. A folder watcher detects later changes, and Refresh is the fallback. Imported files appear under ACU Presets as lightweight records, no more than two per frame. Their full contents are read only after you select, check, or load them.")
       ImGui.TextWrapped("New format-8 preset files begin with CPM Preset and use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
       ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
       ui.pathCallout("##presetFolderPath", "Preset Folder",

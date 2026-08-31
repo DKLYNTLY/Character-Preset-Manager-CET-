@@ -13,16 +13,20 @@ used. See the README and in-game Help for current instructions.
 
 - Adds a small RED4ext background service that checks
   `AppearanceChangeUnlocker/character-presets` after a short startup delay.
-- Checks the ACU folder again only when **Refresh** is selected in CET or the
-  character-screen panel. It never scans that folder every frame or whenever a
-  menu opens.
+- Uses a background folder watcher to detect later ACU changes. **Refresh** is
+  the fallback when watching is unavailable. It never runs scheduled full
+  scans, scans every frame, or scans because a menu opens.
 - Imports safe files into the physical `Character Presets/ACU Presets` folder
-  and preserves their ACU subfolders.
+  and preserves their ACU subfolders. Each changed file is written to a staging
+  file and then moved into place atomically.
 - Checks file names, sizes, and modified dates before reading changed contents.
   A saved import record prevents unchanged files from being copied again.
 - Supports the camel-case JSON layout from ACU 3.0.0, the snake-case JSON layout
   from ACU 3.0.1, and the text or native JSON layouts supported by ACU 3.2.1.
-- Adds imported presets to CET at no more than two files per frame.
+- Sends CET a small list of changed imports instead of asking it to rescan the
+  preset library. CET adds no more than two lightweight records per frame.
+- Defers full imported-preset reads until the preset is selected, checked, or
+  loaded. Character-screen initialization no longer opens preset files.
 - Keeps the full CET manager, native panel, recovery tools, and existing loading
   engine unchanged as the normal fallback if the import service is unavailable.
 
