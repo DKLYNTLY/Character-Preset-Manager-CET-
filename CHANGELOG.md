@@ -5,9 +5,9 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.0.10</strong></summary>
+<summary><strong>Latest release — 3.1.0</strong></summary>
 
-## 3.0.10
+## 3.1.0
 
 *Focused ACU preset importing without changing the proven CET manager or loading engine.*
 

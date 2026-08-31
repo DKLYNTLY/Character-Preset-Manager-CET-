@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 MOD_NAME = "Character Preset Manager (CET)"
-VERSION = "3.0.10"
+VERSION = "3.1.0"
 PRESET_DIR = "Character Presets"
 DATA_DIR = "Data"
 CONFIG_DIR = DATA_DIR .. "/Config"

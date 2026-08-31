@@ -8,7 +8,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
-<p align="center"><strong>Current version: 3.0.10</strong></p>
+<p align="center"><strong>Current version: 3.1.0</strong></p>
 
 Character Preset Manager adds a complete preset library to Cyberpunk's character
 screens and a larger management window inside Cyber Engine Tweaks. You can use
@@ -18,7 +18,7 @@ deletion.
 
 > [!IMPORTANT]
 > Remove **Character Customization Anywhere** before using this mod. ACU preset
-> files are supported in 3.0.10, but use Character Preset Manager's controls to
+> files are supported in 3.1.0, but use Character Preset Manager's controls to
 > load the imported copies. Do not start a second load from ACU at the same time.
 
 ## Features
@@ -57,7 +57,7 @@ deletion.
 - **Activity Log and searchable Help** — Review results in plain language and
   find instructions without leaving CET.
 
-## What changed in 3.0.10
+## What changed in 3.1.0
 
 - **Focused ACU import service** — A small RED4ext service checks ACU's preset
   folder once after startup. A background folder watcher detects later changes,
@@ -171,7 +171,7 @@ and position after you move or resize it.
 1. Back up any `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
    from `Character Presets`.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
-3. Install version 3.0.10 and its current requirements.
+3. Install version 3.1.0 and its current requirements.
 4. Return your saved presets and sharing files to `Character Presets`.
 5. Fully restart the game so the redscript panel and bridge are rebuilt.
 
