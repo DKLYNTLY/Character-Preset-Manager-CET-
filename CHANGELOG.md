@@ -42,6 +42,11 @@ used. See the README and in-game Help for current instructions.
 - Adds fixtures and automated checks for format 8, legacy CPM, ACU 3.0.0,
   ACU 3.0.1, ACU 3.2.1, malformed presets, the native catalog protocol,
   fingerprints, folder watching, safe fallback, and atomic ACU imports.
+- Prevents avoidable play-time file work. CET now reads only the small ACU
+  results generation header during its rate-limited poll and parses full results
+  only when that generation changes. The missing-panel reminder uses the DLL's
+  silent startup answer instead of starting a folder verification during
+  character customization.
 
 </details>
 

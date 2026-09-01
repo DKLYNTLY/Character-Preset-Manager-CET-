@@ -159,6 +159,9 @@ state = {
   },
   nativeCatalog = {
     available = false,
+    serviceAvailable = false,
+    serviceProbePending = false,
+    serviceProbeTimer = 0,
     generation = nil,
     fileCount = 0,
     directoryCount = 0,

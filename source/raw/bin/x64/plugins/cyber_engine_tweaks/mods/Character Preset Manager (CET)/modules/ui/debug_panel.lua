@@ -102,6 +102,11 @@ ui.drawDebugPanel = function(height)
         state.editor.pauseRedirectCount, state.editor.puppetReadyCount))
     coloredWrapped(0.64, 0.67, 0.73, 1.0,
       "After one successful input launch, all four values should be at least 1.")
+    ImGui.TextWrapped(state.nativeCatalog.serviceAvailable
+      and "Native file service: answered this game session"
+      or (state.nativeCatalog.serviceProbePending
+        and "Native file service: waiting for its startup answer"
+        or "Native file service: no answer this game session"))
     if state.nativeCatalog.available then
       ImGui.TextWrapped(("Native file list: verified, %d files, %d folders, %d skipped")
         :format(state.nativeCatalog.fileCount, state.nativeCatalog.directoryCount,

@@ -82,3 +82,9 @@ lua.globals().catalogContents = lua.globals().catalogContents.replace(
 invalid, reason = runtime.readNativeFileCatalog()
 assert invalid is None
 assert "summary" in reason
+
+lua.execute('runtime.readBoundedFile = function() return nil, "missing" end')
+missing = runtime.verifiedNativeFileCatalog()
+assert missing is None
+assert runtime.state.nativeCatalog.available is False
+assert runtime.state.nativeCatalog.fallbackReason == "not available"

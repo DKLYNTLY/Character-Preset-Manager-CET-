@@ -14,22 +14,28 @@ local function clearFallbackNotice()
 end
 
 local function updateFallbackNotice(elapsed)
+  local delta = math.max(0, tonumber(elapsed) or 0)
+  if state.nativeCatalog.serviceProbePending
+      and not state.nativeCatalog.serviceAvailable then
+    state.nativeCatalog.serviceProbeTimer = state.nativeCatalog.serviceProbeTimer + delta
+    if state.nativeCatalog.serviceProbeTimer >= FALLBACK_NOTICE_DELAY_SECONDS then
+      state.nativeCatalog.serviceProbePending = false
+    end
+  end
   if not state.app.inCustomization or state.app.overlayOpen
       or state.ui.fallbackNoticeAcknowledged
-      or state.app.nativeBridge or state.nativeCatalog.available then
+      or state.app.nativeBridge or state.nativeCatalog.serviceAvailable then
     state.ui.fallbackNoticePending = false
     state.ui.fallbackNoticeTimer = 0
     state.ui.fallbackNoticeLayout = nil
     return
   end
   state.ui.fallbackNoticeTimer = state.ui.fallbackNoticeTimer
-    + math.max(0, tonumber(elapsed) or 0)
+    + delta
   if state.ui.fallbackNoticeTimer < FALLBACK_NOTICE_DELAY_SECONDS then return end
-  if not state.ui.fallbackNoticeChecked then
-    state.ui.fallbackNoticeChecked = true
-    verifiedNativeFileCatalog()
-  end
-  if state.app.nativeBridge or state.nativeCatalog.available then return end
+  if state.nativeCatalog.serviceProbePending then return end
+  state.ui.fallbackNoticeChecked = true
+  if state.app.nativeBridge or state.nativeCatalog.serviceAvailable then return end
   state.ui.fallbackNoticePending = true
   if not state.ui.fallbackNoticeLogged then
     state.ui.fallbackNoticeLogged = true
@@ -249,6 +255,7 @@ events.onInit = function()
     :format(presetCount, PRESET_DIR), "info")
   state.app.ready = true
   initializeAcuImport()
+  requestAcuImport("startup service check", true)
   initializeNativeBridge(configLoaded)
   refreshAppearanceHistory()
   refreshEditorState()

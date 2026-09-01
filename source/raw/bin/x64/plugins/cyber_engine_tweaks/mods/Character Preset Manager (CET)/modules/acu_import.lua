@@ -9,6 +9,11 @@ local function decodeImportField(value)
   end))
 end
 
+local function readImportGeneration()
+  local contents = readBoundedFile(ACU_IMPORT_RESULTS_FILE, 128)
+  return contents and contents:match("^generation\t([^\r\n]+)") or nil
+end
+
 local function readImportResults()
   local contents = readBoundedFile(ACU_IMPORT_RESULTS_FILE, MAX_PRESET_BYTES)
   if not contents then return nil end
@@ -175,7 +180,7 @@ local function finishImportQueue()
   acu.requested = false
 end
 
-requestAcuImport = function(source)
+requestAcuImport = function(source, silent)
   local acu = state.acuImport
   acu.requestSequence = acu.requestSequence + 1
   local token = table.concat({ tostring(os.time()), tostring(acu.requestSequence),
@@ -186,8 +191,16 @@ requestAcuImport = function(source)
     end)
   end, "ACU import request")
   if wrote then
-    acu.requested = true
-    log("[ACU IMPORT] Refresh requested from " .. tostring(source or "CET") .. ".", "info")
+    if silent then
+      state.nativeCatalog.serviceProbePending = true
+      state.nativeCatalog.serviceProbeTimer = 0
+    else
+      acu.requested = true
+    end
+    log(silent
+      and "[NATIVE FILES] Sent a lightweight startup check to the native file service."
+      or "[ACU IMPORT] Refresh requested from " .. tostring(source or "CET") .. ".",
+      "info")
   end
   return wrote
 end
@@ -223,9 +236,14 @@ updateAcuImport = function(elapsed)
   acu.pollTimer = acu.pollTimer + (tonumber(elapsed) or 0)
   if acu.pollTimer < ACU_IMPORT_POLL_SECONDS then return end
   acu.pollTimer = 0
+  local generation = readImportGeneration()
+  if not generation or generation == acu.generation then return end
   local results = readImportResults()
-  if not results or results.generation == acu.generation then return end
+  if not results or results.generation ~= generation then return end
   acu.generation = results.generation
+  state.nativeCatalog.serviceAvailable = true
+  state.nativeCatalog.serviceProbePending = false
+  state.nativeCatalog.serviceProbeTimer = 0
   acu.queue = results.files
   acu.queueIndex = 1
   acu.imported = 0

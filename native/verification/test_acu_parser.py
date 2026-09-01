@@ -121,6 +121,8 @@ import_lua.execute(
     r"""
 resultContents = "generation\told\nsummary\t0\t0\n"
 readCount = 0
+headerReadCount = 0
+fullResultReadCount = 0
 messages = {}
 presetCount = function(presets)
   local count = 0
@@ -138,8 +140,17 @@ runtime = {
     library = { presets = {}, folders = {}, manualFolders = {},
       ignoredPhysicalFolders = {} },
     load = { auto = false, needsContinue = false, pendingChange = nil },
+    nativeCatalog = { serviceAvailable = false, serviceProbePending = false,
+      serviceProbeTimer = 0 },
   },
-  readBoundedFile = function() return resultContents end,
+  readBoundedFile = function(_, maximum)
+    if maximum == 128 then
+      headerReadCount = headerReadCount + 1
+      return resultContents:sub(1, 128)
+    end
+    fullResultReadCount = fullResultReadCount + 1
+    return resultContents
+  end,
   validRelativePath = function(value)
     return type(value) == "string" and value ~= "" and not value:find("\\", 1, true)
   end,
@@ -173,6 +184,11 @@ package.preload["modules/runtime"] = function() return runtime end
 import_lua.execute(f'dofile([[{import_module.as_posix()}]])')
 import_runtime = import_lua.globals().runtime
 import_runtime.initializeAcuImport()
+assert import_lua.globals().fullResultReadCount == 1
+assert import_runtime.requestAcuImport("startup service check", True) is True
+assert import_runtime.state.acuImport.requested is False
+assert import_runtime.state.nativeCatalog.serviceProbePending is True
+assert import_runtime.state.nativeCatalog.serviceProbeTimer == 0
 import_lua.globals().resultContents = (
     "generation\tnew\nsummary\t3\t0\n"
     "file\tACU Presets/female/A.preset\n"
@@ -181,6 +197,11 @@ import_lua.globals().resultContents = (
 )
 import_runtime.updateAcuImport(0.25)
 assert import_lua.globals().readCount == 0
+assert import_lua.globals().headerReadCount == 1
+assert import_lua.globals().fullResultReadCount == 2
+assert import_runtime.state.nativeCatalog.serviceAvailable is True
+assert import_runtime.state.nativeCatalog.serviceProbePending is False
+assert import_runtime.state.nativeCatalog.serviceProbeTimer == 0
 import_runtime.updateAcuImport(0)
 assert import_lua.globals().readCount == 0
 assert import_lua.globals().presetCount(import_runtime.state.library.presets) == 2
@@ -192,6 +213,9 @@ import_runtime.updateAcuImport(0)
 assert import_lua.globals().readCount == 0
 assert import_lua.globals().presetCount(import_runtime.state.library.presets) == 3
 assert len(import_runtime.state.acuImport.queue) == 0
+import_runtime.updateAcuImport(0.25)
+assert import_lua.globals().headerReadCount == 2
+assert import_lua.globals().fullResultReadCount == 2
 import_lua.execute("messages = {}")
 
 dangerous_preset = import_lua.table_from({

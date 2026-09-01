@@ -101,6 +101,9 @@ does not mean your presets were deleted.
 - **More format and safety tests** — Native and Lua checks now cover the catalog
   protocol, fallback behavior, current format 8, legacy CPM files, supported ACU
   layouts, malformed files, folder watching, fingerprints, and atomic imports.
+- **Smoother background checks** — CET polls only the small generation header
+  for ACU results and reads the complete results only after a change. The
+  fallback reminder no longer starts a folder verification during play.
 
 ## What changed in 3.1.0
 
@@ -718,6 +721,13 @@ list against its own safe folder check before using it. Any difference causes an
 immediate CET fallback. Changed ACU files are staged before being moved into the
 library. CET adds no more than two lightweight imported records per frame and
 does not open their contents until they are selected, checked, or loaded.
+
+During normal play, CET's rate-limited ACU check reads only the small generation
+header. It opens the complete results only when the DLL reports a new result.
+Preset-folder verification runs at startup or when you explicitly refresh the
+library, not during ordinary frames. Removing the DLL does not disable CET's
+own preset reader, saving, loading, folders, recovery, or Help. Automatic ACU
+folder importing and the native catalog are the only DLL services that stop.
 
 Large preset, folder, Trash, sharing, backup, preview, and Activity Log lists
 use pages instead of drawing every item at once. Backup discovery and
