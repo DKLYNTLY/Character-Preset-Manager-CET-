@@ -1,10 +1,12 @@
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from lupa import LuaRuntime
 
 
 root = Path(__file__).resolve().parents[2]
 module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/presets.lua"
 fixtures = root / "native/verification/fixtures"
+default_presets = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets/Default Presets"
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(
     """
@@ -27,6 +29,13 @@ runtime = {
   end,
   validatedPresetName = function(value) return value end,
   validRelativePath = function(value) return type(value) == "string" end,
+  writeFileSafely = function(path, mode, callback)
+    local file = io.open(path, mode)
+    if not file then return false end
+    local ok, result = pcall(callback, file)
+    file:close()
+    return ok and result == true
+  end,
 }
 setmetatable(runtime, { __index = _G })
 package.preload["modules/runtime"] = function() return runtime end
@@ -64,9 +73,47 @@ assert current.libraryFolder == "Tests/Current"
 assert current.favorite is True
 assert current.entries[1].slot == "hairstyle"
 assert current.entries[1].choice == "options:10"
+assert current.entries[1].label == "Hairstyle"
+assert lua.globals().runtime.presetTypeName(current) == "CPM"
+assert lua.globals().runtime.presetTypeName(legacy) == "ACU"
+assert lua.globals().runtime.presetTypeName(old_json) == "ACU"
+assert lua.globals().runtime.presetTypeName(lua.table_from({"format": 7})) == "CPM"
+assert lua.globals().runtime.presetTypeName(lua.table_from({"format": 9})) == "ACU"
+
+with TemporaryDirectory() as temporary:
+    written_path = Path(temporary) / "readable-format-8.preset"
+    written = lua.globals().runtime.writePresetContents(
+        written_path.as_posix(),
+        lua.table_from({
+            "format": 8,
+            "source": "Character Preset Manager (CET)",
+            "presetName": "Readable Test",
+            "libraryFolder": "",
+            "entries": lua.table_from([
+                lua.table_from({
+                    "key": "LocKey#404",
+                    "index": 15,
+                    "label": "Jaw",
+                    "slot": "jaw",
+                })
+            ]),
+        }),
+    )
+    assert written is True
+    written_contents = written_path.read_text(encoding="utf-8")
+    assert "# Format: 8" in written_contents
+    assert "LocKey#404:15\n# Option: Jaw 15\n# Editor slot: jaw" in written_contents
+    written_preset = read_preset(written_path.as_posix(), False)
+    assert written_preset.entries[1].label == "Jaw"
 
 malformed = read_preset((fixtures / "malformed.preset").as_posix(), False)
 assert malformed is None
+
+for default_path in default_presets.glob("*.preset"):
+    default_preset = read_preset(default_path.as_posix(), False)
+    assert default_preset.format == 8
+    assert default_preset.entryCount > 0
+    assert all(default_preset.entries[index].label for index in range(1, default_preset.entryCount + 1))
 
 import_module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/acu_import.lua"
 import_lua = LuaRuntime(unpack_returned_tuples=True)

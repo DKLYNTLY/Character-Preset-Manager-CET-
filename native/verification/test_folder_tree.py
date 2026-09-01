@@ -46,6 +46,10 @@ runtime = {
   end,
   baseName = function(value) return value:match("([^/]+)$") or value end,
   folderNameExists = function(value) return runtime.state.library.folders[value] == true end,
+  presetTypeName = function(preset)
+    local format = tonumber(preset and preset.format) or 4
+    return (format == 7 or format == 8) and "CPM" or "ACU"
+  end,
 }
 runtime.helpers.sortedPresetNames = function()
   return { "ACU Presets/Female/Alina", "Default Presets/Female/Default" }

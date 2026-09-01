@@ -18,6 +18,7 @@ local function snapshotFromOptions(options, action)
       entries[#entries + 1] = {
         key = key,
         index = currentIndex,
+        label = helpers.optionDisplayName(option, key),
         slot = optionSlot(option),
         choice = helpers.optionChoiceKey(option, currentIndex),
       }

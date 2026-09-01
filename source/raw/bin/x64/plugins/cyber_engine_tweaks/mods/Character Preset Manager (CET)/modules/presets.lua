@@ -3,6 +3,22 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
+local function readableEntryLabel(entry)
+  local label = sanitizeMetadata(entry and entry.label, 128)
+  if label == "" or label == "Custom/CCXL option (no localization provided)" then
+    label = sanitizeMetadata(entry and entry.slot, 128)
+    label = label:gsub("[_%-]+", " "):gsub("%s+", " ")
+    label = label:gsub("^%l", string.upper)
+  end
+  if label == "" then label = sanitizeMetadata(entry and entry.key, 128) end
+  return label ~= "" and label or "Unknown option"
+end
+
+presetTypeName = function(preset)
+  local format = tonumber(preset and preset.format) or 4
+  return (format == 7 or format == 8) and "CPM" or "ACU"
+end
+
 local function decodeJsonPreset(contents)
   local position, length = 1, #contents
   local function skipSpace()
@@ -226,7 +242,7 @@ function readPresetFile(path, metadataOnly)
   end
   local entries = {}
   local entryCount = 0
-  local metadata = { format = 4, source = "Legacy or ACU-compatible" }
+  local metadata = { format = 4, source = "ACU preset (older format)" }
   local lineNumber, malformed, pendingSlot, pendingChoice = 0, 0, nil, nil
   local readableFormatConfirmed = false
   local lastEntry = nil
@@ -298,6 +314,13 @@ function readPresetFile(path, metadataOnly)
       if folder == "/" then folder = "" end
       if folder == "" or validRelativePath(folder) then
         metadata.libraryFolder = folder
+      end
+    elseif not metadataOnly and readableFormatConfirmed
+        and readableKey == "Option" and lastEntry then
+      local label, savedNumber = readableValue:match("^(.-)%s+(-?%d+)$")
+      if label and tonumber(savedNumber) == tonumber(lastEntry.index) then
+        label = sanitizeMetadata(label, 128)
+        lastEntry.label = label ~= "" and label or nil
       end
     elseif not metadataOnly and readableFormatConfirmed
         and readableKey == "Editor slot" and lastEntry then
@@ -488,7 +511,7 @@ function writePresetContents(path, preset)
       "#",
       "# Appearance options",
       "# Each main line is OptionKey:SavedNumber.",
-      "# Editor slot and Saved choice lines describe the option above them.",
+      "# Option, Editor slot, and Saved choice lines describe the option above them.",
       "",
     }
     for _, line in ipairs(header) do
@@ -497,6 +520,8 @@ function writePresetContents(path, preset)
     for _, entry in ipairs(preset.entries or {}) do
       if not file:write(("%s:%d\n"):format(
           tostring(entry.key), tonumber(entry.index) or 0)) then return false end
+      if not file:write(("# Option: %s %d\n"):format(
+          readableEntryLabel(entry), tonumber(entry.index) or 0)) then return false end
       if entry.slot and entry.slot ~= "" then
         if not file:write("# Editor slot: " ..
             sanitizeMetadata(entry.slot, MAX_PRESET_KEY_BYTES) .. "\n") then return false end
@@ -766,6 +791,7 @@ function savePreset(confirmOverwrite)
       table.insert(entries, {
         key = key,
         index = currentIndex,
+        label = helpers.optionDisplayName(option, key),
         slot = slot,
         choice = choice,
       })
@@ -856,6 +882,7 @@ function saveLastAppearanceSnapshot(options)
       table.insert(entries, {
         key = key,
         index = currentIndex,
+        label = helpers.optionDisplayName(option, key),
         slot = optionSlot(option),
         choice = helpers.optionChoiceKey(option, currentIndex),
       })

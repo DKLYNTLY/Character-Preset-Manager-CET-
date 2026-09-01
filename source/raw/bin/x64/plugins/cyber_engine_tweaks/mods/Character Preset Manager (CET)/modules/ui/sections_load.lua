@@ -217,10 +217,18 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     if state.library.selected and state.library.presets[state.library.selected] then
       local preset = state.library.presets[state.library.selected]
       coloredWrapped(0.97, 0.72, 0.20, 1.0,
-        ("%s  |  %s  |  %d options  |  Format %s")
+        ("%s  |  %s  |  %d options  |  %s preset  |  Format %s")
           :format(baseName(state.library.selected),
           helpers.breadcrumb(parentFolder(state.library.selected)),
-          state.presetEntryCount(preset), tostring(preset.format or 4)))
+          state.presetEntryCount(preset), presetTypeName(preset),
+          tostring(preset.format or 4)))
+      if presetTypeName(preset) == "ACU" then
+        coloredWrapped(1.0, 0.8, 0.2, 1.0,
+          "ACU preset limitation: this older layout does not keep the stable " ..
+          "editor slot and saved choice details used by CPM formats 7 and 8. " ..
+          "CC and CCXL option lists can shift. Check compatibility, review the " ..
+          "result, then save the corrected appearance as format 8.")
+      end
     end
 
     local loadUnavailable = not state.library.selected or not state.app.inCustomization

@@ -573,12 +573,12 @@ public class PresetPanel extends inkCustomController {
         if Equals(fields[1], "SAVE") { this.saveAction.SetText(Equals(fields[2], "1") ? "CONFIRM OVERWRITE" : "SAVE PRESET"); };
         if Equals(fields[1], "TRASH") { this.trashAction.SetText(Equals(fields[2], "1") && StrLen(this.selectedName) > 0 ? "CONFIRM MOVE TO TRASH" : "MOVE PRESET TO TRASH"); };
       };
-      if ArraySize(fields) > 7 && Equals(fields[0], "SELECTED") {
+      if ArraySize(fields) > 8 && Equals(fields[0], "SELECTED") {
         this.selectedName = fields[1];
         if StrLen(this.selectedName) == 0 {
           this.selectedInfoValue = "SELECTED PRESET - NONE";
         } else {
-          let details: String = fields[7] + " | " + fields[4] + " OPTIONS | FORMAT " + fields[6];
+          let details: String = fields[7] + " | " + fields[4] + " OPTIONS | " + fields[8] + " PRESET | FORMAT " + fields[6];
           if StrLen(fields[3]) > 0 { details = details + " | " + fields[3]; };
           let selectedLine: String = this.selectedName + " | " + details;
           this.selectedInfoValue = StrLen(selectedLine) > 92 ? StrLeft(selectedLine, 89) + "..." : selectedLine;

@@ -60,6 +60,7 @@ local function listPayload(query, overrideMessage, overrideError)
     selected and selected.favorite == true and "1" or "0",
     tostring(selected and selected.format or ""),
     cleanField(helpers.breadcrumb(parentFolder(state.library.selected or ""))),
+    presetTypeName(selected),
   }, "\t")
   local message = tostring(state.app.nativePanelStatus or "")
   local isError = state.app.nativePanelStatusError == true

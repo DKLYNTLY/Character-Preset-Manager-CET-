@@ -11,140 +11,180 @@
 #
 # Appearance options
 # Each main line is OptionKey:SavedNumber.
-# Editor slot and Saved choice lines describe the option above them.
+# Option, Editor slot, and Saved choice lines describe the option above them.
 
 LocKey#898870017445300632:1
+# Option: Skin color 1
 # Editor slot: skin_color
 
 LocKey#3358415767503712013:3
+# Option: Skin type switcher 3
 # Editor slot: skin_type_switcher
 # Saved choice: options:04
 
 LocKey#9502141975964618858:10
+# Option: Hairstyle 10
 # Editor slot: hairstyle
 # Saved choice: options:11
 
 LocKey#6270481789322187575:0
+# Option: Hair color 0
 # Editor slot: hair_color
 
 LocKey#17262437424467603883:1
+# Option: Eyes 1
 # Editor slot: eyes
 
 LocKey#12711989018532128707:18
+# Option: Eyes color 18
 # Editor slot: eyes_color
 
 LocKey#7691166931990474829:6
+# Option: Eyebrows 6
 # Editor slot: eyebrows
 # Saved choice: options:07
 
 LocKey#2149258860834577898:0
+# Option: Eyebrows color 0
 # Editor slot: eyebrows_color
 
 LocKey#7291006053821317046:0
+# Option: Eyelash color 0
 # Editor slot: eyelash_color
 
 LocKey#4316695547651688874:6
+# Option: Nose 6
 # Editor slot: nose
 
 LocKey#966737433676891676:13
+# Option: Mouth 13
 # Editor slot: mouth
 
 LocKey#5009244242618885753:11
+# Option: Jaw 11
 # Editor slot: jaw
 
 LocKey#14034341346390445651:0
+# Option: Ear 0
 # Editor slot: ear
 
 LocKey#7487713073032863221:0
+# Option: Beard 0
 # Editor slot: beard
 # Saved choice: options:Common-Off
 
 LocKey#13707143312198505919:0
+# Option: Beard part 0
 # Editor slot: beard_part
 
 LocKey#5229311434501341836:0
+# Option: Beard color 0
 # Editor slot: beard_color
 
 LocKey#6426888875968525879:7
+# Option: Cyberware switcher 7
 # Editor slot: cyberware_switcher
 # Saved choice: options:07
 
 LocKey#7665632322726285485:0
+# Option: Scars 0
 # Editor slot: scars
 
 LocKey#7057535516503771275:0
+# Option: Facial tattoo switcher 0
 # Editor slot: facial_tattoo_switcher
 # Saved choice: options:Common-Off
 
 LocKey#9633374630979636519:13
+# Option: Piercings 13
 # Editor slot: piercings
 # Saved choice: options:13
 
 LocKey#1742636043413317912:0
+# Option: Piercings color 0
 # Editor slot: piercings_color
 
 LocKey#16056554541361838785:0
+# Option: Teeth 0
 # Editor slot: teeth
 
 LocKey#2482157010324784664:6
+# Option: MakeupEyes 6
 # Editor slot: makeupEyes
 # Saved choice: options:06
 
 LocKey#14413101351477431163:0
+# Option: MakeupEyes color 0
 # Editor slot: makeupEyes_color
 
 LocKey#9213787832085884965:0
+# Option: MakeupLips type 0
 # Editor slot: makeupLips_type
 # Saved choice: options:Common-Off
 
 LocKey#6023230796470623251:0
+# Option: MakeupLips 0
 # Editor slot: makeupLips
 
 LocKey#1500857893903977124:0
+# Option: MakeupLips color 0
 # Editor slot: makeupLips_color
 
 LocKey#4717882986422351521:0
+# Option: MakeupCheeks 0
 # Editor slot: makeupCheeks
 # Saved choice: options:Common-Off
 
 LocKey#5901794538846227818:0
+# Option: MakeupCheeks color 0
 # Editor slot: makeupCheeks_color
 
 LocKey#12418766767975042856:2
+# Option: MakeupPimples 2
 # Editor slot: makeupPimples
 # Saved choice: options:02
 
 LocKey#11868211319013669770:0
+# Option: MakeupPimples color 0
 # Editor slot: makeupPimples_color
 
 LocKey#2154265467077242561:0
+# Option: Nails l 0
 # Editor slot: nails_l
 
 LocKey#16223900489692860646:0
+# Option: Nails color 0
 # Editor slot: nails_color
 
 LocKey#7001506230645100200:0
+# Option: Nipples switcher 0
 # Editor slot: nipples_switcher
 # Saved choice: options:Common-On
 
 LocKey#1579145253609442971:0
+# Option: Body tattoo switcher 0
 # Editor slot: body_tattoo_switcher
 # Saved choice: options:Common-Off
 
 LocKey#15039822261823040660:0
+# Option: Body scars switcher 0
 # Editor slot: body_scars_switcher
 # Saved choice: options:Common-Off
 
 LocKey#7775711960886528826:0
+# Option: Genitals switcher 0
 # Editor slot: genitals_switcher
 # Saved choice: options:Common-Off
 
 LocKey#11716572946352461499:0
+# Option: Genitals size 0
 # Editor slot: genitals_size
 
 LocKey#2480942087249619917:0
+# Option: Pubic hair 0
 # Editor slot: pubic_hair
 # Saved choice: options:Common-Off
 
 LocKey#6445917731400909894:0
+# Option: Pubic hair color 0
 # Editor slot: pubic_hair_color

@@ -442,9 +442,9 @@ if state.ui.helpOpen then
           "share sharing send install export preset file path character presets download upload bug issue wrong option legacy older") then
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load & Restore Appearance.")
-      ImGui.TextWrapped("A current format-8 CPM preset records its preset name and CET folder. The mod uses those details when the saved folder list has no entry for the preset. Older Character Preset Manager files remain readable.")
-      ImGui.TextWrapped("New format-8 preset files begin with CPM Preset and use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
-      ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
+      ImGui.TextWrapped("Formats 7 and 8 are labeled CPM presets. Every older supported layout is labeled an ACU preset so its older-format limitations are clear. All supported files remain readable.")
+      ImGui.TextWrapped("New format-8 preset files begin with CPM Preset and list friendly option names with their saved numbers, such as Jaw 15 or Eyes 22. The machine-safe key, editor slot, and stable saved choice remain beside that readable line.")
+      ImGui.TextWrapped("ACU presets do not keep the stable editor slot and saved choice details used by formats 7 and 8. CC and CCXL lists can shift after mod or load-order changes. Check compatibility, review the appearance, then save the corrected preset as format 8.")
       ui.pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
       if fullWidthButton("Copy Preset Folder Path##copyPresetPath", actionButtonHeight) then
@@ -461,6 +461,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Place the .preset files in bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets, then fully restart the game. The importer checks that folder shortly after startup.")
       ImGui.TextWrapped("Open Character Preset Manager in CET and look under ACU Presets. If the copies are not shown, select Refresh once and wait a moment. Load the imported copies through Character Preset Manager, not ACU.")
       ImGui.TextWrapped("The original ACU files stay unchanged. New or changed files are copied when needed, and unchanged files are skipped. ACU subfolders are preserved.")
+      ImGui.TextWrapped("The manager labels every preset outside formats 7 and 8 as an ACU preset. These older layouts cannot identify shifted CC or CCXL choices as reliably, so use Check Compatibility and review the appearance before saving it as format 8.")
       ImGui.TextWrapped("If a preset does not appear, confirm that it ends in .preset, is not empty, is no larger than 1 MB, and is in the exact ACU folder above. Then check the Activity Log for ACU IMPORT or ACU SAFETY messages.")
       ImGui.TextWrapped("The Activity Log names internal eye locks and other options that the game marks inactive or not editable. The imported preset stays unchanged, and the warning does not change loading.")
       end

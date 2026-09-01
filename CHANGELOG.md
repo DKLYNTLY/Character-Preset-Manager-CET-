@@ -32,6 +32,13 @@ used. See the README and in-game Help for current instructions.
   native file service are unavailable. It asks the player to wait for an update
   and use the complete CET manager in the meantime. Opening CET or leaving the
   character screen clears the reminder.
+- Adds a readable option summary to every newly written format-8 entry, such as
+  `Jaw 15` or `Eyes 22`, while keeping the original key, editor slot, stable
+  saved choice, and loading number unchanged. The included presets use the same
+  readable lines.
+- Labels formats 7 and 8 as **CPM preset**. Every other supported layout is
+  labeled **ACU preset** and shows ACU-specific help about CC and CCXL choices
+  shifting after option-mod or load-order changes.
 - Adds fixtures and automated checks for format 8, legacy CPM, ACU 3.0.0,
   ACU 3.0.1, ACU 3.2.1, malformed presets, the native catalog protocol,
   fingerprints, folder watching, safe fallback, and atomic ACU imports.

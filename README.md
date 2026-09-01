@@ -64,9 +64,9 @@ does not mean your presets were deleted.
   without creating matching Windows folders.
 - **Search, favorites, notes, and tags** — Find and label presets without
   changing their appearance data.
-- **Readable format-8 files** — Keep names, folders, dates, details, and saved
-  choices in plain text while retaining support for older CPM and compatible
-  ACU presets.
+- **Readable format-8 files** — Keep names, folders, dates, details, and friendly
+  option summaries such as `Jaw 15` in plain text while retaining support for
+  older compatible presets.
 - **Automatic ACU imports** — Copy new or updated ACU presets into a separate
   `ACU Presets` folder after startup or when you select **Refresh**.
 - **Successor to ACU** — Keep compatible ACU 3.0.0, 3.0.1, and 3.2.1 preset
@@ -95,6 +95,9 @@ does not mean your presets were deleted.
 - **One maintained preset reader** — Older CPM and supported ACU formats remain
   in the Lua reader. The DLL never interprets appearance choices or writes over
   an older preset.
+- **Clear preset types** — Formats 7 and 8 are labeled **CPM preset**. Every
+  other supported layout is labeled **ACU preset** and shows help about its CC
+  and CCXL limitations.
 - **More format and safety tests** — Native and Lua checks now cover the catalog
   protocol, fallback behavior, current format 8, legacy CPM files, supported ACU
   layouts, malformed files, folder watching, fingerprints, and atomic imports.
@@ -222,10 +225,11 @@ and position after you move or resize it.
 5. Return your saved presets and sharing files to `Character Presets`.
 6. Fully restart the game.
 
-Older CPM formats and ACU 3.0.0, 3.0.1, and 3.2.1 preset layouts remain
-readable. The mod does not rewrite an old preset just because it finds or loads
-it. Overwriting that preset, or saving its notes or tags, updates the file to
-format 8. Keep a
+Older compatible layouts and ACU 3.0.0, 3.0.1, and 3.2.1 presets remain
+readable. The interface labels every supported format other than 7 or 8 as
+**ACU preset** so its CC and CCXL limitations are easy to recognize. The mod
+does not rewrite an old preset just because it finds or loads it. Overwriting
+that preset, or saving its notes or tags, updates the file to format 8. Keep a
 backup if you may need to use the old copy with an earlier mod version.
 
 </details>
@@ -245,6 +249,12 @@ The importer supports these ACU layouts:
 - ACU 3.0.0 JSON presets
 - ACU 3.0.1 JSON presets
 - ACU 3.2.1 text and JSON presets
+
+Formats 7 and 8 are shown as **CPM preset**. Every other supported preset is
+shown as **ACU preset**. ACU layouts do not record the stable editor slot and
+saved-choice details used by current CPM files. CC and CCXL choices may shift
+after an option mod, version, or load order changes. Use **Check Compatibility**,
+review the appearance, and save the corrected result as format 8.
 
 ## Import ACU presets step by step
 
@@ -427,16 +437,18 @@ Run a new check whenever you want a result for the editor's current state.
 
 ## Force Full Load
 
-Current format-8 presets normally use their saved editor slot and stable choice
-name. **Force Full Load** allows less certain position-based matching when an
-older preset does not contain enough detail. It turns on automatically for old
-formats that need it and turns off when you select a current preset. You can
-change it under **Load & Restore Appearance > Preset Options**.
+Current format-7 and format-8 CPM presets normally use their saved editor slot
+and stable choice name. **Force Full Load** allows less certain position-based
+matching when an ACU-labeled preset does not contain enough detail. It turns on
+automatically for old formats that need it and turns off when you select a
+current preset. You can change it under **Load & Restore Appearance > Preset
+Options**.
 
 Use this option carefully after adding, removing, or reordering character mods.
-An older file knows less about the original choice, so a shifted hairstyle or
-color list may point to a different item. Correct the result once and save the
-preset again in format 8.
+An ACU-labeled file outside formats 7 and 8 knows less about the original
+choice, so a shifted hairstyle or other CC/CCXL option may point to a different
+item. Use **Check Compatibility**, correct it, then save the preset again in
+format 8.
 
 </details>
 
@@ -457,8 +469,9 @@ History is separate from the normal preset library and is stored under
 
 ## What a preset saves
 
-Format 8 records every visible option, the option's editor position, its saved
-choice when a stable name exists, and its number in the choice list. It can also
+Format 8 records every visible option, a friendly summary such as `Jaw 15`, the
+option's editor position, its saved choice when a stable name exists, and its
+number in the choice list. It can also
 store the preset name, CET library folder, source, creation and modification
 dates, notes, tags, and favorite state.
 
@@ -470,8 +483,8 @@ character-option mods, versions, body or eye choices, or load order.
 ## Readable format-8 files
 
 Current presets use plain headings instead of encoded text. Each appearance
-entry keeps its original option key and saved number, followed by labeled
-details when they are available.
+entry keeps its original option key and saved number, followed by a readable
+option name and labeled matching details.
 
 ```text
 # CPM Preset
@@ -486,13 +499,15 @@ details when they are available.
 # Library folder: Favorites/Female V
 
 LocKey#9502141975964618858:50
+# Option: Hairstyle 50
 # Editor slot: hairstyle
 # Saved choice: options:51
 ```
 
-Normal comment lines are ignored while reading. `CPM Preset` identifies a file
-saved by this mod. `Name` and `Library folder` allow the catalog to rebuild a
-missing folder-list entry. `/` means **All Presets**.
+The readable `Option` line is for people and does not replace the machine-safe
+key. Normal comment lines are ignored while reading. `CPM Preset` identifies a
+file saved by this mod. `Name` and `Library folder` allow the catalog to rebuild
+a missing folder-list entry. `/` means **All Presets**.
 
 </details>
 
@@ -854,9 +869,11 @@ the imported copies.
 
 ### Can older Character Preset Manager or ACU presets be used?
 
-Yes. Older CPM formats remain readable. ACU 3.0.0 camel-case JSON, ACU 3.0.1
-snake-case JSON, and ACU 3.2.1 text and JSON layouts are supported. New presets
-and files updated by this release use format 8.
+Yes. Older compatible formats remain readable. ACU 3.0.0 camel-case JSON, ACU
+3.0.1 snake-case JSON, and ACU 3.2.1 text and JSON layouts are supported. The
+interface labels only formats 7 and 8 as CPM presets; every other supported
+layout is labeled an ACU preset and receives ACU-specific CC/CCXL help. New
+presets and files updated by this release use format 8.
 
 ### What happens if the CET folder list loses an entry?
 
