@@ -25,6 +25,8 @@ runtime = {
     value = tostring(value or "")
     return value:sub(1, maximum)
   end,
+  validatedPresetName = function(value) return value end,
+  validRelativePath = function(value) return type(value) == "string" end,
 }
 setmetatable(runtime, { __index = _G })
 package.preload["modules/runtime"] = function() return runtime end
@@ -49,6 +51,22 @@ text = read_preset((fixtures / "acu-3.2.1.preset").as_posix(), False)
 assert text.entryCount == 2
 assert text.entries[1].key == "LocKey#500"
 assert text.entries[2].index == 3
+
+legacy = read_preset((fixtures / "cpm-legacy.preset").as_posix(), False)
+assert legacy.entryCount == 2
+assert legacy.entries[1].key == "LocKey#101"
+assert legacy.entries[2].index == 7
+
+current = read_preset((fixtures / "cpm-format-8.preset").as_posix(), False)
+assert current.format == 8
+assert current.presetName == "Format Eight Test"
+assert current.libraryFolder == "Tests/Current"
+assert current.favorite is True
+assert current.entries[1].slot == "hairstyle"
+assert current.entries[1].choice == "options:10"
+
+malformed = read_preset((fixtures / "malformed.preset").as_posix(), False)
+assert malformed is None
 
 import_module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/acu_import.lua"
 import_lua = LuaRuntime(unpack_returned_tuples=True)

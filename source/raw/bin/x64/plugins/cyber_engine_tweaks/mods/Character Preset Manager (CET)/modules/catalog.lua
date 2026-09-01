@@ -37,9 +37,12 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   local physicalFolders = {}
   local scannedPresetCount = 0
   local scannedEntryCount = 0
+  local nativeCatalog = verifiedNativeFileCatalog()
   local function scan(relative, depth)
     local path = folderPath(relative)
-    local files, listError = safeDirectoryEntries(path, depth)
+    local files, listError = nativeCatalog
+      and nativeCatalogDirectoryEntries(nativeCatalog, relative, depth)
+      or safeDirectoryEntries(path, depth)
     if not files then
       log(("[FILES] Scan stopped at '%s': %s."):format(path, tostring(listError)), "error")
       return false
@@ -77,8 +80,10 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
         end
         if preset then
           if scanReason == "external" then
-            preset.fingerprint = fileFingerprint(
-              path .. "/" .. filename, MAX_PRESET_BYTES)
+            local nativeFile = nativeCatalog and nativeCatalog.fileByRelative
+              and nativeCatalog.fileByRelative[childRelative:lower()]
+            preset.fingerprint = nativeFile and nativeFile.fingerprint
+              or fileFingerprint(path .. "/" .. filename, MAX_PRESET_BYTES)
             if not preset.fingerprint then
               log(("[FILES] Scan stopped because '%s' could not be checked safely.")
                 :format(childRelative), "error")

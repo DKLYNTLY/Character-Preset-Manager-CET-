@@ -5,7 +5,41 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.1.0</strong></summary>
+<summary><strong>Latest release — 3.1.1</strong></summary>
+
+## 3.1.1
+
+*One complete package with a verified native folder catalog and a dependable CET fallback.*
+
+- Expands the runtime-independent RED4ext DLL into a limited native file
+  service. It watches both ACU's preset folder and Character Preset Manager's
+  own library without calling Cyberpunk gameplay functions.
+- Writes a versioned catalog containing supported relative file paths, folders,
+  sizes, modified dates, and fingerprints. Unchanged files reuse their saved
+  fingerprints so large backup files are not opened again on every startup.
+- Rejects unsafe paths, linked folders, reparse points, excessive nesting,
+  unsupported files, unreadable files, and files beyond the catalog safety
+  limit. Writes continue to use temporary files and atomic replacement.
+- Makes CET verify the native catalog against its own safe directory scan before
+  using it. CET falls back immediately when the DLL is missing, late, outdated,
+  invalid, or reports a different library.
+- Keeps the single preset reader, old CPM formats, supported ACU formats,
+  appearance matching, compatibility checks, and complete loading engine in
+  Lua. The DLL does not interpret or apply character choices.
+- Packages the character-screen panel, complete CET manager, and native file
+  service together in `Character Preset Manager (CET) 3.1.1.zip`.
+- Adds a small character-screen reminder only when both the panel bridge and
+  native file service are unavailable. It asks the player to wait for an update
+  and use the complete CET manager in the meantime. Opening CET or leaving the
+  character screen clears the reminder.
+- Adds fixtures and automated checks for format 8, legacy CPM, ACU 3.0.0,
+  ACU 3.0.1, ACU 3.2.1, malformed presets, the native catalog protocol,
+  fingerprints, folder watching, safe fallback, and atomic ACU imports.
+
+</details>
+
+<details>
+<summary><strong>Version 3.1.0</strong></summary>
 
 ## 3.1.0
 

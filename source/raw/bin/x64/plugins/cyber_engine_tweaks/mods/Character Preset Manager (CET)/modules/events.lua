@@ -5,6 +5,38 @@ local _ENV = runtime
 
 events = {}
 
+local function clearFallbackNotice()
+  state.ui.fallbackNoticePending = false
+  state.ui.fallbackNoticeAcknowledged = false
+  state.ui.fallbackNoticeChecked = false
+  state.ui.fallbackNoticeTimer = 0
+  state.ui.fallbackNoticeLayout = nil
+end
+
+local function updateFallbackNotice(elapsed)
+  if not state.app.inCustomization or state.app.overlayOpen
+      or state.ui.fallbackNoticeAcknowledged
+      or state.app.nativeBridge or state.nativeCatalog.available then
+    state.ui.fallbackNoticePending = false
+    state.ui.fallbackNoticeTimer = 0
+    state.ui.fallbackNoticeLayout = nil
+    return
+  end
+  state.ui.fallbackNoticeTimer = state.ui.fallbackNoticeTimer
+    + math.max(0, tonumber(elapsed) or 0)
+  if state.ui.fallbackNoticeTimer < FALLBACK_NOTICE_DELAY_SECONDS then return end
+  if not state.ui.fallbackNoticeChecked then
+    state.ui.fallbackNoticeChecked = true
+    verifiedNativeFileCatalog()
+  end
+  if state.app.nativeBridge or state.nativeCatalog.available then return end
+  state.ui.fallbackNoticePending = true
+  if not state.ui.fallbackNoticeLogged then
+    state.ui.fallbackNoticeLogged = true
+    log("[FALLBACK] The character-screen panel and native file service are unavailable. The CET manager remains available.", "warn")
+  end
+end
+
 helpers.releaseIdleMemory = function()
   if state.load.auto or state.load.needsContinue or state.load.pendingChange then
     return false
@@ -66,7 +98,11 @@ events.onInit = function()
       state.app.inCustomization = true
       state.invalidatePreflight()
       connectNativeBridgeForMenu(menu)
-      log("[UI] Character customization opened; native preset panel is available.", "info")
+      clearFallbackNotice()
+      log(state.app.nativeBridge
+        and "[UI] Character customization opened; native preset panel is available."
+        or "[UI] Character customization opened; waiting for the packaged panel and native file service.",
+        state.app.nativeBridge and "info" or "warn")
     end
   )
   local observeExitOk, observeExitError = pcall(
@@ -82,6 +118,7 @@ events.onInit = function()
       state.editor.activeBodyMorphMenu = nil
       state.app.inCustomization = false
       state.invalidatePreflight()
+      clearFallbackNotice()
       state.editor.openedByLauncher = false
       restoreTemporarilyDisabledWardrobe()
     end
@@ -238,6 +275,7 @@ events.onShutdown = function()
   state.editor.openTimer = 0
   state.editor.openedByLauncher = false
   state.editor.hooksAvailable = false
+  clearFallbackNotice()
   closeActivityLog()
 end
 
@@ -245,6 +283,7 @@ events.onUpdate = function(delta)
   local elapsed = tonumber(delta) or 0
   updateAcuImport(elapsed)
   updateNativeBridge(elapsed)
+  updateFallbackNotice(elapsed)
   if not state.editor.openPending and not state.load.auto then
     return
   end
@@ -311,6 +350,14 @@ end
 
 events.onOverlayOpen = function()
   log("[UI] CET overlay opened; showing Character Preset Manager. Use Refresh after changing preset files outside CET.", "info")
+  if state.ui.fallbackNoticePending then
+    state.ui.fallbackNoticePending = false
+    state.ui.fallbackNoticeLayout = nil
+    log("[FALLBACK] The CET fallback reminder was acknowledged.", "info")
+  end
+  if state.app.inCustomization then
+    state.ui.fallbackNoticeAcknowledged = true
+  end
   state.app.overlayOpen = true
   state.app.windowOpen = true
   state.app.optionsMemo = nil
@@ -333,6 +380,15 @@ events.onOverlayClose = function()
 end
 
 events.onDraw = function()
+  if state.ui.fallbackNoticePending and not state.app.overlayOpen then
+    local noticeOk, noticeError = pcall(drawFallbackHudNotice)
+    if not noticeOk then
+      state.ui.fallbackNoticePending = false
+      state.ui.fallbackNoticeLayout = nil
+      log("[FALLBACK] The CET fallback reminder was hidden after a display error: " ..
+        tostring(noticeError), "error")
+    end
+  end
   if state.app.overlayOpen and state.app.windowOpen then draw() end
 end
 

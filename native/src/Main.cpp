@@ -25,6 +25,9 @@ namespace
 namespace fs = std::filesystem;
 
 constexpr std::uintmax_t kMaximumPresetBytes = 1048576;
+constexpr std::uintmax_t kMaximumCatalogFileBytes = 268435456;
+constexpr std::size_t kMaximumCatalogEntries = 32768;
+constexpr std::uint32_t kCatalogProtocol = 1;
 constexpr auto kStartupDelay = std::chrono::seconds(5);
 constexpr auto kRequestPoll = std::chrono::milliseconds(250);
 constexpr auto kWatcherDebounce = std::chrono::milliseconds(750);
@@ -47,9 +50,18 @@ struct Paths
 {
     fs::path source;
     fs::path destination;
+    fs::path library;
     fs::path record;
     fs::path request;
     fs::path results;
+    fs::path catalog;
+};
+
+struct NativeRecord
+{
+    std::uintmax_t size = 0;
+    std::int64_t modified = 0;
+    std::string fingerprint;
 };
 
 void LogInfo(const std::string& message)
@@ -88,9 +100,11 @@ std::optional<Paths> ResolvePaths()
     return Paths{
         mods / L"AppearanceChangeUnlocker" / L"character-presets",
         manager / L"Character Presets" / L"ACU Presets",
+        manager / L"Character Presets",
         manager / L"Data" / L"Catalog" / L"ACU Import Record.txt",
         manager / L"Data" / L"Config" / L"ACU Import Request.txt",
         manager / L"Data" / L"Catalog" / L"ACU Import Results.txt",
+        manager / L"Data" / L"Catalog" / L"Native File Catalog.txt",
     };
 }
 
@@ -100,6 +114,31 @@ bool HasPresetSuffix(const fs::path& path)
     std::transform(name.begin(), name.end(), name.begin(),
                    [](const wchar_t value) { return static_cast<wchar_t>(std::towlower(value)); });
     return name.size() > 7 && name.ends_with(L".preset");
+}
+
+bool HasSupportedSuffix(const fs::path& path)
+{
+    auto name = path.filename().wstring();
+    std::transform(name.begin(), name.end(), name.begin(),
+                   [](const wchar_t value) { return static_cast<wchar_t>(std::towlower(value)); });
+    return name.ends_with(L".preset") || name.ends_with(L".cpmfolder") ||
+        name.ends_with(L".cpmbackup");
+}
+
+bool IsReparsePoint(const fs::path& path)
+{
+    const auto attributes = GetFileAttributesW(path.c_str());
+    return attributes != INVALID_FILE_ATTRIBUTES &&
+        (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+}
+
+bool ValidFingerprint(const std::string& value, const std::uintmax_t expectedSize)
+{
+    return value.starts_with("2:" + std::to_string(expectedSize) + ":") && value.size() <= 64 &&
+        std::count(value.begin(), value.end(), ':') == 3 &&
+        std::all_of(value.begin(), value.end(), [](const char character) {
+            return (character >= '0' && character <= '9') || character == ':';
+        });
 }
 
 bool SafeComponent(const fs::path& component)
@@ -198,6 +237,70 @@ std::map<std::string, Record> ReadRecords(const fs::path& path)
     return records;
 }
 
+std::map<std::string, NativeRecord> ReadNativeRecords(const fs::path& path)
+{
+    std::map<std::string, NativeRecord> records;
+    std::ifstream input(path, std::ios::binary);
+    std::string line;
+    while (std::getline(input, line))
+    {
+        std::istringstream fields(line);
+        std::string kind;
+        std::string relative;
+        std::string size;
+        std::string modified;
+        std::string fingerprint;
+        if (!std::getline(fields, kind, '\t') || kind != "file" ||
+            !std::getline(fields, relative, '\t') || !std::getline(fields, size, '\t') ||
+            !std::getline(fields, modified, '\t') || !std::getline(fields, fingerprint))
+            continue;
+        try
+        {
+            records[UnescapeField(relative)] = NativeRecord{
+                static_cast<std::uintmax_t>(std::stoull(size)),
+                std::stoll(modified),
+                fingerprint,
+            };
+        }
+        catch (...)
+        {
+        }
+    }
+    return records;
+}
+
+std::optional<std::string> FileFingerprint(const fs::path& path, const std::uintmax_t maximumBytes)
+{
+    std::error_code error;
+    const auto size = fs::file_size(path, error);
+    if (error || size > maximumBytes)
+        return std::nullopt;
+    std::ifstream input(path, std::ios::binary);
+    if (!input)
+        return std::nullopt;
+    std::uint64_t hash = 0;
+    std::uint64_t secondHash = 0;
+    std::uintmax_t bytesRead = 0;
+    std::vector<char> buffer(65536);
+    while (input)
+    {
+        input.read(buffer.data(), static_cast<std::streamsize>(buffer.size()));
+        const auto count = input.gcount();
+        bytesRead += static_cast<std::uintmax_t>(count);
+        for (std::streamsize index = 0; index < count; ++index)
+        {
+            const auto byte = static_cast<unsigned char>(buffer[static_cast<std::size_t>(index)]);
+            hash = (hash * 131 + byte) % 2147483647;
+            secondHash = (secondHash * 137 + byte) % 2147483629;
+        }
+    }
+    if (!input.eof() || bytesRead != size)
+        return std::nullopt;
+    std::ostringstream output;
+    output << "2:" << bytesRead << ':' << hash << ':' << secondHash;
+    return output.str();
+}
+
 bool AtomicWrite(const fs::path& destination, const std::string& contents)
 {
     std::error_code error;
@@ -278,12 +381,111 @@ void WriteResults(const fs::path& path, const std::vector<std::string>& changed,
         LogWarning("Character Preset Manager: ACU import results could not be saved");
 }
 
+void WriteNativeCatalog(const Paths& paths)
+{
+    std::error_code error;
+    fs::create_directories(paths.library, error);
+    if (error)
+    {
+        LogWarning("Character Preset Manager: the preset folder could not be prepared for the native file catalog");
+        return;
+    }
+    const auto previous = ReadNativeRecords(paths.catalog);
+    std::map<std::string, NativeRecord> files;
+    std::vector<std::string> directories;
+    std::size_t skipped = 0;
+    fs::recursive_directory_iterator iterator(paths.library,
+        fs::directory_options::skip_permission_denied, error);
+    const fs::recursive_directory_iterator end;
+    while (!error && iterator != end)
+    {
+        const auto entry = *iterator;
+        const auto reparsePoint = IsReparsePoint(entry.path());
+        if (reparsePoint)
+            iterator.disable_recursion_pending();
+        iterator.increment(error);
+        std::error_code entryError;
+        if (reparsePoint || entry.is_symlink(entryError) || entryError)
+        {
+            ++skipped;
+            continue;
+        }
+        const auto relative = entry.path().lexically_relative(paths.library);
+        if (!SafeRelativePath(relative))
+        {
+            ++skipped;
+            continue;
+        }
+        const auto relativeKey = relative.generic_string();
+        if (entry.is_directory(entryError) && !entryError)
+        {
+            if (directories.size() + files.size() >= kMaximumCatalogEntries)
+            {
+                ++skipped;
+                break;
+            }
+            directories.push_back(relativeKey);
+            continue;
+        }
+        if (!entry.is_regular_file(entryError) || entryError || !HasSupportedSuffix(entry.path()))
+            continue;
+        if (directories.size() + files.size() >= kMaximumCatalogEntries)
+        {
+            ++skipped;
+            break;
+        }
+        const auto size = entry.file_size(entryError);
+        const auto modifiedTime = entry.last_write_time(entryError);
+        if (entryError || size > kMaximumCatalogFileBytes)
+        {
+            ++skipped;
+            continue;
+        }
+        const auto modified = ModifiedValue(modifiedTime);
+        std::string fingerprint;
+        const auto found = previous.find(relativeKey);
+        if (found != previous.end() && found->second.size == size &&
+            found->second.modified == modified && ValidFingerprint(found->second.fingerprint, size))
+        {
+            fingerprint = found->second.fingerprint;
+        }
+        else
+        {
+            const auto value = FileFingerprint(entry.path(), kMaximumCatalogFileBytes);
+            if (!value)
+            {
+                ++skipped;
+                continue;
+            }
+            fingerprint = *value;
+        }
+        files[relativeKey] = NativeRecord{size, modified, fingerprint};
+    }
+    if (error)
+        ++skipped;
+    std::sort(directories.begin(), directories.end());
+    const auto generation = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::system_clock::now().time_since_epoch()).count();
+    std::ostringstream output;
+    output << "protocol\t" << kCatalogProtocol << '\n';
+    output << "generation\t" << generation << '\n';
+    output << "summary\t" << files.size() << '\t' << directories.size() << '\t' << skipped << '\n';
+    for (const auto& directory : directories)
+        output << "directory\t" << EscapeField(directory) << '\n';
+    for (const auto& [relative, record] : files)
+        output << "file\t" << EscapeField(relative) << '\t' << record.size << '\t'
+               << record.modified << '\t' << record.fingerprint << '\n';
+    if (!AtomicWrite(paths.catalog, output.str()))
+        LogWarning("Character Preset Manager: the native file catalog could not be saved");
+}
+
 void Scan(const Paths& paths)
 {
     std::error_code error;
     if (!fs::is_directory(paths.source, error) || error)
     {
         WriteResults(paths.results, {}, 0);
+        WriteNativeCatalog(paths);
         return;
     }
 
@@ -296,9 +498,12 @@ void Scan(const Paths& paths)
     while (!error && iterator != end)
     {
         const auto entry = *iterator;
+        const auto reparsePoint = IsReparsePoint(entry.path());
+        if (reparsePoint)
+            iterator.disable_recursion_pending();
         iterator.increment(error);
         std::error_code entryError;
-        if (entry.is_symlink(entryError) || !entry.is_regular_file(entryError) ||
+        if (reparsePoint || entry.is_symlink(entryError) || !entry.is_regular_file(entryError) ||
             entryError || !HasPresetSuffix(entry.path()))
             continue;
         const auto relative = entry.path().lexically_relative(paths.source);
@@ -342,6 +547,7 @@ void Scan(const Paths& paths)
         ++skipped;
     WriteRecords(paths.record, records);
     WriteResults(paths.results, changed, skipped);
+    WriteNativeCatalog(paths);
     LogInfo("Character Preset Manager: ACU import scan completed");
 }
 
@@ -476,11 +682,16 @@ void Worker(std::stop_token stop)
     auto requestTime = RequestTime(paths->request);
     if (WaitFor(stop, std::chrono::duration_cast<std::chrono::milliseconds>(kStartupDelay)))
         return;
-    DirectoryWatcher watcher;
-    if (watcher.Start(paths->source))
+    DirectoryWatcher acuWatcher;
+    DirectoryWatcher libraryWatcher;
+    if (acuWatcher.Start(paths->source))
         LogInfo("Character Preset Manager: ACU folder watcher started");
     else
         LogWarning("Character Preset Manager: ACU folder watcher is unavailable; Refresh remains available");
+    if (libraryWatcher.Start(paths->library))
+        LogInfo("Character Preset Manager: preset folder watcher started");
+    else
+        LogWarning("Character Preset Manager: preset folder watcher is unavailable; Refresh remains available");
     Scan(*paths);
     requestTime = RequestTime(paths->request);
     bool watcherChangePending = false;
@@ -501,18 +712,27 @@ void Worker(std::stop_token stop)
             timeout = std::min(timeout, std::chrono::duration_cast<std::chrono::milliseconds>(
                 watcherScanDue - beforeWait));
         }
-        const auto watcherResult = watcher.Wait(timeout);
-        if (watcherResult == DirectoryWatcher::Result::Stopped)
+        const auto acuWatcherResult = acuWatcher.Wait(timeout);
+        if (acuWatcherResult == DirectoryWatcher::Result::Stopped)
             break;
-        if (watcherResult == DirectoryWatcher::Result::Changed)
+        const auto libraryWatcherResult = libraryWatcher.Wait(std::chrono::milliseconds(0));
+        if (libraryWatcherResult == DirectoryWatcher::Result::Stopped)
+            break;
+        if (acuWatcherResult == DirectoryWatcher::Result::Changed ||
+            libraryWatcherResult == DirectoryWatcher::Result::Changed)
         {
             watcherChangePending = true;
             watcherScanDue = std::chrono::steady_clock::now() + kWatcherDebounce;
         }
-        else if (watcherResult == DirectoryWatcher::Result::Failed && watcher.Active())
+        if (acuWatcherResult == DirectoryWatcher::Result::Failed && acuWatcher.Active())
         {
-            watcher.Close();
+            acuWatcher.Close();
             LogWarning("Character Preset Manager: ACU folder watcher stopped; Refresh remains available");
+        }
+        if (libraryWatcherResult == DirectoryWatcher::Result::Failed && libraryWatcher.Active())
+        {
+            libraryWatcher.Close();
+            LogWarning("Character Preset Manager: preset folder watcher stopped; Refresh remains available");
         }
         const auto current = RequestTime(paths->request);
         if (current && (!requestTime || *current != *requestTime))
@@ -520,8 +740,10 @@ void Worker(std::stop_token stop)
             requestTime = current;
             Scan(*paths);
             watcherChangePending = false;
-            if (!watcher.Active() && watcher.Start(paths->source))
+            if (!acuWatcher.Active() && acuWatcher.Start(paths->source))
                 LogInfo("Character Preset Manager: ACU folder watcher started after Refresh");
+            if (!libraryWatcher.Active() && libraryWatcher.Start(paths->library))
+                LogInfo("Character Preset Manager: preset folder watcher started after Refresh");
         }
     }
 }
@@ -539,7 +761,7 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
         if (!g_stopEvent)
             return false;
         g_worker = std::jthread(Worker);
-        LogInfo("Character Preset Manager: ACU import service loaded");
+        LogInfo("Character Preset Manager: native file service loaded");
     }
     else if (reason == RED4ext::v1::EMainReason::Unload)
     {
@@ -562,9 +784,9 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
 
 RED4EXT_C_EXPORT void RED4EXT_CALL Query(RED4ext::v1::PluginInfo* info)
 {
-    info->name = L"Character Preset Manager ACU Import Service";
+    info->name = L"Character Preset Manager Native File Service";
     info->author = L"dklyntly";
-    info->version = RED4EXT_V1_SEMVER(3, 1, 0);
+    info->version = RED4EXT_V1_SEMVER(3, 1, 1);
     info->runtime = RED4EXT_V1_RUNTIME_VERSION_INDEPENDENT;
     info->sdk = RED4EXT_V1_SDK_VERSION_CURRENT;
 }

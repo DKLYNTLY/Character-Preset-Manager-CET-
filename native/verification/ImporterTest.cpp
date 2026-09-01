@@ -9,9 +9,11 @@ int main()
     const Paths paths{
         root / L"AppearanceChangeUnlocker" / L"character-presets",
         root / L"Character Presets" / L"ACU Presets",
+        root / L"Character Presets",
         root / L"Data" / L"Catalog" / L"ACU Import Record.txt",
         root / L"Data" / L"Config" / L"ACU Import Request.txt",
         root / L"Data" / L"Catalog" / L"ACU Import Results.txt",
+        root / L"Data" / L"Catalog" / L"Native File Catalog.txt",
     };
     std::error_code error;
     fs::remove_all(root, error);
@@ -33,6 +35,16 @@ int main()
         if (results.find("summary\t1\t0") == std::string::npos ||
             results.find("file\tACU Presets/female/Example.preset") == std::string::npos)
             return 3;
+    }
+    {
+        std::ifstream input(paths.catalog, std::ios::binary);
+        const std::string catalog((std::istreambuf_iterator<char>(input)),
+                                  std::istreambuf_iterator<char>());
+        if (catalog.find("protocol\t1") == std::string::npos ||
+            catalog.find("directory\tACU Presets/female") == std::string::npos ||
+            catalog.find("file\tACU Presets/female/Example.preset") == std::string::npos ||
+            catalog.find("2:13:") == std::string::npos)
+            return 9;
     }
     Scan(paths);
     {

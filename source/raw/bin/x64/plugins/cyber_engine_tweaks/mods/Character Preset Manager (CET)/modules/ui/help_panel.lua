@@ -130,6 +130,59 @@ ui.defaultWindowPosition = function()
   return math.max(20, displayWidth - 440), 40, displayWidth
 end
 
+drawFallbackHudNotice = function()
+  if not state.ui.fallbackNoticePending or state.app.overlayOpen then return end
+  local layout = state.ui.fallbackNoticeLayout
+  if not layout then
+    local _, viewportY, viewportWidth = ui.defaultWindowPosition()
+    viewportY = tonumber(viewportY) or 0
+    viewportWidth = tonumber(viewportWidth) or 1280
+    local titleWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_TITLE)
+    local messageWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_MESSAGE)
+    local cetWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_CET_MESSAGE)
+    local width = math.min(viewportWidth - 48,
+      math.max(380, math.max(titleWidth, messageWidth, cetWidth) + 32))
+    layout = {
+      width = width,
+      height = 82,
+      x = math.max(24, (viewportWidth - width) * 0.5),
+      y = viewportY + 72,
+      titleX = math.max(14, (width - titleWidth) * 0.5),
+      messageX = math.max(14, (width - messageWidth) * 0.5),
+      cetX = math.max(14, (width - cetWidth) * 0.5),
+      flags = bit32.bor(
+        ImGuiWindowFlags.NoTitleBar,
+        ImGuiWindowFlags.NoResize,
+        ImGuiWindowFlags.NoScrollbar,
+        ImGuiWindowFlags.NoScrollWithMouse,
+        ImGuiWindowFlags.NoCollapse,
+        ImGuiWindowFlags.NoSavedSettings,
+        ImGuiWindowFlags.NoMove,
+        ImGuiWindowFlags.NoInputs
+      ),
+    }
+    state.ui.fallbackNoticeLayout = layout
+  end
+  ImGui.SetNextWindowPos(layout.x, layout.y, ImGuiCond.Always)
+  ImGui.SetNextWindowSize(layout.width, layout.height, ImGuiCond.Always)
+  ImGui.PushStyleColor(ImGuiCol.WindowBg, 0.055, 0.059, 0.078, 0.94)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.85)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 7.0)
+  if ImGui.Begin("##CharacterPresetManagerFallback", true, layout.flags) then
+    ImGui.SetCursorPosX(layout.titleX)
+    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, FALLBACK_NOTICE_TITLE)
+    ImGui.SetCursorPosX(layout.messageX)
+    ImGui.TextColored(1.0, 1.0, 1.0, 1.0, FALLBACK_NOTICE_MESSAGE)
+    ImGui.SetCursorPosX(layout.cetX)
+    ImGui.TextColored(0.64, 0.67, 0.73, 1.0, FALLBACK_NOTICE_CET_MESSAGE)
+  end
+  ImGui.End()
+  ImGui.PopStyleVar(3)
+  ImGui.PopStyleColor(2)
+end
+
 drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if state.ui.settingsOpen then
       ImGui.Spacing()
@@ -246,7 +299,7 @@ if state.ui.helpOpen then
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
         "Remove Character Customization Anywhere, then restart the game. It changes the same character screens and cannot be used with Character Preset Manager.")
       ImGui.TextWrapped("ACU preset files are imported after startup. A background watcher detects later changes, and Refresh requests a check when watching is unavailable. Use Character Preset Manager to load the imported copies, and do not start an ACU load at the same time.")
-      ImGui.TextWrapped("Character Preset Manager is ACU's successor. If a future Cyberpunk update changes the simple character-screen panel, open Character Preset Manager in the CET overlay and use the complete CET manager as the backup interface. Your presets remain in the same library.")
+      ImGui.TextWrapped("Character Preset Manager is ACU's successor. The complete CET manager, character-screen panel, and native file service are included together. If both packaged parts are unavailable after a Cyberpunk update, use the same preset library in CET while waiting for an updated release.")
       ImGui.TextWrapped("Keep the same character option mods, versions, and load order that were used to make the preset. If they change, check the appearance and save the preset again.")
       ImGui.TextWrapped("Photo Mode and Appearance Menu Mod may stay installed, but you cannot save or load presets inside their menus. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
@@ -434,7 +487,7 @@ if state.ui.helpOpen then
       helpHeading("Settings")
       ImGui.TextWrapped("Change Preset Sort Order through the CET Settings tab. CET key choices remain under CET Bindings.")
       ImGui.TextWrapped("Preset Sort Order is the only preference. Safety and loading behavior are not optional.")
-      ImGui.TextWrapped("The native panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET manager stay enabled. Use Check Compatibility in CET when you want comparison details.")
+      ImGui.TextWrapped("The character-screen panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET manager stay enabled. Use Check Compatibility in CET when you want comparison details.")
       helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")
       end
 

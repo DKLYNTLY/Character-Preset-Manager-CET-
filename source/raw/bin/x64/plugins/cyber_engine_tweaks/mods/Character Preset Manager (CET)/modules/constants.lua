@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 MOD_NAME = "Character Preset Manager (CET)"
-VERSION = "3.1.0"
+VERSION = "3.1.1"
 PRESET_DIR = "Character Presets"
 DATA_DIR = "Data"
 CONFIG_DIR = DATA_DIR .. "/Config"
@@ -23,6 +23,7 @@ INVENTORY_FILE = CATALOG_DIR .. "/Preset Inventory.txt"
 IMPORTED_BUNDLES_FILE = CATALOG_DIR .. "/Imported Bundles.txt"
 ACU_IMPORT_REQUEST_FILE = CONFIG_DIR .. "/ACU Import Request.txt"
 ACU_IMPORT_RESULTS_FILE = CATALOG_DIR .. "/ACU Import Results.txt"
+NATIVE_FILE_CATALOG = CATALOG_DIR .. "/Native File Catalog.txt"
 LOG_FILE = LOG_DIR .. "/Activity.log"
 LOG_ARCHIVE_PREFIX = "Activity "
 WINDOW_POSITION_STATUS_FILE = CONFIG_DIR .. "/Window Position Status.txt"
@@ -66,11 +67,16 @@ FOLDER_BUNDLE_EXTENSION = ".cpmfolder"
 LIBRARY_BACKUP_EXTENSION = ".cpmbackup"
 MAX_LIBRARY_BACKUP_BYTES = 268435456
 NATIVE_BRIDGE_PROTOCOL = 1
+NATIVE_FILE_PROTOCOL = 1
 NATIVE_LIST_LIMIT = 96
 APPEARANCE_HISTORY_LIMIT = 5
 NATIVE_REQUEST_POLL_SECONDS = 0.05
 ACU_IMPORT_FILES_PER_FRAME = 2
 ACU_IMPORT_POLL_SECONDS = 0.25
 NATIVE_READY_STATUS = "Ready. Choose a preset to load it, or save the current appearance below."
+FALLBACK_NOTICE_DELAY_SECONDS = 8
+FALLBACK_NOTICE_TITLE = "CHARACTER-SCREEN PANEL IS NOT AVAILABLE"
+FALLBACK_NOTICE_MESSAGE = "Please wait for an updated panel and file service."
+FALLBACK_NOTICE_CET_MESSAGE = "For now, open the CET overlay and use Character Preset Manager."
 
 return _ENV

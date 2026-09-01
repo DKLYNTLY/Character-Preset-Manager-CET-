@@ -3,6 +3,7 @@ local runtime = assert(require("modules/runtime"),
 require("modules/constants")
 require("modules/state")
 require("modules/filesystem")
+require("modules/native_catalog")
 require("modules/catalog")
 require("modules/presets")
 require("modules/folders")

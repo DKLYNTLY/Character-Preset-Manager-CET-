@@ -10,7 +10,7 @@ lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(
     r"""
 runtime = {
-  VERSION = "3.1.0", NATIVE_BRIDGE_PROTOCOL = 1, NATIVE_LIST_LIMIT = 100,
+  VERSION = "3.1.1", NATIVE_BRIDGE_PROTOCOL = 1, NATIVE_LIST_LIMIT = 100,
   NATIVE_READY_STATUS = "Ready", NATIVE_REQUEST_POLL_SECONDS = 0.1,
   EMPTY_LIST = {},
   state = {

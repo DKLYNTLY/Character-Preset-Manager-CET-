@@ -157,6 +157,14 @@ state = {
     requested = false,
     dangerousLogged = {},
   },
+  nativeCatalog = {
+    available = false,
+    generation = nil,
+    fileCount = 0,
+    directoryCount = 0,
+    skipped = 0,
+    fallbackReason = nil,
+  },
   ui = {
     openSections = {
       editor = true,
@@ -192,6 +200,12 @@ state = {
     cachedWindowX = nil,
     cachedWindowY = nil,
     cachedDisplayWidth = nil,
+    fallbackNoticePending = false,
+    fallbackNoticeAcknowledged = false,
+    fallbackNoticeChecked = false,
+    fallbackNoticeLogged = false,
+    fallbackNoticeTimer = 0,
+    fallbackNoticeLayout = nil,
   },
   cache = {
     revision = 0,
