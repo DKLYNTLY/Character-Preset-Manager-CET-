@@ -1,4 +1,4 @@
-#include "../src/Main.cpp"
+#include "LegacyImporter.cpp"
 
 #include <fstream>
 

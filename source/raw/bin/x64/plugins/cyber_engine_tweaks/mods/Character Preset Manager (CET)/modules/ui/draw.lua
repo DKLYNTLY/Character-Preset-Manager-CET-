@@ -95,6 +95,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     end
     drawHelpPanel(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawEditorSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
+    if nativeService.available then
     drawLoadSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawSaveSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawManageSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
@@ -102,6 +103,9 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     drawBackupSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawBulkSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawTrashSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
+    else
+      ImGui.TextWrapped(nativeService.reason)
+    end
   end
 ImGui.End()
   popTheme()

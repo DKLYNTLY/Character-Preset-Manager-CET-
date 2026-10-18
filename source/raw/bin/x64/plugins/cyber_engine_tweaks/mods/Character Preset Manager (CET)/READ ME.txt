@@ -1,0 +1,32 @@
+Character Preset Manager (CET) 3.1.2
+
+Install the complete package into your Cyberpunk 2077 folder. Keep its bin,
+r6, and red4ext folders together. CET, RED4ext, redscript, and Codeware are
+required. Preset tools stay disabled if the included RED4ext plugin is missing
+or does not match the scripts. Restart the game after installing or updating.
+
+Open an appearance editor, select a preset, then choose Load. Selecting a row
+only selects it. Wait for the final result before confirming the editor.
+Use Cancel Load to stop; choices already applied remain visible.
+
+Hide Presets clears the panel so you can reach the game's randomizer controls.
+Show Presets restores the panel. The optional Show/Hide Preset Panel binding
+works with an appearance editor open and CET closed. It is ignored while
+typing in preset fields.
+
+More Actions includes compatibility, notes, Refresh, save location, recovery,
+and Trash. Open Character Preset Manager in CET for the full organization,
+sharing, backup, Help, and Activity Log controls.
+
+Before updating, back up the complete Character Presets and Data folders.
+Restore both after removing old scripts and installing the new package.
+Data keeps your folder organization, settings, recovery, and Trash records.
+
+Reading an ACU preset does not confirm that its appearance mods are installed.
+Loading choices does not change an existing character's gender or body type.
+Removing clothing and choosing No Outfit is a reported workaround for some
+loading problems; it is not a guaranteed fix.
+
+This build has passed automated checks. Checks inside the game, including
+screen placement, controller navigation, and real wardrobe restoration,
+remain outstanding.

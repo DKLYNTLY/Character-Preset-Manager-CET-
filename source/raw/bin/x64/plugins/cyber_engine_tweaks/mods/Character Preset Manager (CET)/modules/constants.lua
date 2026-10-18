@@ -4,7 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 MOD_NAME = "Character Preset Manager (CET)"
-VERSION = "3.1.1"
+VERSION = "3.1.2"
 PRESET_DIR = "Character Presets"
 DATA_DIR = "Data"
 CONFIG_DIR = DATA_DIR .. "/Config"
@@ -73,10 +73,10 @@ APPEARANCE_HISTORY_LIMIT = 5
 NATIVE_REQUEST_POLL_SECONDS = 0.05
 ACU_IMPORT_FILES_PER_FRAME = 2
 ACU_IMPORT_POLL_SECONDS = 0.25
-NATIVE_READY_STATUS = "Ready. Choose a preset to load it, or save the current appearance below."
+NATIVE_READY_STATUS = "Select a preset, then choose Load. To save this appearance, enter a name below."
 FALLBACK_NOTICE_DELAY_SECONDS = 8
-FALLBACK_NOTICE_TITLE = "CHARACTER-SCREEN PANEL IS NOT AVAILABLE"
-FALLBACK_NOTICE_MESSAGE = "Please wait for an updated panel and file service."
-FALLBACK_NOTICE_CET_MESSAGE = "For now, open the CET overlay and use Character Preset Manager."
+FALLBACK_NOTICE_TITLE = "CHARACTER PRESET MANAGER NEEDS ATTENTION"
+FALLBACK_NOTICE_MESSAGE = "Install the complete mod package, then restart the game."
+FALLBACK_NOTICE_CET_MESSAGE = "Open Character Preset Manager in CET for Help and installation details."
 
 return _ENV

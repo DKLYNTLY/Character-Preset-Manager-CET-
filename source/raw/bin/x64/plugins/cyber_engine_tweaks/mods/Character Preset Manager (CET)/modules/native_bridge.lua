@@ -42,6 +42,12 @@ local function findNativeBridge()
   return nil
 end
 
+togglePresetPanel = function()
+  if not state.app.inCustomization then return false end
+  local ok, changed = bridgeCall("TogglePanelVisibility")
+  return ok and changed == true
+end
+
 local function nativeStatus(message, isError)
   state.app.nativePanelStatus = tostring(message or "")
   state.app.nativePanelStatusError = isError == true
@@ -49,8 +55,13 @@ local function nativeStatus(message, isError)
 end
 
 local function listPayload(query, overrideMessage, overrideError)
-  query = tostring(query or ""):lower()
+  query = normalizeSearch(state.library.searchText)
+  if not nativeService.available then
+    overrideMessage, overrideError = nativeService.reason, true
+  end
   local lines = {}
+  lines[#lines + 1] = "SEARCH\t" .. cleanField(state.library.searchText)
+  lines[#lines + 1] = "SERVICE\t" .. (nativeService.available and "1" or "0")
   local names = helpers.sortedPresetNames()
   local selected = state.library.selected and state.library.presets[state.library.selected]
   lines[#lines + 1] = table.concat({
@@ -85,18 +96,8 @@ local function listPayload(query, overrideMessage, overrideError)
   if nativeRowsCacheKey ~= rowsKey then
     local visibleNames = {}
     local matchedFolders = {}
-    for _, name in ipairs(names) do
-      local metadata = state.library.presets[name]
-      local haystack = (name .. " " .. tostring(metadata and metadata.tags or "")):lower()
-      if query == "" or haystack:find(query, 1, true) then
-        visibleNames[name] = true
-        local current = parentFolder(name)
-        while current ~= "" do
-          matchedFolders[current] = true
-          current = parentFolder(current)
-        end
-      end
-    end
+    for _, name in ipairs(state.cache.filteredPresetNames) do visibleNames[name] = true end
+    matchedFolders = state.cache.matchedFolders
     local cachedRows = {}
     local added = 0
     local function addRow(kind, value, label)
@@ -120,7 +121,7 @@ local function listPayload(query, overrideMessage, overrideError)
     end
     for _, folder in ipairs(sortedFolderNames()) do
       local count = state.cache.folderPresetCounts[folder] or 0
-      local folderMatches = query == "" or folder:lower():find(query, 1, true) ~= nil
+      local folderMatches = state.cache.folderMatches[folder] == true
       local parentVisible = query ~= ""
         or folderAncestorsExpanded(folder, state.library.expandedLoadFolders)
       if count > 0 and parentVisible and (folderMatches or matchedFolders[folder]) then
@@ -171,8 +172,7 @@ local function listPayload(query, overrideMessage, overrideError)
   return table.concat(lines, "\n")
 end
 
-local function comparisonPayload()
-  local result = compareSelectedPreset()
+local function comparisonPayload(result)
   if not result then return "ERROR\tOpen a customization screen and select a preset first." end
   local lines = { table.concat({ "SUMMARY", result.matching, result.changing,
     result.missing, result.ambiguous, result.invalid, result.clearing }, "\t") }
@@ -210,12 +210,20 @@ local function startSelectedLoad()
 end
 
 local function handleNativeRequest(action, payload)
+  if not nativeService.available and action ~= "open" and action ~= "list"
+      and action ~= "open_advanced" and action ~= "open_load_details" and action ~= "cancel_load" then
+    return nativeStatus(nativeService.reason, true)
+  end
   if action == "open" then
     nativeQuery = ""
+    state.library.searchText = ""
+    invalidateFilteredViewCache()
     return "list", listPayload(nativeQuery, NATIVE_READY_STATUS, false)
   end
   if action == "list" then
     nativeQuery = tostring(payload or "")
+    state.library.searchText = nativeQuery
+    invalidateFilteredViewCache()
     return "list", listPayload(nativeQuery)
   end
   if action == "select" then
@@ -272,7 +280,12 @@ local function handleNativeRequest(action, payload)
     local started, message = startSelectedLoad()
     return nativeStatus(message, not started)
   end
-  if action == "compare" then return "comparison", comparisonPayload() end
+  if action == "compare" then
+    compareSelectedPreset(function(result)
+      bridgeCall("Sync", "comparison", comparisonPayload(result), state.load.auto == true)
+    end)
+    return "status", "Checking preset compatibility."
+  end
   if action == "favorite" then
     toggleSelectedPresetFavorite()
     return "list", listPayload("")
@@ -453,6 +466,7 @@ updateNativeBridge = function(delta)
   local actionOk, action = bridgeCall("GetRequestAction")
   local payloadOk, payload = bridgeCall("GetRequestPayload")
   state.app.nativeBridgeSequence = sequence
+  if actionOk and tostring(action or "") == "" then return end
   local responseKind, responsePayload = "error", "The native request could not be read."
   if actionOk and payloadOk then
     local handled, kind, data = pcall(handleNativeRequest,

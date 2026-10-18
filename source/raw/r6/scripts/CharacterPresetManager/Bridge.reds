@@ -19,6 +19,21 @@ public class NativeBridge extends ScriptableSystem {
     ArrayPush(this.panels, panel);
   }
 
+  public func TogglePanelVisibility() -> Bool {
+    let index: Int32 = 0;
+    if !this.HasPanels() { return false; };
+    while index < ArraySize(this.panels) {
+      if IsDefined(this.panels[index]) && this.panels[index].IsEnteringText() { return false; };
+      index += 1;
+    };
+    index = 0;
+    while index < ArraySize(this.panels) {
+      if IsDefined(this.panels[index]) { this.panels[index].ToggleVisibility(); };
+      index += 1;
+    };
+    return true;
+  }
+
   public func UnregisterPanel(panel: ref<PresetPanel>) -> Void {
     let index: Int32 = ArraySize(this.panels) - 1;
     while index >= 0 {
@@ -27,14 +42,25 @@ public class NativeBridge extends ScriptableSystem {
       };
       index -= 1;
     };
+    if !this.HasPanels() {
+      this.requestAction = "";
+      this.requestPayload = "";
+      this.requestSequence += 1;
+      this.busy = false;
+    };
   }
 
   public func Request(action: String, payload: String) -> Void {
+    if StrLen(this.requestAction) > 0 && NotEquals(action, "cancel_load")
+        && (NotEquals(this.requestAction, "list") || NotEquals(action, "list")) { return; };
     if this.busy && NotEquals(action, "list") && NotEquals(action, "cancel_load") { return; };
     if this.busy && Equals(this.requestAction, "cancel_load") && NotEquals(action, "cancel_load") { return; };
     this.requestAction = action;
     this.requestPayload = payload;
     this.requestSequence += 1;
+    if Equals(action, "load") || Equals(action, "restore_previous") || Equals(action, "restore_history") {
+      this.SetBusy(true, "Preparing appearance...", false);
+    };
   }
 
   public func Respond(sequence: Int32, kind: String, payload: String, isBusy: Bool) -> Void {

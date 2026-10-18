@@ -5,7 +5,42 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Latest release — 3.1.1</strong></summary>
+<summary><strong>Current build — 3.1.2</strong></summary>
+
+## 3.1.2
+
+Automated checks have passed. In-game checks remain outstanding; see the
+[validation report](native/verification/VALIDATION.md).
+
+- **Shared preset tools:** Both interfaces now use the required RED4ext plugin for
+  preset files, organization, sharing, backups, Trash, and recovery. Install the
+  complete package; Help and diagnostics remain available if files are missing.
+- **Safer recovery:** Unfinished moves from earlier versions are restored with
+  their folder records. Conflicting copies are kept for review.
+- **Named-choice verification:** The final appearance check follows the saved
+  named choice when its position has changed.
+- **Panel controls:** Show/Hide Preset Panel targets the appearance panel.
+  Hide Presets removes its background and controls; Show Presets restores the
+  same search, selection, and scroll position. Load cancellation remains available.
+- **Choose before loading:** Selecting a row shows its details. Load applies it.
+  Secondary actions are under More Actions, and the randomizer keeps its normal position.
+- **Custom choices:** Force Full Load no longer substitutes a saved position
+  when a named custom choice cannot be found safely.
+- **Appearance comparison:** A choice matched by its editor slot is no longer
+  also listed as an extra choice that will be cleared.
+- **Clearer results:** Partial and failed loads identify skipped choices and
+  direct you to the Activity Log for details.
+- **Wardrobe restoration:** Pending restoration is retried after the editor
+  closes. Wardrobe access already disabled by the game is left alone.
+- **ACU reading:** Malformed JSON numbers are rejected. Native reader/writer
+  comparison tests now cover supported formats and readable format 8.
+- **Instructions:** Current controls, ACU limits, the body-type limitation, and
+  the reported No Outfit workaround are explained in README and Help.
+
+</details>
+
+<details>
+<summary><strong>Previous release — 3.1.1</strong></summary>
 
 ## 3.1.1
 

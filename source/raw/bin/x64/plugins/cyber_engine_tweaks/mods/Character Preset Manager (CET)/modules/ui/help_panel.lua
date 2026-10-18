@@ -296,14 +296,15 @@ if state.ui.helpOpen then
       if showHelpTopic("Problems & Compatibility",
           "bug bugs issue issues problem problems error errors troubleshooting stuck infinite loading screen clothing clothes wardrobe outfit no outfit ACU appearance change unlocker character customization anywhere photo mode appearance menu mod incompatible incompatibility compatibility future update patch simple panel missing successor backup") then
       helpHeading("Problems & Compatibility")
+      ImGui.TextWrapped("Preset tools require the RED4ext plugin included in the complete Character Preset Manager package. If files are missing or do not match, install the whole package and restart the game. Help and the Activity Log remain available while preset tools are disabled.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
         "Remove Character Customization Anywhere, then restart the game. It changes the same character screens and cannot be used with Character Preset Manager.")
       ImGui.TextWrapped("ACU preset files are imported after startup. A background watcher detects later changes, and Refresh requests a check when watching is unavailable. Use Character Preset Manager to load the imported copies, and do not start an ACU load at the same time.")
-      ImGui.TextWrapped("Character Preset Manager is ACU's successor. The complete CET manager, character-screen panel, and native file service are included together. If both packaged parts are unavailable after a Cyberpunk update, use the same preset library in CET while waiting for an updated release.")
-      ImGui.TextWrapped("Keep the same character option mods, versions, and load order that were used to make the preset. If they change, check the appearance and save the preset again.")
+      ImGui.TextWrapped("After a game update, check that CET, RED4ext, redscript, Codeware, and Character Preset Manager support your game version. A missing panel does not mean your preset files were deleted.")
+      ImGui.TextWrapped("Reading an ACU file does not confirm that its appearance mods are installed. Keep the same character option mods, versions, and load order that were used to make the preset. If they change, check the appearance and save the preset again.")
       ImGui.TextWrapped("Photo Mode and Appearance Menu Mod may stay installed, but you cannot save or load presets inside their menus. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "If the game stays on a loading screen after you close an editor, remove all clothing and choose No Outfit before trying again. This is a Cyberpunk issue and can happen without this mod.")
+        "Some players report that removing clothing and choosing No Outfit before editing avoids a loading screen that does not finish. This is a reported workaround, not a guaranteed fix.")
       end
 
       if showHelpTopic("Open & Edit Appearance",
@@ -311,10 +312,12 @@ if state.ui.helpOpen then
       helpHeading("Open & Edit Appearance")
       ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. You can also use a mirror, a ripperdoc, or the new-game editor.")
       helpButton("Open Full Appearance Editor", "Opens the game's complete character editor. It is unavailable while an editor is already open or while the editor is still starting.")
-      ImGui.TextWrapped("Set these keys under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor key.")
+      ImGui.TextWrapped("Set these keys under CET Bindings > Character Preset Manager (CET). Close the CET overlay before using either key. Show/Hide Preset Panel requires an appearance editor and is ignored while typing in preset fields. If an old assignment stops working, assign it again in CET Bindings.")
       ui.drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editor.inputCount)
-      ui.drawBindingHelp("Toggle Character Preset Manager (CET)",
+      ImGui.TextWrapped("Hide Presets removes the panel so the randomizer is accessible. Show Presets restores the same search, selection, and scroll position. Loading progress and cancellation stay available while hidden. CET has an equivalent Show/Hide Preset Panel button.")
+      ImGui.TextWrapped("Loading appearance choices does not change an existing character's gender or body type.")
+      ui.drawBindingHelp("Show/Hide Preset Panel",
         "vanilla_character_presets_toggle", state.editor.windowHotkeyCount)
       end
 
@@ -322,8 +325,8 @@ if state.ui.helpOpen then
           "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue cancel button") then
       helpHeading("Load & Restore Appearance")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Scroll through the larger panel on the left or use Search to find a preset. Select a folder row to show or hide the presets inside it.")
-      ImGui.TextWrapped("3. Select a preset to start loading it. Use Check Compatibility in CET when you want to review the preset before loading.")
+      ImGui.TextWrapped("2. Scroll through the preset list or use Search to find a preset. Select a folder row to show or hide the presets inside it.")
+      ImGui.TextWrapped("3. Select a preset to preview its details, then select Load. Use Check Compatibility in CET when you want to review the preset before loading.")
       ImGui.TextWrapped("4. Watch Panel Status below the native preset list. It reports overwrite and Trash actions, loading progress, the final result, and failures without opening CET. A red marker means the action needs attention.")
       ImGui.TextWrapped("5. Use Check Compatibility in CET when you want to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,

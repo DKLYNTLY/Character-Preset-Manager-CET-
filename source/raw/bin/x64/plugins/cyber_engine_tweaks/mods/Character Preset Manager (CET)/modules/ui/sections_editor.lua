@@ -4,6 +4,13 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 drawEditorSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
+if not state.app.inCustomization then
+  ImGui.TextWrapped("Open an appearance editor to save or load presets.")
+elseif state.app.nativeBridge then
+  if fullWidthButton("Show/Hide Preset Panel##panelVisibility", actionButtonHeight) then
+    togglePresetPanel()
+  end
+end
 if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
     ImGui.TextWrapped("Opens the game's full character editor. Apartment mirrors offer the same options.")
     local editorUnavailable = state.editor.openPending or state.app.inCustomization

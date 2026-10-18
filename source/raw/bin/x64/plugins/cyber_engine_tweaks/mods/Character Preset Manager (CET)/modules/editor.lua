@@ -35,6 +35,11 @@ function temporarilyDisableWardrobe()
     log("[wardrobe] Active outfit detected, but the equipment system is unavailable.", "warn")
     return false
   end
+  local enabledOk, enabled = pcall(function()
+    local data = system:GetPlayerData(player)
+    return data and data:IsWardrobeEnabled()
+  end)
+  if not enabledOk or enabled ~= true then return false end
   local ok, disableError = pcall(function()
     local request = QuestDisableWardrobeSetRequest.new()
     request.owner = player
@@ -47,6 +52,7 @@ function temporarilyDisableWardrobe()
     return false
   end
   state.editor.wardrobeTemporarilyDisabled = true
+  state.editor.wardrobeOwner = player
   log("[wardrobe] Active outfit temporarily removed for character customization.", "info")
   return true
 end
@@ -59,6 +65,7 @@ function restoreTemporarilyDisabledWardrobe()
     log("[wardrobe] Outfit restoration is waiting for a valid player and equipment system.", "warn")
     return false
   end
+  if state.editor.wardrobeOwner and state.editor.wardrobeOwner ~= player then return false end
   local ok, restoreError = pcall(function()
     local request = QuestRestoreWardrobeSetRequest.new()
     request.owner = player
@@ -70,6 +77,7 @@ function restoreTemporarilyDisabledWardrobe()
     return false
   end
   state.editor.wardrobeTemporarilyDisabled = false
+  state.editor.wardrobeOwner = nil
   log("[wardrobe] Restored the outfit used before character customization.", "info")
   return true
 end

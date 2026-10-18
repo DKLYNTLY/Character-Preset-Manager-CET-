@@ -87,48 +87,7 @@ helpers.releaseViewCaches = function()
   state.trash.bulkSelectionDirty = true
 end
 
-helpers.rebuildViewCache = function()
-  local presetNames = {}
-  local folderNames = {}
-  local presetsByFolder = {}
-  local folderPresetCounts = {}
-  for name in pairs(state.library.presets) do
-    table.insert(presetNames, name)
-    local folder = parentFolder(name)
-    presetsByFolder[folder] = presetsByFolder[folder] or {}
-    table.insert(presetsByFolder[folder], name)
-    local current = folder
-    while current ~= "" do
-      folderPresetCounts[current] = (folderPresetCounts[current] or 0) + 1
-      current = parentFolder(current)
-    end
-  end
-  for name in pairs(state.library.folders) do table.insert(folderNames, name) end
-  local function presetLess(a, b)
-    if state.library.sortMode == "modified" then
-      local aValue = tostring((state.library.presets[a] or {}).modified or "")
-      local bValue = tostring((state.library.presets[b] or {}).modified or "")
-      local aModified = validModifiedTimestamp(aValue) and aValue or ""
-      local bModified = validModifiedTimestamp(bValue) and bValue or ""
-      if aModified ~= bModified then return aModified > bModified end
-    end
-    return baseName(a):lower() < baseName(b):lower()
-  end
-  table.sort(presetNames, presetLess)
-  table.sort(folderNames, function(a, b) return a:lower() < b:lower() end)
-  for _, names in pairs(presetsByFolder) do
-    table.sort(names, presetLess)
-  end
-  state.cache.presetNames = presetNames
-  state.cache.folderNames = folderNames
-  state.cache.presetsByFolder = presetsByFolder
-  state.cache.folderPresetCounts = folderPresetCounts
-  state.cache.viewDirty = false
-end
-
-function ensureViewCache()
-  if state.cache.viewDirty then helpers.rebuildViewCache() end
-end
+function ensureViewCache() end
 
 EMPTY_LIST = {}
 
@@ -147,45 +106,7 @@ helpers.presetsInFolder = function(folder)
   return state.cache.presetsByFolder[folder] or EMPTY_LIST
 end
 
-helpers.rebuildFilteredViewCache = function()
-  ensureViewCache()
-  local query = normalizeSearch(state.library.searchText)
-  local visibleNames = {}
-  local matchedFolders = {}
-  local folderMatches = {}
-  local matchingByFolder = {}
-  for _, name in ipairs(state.cache.presetNames) do
-    local preset = state.library.presets[name]
-    if textMatches(name, query) or textMatches(preset and preset.tags, query) then
-      table.insert(visibleNames, name)
-      local directFolder = parentFolder(name)
-      matchingByFolder[directFolder] = matchingByFolder[directFolder] or {}
-      table.insert(matchingByFolder[directFolder], name)
-      local current = directFolder
-      while current ~= "" do
-        matchedFolders[current] = true
-        current = parentFolder(current)
-      end
-    end
-  end
-  for _, folder in ipairs(state.cache.folderNames) do
-    if textMatches(folder, query) then folderMatches[folder] = true end
-  end
-  state.cache.searchText = query
-  state.cache.queryActive = query ~= ""
-  state.cache.filteredPresetNames = visibleNames
-  state.cache.matchedFolders = matchedFolders
-  state.cache.folderMatches = folderMatches
-  state.cache.matchingPresetsByFolder = matchingByFolder
-  state.cache.filteredViewDirty = false
-end
-
-function ensureFilteredViewCache()
-  local query = normalizeSearch(state.library.searchText)
-  if state.cache.filteredViewDirty or state.cache.searchText ~= query then
-    helpers.rebuildFilteredViewCache()
-  end
-end
+function ensureFilteredViewCache() end
 
 helpers.filteredPresetNames = function()
   ensureFilteredViewCache()
@@ -231,29 +152,6 @@ function validRelativePath(value)
   return true
 end
 
-function storageFilenamesInUse()
-  local entries = safeDirectoryEntries(PRESET_DIR, 0)
-  if not entries then return nil end
-  local used = {}
-  for _, entry in ipairs(entries) do used[entry.name:lower()] = true end
-  return used
-end
-
-function uniqueStorageName(leafName, used)
-  used = used or storageFilenamesInUse()
-  if not used then return nil end
-  for index = 1, 9999 do
-    local suffix = index == 1 and "" or (" %d"):format(index)
-    local candidate = leafName:sub(1, 64 - #suffix) .. suffix
-    local filename = (candidate .. ".preset"):lower()
-    if not used[filename] then
-      used[filename] = true
-      return candidate
-    end
-  end
-  return nil
-end
-
 function validatedFolderName(value)
   local name, nameError = validatedPresetName(value)
   if not name then
@@ -264,5 +162,6 @@ function validatedFolderName(value)
   end
   return name
 end
+
 
 return _ENV

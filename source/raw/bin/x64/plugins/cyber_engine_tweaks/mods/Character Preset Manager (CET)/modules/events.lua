@@ -14,32 +14,16 @@ local function clearFallbackNotice()
 end
 
 local function updateFallbackNotice(elapsed)
-  local delta = math.max(0, tonumber(elapsed) or 0)
-  if state.nativeCatalog.serviceProbePending
-      and not state.nativeCatalog.serviceAvailable then
-    state.nativeCatalog.serviceProbeTimer = state.nativeCatalog.serviceProbeTimer + delta
-    if state.nativeCatalog.serviceProbeTimer >= FALLBACK_NOTICE_DELAY_SECONDS then
-      state.nativeCatalog.serviceProbePending = false
-    end
-  end
   if not state.app.inCustomization or state.app.overlayOpen
       or state.ui.fallbackNoticeAcknowledged
-      or state.app.nativeBridge or state.nativeCatalog.serviceAvailable then
+      or (nativeService.available and state.app.nativeBridge) then
     state.ui.fallbackNoticePending = false
     state.ui.fallbackNoticeTimer = 0
-    state.ui.fallbackNoticeLayout = nil
     return
   end
-  state.ui.fallbackNoticeTimer = state.ui.fallbackNoticeTimer
-    + delta
-  if state.ui.fallbackNoticeTimer < FALLBACK_NOTICE_DELAY_SECONDS then return end
-  if state.nativeCatalog.serviceProbePending then return end
-  state.ui.fallbackNoticeChecked = true
-  if state.app.nativeBridge or state.nativeCatalog.serviceAvailable then return end
-  state.ui.fallbackNoticePending = true
-  if not state.ui.fallbackNoticeLogged then
-    state.ui.fallbackNoticeLogged = true
-    log("[FALLBACK] The character-screen panel and native file service are unavailable. The CET manager remains available.", "warn")
+  state.ui.fallbackNoticeTimer = state.ui.fallbackNoticeTimer + math.max(0, tonumber(elapsed) or 0)
+  if state.ui.fallbackNoticeTimer >= FALLBACK_NOTICE_DELAY_SECONDS then
+    state.ui.fallbackNoticePending = true
   end
 end
 
@@ -48,10 +32,9 @@ helpers.releaseIdleMemory = function()
     return false
   end
   helpers.releaseFinishedLoadWorkingData()
-  for _, preset in pairs(state.library.presets) do
-    state.dehydratePreset(preset)
-  end
-  helpers.releaseViewCaches()
+  local selected = state.library.selected and state.library.presets[state.library.selected]
+  if selected then state.dehydratePreset(selected) end
+  nativeManager.loadedPreset = nil
   ui.closeDebugPanel()
   state.ui.bindingCache = {}
   state.app.optionsMemo = nil
@@ -75,12 +58,6 @@ events.onInit = function()
     log(("Deleted %d oldest activity-log archive%s to keep the newest %d.")
       :format(deletedArchives, deletedArchives == 1 and "" or "s", LOG_ARCHIVE_LIMIT), "info")
   end
-  local config, configLoaded = readConfig()
-  state.preferences.presetSort = config.presetSort
-  state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
-  writeConfig()
-  log(("[CONFIG] Loaded '%s': presetSort=%s.")
-    :format(CONFIG_FILE, state.library.sortMode), "info")
   state.ui.initialWindowPlacementPending = not fileExists(WINDOW_POSITION_STATUS_FILE)
   if state.ui.initialWindowPlacementPending then
     log(("[UI] Window position status '%s' not found; right-side default will be applied once.")
@@ -240,29 +217,10 @@ events.onInit = function()
     log("[HOOK] Full-editor launch and mirror-unlock hooks registered.", "info")
   end
 
-  local recovered, recoveredOriginals, recoveredAssignments,
-    recoveredFolders, recoveredManualFolders = recoverTransaction()
-  if recovered then
-    refreshPresets("startup", recoveredAssignments, recoveredFolders,
-      recoveredManualFolders)
-    refreshTrash(recoveredOriginals)
-  else
-    setStatus("load", "Preset recovery is incomplete. Restart CET after checking file permissions; no preset files were changed further.", true)
-  end
-  local presetCount = 0
-  for _ in pairs(state.library.presets) do presetCount = presetCount + 1 end
-  log(("Preset files loaded: presets=%d directory='%s'")
-    :format(presetCount, PRESET_DIR), "info")
   state.app.ready = true
-  initializeAcuImport()
-  requestAcuImport("startup service check", true)
-  initializeNativeBridge(configLoaded)
-  refreshAppearanceHistory()
+  nativeManager.initialize()
+  initializeNativeBridge(true)
   refreshEditorState()
-  if recovered then
-    setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.",
-      false, "ready")
-  end
 end
 
 events.onShutdown = function()
@@ -276,6 +234,9 @@ events.onShutdown = function()
   state.editor.newGameCharacterCreator = false
   cancelConfirmations()
   resetLoadState()
+  nativeLibrary.cancelView()
+  nativeService.close()
+  nativeAppearance.close()
   state.editor.activeBodyMorphMenu = nil
   state.editor.inGameMenuController = nil
   state.editor.openPending = false
@@ -288,7 +249,15 @@ end
 
 events.onUpdate = function(delta)
   local elapsed = tonumber(delta) or 0
-  updateAcuImport(elapsed)
+  if state.editor.wardrobeTemporarilyDisabled
+      and not state.app.inCustomization and not state.editor.openPending then
+    state.editor.wardrobeRestoreTimer = (state.editor.wardrobeRestoreTimer or 0) + elapsed
+    if state.editor.wardrobeRestoreTimer >= 1 then
+      state.editor.wardrobeRestoreTimer = 0
+      restoreTemporarilyDisabledWardrobe()
+    end
+  end
+  nativeManager.update(elapsed)
   updateNativeBridge(elapsed)
   updateFallbackNotice(elapsed)
   if not state.editor.openPending and not state.load.auto then
@@ -304,6 +273,7 @@ events.onUpdate = function(delta)
     end
   end
   if not state.load.auto then return end
+  if nativeManager.preparingLoad or nativeAppearance.pending then return end
 
   state.load.elapsed = state.load.elapsed + elapsed
   if state.load.pendingChange then
@@ -360,7 +330,7 @@ events.onOverlayOpen = function()
   if state.ui.fallbackNoticePending then
     state.ui.fallbackNoticePending = false
     state.ui.fallbackNoticeLayout = nil
-    log("[FALLBACK] The CET fallback reminder was acknowledged.", "info")
+    log("[INSTALLATION] The installation reminder was acknowledged.", "info")
   end
   if state.app.inCustomization then
     state.ui.fallbackNoticeAcknowledged = true
@@ -392,19 +362,23 @@ events.onDraw = function()
     if not noticeOk then
       state.ui.fallbackNoticePending = false
       state.ui.fallbackNoticeLayout = nil
-      log("[FALLBACK] The CET fallback reminder was hidden after a display error: " ..
+      log("[INSTALLATION] The installation reminder was hidden after a display error: " ..
         tostring(noticeError), "error")
     end
   end
   if state.app.overlayOpen and state.app.windowOpen then draw() end
 end
 
-events.toggleWindow = function()
-  state.editor.windowHotkeyCount = state.editor.windowHotkeyCount + 1
-  state.app.windowOpen = not state.app.windowOpen
-  if not state.app.windowOpen then helpers.releaseIdleMemory() end
-  log(("[UI] Character Preset Manager window visibility changed to %s.")
-    :format(tostring(state.app.windowOpen)), "info")
+events.toggleWindow = function(keyDown)
+  if not keyDown then
+    state.app.panelToggleHeld = false
+    return
+  end
+  if state.app.panelToggleHeld then return end
+  state.app.panelToggleHeld = true
+  state.editor.windowHotkeyCount = (state.editor.windowHotkeyCount or 0) + 1
+  if not state.app.inCustomization or state.app.overlayOpen then return end
+  togglePresetPanel()
 end
 
 events.openEditor = function(keyDown)

@@ -102,19 +102,10 @@ ui.drawDebugPanel = function(height)
         state.editor.pauseRedirectCount, state.editor.puppetReadyCount))
     coloredWrapped(0.64, 0.67, 0.73, 1.0,
       "After one successful input launch, all four values should be at least 1.")
-    ImGui.TextWrapped(state.nativeCatalog.serviceAvailable
-      and "Native file service: answered this game session"
-      or (state.nativeCatalog.serviceProbePending
-        and "Native file service: waiting for its startup answer"
-        or "Native file service: no answer this game session"))
-    if state.nativeCatalog.available then
-      ImGui.TextWrapped(("Native file list: verified, %d files, %d folders, %d skipped")
-        :format(state.nativeCatalog.fileCount, state.nativeCatalog.directoryCount,
-          state.nativeCatalog.skipped))
-    else
-      ImGui.TextWrapped("Native file list: CET fallback -- " ..
-        tostring(state.nativeCatalog.fallbackReason or "not available"))
-    end
+    ImGui.TextWrapped(nativeService.available and "Preset service: connected"
+      or ("Preset service: " .. nativeService.reason))
+    ImGui.TextWrapped(("Library revision: %d. Pending requests: %d.")
+      :format(nativeLibrary.revision, nativeService.pendingCount))
     finishCompactSubsection()
   end
   ImGui.TextColored(0.3, 1.0, 0.4, 1.0, "Green = complete")

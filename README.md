@@ -1,195 +1,21 @@
-<h1 align="center">Character Preset Manager (CET)</h1>
+# Character Preset Manager (CET)
 
-<p align="center"><em>Save, load, organize, recover, and share complete Cyberpunk 2077 character appearances.</em></p>
+**Version 3.1.2**
 
-<p align="center">
-  <strong><a href="https://www.nexusmods.com/cyberpunk2077/mods/31886">Download on Nexus Mods</a></strong>
-  · <a href="https://discord.com/invite/mUGHmQxHG8">Discord and support</a>
-  · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
-</p>
+Save and load Cyberpunk 2077 appearance presets, then organize them in CET.
+The character-screen panel handles everyday saving and loading. The CET manager
+adds folders, favorites, notes, tags, sharing, backups, recovery, and the Activity Log.
 
-<p align="center"><strong>Current version: 3.1.1</strong></p>
+I have completed automated checks for this build. Checks inside the game,
+including screen placement, controller navigation, wardrobe restoration, and
+real loading performance, remain outstanding. See the
+[validation report](native/verification/VALIDATION.md) for the results and limits.
 
-Character Preset Manager is the successor to Appearance Change Unlocker (ACU).
-It carries ACU preset collections forward and expands the idea into a complete
-appearance library with safer loading, folders, compatibility checks, recovery,
-sharing, backups, and clear activity records.
+[Download on Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886) ·
+[Discord and support](https://discord.com/invite/mUGHmQxHG8) ·
+[Release history](CHANGELOG.md)
 
-The complete manager runs in the Cyber Engine Tweaks overlay. The included
-character-screen panel adds quick saving and one-click loading directly to
-Cyberpunk's character screens. Both interfaces use the same preset library.
-
-> [!IMPORTANT]
-> Remove **Character Customization Anywhere** before using this mod. ACU preset
-> files are supported in 3.1.1, but use Character Preset Manager's controls to
-> load the imported copies. Do not start a second load from ACU at the same time.
-
-> [!NOTE]
-> **Future Cyberpunk versions:** the complete CET manager remains the fallback
-> when the included character-screen panel or native file service needs an
-> update. A small reminder appears in character customization only when both
-> are unavailable. Open CET and use Character Preset Manager while waiting for
-> an updated release.
-
-## Choose the interface you need
-
-| Interface | Best for | After a major game update |
-|---|---|---|
-| **Complete CET manager** | Every preset feature, detailed checks, folders, sharing, backups, logs, Help, and permanent deletion | The dependable fallback when game updates affect the panel or DLL |
-| **Included character-screen panel** | Quick saving, searching, loading, Refresh, recovery, and Trash | Packaged in the same archive and available when its requirements support the current game |
-
-Both interfaces use the same preset library and loading engine. A missing panel
-does not mean your presets were deleted.
-
-## Features
-
-- **Complete appearance presets** — Save and load every visible vanilla, CC,
-  and CCXL character option available in the active editor.
-- **Included character-screen panel** — Add quick browsing, refresh, loading,
-  recovery, saving, and Trash controls directly to supported character screens.
-- **Full Appearance Editor anywhere** — Open Cyberpunk's full character editor
-  during normal play from CET or an optional key.
-- **Full apartment mirrors** — Use the complete character-creation option list
-  through ordinary apartment mirrors.
-- **One-click loading** — Select a preset once and let the mod handle editor
-  refreshes, dependent choices, cleanup, and final verification.
-- **Detailed comparison** — Check matching, changing, missing, repeated or
-  uncertain, invalid, and extra options before loading when you want a review.
-- **Safer appearance cleanup** — Clear old dependent and leftover choices so
-  settings such as heterochromia or separate eye colors do not remain stuck
-  from the previous preset.
-- **Five-entry appearance history** — Recover an earlier appearance, with a new
-  safety snapshot created before restoring an older entry.
-- **Unlimited CET folders** — Organize presets in folders and nested folders
-  without creating matching Windows folders.
-- **Search, favorites, notes, and tags** — Find and label presets without
-  changing their appearance data.
-- **Readable format-8 files** — Keep names, folders, dates, details, and friendly
-  option summaries such as `Jaw 15` in plain text while retaining support for
-  older compatible presets.
-- **Automatic ACU imports** — Copy new or updated ACU presets into a separate
-  `ACU Presets` folder after startup or when you select **Refresh**.
-- **Successor to ACU** — Keep compatible ACU 3.0.0, 3.0.1, and 3.2.1 preset
-  collections while moving to one maintained manager and current preset format.
-- **Sharing and backups** — Send one preset, export a complete folder, combine
-  selected presets, or protect the entire library in one backup.
-- **Recoverable Trash** — Restore presets and folder groups before choosing the
-  separate permanent-deletion action.
-- **Activity Log and searchable Help** — Review results in plain language and
-  find instructions without leaving CET.
-
-## What changed in 3.1.1
-
-- **One complete package** — The main archive contains the complete CET manager,
-  character-screen panel, and small native file service.
-- **Native preset-folder catalog** — The DLL watches `Character Presets` and
-  records supported files, folders, sizes, modified dates, and fingerprints in
-  a versioned catalog.
-- **Verified CET fallback** — CET checks the native catalog against its own safe
-  folder list before using it. If the DLL is missing, late, outdated, or returns
-  a different list, CET immediately uses its own folder reader.
-- **Clear update reminder** — If both the included panel and native file service
-  are unavailable, character customization shows a small reminder to open CET
-  and use the complete manager while waiting for an updated release. It does
-  not appear when either packaged component is working.
-- **One maintained preset reader** — Older CPM and supported ACU formats remain
-  in the Lua reader. The DLL never interprets appearance choices or writes over
-  an older preset.
-- **Clear preset types** — Formats 7 and 8 are labeled **CPM preset**. Every
-  other supported layout is labeled **ACU preset** and shows help about its CC
-  and CCXL limitations.
-- **More format and safety tests** — Native and Lua checks now cover the catalog
-  protocol, fallback behavior, current format 8, legacy CPM files, supported ACU
-  layouts, malformed files, folder watching, fingerprints, and atomic imports.
-- **Smoother background checks** — CET polls only the small generation header
-  for ACU results and reads the complete results only after a change. The
-  fallback reminder no longer starts a folder verification during play.
-
-## What changed in 3.1.0
-
-- **Focused ACU import service** — A small RED4ext service checks ACU's preset
-  folder once after startup. A background folder watcher detects later changes,
-  and **Refresh** remains available if the watcher is unavailable.
-- **Three ACU layouts supported** — Load the JSON layout used by ACU 3.0.0,
-  the renamed JSON fields used by 3.0.1, and the text or JSON presets supported
-  by 3.2.1.
-- **No repeated copies** — The importer checks each safe file name, size, and
-  modified date against its saved import record before opening the file.
-- **Smooth, lazy library updates** — New imports enter the CET library as
-  lightweight records, two per frame. Full contents stay unread until a preset
-  is selected, checked, or loaded. Character-screen initialization does not
-  open preset files.
-- **Dangerous ACU options are reported** — When an imported preset is checked,
-  the Activity Log names saved options such as internal eye locks that the game
-  marks inactive or not editable. The preset remains imported and unchanged.
-  This warning does not change loading.
-- **Correct folder trees** — Collapsed folders now hide their subfolders and
-  presets in both the simple panel and CET manager. Expanded subfolders use a
-  separate yellow label and child marker so each folder level is clear.
-
-## What changed in 3.0.9
-
-- **Smoother editor opening** — The character-screen preset panel now prepares
-  preset file details a few at a time after the character screen appears. This
-  avoids reading the full preset library while Cyberpunk is building the editor.
-- **No feature loss** — Search, favorites, tags, selected-preset details, and
-  the rest of the character-screen panel become available as soon as that short
-  preparation finishes.
-
-## What changed in 3.0.8
-
-- **Expanded character-screen panel** — Refresh the library and view the
-  selected preset's folder, option count, format, and tags without making the
-  panel wider.
-- **Clearer section layout** — Centered labels, improved spacing, and thin
-  dividers separate Search, presets, selected details, load controls, status,
-  and save controls. The title and Panel Status remain left-aligned.
-- **Faster recovery controls** — **Undo Last Load** restores the newest saved
-  appearance. **Recovery History** shows up to five older entries in the preset
-  list area.
-- **Reliable load cancellation** — **Cancel Load** stays above the recovery
-  controls, works on the first press, and immediately changes to **Canceling
-  Load...** while the request finishes.
-- **Simpler saving** — **Save Preset** changes from red to cyan after a name is
-  entered. **Save Location** opens a scrollable folder picker instead of
-  cycling through every folder.
-- **Short results with full details available** — Panel Status gives a compact
-  result. **View Load Details in CET** opens the matching advanced section when
-  more information is available.
-- **Cached panel data** — Prepared preset and save-location rows remain cached
-  until their source changes. History is read only when requested, and editor
-  options are checked only during a load or recovery action.
-
-See [CHANGELOG.md](CHANGELOG.md) for the complete release history.
-
-## Interface previews
-
-### Character customization screen
-
-![Character Preset Manager's simple menu inside Cyberpunk's appearance editor](images/Simple%20Menu.png)
-
-The character-screen panel provides Search, one-click loading, selected-preset
-details, load cancellation, recovery history, quick saving, recoverable Trash,
-and access to the advanced CET manager.
-
-### Advanced CET menu
-
-![Character Preset Manager's advanced CET menu for managing the complete preset library](images/Advanced%20Menu.gif)
-
-The CET window keeps the complete library in one place. Its sections cover
-loading, saving, folders, bulk actions, sharing, backups, Trash, settings, the
-Activity Log, and searchable Help.
-
-### Full apartment mirror options
-
-![The full character editor opened from an apartment mirror](images/Mirror.gif)
-
-Apartment mirrors show the full set of character-creation options instead of
-the smaller selection normally available during play.
-
----
-
-<details>
+<details open>
 <summary><strong>Requirements and installation</strong></summary>
 
 ## Requirements
@@ -201,6 +27,11 @@ The release requires:
 - [redscript 0.5.31](https://www.nexusmods.com/cyberpunk2077/mods/1511)
 - [Codeware 1.20.3](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 
+The preset tools also require the RED4ext plugin included in this package.
+Install the complete package so the character-screen panel and CET manager use
+the same preset library. If files are missing or do not match, the preset tools
+stay disabled and show installation instructions. Help and diagnostics remain available.
+
 ## Installation
 
 1. Download the latest release from
@@ -209,7 +40,7 @@ The release requires:
 3. Remove Character Customization Anywhere if it is installed, then fully
    restart the game. ACU may remain installed when you want its preset folder
    imported, but use Character Preset Manager to load the imported copies.
-4. Extract `Character Preset Manager (CET) 3.1.1.zip` into the main
+4. Extract `Character Preset Manager (CET) 3.1.2.zip` into the main
    `Cyberpunk 2077` game folder. Its `bin`, `r6`, and `red4ext` folders should
    merge with the folders already there.
 5. Start the game, open the CET overlay, and choose **Character Preset Manager**.
@@ -217,15 +48,37 @@ The release requires:
 The CET window opens near the right side on first use. CET remembers its size
 and position after you move or resize it.
 
+## Everyday use
+
+1. Open the Full Appearance Editor, a mirror, a supported ripperdoc screen, or
+   new-game character creation.
+2. Search for a preset and select its row. Select **Load** to apply it.
+3. Wait for the result before confirming the editor. A partial or failed load
+   has more detail in the **Activity Log**. Use **Cancel Load** to stop.
+4. To save, enter a name and select **Save Preset**. Use **More Actions** to
+   choose a save folder or access Refresh, recovery, and Trash.
+
+**Hide Presets** clears the panel from the editor so you can reach the game's
+randomizer controls. **Show Presets** brings back your selection, search, and
+scroll position. Progress and cancellation stay available during a load. Each
+new editor session starts with the panel open.
+
+The optional **Show/Hide Preset Panel** key works with an appearance editor open
+and CET closed. It is ignored while typing in Search or Preset Name. CET also
+has a **Show/Hide Preset Panel** button. Opening CET does not expand the panel.
+
+Loading appearance choices does not change an existing character's gender or
+body type. Open an appearance editor to save or load presets.
+
 ## Updating from an older release
 
-1. Back up any `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
-   from `Character Presets`.
+1. Back up the complete `Character Presets` and `Data` folders. `Data` keeps your
+   folder organization, settings, appearance recovery, and Trash records.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
 3. Remove `r6/scripts/CharacterPresetManager` so older panel files cannot remain.
    This does not remove presets.
-4. Install version 3.1.1 and all four requirements listed above.
-5. Return your saved presets and sharing files to `Character Presets`.
+4. Install version 3.1.2 and all four requirements listed above.
+5. Restore your saved `Character Presets` and `Data` folders into the new mod folder.
 6. Fully restart the game.
 
 Older compatible layouts and ACU 3.0.0, 3.0.1, and 3.2.1 presets remain
@@ -259,6 +112,11 @@ saved-choice details used by current CPM files. CC and CCXL choices may shift
 after an option mod, version, or load order changes. Use **Check Compatibility**,
 review the appearance, and save the corrected result as format 8.
 
+Reading an ACU file does not confirm that the matching appearance mods are
+installed. Missing or reordered custom choices can still prevent a complete
+load. Existing examples are covered by automated tests; the exact failures
+reported by commenters remain unconfirmed without their files.
+
 ## Import ACU presets step by step
 
 1. Confirm that the ACU files end in `.preset` and are stored here:
@@ -267,9 +125,9 @@ review the appearance, and save the corrected result as format 8.
    bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets
    ```
 
-2. Install Character Preset Manager 3.1.1 and all four requirements.
-3. Fully restart the game. The importer waits briefly after startup before it
-   checks ACU's folder.
+2. Install Character Preset Manager 3.1.2 and all four requirements.
+3. Fully restart the game. The importer checks ACU's folder in the background
+   while the preset library opens.
 4. Open the CET overlay and choose **Character Preset Manager**.
 5. Look for the **ACU Presets** folder in the preset list.
 6. If the files are not shown yet, select **Refresh** once and wait a moment.
@@ -291,8 +149,10 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 ```
 
 ACU subfolders are preserved. New or changed source files are copied again when
-needed. Unchanged files are skipped, so they are not repeatedly copied whenever
-you open a menu.
+needed. Unchanged files are skipped. If you edit an imported copy yourself, the
+importer keeps your edits. On the first update from an older CPM release, a changed
+ACU source may receive a separate copy when the importer cannot safely identify
+the existing copy. Review both before removing either one.
 
 ## If ACU presets do not appear
 
@@ -324,9 +184,13 @@ does not reject the imported file or change loading.
 2. Find **Character Preset Manager (CET)**.
 3. Assign **Open Full Appearance Editor** if you want to open the editor with a
    key during play.
-4. Assign **Toggle Character Preset Manager (CET)** if you also want a direct
-   key for the CET window.
-5. Close the CET overlay before using the editor key.
+4. Assign **Show/Hide Preset Panel** to hide or show the appearance-screen panel.
+5. Close CET before using either key. The panel key also requires an open
+   appearance editor. It does nothing while a preset text field has focus.
+
+The panel key keeps its existing binding identifier. If your assignment does
+not work after updating, assign it again in CET Bindings. Assignment migration
+has not yet been checked in game.
 
 Help shows assigned keys when CET provides them. If CET cannot display a key,
 Help reports whether that input was used during the current game session.
@@ -350,23 +214,22 @@ or restoring an appearance.
 
 ## Using the character-screen panel
 
-Select a preset once to load it. Folder rows open and close their contents,
+Select a preset to preview its details, then select **Load**. Folder rows open and close their contents,
 Favorites remain near the top, and presets outside folders appear under **All
-Presets**. Use Search to filter the visible library, or select **Refresh** after
+Presets**. Use Search to filter the visible library, or select **More Actions > Refresh** after
 adding or changing preset files outside the game. The selected-preset card shows
 the folder, saved-option count, file format, and tags.
 
 A collapsed folder hides all of its subfolders and presets. Expand it to show
-its direct contents. Main folders are cyan, while nested folders are yellow and
-begin with `>` so the hierarchy remains visible at every screen resolution.
+its direct contents. Nested folders begin with `>` to show their place in the folder list.
 
-Select **Undo Last Load** to restore the newest recovery appearance. Select
+Open **More Actions**, then select **Undo Last Load** to restore the newest recovery appearance. Select
 **Recovery History** to replace the preset rows with up to five recovery
 entries, newest first. Choose an entry to restore it, or select **Back** to
 return to the preset library. The mod saves the current appearance before it
 restores an older entry.
 
-To save, enter a name in **Preset Name**, choose **Save Location**, and select
+To save, enter a name in **Preset Name**, choose **More Actions > Save Location**, and select
 **Save Preset**. Save Location opens a scrollable folder picker in the preset
 list area. Choose **All Presets** or a folder, then save normally. If the name
 already exists, the same button changes to **Confirm Overwrite**. Select it
@@ -705,39 +568,9 @@ Data/
 
 ## Performance and memory use
 
-Compatibility scans run only when you request one. Preset cleanup and fresh
-editor reads run only while loading, use the normal load interval, and stop
-when the operation ends. The character-screen panel polls only its small
-request bridge; it does not scan the appearance list during ordinary frames.
-
-The native file service checks
-`AppearanceChangeUnlocker/character-presets` once after a short startup delay.
-A background folder watcher signals later changes without scheduled rescans.
-**Refresh** requests a check when the watcher is unavailable. The service
-compares file names, sizes, and modified dates with its saved record before
-reading changed files. It also watches `Character Presets` and writes a small,
-versioned list of supported files, folders, and fingerprints. CET verifies that
-list against its own safe folder check before using it. Any difference causes an
-immediate CET fallback. Changed ACU files are staged before being moved into the
-library. CET adds no more than two lightweight imported records per frame and
-does not open their contents until they are selected, checked, or loaded.
-
-During normal play, CET's rate-limited ACU check reads only the small generation
-header. It opens the complete results only when the DLL reports a new result.
-Preset-folder verification runs at startup or when you explicitly refresh the
-library, not during ordinary frames. Removing the DLL does not disable CET's
-own preset reader, saving, loading, folders, recovery, or Help. Automatic ACU
-folder importing and the native catalog are the only DLL services that stop.
-
-Large preset, folder, Trash, sharing, backup, preview, and Activity Log lists
-use pages instead of drawing every item at once. Backup discovery and
-previous-appearance availability are remembered rather than checked every
-frame.
-
-Temporary load data is released as soon as a load finishes. When the CET window
-is hidden or the overlay closes, the mod also unloads full preset contents and
-rebuildable interface lists. Names, folders, notes, tags, favorites, and other
-library details remain ready for the next use.
+Run **Check Compatibility** when you want to compare a preset with the active
+editor. Large lists use pages, and preset contents are read when needed.
+There are no measured in-game performance results for 3.1.2 yet.
 
 </details>
 
@@ -746,19 +579,12 @@ library details remain ready for the next use.
 
 ## Compatibility
 
-### Future Cyberpunk versions and the CET fallback
+### Game updates
 
-The included panel is added directly to Cyberpunk's character screens. A major
-game update may change those screens, so the panel may need a matching Character
-Preset Manager update before it appears or works correctly again.
-
-The complete CET manager is the fallback interface. If the panel is not ready
-for a new game version, open the CET overlay and choose **Character Preset
-Manager**. The same library, saving, loading, folders, recovery, sharing,
-backups, compatibility checks, logs, and Help remain available. When both the
-panel and DLL service are unavailable, a small reminder points to this fallback.
-Update CET, RED4ext, redscript, Codeware, and Character Preset Manager when
-compatible releases are available.
+After a game update, install compatible versions of CET, RED4ext, redscript,
+Codeware, and Character Preset Manager. A missing panel does not mean your
+preset files were deleted. Check Help and the Activity Log for installation
+problems.
 
 ### CC and CCXL character-option mods
 
@@ -790,12 +616,15 @@ ripperdoc, or new-game creation.
 
 ## Known issue: loading screen after closing an editor
 
-Cyberpunk can occasionally remain on a loading screen after any character
-editor closes. This also happens without Character Preset Manager. Clothing,
-wardrobe outfits, Equipment-EX, and detailed outfits may make it more likely.
+Some players report a loading screen that does not finish after closing an
+appearance editor. Removing clothing and choosing **No Outfit** before opening
+the editor is a reported workaround, not a guaranteed fix. The cause has not
+been established for every affected setup.
 
-If it happens, remove all clothing and select **No Outfit** before opening the
-editor. Put the clothing and outfit back on afterward.
+Character Preset Manager temporarily disables an active outfit for editing and
+requests its restoration afterward. It leaves wardrobe access alone if the
+game already disabled it. If the equipment system is temporarily unavailable,
+restoration stays pending and is retried after the editor closes.
 
 </details>
 
@@ -836,11 +665,9 @@ cannot be refreshed in an existing session.
 
 ### The character-screen panel is missing after a Cyberpunk update
 
-Open the CET overlay and choose **Character Preset Manager**. The complete CET
-manager remains available while the included panel is updated for the changed
-game interface. Your presets are still in the same library. Update the mod and
-its requirements when compatible versions are available. In the meantime, use
-the CET manager as shown by the fallback reminder.
+Check that all requirements support your game version, reinstall the mod, and
+restart the game. Your saved files remain in `Character Presets`. Check the
+Activity Log for errors before reporting the problem.
 
 ### A preset reports missing choices
 
@@ -900,7 +727,7 @@ included, and I do not plan to release it.
 
 ## AI disclosure
 
-I used AI to help plan, write, and review parts of the interface, Lua,
+I used AI to help plan, write, and review parts of the interface, Lua, C++,
 redscript, documentation, and release checks. I made the final design and
 release choices and reviewed the finished work before publishing it.
 
@@ -919,8 +746,8 @@ by **keanuWheeze** inspired my Full Appearance Editor.
 
 [Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107) was
 created by **yamashi** and is maintained by its contributors. Character Preset
-Manager uses CET's scripting and menu system. RED4ext runs the limited native
-file service. The included character-screen panel uses redscript and Codeware.
+Manager uses CET's scripting and menu system. RED4ext runs the preset service.
+The included character-screen panel uses redscript and Codeware.
 
 I also credit CD Projekt Red for Cyberpunk 2077 and its character system, and I
 appreciate the testing, research, compatibility information, and feedback shared
