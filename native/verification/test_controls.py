@@ -3,7 +3,7 @@ from pathlib import Path
 from lupa import LuaRuntime
 
 root = Path(__file__).resolve().parents[2]
-modules = root / 'source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules'
+modules = root / 'native/verification/legacy_312/modules'
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute('''
 runtime = {

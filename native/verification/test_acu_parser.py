@@ -4,9 +4,9 @@ from lupa import LuaRuntime
 
 
 root = Path(__file__).resolve().parents[2]
-module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/presets.lua"
+module = root / "native/verification/reference/presets.lua"
 fixtures = root / "native/verification/fixtures"
-default_presets = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets/Default Presets"
+default_presets = root / "source/raw/red4ext/plugins/CharacterPresetManager/Bundled Presets/Default Presets"
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(
     """
@@ -115,7 +115,7 @@ for default_path in default_presets.glob("*.preset"):
     assert default_preset.entryCount > 0
     assert all(default_preset.entries[index].label for index in range(1, default_preset.entryCount + 1))
 
-import_module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/acu_import.lua"
+import_module = root / "native/verification/reference/acu_import.lua"
 import_lua = LuaRuntime(unpack_returned_tuples=True)
 import_lua.execute(
     r"""

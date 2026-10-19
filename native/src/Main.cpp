@@ -20,7 +20,7 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle,
             const auto executable = std::filesystem::path(buffer);
             const auto x64 = executable.parent_path();
             if (x64.filename() != L"x64" || x64.parent_path().filename() != L"bin") return false;
-            const auto manager = x64 / L"plugins" / L"cyber_engine_tweaks" / L"mods" / L"Character Preset Manager (CET)";
+            const auto manager = x64.parent_path().parent_path() / L"red4ext" / L"plugins" / L"CharacterPresetManager";
             cpm::StartNativeService(manager);
             cpm::RegisterNativeService();
         }
@@ -34,7 +34,7 @@ RED4EXT_C_EXPORT void RED4EXT_CALL Query(RED4ext::v1::PluginInfo* info)
 {
     info->name = L"Character Preset Manager";
     info->author = L"dklyntly";
-    info->version = RED4EXT_V1_SEMVER(3, 1, 2);
+    info->version = RED4EXT_V1_SEMVER(3, 1, 3);
     info->runtime = RED4EXT_V1_RUNTIME_VERSION_INDEPENDENT;
     info->sdk = RED4EXT_V1_SDK_VERSION_CURRENT;
 }

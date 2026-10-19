@@ -3,7 +3,7 @@ from lupa import LuaRuntime
 
 
 root = Path(__file__).resolve().parents[2]
-module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/native_catalog.lua"
+module = root / "native/verification/reference/native_catalog.lua"
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(
     r'''

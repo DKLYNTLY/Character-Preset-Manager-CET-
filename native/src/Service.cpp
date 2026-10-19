@@ -55,7 +55,7 @@ Service::~Service() { Shutdown(); }
 Json Service::Status()
 {
     std::lock_guard lock(mutex_);
-    return {{"protocol", Protocol}, {"version", "3.1.2"}, {"available", accepting_},
+    return {{"protocol", Protocol}, {"version", "3.1.3"}, {"available", accepting_},
         {"session", session_}, {"sessionOpen", sessionOpen_}, {"pending", operations_.size()}, {"changes", changes_.load()}};
 }
 

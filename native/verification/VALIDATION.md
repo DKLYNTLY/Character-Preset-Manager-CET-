@@ -1,94 +1,62 @@
-# Version 3.1.2 validation
+# Version 3.1.3 validation
 
-I ran the automated checks below on Windows on October 18, 2026. These checks
-cover the files, background service, script adapter, and simulated editor
-behavior. They do not replace checks inside Cyberpunk 2077.
+I ran the automated checks on Windows on October 19, 2026, after implementing
+the runtime, menus, migration and documentation. I fixed failures and reran the
+affected checks. I have not performed in-game checks for this version.
 
 ## Automated checks
 
-- The Release build completed with the installed RED4ext SDK.
-- Native tests passed for bounded requests, cancellation, stale sessions, one
-  active appearance load, serial appearance steps, worker shutdown, and the
-  production folder watcher.
-- File tests covered cached library views, notes, tags, favorites, all folder
-  actions, bulk moves, shared folders, backups, Trash, and appearance history.
-  Interrupted transactions and older recovery records were recovered.
-  Conflicting copies and outside edits were preserved.
-- Native and reference Lua results agreed for 46 preset reads, a readable
-  format-8 round trip, 252 comparisons, and 17 shared-file cases.
-- Load planning agreed for 301 individual decisions and 120 staged sequences
-  containing 873 decisions.
-- Eight editor simulations covered settling, delayed updates, dependencies,
-  stale snapshots, missing named choices, cancellation, and editor closure.
-- Complete manager workflows ran against the actual native service through
-  the production Lua adapter. They covered startup, ACU import, saving,
-  metadata, every folder action, bulk moves, sharing, backups, Trash,
-  compatibility, loading, history, settings, and unavailable-service handling.
-  The harness rejected any attempt by Lua to open a preset file.
-- Input and wardrobe tests covered one toggle per press, typing guards,
-  collapsed-state preservation, missing panels, ownership of wardrobe changes,
-  and restoration retries.
-- All shipped Lua files, including init.lua, passed the installed
-  luaparse reader in Lua 5.1 mode.
-- redscript lint passed against the game cache and Codeware sources. The
-  only warning came from Codeware's existing Reflection.reds return path.
-- Static panel checks covered explicit loading, focus guards, collapsed load
-  cancellation, compatibility controls, and required-service controls.
-- The 3.1.2 archive passed its content checks: 53 files, the expected
-  bin/x64 layout, one init.lua, all three redscript files, and the matching
-  Release DLL. The archived init.lua was parsed again after extraction.
-
-The older Lua implementation is retained only under the reference folder for
-comparison tests. It is not included in the mod package.
-
-## Offline performance measurements
-
-Each preset contained 16 choices. I measured a new library and an unchanged
-refresh with 64 and 2,048 presets. The baseline uses the earlier Lua directory
-reader without an existing inventory or native catalog. The native measurements
-include the test process transport; its first refresh also saves the inventory.
-The files were already in the operating system's cache.
-
-| Operation | 64 presets: Lua | 64 presets: native | 2,048 presets: Lua | 2,048 presets: native |
-| --- | ---: | ---: | ---: | ---: |
-| First refresh and inventory | 45.4 ms | 80.5 ms | 1,863.5 ms | 2,490.3 ms |
-| Unchanged refresh | 30.0 ms | 21.8 ms | 609.7 ms | 733.5 ms |
-| Search and sort | 0.4 ms | 1.1 ms | 23.8 ms | 5.0 ms |
-
-A repeated native search took 1.1 ms with 64 presets and 4.5 ms with 2,048.
-The larger search was faster, but the first refresh and larger unchanged
-refresh were slower. Full refresh still visits every file and checks its path
-and saved details. These results do not support a general speed claim.
-
-Preset file work now runs in the background. I have not measured its effect
-on game frame times, game startup, opening an editor, or real appearance loads.
-Those timings remain unavailable. The raw fixture results are in
-performance.json; benchmark_library.py reproduces this measurement.
+- The Release DLL and native verification targets build with the installed
+  RED4ext SDK. All three CTest targets pass: native controller, service and importer.
+- The actual native controller runs without Lua in its workflow harness. Checks
+  cover initial migration and ACU import from the game folder; save and confirmed
+  overwrite; notes, tags and favorites; folders and nested folder recovery; bulk
+  moves; sharing and backups; Trash; comparison; staged loading; cancellation;
+  history; settings and saved native keys. Technical commands keep the same session.
+- Migration checks cover fresh installs, identical destination files, conflicting
+  records, preserved originals, nested files, an interrupted temporary copy,
+  repeated attempts and completed migrations that do not reimport old files.
+- Native loading checks reject missing named choices even with force loading,
+  produce a partial result for an unconfirmed choice, and reject work after
+  the editor session closes. The harness simulates editor choices; it does not
+  execute redscript or change a character inside the game.
+- redscript compilation succeeds against the installed final.redscripts game
+  cache and Codeware sources. The only warning is Codeware's existing
+  Reflection.reds return path. Compilation checks types and scripts; it does
+  not confirm runtime native binding, menu layout or actual input handling.
+- Native menu source checks cover selection before loading, panel hiding,
+  cancellation, text-focus guards, native ownership and optional CET transport.
+- All 11 Python verification scripts pass. Historical Lua adapter checks use
+  unshipped legacy_312 files as regression references. They do not validate the
+  new redscript adapter. Native/reference comparisons cover 34 preset reads,
+  readable format-8 writing, 252 comparisons, 17 archive cases, 301 planning
+  decisions and 120 staged sequences containing 873 decisions.
+- The installed luaparse dependency parses all three shipped Lua files in Lua
+  5.1 mode. The extracted archive's init.lua is parsed separately.
+- Package inspection verifies 21 files, bin/x64 at the archive root, six native
+  script files, six bundled presets, exactly one init.lua and the matching
+  Release DLL. Personal Data, historical Lua references and obsolete Lua modules
+  are excluded. Version fields agree on 3.1.3.
 
 ## In-game checks still required
 
-I have not performed the following checks in a running game:
+- CET absent: saving, loading, every manager screen and native keys.
+- CET present: technical tools, overlay reloads and shared session ownership.
+- Runtime registration of the typed native transport and editor callbacks.
+- New-game creation, mirrors, supported ripperdocs and full-editor launches.
+- Confirm/cancel paths, wardrobe restoration and failed launches.
+- Keyboard, mouse and controller navigation, text entry, Back, scrolling and
+  hidden-panel cancellation.
+- Standard, widescreen and ultrawide placement without blocked game controls.
+- Real startup, migration, editor-opening and appearance-loading performance.
 
-- Full-editor launches, mirrors, supported ripperdoc screens, and new-game
-  customization.
-- Confirming or canceling an editor, failed launches, and wardrobe restoration
-  with the actual equipment system.
-- Randomizer access, text focus, scrolling, panel collapse, CET transitions,
-  and keyboard, mouse, and controller navigation.
-- Widescreen and ultrawide placement, text size, and overlap with game controls.
-- Real game startup, editor-opening, and appearance-loading performance with
-  small and large libraries.
+These are outstanding, not passed. Cyberpunk 2077 was not running during this
+work. I have not reproduced commenters' exact ACU failures without their files.
 
-These items are outstanding, not passed. I have not reproduced the commenters'
-exact ACU failures without their original files.
+## Reproducing the automated checks
 
-## Running the checks
-
-Build with CMake and CPM_BUILD_TESTS=ON, providing RED4EXT_SDK_PATH. Run CTest
-for the native targets. The Python checks require lupa; adapter and workflow
-checks also use CET's installed JSON library. Their optional first argument
-accepts that JSON file's path when the default game location differs.
-
-Run the test_*.py files in this folder, plus panel_contracts.cjs with Node.js.
-The comparison checks load their reference modules from this folder rather
-than from the shipped mod.
+Build native with CMake and CPM_BUILD_TESTS=ON, then run CTest in Release mode.
+Run the verification test_*.py scripts with lupa available, and panel_contracts.cjs
+with Node.js. Compile the shipped scripts together with Codeware against the
+installed game cache, writing the output to a temporary build location. Run
+package_release.py last to parse Lua and verify the release archive.

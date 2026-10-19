@@ -4,18 +4,18 @@ import sys
 from lupa.luajit21 import LuaRuntime
 
 root = Path(__file__).resolve().parents[2]
-mod = root / 'source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)'
+mod = root / 'native/verification/legacy_312'
 json_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('D:/SteamLibrary/steamapps/common/Cyberpunk 2077/bin/x64/plugins/cyber_engine_tweaks/scripts/json/json.lua')
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(f'json = dofile([[{json_path.as_posix()}]])')
 lua.execute('''
-runtime = {VERSION='3.1.2', helpers={}, log=function() end}
+runtime = {VERSION='3.1.3', helpers={}, log=function() end}
 setmetatable(runtime, {__index=_G})
 package.preload['modules/runtime'] = function() return runtime end
 session, sequence, polls, closes, received = 0, 0, 0, 0, 0
 jobs = {}
 Game = {
-  CPMNativeStatus = function() return json.encode({available=true,protocol=1,version='3.1.2'}) end,
+  CPMNativeStatus = function() return json.encode({available=true,protocol=1,version='3.1.3'}) end,
   CPMNativeBegin = function() session=session+1; return session end,
   CPMNativeClose = function(value) assert(value==session); closes=closes+1; return true end,
   CPMNativeSubmit = function(value, action, payload)
@@ -98,7 +98,7 @@ assert(not service.connect() and service.reason~='')
 ''')
 lua.execute(f'dofile([[{mod.as_posix()}/modules/native_library.lua]])')
 lua.execute('''
-Game.CPMNativeStatus=function() return json.encode({available=true,protocol=1,version='3.1.2'}) end
+Game.CPMNativeStatus=function() return json.encode({available=true,protocol=1,version='3.1.3'}) end
 local service,library=runtime.nativeService,runtime.nativeLibrary
 assert(service.connect())
 runtime.state={library={presets={old={}},folders={},selected='old'},cache={revision=0},trash={}}

@@ -72,7 +72,7 @@ void DirectoryWatch::Run(std::stop_token stop)
         if (now >= retry)
         {
             watches[0].Open(manager_ / L"Character Presets");
-            watches[1].Open(manager_.parent_path() / L"AppearanceChangeUnlocker" / L"character-presets");
+            watches[1].Open((manager_.parent_path().filename() == L"plugins" && manager_.parent_path().parent_path().filename() == L"red4ext" ? manager_.parent_path().parent_path().parent_path() / L"bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker" : manager_.parent_path() / L"AppearanceChangeUnlocker") / L"character-presets");
             retry = now + seconds(2);
         }
         std::array<HANDLE, 3> handles{stop_};

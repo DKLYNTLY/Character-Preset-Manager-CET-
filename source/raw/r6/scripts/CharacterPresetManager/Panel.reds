@@ -92,6 +92,9 @@ public class PanelButton extends CustomButton {
 
 public class PresetPanel extends inkCustomController {
   private let bridge: wref<NativeBridge>;
+  private let manager: ref<PresetManager>;
+  private let panelScale: Vector2;
+  private let heartbeat: ref<inkAnimProxy>;
   private let content: ref<inkCanvas>;
   private let secondary: ref<inkCanvas>;
   private let visibilityAction: ref<PanelButton>;
@@ -228,9 +231,9 @@ public class PresetPanel extends inkCustomController {
     this.moreAction.SetWidth(654.0);
     this.moreAction.RegisterToCallback(n"OnBtnClick", this, n"OnMore");
     this.moreAction.Reparent(root, this.GetGameController());
-    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 18.0, 944.0, n"OnOpenCET");
+    this.openCETAction = this.AddAction(root, "MANAGE PRESETS", 18.0, 944.0, n"OnOpenCET");
     this.openCETAction.SetWidth(654.0);
-    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 18.0, 1002.0, n"OnLoadDetails");
+    this.detailsAction = this.AddAction(root, "VIEW LOAD RESULT", 18.0, 1002.0, n"OnLoadDetails");
     this.detailsAction.SetWidth(654.0);
     this.detailsAction.GetRootWidget().SetVisible(false);
     this.secondary = new inkCanvas();
@@ -264,6 +267,10 @@ public class PresetPanel extends inkCustomController {
   }
 
   public func ToggleVisibility() -> Void {
+    if IsDefined(this.manager) && this.manager.GetRootWidget().IsVisible() {
+      this.manager.GetRootWidget().SetVisible(false);
+      this.CloseManager();
+    };
     if this.IsEnteringText() { return; };
     this.collapsed = !this.collapsed;
     this.content.SetVisible(!this.collapsed);
@@ -316,15 +323,54 @@ public class PresetPanel extends inkCustomController {
     this.RegisterToGlobalInputCallback(n"OnPostOnRelease", this, n"OnGlobalRelease");
     if IsDefined(this.bridge) {
       this.bridge.RegisterPanel(this);
-      this.bridge.Request("open", "");
-      if !this.bridge.IsLuaReady() { this.SetStatus("The preset library is connecting.", false); };
+
+      if !this.bridge.IsReady() { this.SetStatus("Install matching Character Preset Manager files, RED4ext, redscript and Codeware, then restart the game.", true); };
     };
+    this.StartHeartbeat();
     return true;
   }
   protected cb func OnUninitialize() -> Bool {
+    if IsDefined(this.heartbeat) { this.heartbeat.Stop(); };
     this.UnregisterFromGlobalInputCallback(n"OnPostOnRelease", this, n"OnGlobalRelease");
     if IsDefined(this.bridge) { this.bridge.UnregisterPanel(this); };
     return true;
+  }
+
+  private func StartHeartbeat() -> Void {
+    let animation: ref<inkAnimDef> = new inkAnimDef();
+    let transparency: ref<inkAnimTransparency> = new inkAnimTransparency();
+    transparency.SetStartTransparency(1.0);
+    transparency.SetEndTransparency(1.0);
+    transparency.SetDuration(0.05);
+    animation.AddInterpolator(transparency);
+    this.heartbeat = this.GetRootWidget().PlayAnimation(animation);
+    this.heartbeat.RegisterToCallback(inkanimEventType.OnFinish, this, n"OnHeartbeat");
+  }
+  protected cb func OnHeartbeat(animation: ref<inkAnimProxy>) -> Bool {
+    if IsDefined(this.bridge) { this.bridge.Tick(); };
+    this.StartHeartbeat();
+    return true;
+  }
+  public func OpenManager() -> Void {
+    if !IsDefined(this.manager) {
+      this.manager = PresetManager.Create(this.bridge, this);
+      this.manager.Reparent(this.GetRootCompoundWidget(), this.GetGameController());
+    };
+    this.panelScale = this.GetRootWidget().GetScale();
+    let parent: ref<inkWidget> = this.GetRootWidget().GetParentWidget();
+    if IsDefined(parent) {
+      let available: Vector2 = parent.GetSize();
+      let scale: Float = MinF(1.0, MinF((available.X - 240.0) / 1500.0, (available.Y - 300.0) / 1230.0));
+      if scale > 0.0 { this.GetRootWidget().SetScale(new Vector2(scale, scale)); };
+    };
+    this.content.SetVisible(false);
+    this.visibilityAction.GetRootWidget().SetVisible(false);
+    this.manager.Open();
+  }
+  public func CloseManager() -> Void {
+    this.GetRootWidget().SetScale(this.panelScale);
+    this.content.SetVisible(!this.collapsed);
+    this.visibilityAction.GetRootWidget().SetVisible(true);
   }
 
   private func MakeText(text: String, size: Int32, x: Float, y: Float, width: Float, height: Float) -> ref<inkText> {
@@ -436,7 +482,7 @@ public class PresetPanel extends inkCustomController {
     return true;
   }
   protected cb func OnOpenCET(widget: wref<inkWidget>) -> Bool {
-    this.bridge.Request("open_advanced", "");
+    this.OpenManager();
     this.ReleaseButtonFocus();
     return true;
   }
@@ -466,6 +512,7 @@ public class PresetPanel extends inkCustomController {
           return true;
         };
         if absolute < ArraySize(this.rowKinds) {
+          if Equals(this.rowKinds[absolute], "PAGE") { this.bridge.Request("page", this.rowValues[absolute]); return true; };
           if Equals(this.rowKinds[absolute], "FOLDER") || Equals(this.rowKinds[absolute], "SUBFOLDER") {
             this.bridge.Request("toggle_folder", this.rowValues[absolute]);
             this.ReleaseButtonFocus();
@@ -534,7 +581,7 @@ public class PresetPanel extends inkCustomController {
     return true;
   }
   protected cb func OnLoadDetails(widget: wref<inkWidget>) -> Bool {
-    this.bridge.Request("open_load_details", "");
+    this.bridge.Request("details", "");
     this.ReleaseButtonFocus();
     return true;
   }
@@ -573,7 +620,7 @@ public class PresetPanel extends inkCustomController {
     return false;
   }
   protected cb func OnGlobalRelease(evt: ref<inkPointerEvent>) -> Bool {
-    if this.collapsed || this.IsEnteringText() || !this.IsPanelWidget(evt.GetTarget()) { return false; };
+    if (IsDefined(this.manager) && this.manager.GetRootWidget().IsVisible()) || this.collapsed || this.IsEnteringText() || !this.IsPanelWidget(evt.GetTarget()) { return false; };
     if evt.IsAction(n"navigate_down") {
       this.ScrollBy(1);
       evt.Handle();
@@ -811,6 +858,8 @@ protected cb func OnInitialize() -> Bool {
   wrappedMethod();
   let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
   if IsDefined(bridge) {
+    bridge.AttachEditor(this, this.GetCharacterCustomizationSystem());
+    InputService.Get().EditorOpened();
     this.cpmPresetPanel = PresetPanel.Create(bridge);
     this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
     inkWidgetRef.SetVisible(this.m_presetsLabel, false);
@@ -828,6 +877,9 @@ protected cb func OnInitialize() -> Bool {
 
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnUninitialize() -> Bool {
+  let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
+  if IsDefined(bridge) { bridge.DetachEditor(); };
+  InputService.Get().EditorClosed();
   if IsDefined(this.cpmPresetPanel) {
     this.cpmPresetPanel.Detach();
     this.cpmPresetPanel = null;

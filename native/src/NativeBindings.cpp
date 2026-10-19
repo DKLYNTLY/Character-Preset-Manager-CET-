@@ -2,6 +2,8 @@
 #include "Library.hpp"
 #include "Service.hpp"
 #include "DirectoryWatch.hpp"
+#include "NativeController.hpp"
+#include "TypedBindings.hpp"
 
 #include <RED4ext/RED4ext.hpp>
 
@@ -127,9 +129,36 @@ void EndAppearance(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, RED4ext::
     StringResult(output, [&](Service& current) { return current.EndAppearance(session, operation).dump(); });
 }
 
+void TypedExchange(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* output, int64_t)
+{
+    RED4ext::Handle<RED4ext::IScriptable> request, reply;
+    RED4ext::GetParameter(frame, &request);
+    RED4ext::GetParameter(frame, &reply);
+    ++frame->code;
+    if (output) *output = false;
+    auto current = Current();
+    if (!current || !request || !reply) return;
+    try { Exchange(*current, request.GetPtr(), reply.GetPtr()); if (output) *output = true; } catch (...) {}
+}
+
+void InputKey(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, std::int32_t* output, int64_t)
+{
+    bool editor = false;
+    RED4ext::GetParameter(frame, &editor);
+    ++frame->code;
+    if (output) *output = editor ? editorKey.load() : panelKey.load();
+}
+
 void RegisterFunctions()
 {
     auto rtti = RED4ext::CRTTISystem::Get();
+    auto key = Function("CPMNativeInputKey", &InputKey, "Int32");
+    key->AddParam("Bool", "editor");
+    rtti->RegisterFunction(key);
+    auto exchange = Function("CPMNativeExchange", &TypedExchange, "Bool");
+    exchange->AddParam("handle:IScriptable", "request");
+    exchange->AddParam("handle:IScriptable", "reply");
+    rtti->RegisterFunction(exchange);
     rtti->RegisterFunction(Function("CPMNativeStatus", &Status, "String"));
     rtti->RegisterFunction(Function("CPMNativeBegin", &Begin, "Uint64"));
     auto close = Function("CPMNativeClose", &Close, "Bool");
@@ -164,7 +193,9 @@ void RegisterNativeService()
 void StartNativeService(const std::filesystem::path& manager)
 {
     auto library = std::make_shared<Library>(manager);
-    auto next = std::make_shared<Service>([library](const Json& request, OperationContext& context) {
+    auto controller = std::make_shared<NativeController>(manager);
+    auto next = std::make_shared<Service>([library, controller](const Json& request, OperationContext& context) {
+        if (request.value("action", "") == "native_ui") return controller->Execute(request, context);
         return library->Execute(request, context);
     });
     std::lock_guard lock(serviceMutex);

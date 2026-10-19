@@ -1,32 +1,31 @@
-Character Preset Manager (CET) 3.1.2
+Character Preset Manager (CET) 3.1.3
 
-Install the complete package into your Cyberpunk 2077 folder. Keep its bin,
-r6, and red4ext folders together. CET, RED4ext, redscript, and Codeware are
-required. Preset tools stay disabled if the included RED4ext plugin is missing
-or does not match the scripts. Restart the game after installing or updating.
+Install the complete package into the main Cyberpunk 2077 folder. RED4ext,
+redscript and Codeware are required. CET is optional for technical tools.
+CDPR's REDmod DLC is not required. Fully restart after updating.
 
-Open an appearance editor, select a preset, then choose Load. Selecting a row
-only selects it. Wait for the final result before confirming the editor.
-Use Cancel Load to stop; choices already applied remain visible.
+Open a supported appearance editor. Select a preset row, then Load. Enter a
+name and choose Save Preset to save. Manage Presets opens folders, notes, tags,
+sharing, backups, Trash, recovery, settings and Help inside the editor.
+Hide Presets clears the panel so you can reach the game's controls.
 
-Hide Presets clears the panel so you can reach the game's randomizer controls.
-Show Presets restores the panel. The optional Show/Hide Preset Panel binding
-works with an appearance editor open and CET closed. It is ignored while
-typing in preset fields.
+Presets and Data now belong under red4ext/plugins/CharacterPresetManager.
+Back up the old Character Presets and Data folders before updating. Keep them
+in the old CET mod folder for the first start. The native plugin copies and
+verifies them, preserving originals. Conflicts are kept separately under
+Data/Migration/Conflicts. Tools stop until conflicting copies are reviewed.
+After completed migration, use the native library as the active copy.
 
-More Actions includes compatibility, notes, Refresh, save location, recovery,
-and Trash. Open Character Preset Manager in CET for the full organization,
-sharing, backup, Help, and Activity Log controls.
+New presets use readable format 8. Older compatible CPM and ACU files are
+rewritten only when overwritten or when their notes or tags are saved. Loading
+does not change an existing character's gender or body type. Missing appearance
+mods can prevent a complete load. Check Compatibility and review the appearance.
 
-Before updating, back up the complete Character Presets and Data folders.
-Restore both after removing old scripts and installing the new package.
-Data keeps your folder organization, settings, recovery, and Trash records.
+Cancel Load stops further changes; applied choices remain visible. Recovery
+can restore an earlier appearance. Empty Trash, Clear History and Delete Backup
+permanently remove saved files and require confirmation. Assign native keys
+inside Manage Presets. CET assignments remain optional aliases; close CET before
+using keys.
 
-Reading an ACU preset does not confirm that its appearance mods are installed.
-Loading choices does not change an existing character's gender or body type.
-Removing clothing and choosing No Outfit is a reported workaround for some
-loading problems; it is not a guaranteed fix.
-
-This build has passed automated checks. Checks inside the game, including
-screen placement, controller navigation, and real wardrobe restoration,
-remain outstanding.
+I have not checked this build inside the game. See the project README and
+validation report for completed checks and outstanding work.

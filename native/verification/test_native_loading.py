@@ -6,7 +6,7 @@ import sys
 from lupa.luajit21 import LuaRuntime
 
 root = Path(__file__).resolve().parents[2]
-mod = root / 'source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)'
+mod = root / 'native/verification/legacy_312'
 json_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('D:/SteamLibrary/steamapps/common/Cyberpunk 2077/bin/x64/plugins/cyber_engine_tweaks/scripts/json/json.lua')
 process = subprocess.Popen([root / 'native/build-vs18/Release/CharacterPresetManagerCodecTests.exe'],
     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True, encoding='utf-8')
@@ -36,7 +36,7 @@ ToCName=function(value) return value end
 local session,sequence=0,0
 jobs={}
 Game={
-  CPMNativeStatus=function() return json.encode({available=true,protocol=1,version='3.1.2'}) end,
+  CPMNativeStatus=function() return json.encode({available=true,protocol=1,version='3.1.3'}) end,
   CPMNativeBegin=function() session=session+1;return session end,
   CPMNativeClose=function() return true end,
   CPMNativeSubmit=function(current,action,payload)

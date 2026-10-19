@@ -1,41 +1,24 @@
-const fs = require("fs");
-const path = require("path");
-const assert = require("assert");
+const fs = require("fs"), path = require("path"), assert = require("assert");
 const root = path.resolve(__dirname, "../..");
-const mod = path.join(root, "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)");
 const read = name => fs.readFileSync(path.join(root, name), "utf8");
-const panel = read("source/raw/r6/scripts/CharacterPresetManager/Panel.reds");
-const bridge = read("source/raw/r6/scripts/CharacterPresetManager/Bridge.reds");
-const init = fs.readFileSync(path.join(mod, "init.lua"), "utf8");
-const loader = fs.readFileSync(path.join(mod, "modules/native_loader.lua"), "utf8");
-const client = fs.readFileSync(path.join(mod, "modules/native_service.lua"), "utf8");
+const base = "source/raw/r6/scripts/CharacterPresetManager/";
+const bridge = read(base + "Bridge.reds"), panel = read(base + "Panel.reds"), manager = read(base + "Manager.reds"), input = read(base + "Input.reds");
+const cet = "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/";
+const init = read(cet + "init.lua"), advanced = read(cet + "modules/advanced.lua");
 assert(init.includes('registerInput("vanilla_character_presets_toggle"'));
-assert(init.includes('"Show/Hide Preset Panel"'));
-assert(init.includes('require("modules/native_manager")'));
-for (const name of ["SetVisible", "SetInteractive", "SetSupportFocus"]) {
-  assert(panel.includes("this.content." + name + "(!this.collapsed)"));
-}
-assert(panel.includes("this.search.IsFocused() || this.presetName.IsFocused()"));
-assert(panel.includes("this.compactStatus.SetVisible(this.collapsed && this.busy)"));
+assert(init.includes('registerInput("preset_manager_open_editor_input"'));
+assert(!advanced.includes("CPMNativeBegin") && !advanced.includes("CPMNativeExchange"));
+assert(!advanced.includes("io.open") && !init.includes("onUpdate"));
+assert(!bridge.includes("luaReady") && !bridge.includes("SetLuaReady"));
+assert(bridge.includes("AttachEditor") && bridge.includes("DetachEditor") && bridge.includes("SnapshotHash"));
+assert(bridge.includes("this.system.ApplyChangeToOption") && bridge.includes("1.25") && bridge.includes("0.225") && bridge.includes("0.20"));
+assert(bridge.includes("this.SnapshotHash() != reply.snapshotHash"));
+assert(panel.includes('"MANAGE PRESETS"') && !panel.includes('"ADVANCED PRESET MANAGER"'));
+assert(panel.includes('this.bridge.Request("select", clickedName)') && panel.includes('this.bridge.Request("load", "")'));
 assert(panel.includes("this.compactCancel.GetRootWidget().SetVisible(this.collapsed && this.busy)"));
-assert(panel.includes('this.bridge.Request("select", clickedName)'));
-assert(panel.includes('this.bridge.Request("load", "")'));
-assert(!panel.includes('this.bridge.Request("select_load", clickedName)'));
-assert(!panel.includes("SetTranslation(this.m_randomizeGroup"));
-assert(panel.includes('this.bridge.Request("compare", "")'));
-assert(panel.includes('Equals(fields[0], "SERVICE")'));
-assert(panel.includes("!this.serviceReady || this.busy"));
-assert(bridge.includes('Equals(this.requestAction, "cancel_load")'));
-const toggle = bridge.slice(bridge.indexOf("public func TogglePanelVisibility"), bridge.indexOf("public func UnregisterPanel"));
-assert(toggle.includes("IsEnteringText"));
-assert(!toggle.includes("this.requestAction ="));
-assert(client.includes("status.protocol ~= 1 or status.version ~= VERSION"));
-assert(loader.includes("helpers.checkPendingChange"));
-assert(loader.includes("helpers.beginPendingChange"));
-assert(loader.includes("helpers.finalVerifyUnconfirmed"));
-assert(!read("native/src/Main.cpp").includes("ACU Import Request"));
-for (const filename of ["catalog", "presets", "comparison", "native_manager"]) {
-  const text = fs.readFileSync(path.join(mod, "modules", filename + ".lua"), "utf8");
-  assert(!text.includes("io.open("), filename + " performs preset file access in Lua");
-}
-console.log("Panel contracts passed: explicit loading, visibility/focus guards, collapsed cancellation, compatibility, required service, and staged verification.");
+for (const action of ["metadata", "favorite", "move_many", "create_folder", "bundle_import", "backup_export", "trash_restore", "history_clear", "config_read"])
+  assert(manager.includes('"' + action + '"'), action);
+assert(input.includes("IsTyping") && input.includes("this.overlayOpen") && input.includes("IsWardrobeEnabled"));
+assert(input.includes("wardrobeOwner") && input.includes("RestoreWardrobe") && input.includes("0.15"));
+assert(!input.includes('OpenMenu(n"pause_menu"'));
+console.log("Native menu contracts passed; in-game input and layout still require verification.");

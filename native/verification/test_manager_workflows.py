@@ -8,7 +8,7 @@ from time import monotonic, sleep
 from lupa.luajit21 import LuaRuntime
 
 root = Path(__file__).resolve().parents[2]
-mod = root / 'source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)'
+mod = root / 'native/verification/legacy_312'
 json_path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path('D:/SteamLibrary/steamapps/common/Cyberpunk 2077/bin/x64/plugins/cyber_engine_tweaks/scripts/json/json.lua')
 
 with TemporaryDirectory(prefix='cpm-workflows-') as directory:

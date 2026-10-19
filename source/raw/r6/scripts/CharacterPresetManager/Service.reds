@@ -5,3 +5,7 @@ public static native func CPMNativeSubmit(session: Uint64, action: String, paylo
 public static native func CPMNativePoll(session: Uint64, operation: Uint64, consume: Bool) -> String
 public static native func CPMNativeCancel(session: Uint64, operation: Uint64) -> String
 public static native func CPMNativeEndAppearance(session: Uint64, operation: Uint64) -> String
+
+public static native func CPMNativeExchange(request: ref<IScriptable>, reply: ref<IScriptable>) -> Bool
+
+public static native func CPMNativeInputKey(editor: Bool) -> Int32

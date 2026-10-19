@@ -601,6 +601,16 @@ Json Library::View(const Json& request)
 Json Library::Execute(const Json& request, OperationContext& context)
 {
     const auto action = request.at("action").get<std::string>();
+    if (action == "keys_save")
+    {
+        const auto editor = request.at("editorKey").get<int>(), panel = request.at("panelKey").get<int>();
+        if (editor < 0 || editor > 65535 || panel < 0 || panel > 65535) throw std::runtime_error("Choose valid keys.");
+        const std::string path = "Data/Config/Native Keys.txt";
+        std::optional<std::string> before;
+        if (fs::exists(SafePath(path))) before = Read(path, 128);
+        FileTransaction([this](const auto& relative) { return SafePath(relative); }).Apply({{path, std::to_string(editor) + " " + std::to_string(panel) + "\n", before, true}}, context);
+        return {{"editorKey", editor}, {"panelKey", panel}};
+    }
     if (action == "refresh") return Refresh(context);
     if (action == "synchronize")
     {
@@ -1018,7 +1028,10 @@ Json Library::ImportAcu(OperationContext& context)
     transaction.Recover();
     if (fs::exists(SafePath("Data/Recovery/Recovery Journal.txt")))
         throw std::runtime_error("An earlier library action needs recovery before imports can begin.");
-    Library source(manager_.parent_path() / "AppearanceChangeUnlocker");
+    const auto game = manager_.parent_path().parent_path().parent_path();
+    const auto acu = manager_.parent_path().filename() == "plugins" && manager_.parent_path().parent_path().filename() == "red4ext"
+        ? game / "bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker" : manager_.parent_path() / "AppearanceChangeUnlocker";
+    Library source(acu);
     const auto sourceRoot = source.SafePath("character-presets");
     if (!fs::exists(sourceRoot)) return {{"imported", 0}, {"skipped", 0}, {"revision", revision_}, {"message", "No ACU preset folder was found."}};
     const std::string statePath = "Data/Catalog/Native ACU Imports.txt";

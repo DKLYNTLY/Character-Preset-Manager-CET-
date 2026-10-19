@@ -5,7 +5,31 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Current build — 3.1.2</strong></summary>
+<summary><strong>Current build — 3.1.3</strong></summary>
+
+## 3.1.3
+
+- **Native tools:** Saving, loading and library management use the game menus
+  and native service. CET is optional for force loading and technical information.
+- **Manage Presets:** Folders, notes, tags, favorites, bulk actions, sharing,
+  backups, Trash, recovery, settings and Help open inside an appearance editor.
+- **Smaller CET menu:** Opening CET uses the same native controller and does not
+  restart an appearance load. Only three Lua files are included.
+- **New file location:** Presets and Data belong under
+  `red4ext/plugins/CharacterPresetManager`. The first start copies and checks
+  the old library, keeps originals and stops for conflicting saved records.
+- **Native keys:** Assign editor and panel keys inside the preset settings.
+  Existing CET assignments remain optional aliases.
+- **Compatibility:** Readable format 8 and supported older CPM and ACU files
+  remain readable. Finding or loading an older file does not rewrite it.
+
+I have not checked this version inside the game. See the
+[validation report](native/verification/VALIDATION.md) for current results.
+
+</details>
+
+<details open>
+<summary><strong>Previous release — 3.1.2</strong></summary>
 
 ## 3.1.2
 

@@ -7,11 +7,11 @@ from tempfile import TemporaryDirectory
 import zipfile
 
 root = Path(__file__).resolve().parents[2]
-version = '3.1.2'
+version = '3.1.3'
 raw = root / 'source/raw'
 mod = raw / 'bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)'
 constants = (mod / 'modules/constants.lua').read_text(encoding='utf-8')
-assert re.search(r'^VERSION = "' + re.escape(version) + '"$', constants, re.M)
+assert f'version = "{version}"' in constants
 assert f'<Version>{version}</Version>' in (root / 'Character Preset Manager CET.cpmodproj').read_text(encoding='utf-8')
 assert f'**Version {version}**' in (root / 'README.md').read_text(encoding='utf-8')
 assert re.search(r'^## (.+)$', (root / 'CHANGELOG.md').read_text(encoding='utf-8'), re.M).group(1) == version
@@ -46,12 +46,16 @@ with zipfile.ZipFile(archive) as package:
     assert not any(name.startswith('raw/') or '/verification/' in name for name in names)
     assert sum(name.endswith('/init.lua') for name in names) == 1
     for required in [init_entry, dll_entry, 'r6/scripts/CharacterPresetManager/Bridge.reds',
-                     'r6/scripts/CharacterPresetManager/Panel.reds', 'r6/scripts/CharacterPresetManager/Service.reds']:
+                     'r6/scripts/CharacterPresetManager/Panel.reds', 'r6/scripts/CharacterPresetManager/Service.reds',
+                     'r6/scripts/CharacterPresetManager/Types.reds', 'r6/scripts/CharacterPresetManager/Manager.reds', 'r6/scripts/CharacterPresetManager/Input.reds']:
         assert required in names, required
     assert package.read(init_entry) == (mod / 'init.lua').read_bytes()
     assert package.read(dll_entry) == compiled.read_bytes()
     assert not any(name.endswith('/modules/' + retired + '.lua')
                    for name in names for retired in ['native_catalog', 'bundles', 'backup', 'folders', 'history'])
+    assert sum(name.endswith('.lua') for name in names) == 3
+    assert not any('/legacy_312/' in name or '/Data/' in name for name in names)
+    assert sum('/Bundled Presets/' in name and name.endswith('.preset') for name in names) == 6
     with TemporaryDirectory(prefix='cpm-archive-parse-') as temporary:
         extracted = Path(temporary) / 'init.lua'
         extracted.write_bytes(package.read(init_entry))
