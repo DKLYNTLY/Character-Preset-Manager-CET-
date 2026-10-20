@@ -5,7 +5,19 @@ of each release. They may mention controls or file locations that are no longer
 used. See the README and in-game Help for current instructions.
 
 <details open>
-<summary><strong>Current build — 3.1.3</strong></summary>
+<summary><strong>Current build — 3.1.4</strong></summary>
+
+## 3.1.4
+
+- I now use **dnydd (formerly dklyntly)** in my credits and author details.
+- The README now links to my existing license without the incorrect MIT label.
+- The download now includes my license alongside the separate third-party licenses.
+  The permissions in my license have not changed.
+
+</details>
+
+<details>
+<summary><strong>Previous release — 3.1.3</strong></summary>
 
 ## 3.1.3
 

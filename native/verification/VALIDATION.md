@@ -1,4 +1,19 @@
-# Version 3.1.3 validation
+# Version 3.1.4 validation
+
+I rebuilt the Release DLL after updating my author name and the release version.
+All three CTest checks passed with normal Windows file permissions. The first
+sandboxed run failed because the checks could not write their temporary files.
+
+I parsed all three shipped Lua files with the installed luaparse dependency,
+then separately parsed init.lua extracted from the release archive. Archive
+checks passed for all 22 files, the bin/x64 layout, the matching Release DLL,
+and the included copy of my license. The four required version fields agree
+on 3.1.4. I also checked the changes for whitespace errors.
+
+This update changes credits, license documentation and version labels. I have
+not tested it inside the game or repeated the broader 3.1.3 checks below.
+
+## Previous version: 3.1.3 validation
 
 I ran the automated checks on Windows on October 19, 2026, after implementing
 the runtime, menus, migration and documentation. I fixed failures and reran the

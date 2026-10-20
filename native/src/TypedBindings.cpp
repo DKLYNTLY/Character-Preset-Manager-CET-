@@ -56,7 +56,7 @@ void Exchange(Service& service, RED4ext::IScriptable* request, RED4ext::IScripta
         const auto command = String(request, "command");
         const auto session = Property<std::uint64_t>(request, "session"), operation = Property<std::uint64_t>(request, "operation");
         Property<bool>(reply, "accepted") = false;
-        Set(reply, "version", "3.1.3");
+        Set(reply, "version", "3.1.4");
         Json result;
         if (command == "snapshot")
         {

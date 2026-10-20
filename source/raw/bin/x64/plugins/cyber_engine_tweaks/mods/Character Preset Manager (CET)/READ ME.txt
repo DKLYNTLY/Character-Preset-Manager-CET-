@@ -1,4 +1,4 @@
-Character Preset Manager (CET) 3.1.3
+Character Preset Manager (CET) 3.1.4
 
 Install the complete package into the main Cyberpunk 2077 folder. RED4ext,
 redscript and Codeware are required. CET is optional for technical tools.
@@ -29,3 +29,7 @@ using keys.
 
 I have not checked this build inside the game. See the project README and
 validation report for completed checks and outstanding work.
+
+I created and maintain this mod as dnydd (formerly dklyntly).
+My license is in red4ext/plugins/CharacterPresetManager/LICENSE.txt.
+Third-party licenses are in the Licenses folder beside it.

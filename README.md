@@ -1,6 +1,6 @@
 # Character Preset Manager (CET)
 
-**Version 3.1.3**
+**Version 3.1.4**
 
 Save, load and organize Cyberpunk 2077 appearance presets inside an appearance
 editor. The main tools use redscript, RED4ext and Codeware. CET is optional for
@@ -19,7 +19,7 @@ mod deployment are not required.
 
 1. Install the requirements. Remove Character Customization Anywhere if installed,
    then fully restart before using the Full Appearance Editor.
-2. Extract `Character Preset Manager (CET) 3.1.3.zip` into the main Cyberpunk 2077
+2. Extract `Character Preset Manager (CET) 3.1.4.zip` into the main Cyberpunk 2077
    folder. Merge its `bin`, `r6` and `red4ext` folders with those already there.
 3. Open new-game creation, an apartment mirror, a supported ripperdoc appearance
    screen, or the Full Appearance Editor. Choose **Manage Presets** for library tools.
@@ -204,7 +204,7 @@ release choices and reviewed the finished work before publishing it.
 
 ## Credits
 
-I created and maintain Character Preset Manager as **dklyntly**.
+I created and maintain Character Preset Manager as **dnydd (formerly dklyntly)**.
 
 [ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850)
 by **PotatoOfDoom** is the predecessor to this project. I built Character Preset
@@ -224,9 +224,20 @@ I also credit CD Projekt Red for Cyberpunk 2077 and its character system, and I
 appreciate the testing, research, compatibility information, and feedback shared
 by the Cyberpunk 2077 modding community.
 
+## License and permissions
+
+I publish this mod as **dnydd (formerly dklyntly)** under my DarklyStudios
+copyright. All rights are reserved except for the uses allowed in [LICENSE](LICENSE).
+This mod is not offered under the MIT license.
+
+You may include the mod in public or private modpacks and make the configuration
+changes described in the license. You need my written permission to distribute
+a modified or standalone version. See the license for the full terms and contact
+details. Third-party libraries keep their own licenses, included with the download.
+
 ## Links
 
 [Download on Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886) ·
 [GitHub source](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-) ·
 [Discord and support](https://discord.com/invite/mUGHmQxHG8) ·
-[Full changelog](CHANGELOG.md) · [MIT license](LICENSE)
+[Full changelog](CHANGELOG.md) · [License and permissions](LICENSE)

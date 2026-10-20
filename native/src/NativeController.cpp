@@ -126,7 +126,7 @@ Json NativeController::Execute(const Json& request, OperationContext& context)
         Call({{"action", "synchronize"}}, context);
         sort_ = Call({{"action", "config_read"}}, context)["preferences"].value("presetSort", "name");
         initialized_ = true;
-        Log("Character Preset Manager 3.1.3 native session opened.");
+        Log("Character Preset Manager 3.1.4 native session opened.");
     }
     if (action == "keys_save")
     {

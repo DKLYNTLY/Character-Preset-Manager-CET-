@@ -33,7 +33,7 @@ public class NativeBridge extends ScriptableSystem {
     let request: ref<NativeRequest> = new NativeRequest();
     request.command = "begin";
     let reply: ref<NativeReply> = new NativeReply();
-    if CPMNativeExchange(request, reply) && reply.accepted && Equals(reply.version, "3.1.3") {
+    if CPMNativeExchange(request, reply) && reply.accepted && Equals(reply.version, "3.1.4") {
       this.session = reply.session;
       this.ready = true;
     } else {
@@ -163,7 +163,7 @@ public class NativeBridge extends ScriptableSystem {
       request.options = this.Capture();
     };
     let reply: ref<NativeReply> = new NativeReply();
-    if CPMNativeExchange(request, reply) && reply.accepted && Equals(reply.version, "3.1.3") {
+    if CPMNativeExchange(request, reply) && reply.accepted && Equals(reply.version, "3.1.4") {
       this.operation = reply.operation;
       this.command = action;
       this.SetBusy(true, "Working...", false);

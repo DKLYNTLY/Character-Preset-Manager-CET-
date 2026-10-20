@@ -7,7 +7,7 @@ from tempfile import TemporaryDirectory
 import zipfile
 
 root = Path(__file__).resolve().parents[2]
-version = '3.1.3'
+version = '3.1.4'
 raw = root / 'source/raw'
 mod = raw / 'bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)'
 constants = (mod / 'modules/constants.lua').read_text(encoding='utf-8')
@@ -51,6 +51,7 @@ with zipfile.ZipFile(archive) as package:
         assert required in names, required
     assert package.read(init_entry) == (mod / 'init.lua').read_bytes()
     assert package.read(dll_entry) == compiled.read_bytes()
+    assert package.read('red4ext/plugins/CharacterPresetManager/LICENSE.txt') == (root / 'LICENSE').read_bytes()
     assert not any(name.endswith('/modules/' + retired + '.lua')
                    for name in names for retired in ['native_catalog', 'bundles', 'backup', 'folders', 'history'])
     assert sum(name.endswith('.lua') for name in names) == 3
