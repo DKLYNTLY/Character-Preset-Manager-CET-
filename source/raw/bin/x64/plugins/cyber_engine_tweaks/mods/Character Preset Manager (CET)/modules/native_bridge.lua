@@ -208,7 +208,36 @@ local function startSelectedLoad()
   return true, state.status.sections.load.message
 end
 
+canRunAppearanceRandomizer = function()
+  if not state.app.inCustomization or not state.editor.activeBodyMorphMenu
+      or state.load.auto or state.load.needsContinue or state.load.pendingChange then return false end
+  local ok, available = pcall(function() return state.editor.activeBodyMorphMenu:CPMCanRandomize() end)
+  return ok and available == true
+end
+
+runAppearanceRandomizer = function(settings)
+  if not canRunAppearanceRandomizer() then
+    return nativeStatus("Randomize is unavailable while the editor is busy or closed.", true)
+  end
+  if settings and state.app.overlayOpen then
+    state.editor.pendingRandomizeSettings = state.editor.activeBodyMorphMenu
+    return nativeStatus("Close CET to open the game's Randomize Settings.", false)
+  end
+  local ok, changed = pcall(function()
+    if settings then return state.editor.activeBodyMorphMenu:CPMRandomizeSettings() end
+    return state.editor.activeBodyMorphMenu:CPMRandomize()
+  end)
+  if not ok or not changed then
+    return nativeStatus("The game's randomizer is unavailable. Try again when the editor is ready.", true)
+  end
+  state.app.optionsMemo = nil
+  state.invalidatePreflight()
+  return nativeStatus(settings and "Randomize Settings updated." or "The game is randomizing your appearance.", false)
+end
+
 local function handleNativeRequest(action, payload)
+  if action == "randomize" then return runAppearanceRandomizer(false) end
+  if action == "randomize_settings" then return runAppearanceRandomizer(true) end
   if action == "open" then
     nativeQuery = ""
     return "list", listPayload(nativeQuery, NATIVE_READY_STATUS, false)
@@ -409,7 +438,7 @@ updateNativeBridge = function(delta)
     if not initializeNativeBridge(true) then return end
   end
   local elapsed = math.max(0, tonumber(delta) or 0)
-  local busy = state.load.auto or state.load.needsContinue
+  local busy = state.load.auto or state.load.needsContinue or state.load.pendingChange ~= nil
   local wasBusy = state.app.nativeBusy == true
   local status = busy and ("Loading pass " .. tostring(state.load.pass) .. "...") or ""
   local statusError = false
@@ -428,6 +457,9 @@ updateNativeBridge = function(delta)
     state.app.nativeBusy = busy
     state.app.nativeStatus = status
     state.app.nativeStatusError = statusError
+  end
+  if state.editor.activeBodyMorphMenu then
+    pcall(function() state.editor.activeBodyMorphMenu:CPMUpdateRandomizerControls() end)
   end
   local listSelection = tostring(state.library.selected or "") .. "\31" ..
     tostring(state.trash.nativePendingDeleteName or "") .. "\31" ..
@@ -464,7 +496,7 @@ updateNativeBridge = function(delta)
     end
   end
   bridgeCall("Respond", sequence, responseKind, responsePayload,
-    state.load.auto or state.load.needsContinue)
+    state.load.auto or state.load.needsContinue or state.load.pendingChange ~= nil)
 end
 
 return _ENV

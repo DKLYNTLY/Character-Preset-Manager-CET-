@@ -38,6 +38,17 @@ Cyberpunk's character screens. Both interfaces use the same preset library.
 | **Complete CET manager** | Every preset feature, detailed checks, folders, sharing, backups, logs, Help, and permanent deletion | The dependable fallback when game updates affect the panel or DLL |
 | **Included character-screen panel** | Quick saving, searching, loading, Refresh, recovery, and Trash | Packaged in the same archive and available when its requirements support the current game |
 
+The simple menu uses red frames and cyan highlights to match the character
+screen. **Randomize** and **Randomize Settings** appear below its title and in
+CET under **Open & Edit Appearance**. Both use the game's randomizer and category
+locks. The original buttons are hidden once the replacement controls are ready;
+**R** still randomizes in the character screen. These actions wait until preset
+loading or recovery finishes. To open Randomize Settings from CET, select the
+button, then close the overlay with your CET key.
+
+Open the complete manager with your normal CET overlay key. The separate
+**Toggle Character Preset Manager (CET)** binding has been removed.
+
 Both interfaces use the same preset library and loading engine. A missing panel
 does not mean your presets were deleted.
 
@@ -311,9 +322,7 @@ does not reject the imported file or change loading.
 2. Find **Character Preset Manager (CET)**.
 3. Assign **Open Full Appearance Editor** if you want to open the editor with a
    key during play.
-4. Assign **Toggle Character Preset Manager (CET)** if you also want a direct
-   key for the CET window.
-5. Close the CET overlay before using the editor key.
+4. Close the CET overlay before using the editor key.
 
 Help shows assigned keys when CET provides them. If CET cannot display a key,
 Help reports whether that input was used during the current game session.

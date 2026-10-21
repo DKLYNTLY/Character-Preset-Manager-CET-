@@ -1,8 +1,50 @@
 module CPM
 import Codeware.UI.*
 
+public class PanelFrame extends IScriptable {
+  private let edges: array<ref<inkRectangle>>;
+
+  public func SetTintColor(color: HDRColor) -> Void {
+    let index: Int32 = 0;
+    while index < ArraySize(this.edges) {
+      this.edges[index].SetTintColor(color);
+      index += 1;
+    };
+  }
+  public func SetOpacity(opacity: Float) -> Void {
+    let index: Int32 = 0;
+    while index < ArraySize(this.edges) {
+      this.edges[index].SetOpacity(opacity);
+      index += 1;
+    };
+  }
+  public static func Create(parent: ref<inkCompoundWidget>) -> ref<PanelFrame> {
+    let frame: ref<PanelFrame> = new PanelFrame();
+    let index: Int32 = 0;
+    while index < 4 {
+      let edge: ref<inkRectangle> = new inkRectangle();
+      if index < 2 {
+        edge.SetAnchor(index == 0 ? inkEAnchor.TopFillHorizontaly : inkEAnchor.BottomFillHorizontaly);
+        edge.SetAnchorPoint(new Vector2(0.0, index == 0 ? 0.0 : 1.0));
+        edge.SetHeight(2.0);
+      } else {
+        edge.SetAnchor(index == 2 ? inkEAnchor.LeftFillVerticaly : inkEAnchor.RightFillVerticaly);
+        edge.SetAnchorPoint(new Vector2(index == 2 ? 0.0 : 1.0, 0.0));
+        edge.SetWidth(2.0);
+      };
+      edge.SetInteractive(false);
+      edge.Reparent(parent);
+      ArrayPush(frame.edges, edge);
+      index += 1;
+    };
+    frame.SetTintColor(HDRColor(1.0, 0.22, 0.20, 1.0));
+    frame.SetOpacity(0.55);
+    return frame;
+  }
+}
+
 public class PanelButton extends CustomButton {
-  protected let frame: wref<inkRectangle>;
+  protected let frame: ref<PanelFrame>;
   protected let fill: wref<inkRectangle>;
   protected let style: Int32;
   protected let selected: Bool;
@@ -14,14 +56,10 @@ public class PanelButton extends CustomButton {
     root.SetSupportFocus(true);
     let fill: ref<inkRectangle> = new inkRectangle();
     fill.SetAnchor(inkEAnchor.Fill);
-    fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+    fill.SetTintColor(HDRColor(0.045, 0.008, 0.012, 1.0));
     fill.SetOpacity(0.48);
     fill.Reparent(root);
-    let frame: ref<inkRectangle> = new inkRectangle();
-    frame.SetAnchor(inkEAnchor.Fill);
-    frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-    frame.SetOpacity(0.16);
-    frame.Reparent(root);
+    let frame: ref<PanelFrame> = PanelFrame.Create(root);
     let label: ref<inkText> = new inkText();
     label.SetAnchor(inkEAnchor.Fill);
     label.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
@@ -41,21 +79,26 @@ public class PanelButton extends CustomButton {
   }
 
   protected func ApplyDisabledState() -> Void { this.m_root.SetOpacity(this.m_isDisabled ? 0.32 : 1.0); }
-  protected func ApplyHoveredState() -> Void { this.frame.SetOpacity(this.m_isHovered && !this.m_isDisabled ? 0.34 : (this.selected ? 0.28 : 0.16)); }
+  protected func ApplyHoveredState() -> Void {
+    this.frame.SetOpacity(this.m_isHovered && !this.m_isDisabled ? 1.0 : (this.selected ? 0.85 : 0.55));
+    this.m_label.SetTintColor(this.m_isHovered || this.selected || this.style == 3
+      ? HDRColor(0.22, 0.92, 1.0, 1.0)
+      : (this.style == 4 ? HDRColor(1.0, 0.76, 0.20, 1.0) : HDRColor(1.0, 0.24, 0.22, 1.0)));
+  }
   protected func ApplyPressedState() -> Void {
     if this.selected {
       this.fill.SetTintColor(HDRColor(0.012, 0.07, 0.08, 1.0));
     } else {
       if this.style == 2 {
-        this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.11, 0.12, 0.14, 1.0) : HDRColor(0.025, 0.03, 0.038, 1.0));
+        this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.26, 0.025, 0.035, 1.0) : HDRColor(0.045, 0.008, 0.012, 1.0));
       } else {
         if this.style == 1 {
-          this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.10, 0.11, 0.13, 1.0) : HDRColor(0.022, 0.027, 0.034, 1.0));
+          this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.26, 0.025, 0.035, 1.0) : HDRColor(0.045, 0.008, 0.012, 1.0));
         } else {
           if this.style == 3 {
             this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.03, 0.16, 0.18, 1.0) : HDRColor(0.015, 0.045, 0.052, 1.0));
           } else {
-            this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.10, 0.11, 0.13, 1.0) : HDRColor(0.018, 0.022, 0.028, 1.0));
+            this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.26, 0.025, 0.035, 1.0) : HDRColor(0.045, 0.008, 0.012, 1.0));
           };
         };
       };
@@ -64,8 +107,8 @@ public class PanelButton extends CustomButton {
   }
   public func SetSelected(selected: Bool) -> Void {
     this.selected = selected;
-    this.frame.SetTintColor(selected ? HDRColor(0.10, 0.72, 0.80, 1.0) : HDRColor(0.05, 0.06, 0.07, 1.0));
-    this.frame.SetOpacity(selected ? 0.28 : 0.16);
+    this.frame.SetTintColor(selected ? HDRColor(0.10, 0.72, 0.80, 1.0) : HDRColor(1.0, 0.22, 0.20, 1.0));
+    this.frame.SetOpacity(selected ? 0.85 : 0.55);
     this.m_label.SetTintColor(selected ? HDRColor(0.22, 0.92, 1.0, 1.0) : (this.style == 4 ? HDRColor(1.0, 0.76, 0.20, 1.0) : (this.style == 3 ? HDRColor(0.22, 0.92, 1.0, 1.0) : HDRColor(1.0, 0.24, 0.22, 1.0))));
     this.ApplyPressedState();
   }
@@ -98,6 +141,8 @@ public class PresetPanel extends inkCustomController {
   private let statusRail: ref<inkRectangle>;
   private let selectedInfo: ref<inkText>;
   private let openCETAction: ref<PanelButton>;
+  private let randomizeAction: ref<PanelButton>;
+  private let randomizeSettingsAction: ref<PanelButton>;
   private let refreshAction: ref<PanelButton>;
   private let locationButton: ref<PanelButton>;
   private let saveAction: ref<PanelButton>;
@@ -132,24 +177,30 @@ public class PresetPanel extends inkCustomController {
     root.SetAnchor(inkEAnchor.TopLeft);
     root.SetAnchorPoint(new Vector2(0.0, 0.0));
     root.SetMargin(new inkMargin(120.0, 220.0, 0.0, 0.0));
-    root.SetSize(730.0, 1538.0);
+    root.SetSize(730.0, 1602.0);
     root.SetInteractive(true);
     root.SetSupportFocus(true);
-    this.AddSurface(root, 18.0, -20.0, 688.0, 1558.0);
+    this.AddSurface(root, 18.0, -20.0, 688.0, 1622.0);
     let rail: ref<inkRectangle> = new inkRectangle();
-    rail.SetSize(7.0, 1538.0);
+    rail.SetSize(3.0, 1602.0);
     rail.SetTintColor(HDRColor(1.0, 0.22, 0.20, 1.0));
     rail.Reparent(root);
     let title: ref<inkText> = this.MakeText("CHARACTER PRESET MANAGER", 46, 34.0, -16.0, 654.0, 58.0);
     title.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     title.Reparent(root);
 
-    let advancedText: ref<inkText> = this.MakeText("Choose a preset to load it. Use the advanced manager to organize, share, or troubleshoot presets.", 29, 34.0, 52.0, 654.0, 58.0);
+    this.randomizeAction = this.AddAction(root, "RANDOMIZE", 34.0, 48.0, n"OnRandomizeAppearance");
+    this.randomizeAction.SetWidth(323.0);
+    this.randomizeAction.SetDisabled(true);
+    this.randomizeSettingsAction = this.AddAction(root, "RANDOMIZE SETTINGS", 365.0, 48.0, n"OnRandomizeSettings");
+    this.randomizeSettingsAction.SetWidth(323.0);
+    this.randomizeSettingsAction.SetDisabled(true);
+    let advancedText: ref<inkText> = this.MakeText("Choose a preset to load it. Use the advanced manager to organize, share, or troubleshoot presets.", 29, 34.0, 116.0, 654.0, 58.0);
     advancedText.SetWrapping(true, 644.0);
     advancedText.SetHorizontalAlignment(textHorizontalAlignment.Center);
     advancedText.SetTintColor(HDRColor(1.0, 1.0, 1.0, 1.0));
     advancedText.Reparent(root);
-    this.AddDivider(root, 126.0);
+    this.AddDivider(root, 190.0);
 
     this.search = HubTextInput.Create();
     this.search.SetName(n"PresetSearch");
@@ -158,16 +209,16 @@ public class PresetPanel extends inkCustomController {
     this.search.SetMaxLength(64);
     this.SetInputTransparency(this.search);
     this.CenterInputText(this.search);
-    this.search.GetRootWidget().SetMargin(new inkMargin(34.0, 144.0, 0.0, 0.0));
+    this.search.GetRootWidget().SetMargin(new inkMargin(34.0, 208.0, 0.0, 0.0));
     this.search.RegisterToCallback(n"OnInput", this, n"OnSearchChanged");
     this.search.Reparent(root, this.GetGameController());
-    this.refreshAction = this.AddAction(root, "REFRESH", 534.0, 144.0, n"OnRefresh");
+    this.refreshAction = this.AddAction(root, "REFRESH", 534.0, 208.0, n"OnRefresh");
     this.refreshAction.SetWidth(154.0);
-    this.AddDivider(root, 236.0);
+    this.AddDivider(root, 300.0);
     let index: Int32 = 0;
     while index < 9 {
       let listButton: ref<PanelButton> = PanelButton.Create("");
-      listButton.SetPosition(34.0, 252.0 + Cast<Float>(index) * 54.0);
+      listButton.SetPosition(34.0, 316.0 + Cast<Float>(index) * 54.0);
       listButton.SetWidth(654.0);
       listButton.RegisterToCallback(n"OnBtnClick", this, n"OnListClick");
       listButton.GetRootWidget().RegisterToCallback(n"OnAxis", this, n"OnPanelScroll");
@@ -176,42 +227,42 @@ public class PresetPanel extends inkCustomController {
       ArrayPush(this.listButtons, listButton);
       index += 1;
     };
-    this.AddDivider(root, 746.0);
-    this.selectedInfo = this.MakeText("SELECTED PRESET - NONE", 27, 34.0, 758.0, 654.0, 54.0);
+    this.AddDivider(root, 810.0);
+    this.selectedInfo = this.MakeText("SELECTED PRESET - NONE", 27, 34.0, 822.0, 654.0, 54.0);
     this.selectedInfo.SetWrapping(true, 644.0);
     this.selectedInfo.SetHorizontalAlignment(textHorizontalAlignment.Center);
     this.selectedInfo.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.selectedInfo.Reparent(root);
-    this.AddDivider(root, 820.0);
+    this.AddDivider(root, 884.0);
     this.cancelLoadAction = PanelButton.Create("CANCEL LOAD");
-    this.cancelLoadAction.SetPosition(34.0, 834.0);
+    this.cancelLoadAction.SetPosition(34.0, 898.0);
     this.cancelLoadAction.SetWidth(654.0);
     this.cancelLoadAction.SetStyle(2);
     this.cancelLoadAction.SetDisabled(true);
     this.cancelLoadAction.RegisterToCallback(n"OnBtnClick", this, n"OnCancelLoad");
     this.cancelLoadAction.Reparent(root, this.GetGameController());
-    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 892.0, n"OnRestorePrevious");
+    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 956.0, n"OnRestorePrevious");
     this.undoAction.SetWidth(323.0);
-    this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 892.0, n"OnHistory");
+    this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 956.0, n"OnHistory");
     this.historyAction.SetWidth(323.0);
     this.historyAction.SetStyle(3);
-    this.AddDivider(root, 956.0);
+    this.AddDivider(root, 1020.0);
     this.statusRail = new inkRectangle();
     this.statusRail.SetSize(5.0, 136.0);
-    this.statusRail.SetMargin(new inkMargin(34.0, 980.0, 0.0, 0.0));
+    this.statusRail.SetMargin(new inkMargin(34.0, 1044.0, 0.0, 0.0));
     this.statusRail.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.statusRail.SetVisible(false);
     this.statusRail.Reparent(root);
-    this.statusText = this.MakeText("", 28, 52.0, 970.0, 636.0, 146.0);
+    this.statusText = this.MakeText("", 28, 52.0, 1034.0, 636.0, 146.0);
     this.statusText.SetWrapping(true, 626.0);
     this.statusText.SetTintColor(HDRColor(0.94, 0.97, 1.0, 1.0));
     this.statusText.SetVisible(false);
     this.statusText.Reparent(root);
-    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 34.0, 1128.0, n"OnLoadDetails");
+    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 34.0, 1192.0, n"OnLoadDetails");
     this.detailsAction.SetWidth(654.0);
     this.detailsAction.SetStyle(3);
     this.detailsAction.GetRootWidget().SetVisible(false);
-    this.AddDivider(root, 1192.0);
+    this.AddDivider(root, 1256.0);
     this.presetName = HubTextInput.Create();
     this.presetName.SetName(n"PresetName");
     this.presetName.SetDefaultText("PRESET NAME");
@@ -219,18 +270,18 @@ public class PresetPanel extends inkCustomController {
     this.presetName.SetMaxLength(64);
     this.SetInputTransparency(this.presetName);
     this.CenterInputText(this.presetName);
-    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1206.0, 0.0, 0.0));
+    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1270.0, 0.0, 0.0));
     this.presetName.RegisterToCallback(n"OnInput", this, n"OnPresetNameChanged");
     this.presetName.Reparent(root, this.GetGameController());
-    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1298.0, n"OnSaveLocation");
+    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1362.0, n"OnSaveLocation");
     this.locationButton.SetWidth(654.0);
     this.locationButton.SetStyle(3);
-    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1356.0, n"OnSave");
+    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1420.0, n"OnSave");
     this.saveAction.SetWidth(654.0);
-    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1414.0, n"OnMoveToTrash");
+    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1478.0, n"OnMoveToTrash");
     this.trashAction.SetWidth(654.0);
     this.trashAction.SetStyle(2);
-    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1472.0, n"OnOpenCET");
+    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1536.0, n"OnOpenCET");
     this.openCETAction.SetWidth(654.0);
     this.SetRootWidget(root);
     return true;
@@ -269,14 +320,10 @@ public class PresetPanel extends inkCustomController {
       if IsDefined(background) { background.SetOpacity(0.0); };
       let fill: ref<inkRectangle> = new inkRectangle();
       fill.SetAnchor(inkEAnchor.Fill);
-      fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+      fill.SetTintColor(HDRColor(0.045, 0.008, 0.012, 1.0));
       fill.SetOpacity(0.48);
       fill.Reparent(root, 0);
-      let frame: ref<inkRectangle> = new inkRectangle();
-      frame.SetAnchor(inkEAnchor.Fill);
-      frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-      frame.SetOpacity(0.16);
-      frame.Reparent(root, 1);
+      PanelFrame.Create(root);
     };
   }
   private func CenterInputText(input: ref<HubTextInput>) -> Void {
@@ -298,15 +345,14 @@ public class PresetPanel extends inkCustomController {
     let fill: ref<inkRectangle> = new inkRectangle();
     fill.SetSize(width, height);
     fill.SetMargin(new inkMargin(x, y, 0.0, 0.0));
-    fill.SetTintColor(HDRColor(0.018, 0.022, 0.028, 1.0));
+    fill.SetTintColor(HDRColor(0.045, 0.008, 0.012, 1.0));
     fill.SetOpacity(0.48);
     fill.Reparent(parent);
-    let frame: ref<inkRectangle> = new inkRectangle();
-    frame.SetSize(width, height);
-    frame.SetMargin(new inkMargin(x, y, 0.0, 0.0));
-    frame.SetTintColor(HDRColor(0.05, 0.06, 0.07, 1.0));
-    frame.SetOpacity(0.16);
-    frame.Reparent(parent);
+    let border: ref<inkCanvas> = new inkCanvas();
+    border.SetSize(width, height);
+    border.SetMargin(new inkMargin(x, y, 0.0, 0.0));
+    border.Reparent(parent);
+    PanelFrame.Create(border);
   }
   private func AddAction(parent: ref<inkCanvas>, text: String, x: Float, y: Float, callback: CName) -> ref<PanelButton> {
     let button: ref<PanelButton> = PanelButton.Create(text);
@@ -352,6 +398,21 @@ public class PresetPanel extends inkCustomController {
     this.ReleaseButtonFocus();
     return true;
   }
+  protected cb func OnRandomizeAppearance(widget: wref<inkWidget>) -> Bool {
+    this.bridge.Request("randomize", "");
+    this.ReleaseButtonFocus();
+    return true;
+  }
+  protected cb func OnRandomizeSettings(widget: wref<inkWidget>) -> Bool {
+    this.bridge.Request("randomize_settings", "");
+    this.ReleaseButtonFocus();
+    return true;
+  }
+  public func UpdateRandomizerAvailability(available: Bool) -> Void {
+    this.randomizeAction.SetDisabled(this.busy || !available);
+    this.randomizeSettingsAction.SetDisabled(this.busy || !available);
+  }
+
   protected cb func OnOpenCET(widget: wref<inkWidget>) -> Bool {
     this.bridge.Request("open_advanced", "");
     this.ReleaseButtonFocus();
@@ -701,11 +762,18 @@ public func CPMGetNativeBridge() -> ref<NativeBridge> {
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnInitialize() -> Bool {
   wrappedMethod();
-  inkWidgetRef.SetTranslation(this.m_randomizeGroup, new Vector2(0.0, 700.0));
   let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
   if IsDefined(bridge) {
     this.cpmPresetPanel = PresetPanel.Create(bridge);
     this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
+    let settings: ref<inkWidget> = inkWidgetRef.Get(this.m_randomizationSettingsWidget);
+    if IsDefined(settings) {
+      settings.Reparent(this.GetRootCompoundWidget());
+      settings.SetTranslation(new Vector2(0.0, 0.0));
+      settings.SetAnchor(inkEAnchor.TopLeft);
+      settings.SetAnchorPoint(new Vector2(0.0, 0.0));
+      settings.SetMargin(new inkMargin(860.0, 220.0, 0.0, 0.0));
+    };
     inkWidgetRef.SetVisible(this.m_presetsLabel, false);
     inkWidgetRef.SetVisible(this.m_preset1, false);
     inkWidgetRef.SetVisible(this.m_preset2, false);
@@ -726,4 +794,71 @@ protected cb func OnUninitialize() -> Bool {
     this.cpmPresetPanel = null;
   };
   wrappedMethod();
+}
+
+@addMethod(characterCreationBodyMorphMenu)
+public func CPMCanRandomize() -> Bool {
+  let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
+  return IsDefined(bridge) && !bridge.IsBusy() && !this.m_inputDisabled
+    && this.m_introComplete && Equals(this.m_busySwitchingAppearance, BusySwitchingReason.AVAILABLE)
+    && IsDefined(this.m_randomizationSettingsController)
+    && IsDefined(inkWidgetRef.Get(this.m_randomizationSettingsWidget))
+    && !inkWidgetRef.IsVisible(this.m_backConfirmation)
+    && !inkWidgetRef.IsVisible(this.m_colorPicker);
+}
+
+@addMethod(characterCreationBodyMorphMenu)
+public func CPMRandomize() -> Bool {
+  if !this.CPMCanRandomize() { return false; };
+  this.GetCharacterCustomizationSystem().RandomizeOptions(this.m_randomizationSettingsController.GetRandomizerData());
+  this.GetTelemetrySystem().LogInitialChoicePresetSelected(n"random");
+  inkWidgetRef.SetState(this.m_randomize, n"Disabled");
+  this.m_busySwitchingAppearance = BusySwitchingReason.RANDOMIZING;
+  return true;
+}
+
+@addMethod(characterCreationBodyMorphMenu)
+public func CPMRandomizeSettings() -> Bool {
+  if !this.CPMCanRandomize() { return false; };
+  let visible: Bool = !inkWidgetRef.IsVisible(this.m_randomizationSettingsWidget);
+  inkWidgetRef.SetVisible(this.m_randomizationSettingsWidget, visible);
+  if visible { this.ClearRandomizerNavOverride(); }
+  else { this.ResetRandomizerNavOverride(); };
+  this.DisablePresetsBelowRandomizerSettings(visible);
+  this.CPMUpdateRandomizerControls();
+  return true;
+}
+
+@addMethod(characterCreationBodyMorphMenu)
+public func CPMUpdateRandomizerControls() -> Void {
+  let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
+  let ready: Bool = IsDefined(this.cpmPresetPanel) && IsDefined(bridge) && bridge.IsLuaReady()
+    && IsDefined(this.m_randomizationSettingsController)
+    && IsDefined(inkWidgetRef.Get(this.m_randomizationSettingsWidget));
+  inkWidgetRef.SetVisible(this.m_randomizeGroup, !ready);
+  inkWidgetRef.SetVisible(this.m_randomize, !ready);
+  inkWidgetRef.SetVisible(this.m_randomizationSettingsButton, !ready);
+  inkWidgetRef.SetInteractive(this.m_randomize, !ready && !this.m_inputDisabled);
+  inkWidgetRef.SetInteractive(this.m_randomizationSettingsButton, !ready && !this.m_inputDisabled);
+  if IsDefined(this.m_randomizationNavController) { this.m_randomizationNavController.SetNavigable(!ready); };
+  if IsDefined(this.m_randomizationSettingsNavController) { this.m_randomizationSettingsNavController.SetNavigable(!ready); };
+  if IsDefined(this.cpmPresetPanel) { this.cpmPresetPanel.UpdateRandomizerAvailability(ready && this.CPMCanRandomize()); };
+}
+
+@wrapMethod(characterCreationBodyMorphMenu)
+protected cb func OnRandomize(e: ref<inkPointerEvent>) -> Bool {
+  let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
+  if IsDefined(bridge) && bridge.IsBusy() { return false; };
+  return wrappedMethod(e);
+}
+
+@wrapMethod(characterCreationBodyMorphMenu)
+protected cb func OnButtonRelease(evt: ref<inkPointerEvent>) -> Bool {
+  if IsDefined(this.cpmPresetPanel) && evt.IsAction(n"back")
+      && inkWidgetRef.IsVisible(this.m_randomizationSettingsWidget) {
+    this.CPMRandomizeSettings();
+    evt.Handle();
+    return true;
+  };
+  return wrappedMethod(evt);
 }

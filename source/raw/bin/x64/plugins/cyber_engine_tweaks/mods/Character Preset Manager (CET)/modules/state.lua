@@ -226,10 +226,10 @@ state = {
   },
   editor = {
     activeBodyMorphMenu = nil,
+    pendingRandomizeSettings = nil,
     inGameMenuController = nil,
     openPending = false,
     openTimer = 0,
-    windowHotkeyCount = 0,
     inputCount = 0,
     controllerCaptureCount = 0,
     pauseRedirectCount = 0,

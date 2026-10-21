@@ -22,6 +22,21 @@ if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
         or (state.app.inCustomization and "Open"
           or (state.editor.hooksAvailable and "Available" or "Unavailable"))))
     ImGui.Spacing()
+    local randomizerAvailable = canRunAppearanceRandomizer()
+    if not randomizerAvailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Randomize##appearanceRandomize", actionButtonHeight) then
+      local kind, message = runAppearanceRandomizer(false)
+      setStatus("editor", message, kind == "error")
+    end
+    if fullWidthButton("Randomize Settings##appearanceRandomizeSettings", actionButtonHeight) then
+      local kind, message = runAppearanceRandomizer(true)
+      setStatus("editor", message, kind == "error")
+    end
+    if not randomizerAvailable then ImGui.EndDisabled() end
+    if state.editor.pendingRandomizeSettings then
+      ImGui.TextWrapped("Close CET to open the game's Randomize Settings.")
+    end
+    ImGui.Spacing()
     if editorUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
       openFullAppearanceEditor()

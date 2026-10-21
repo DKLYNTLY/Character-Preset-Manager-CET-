@@ -115,6 +115,7 @@ events.onInit = function()
         helpers.logLoadMeasurements("editor-closed")
       end
       resetLoadState()
+      state.editor.pendingRandomizeSettings = nil
       state.editor.activeBodyMorphMenu = nil
       state.app.inCustomization = false
       state.invalidatePreflight()
@@ -269,6 +270,7 @@ events.onShutdown = function()
   state.editor.newGameCharacterCreator = false
   cancelConfirmations()
   resetLoadState()
+  state.editor.pendingRandomizeSettings = nil
   state.editor.activeBodyMorphMenu = nil
   state.editor.inGameMenuController = nil
   state.editor.openPending = false
@@ -374,6 +376,11 @@ events.onOverlayClose = function()
   log("[UI] CET overlay closed.", "info")
   closeActivityLog()
   state.app.overlayOpen = false
+  local pendingMenu = state.editor.pendingRandomizeSettings
+  state.editor.pendingRandomizeSettings = nil
+  if pendingMenu and pendingMenu == state.editor.activeBodyMorphMenu then
+    runAppearanceRandomizer(true)
+  end
   helpers.clearSectionStatuses()
   cancelConfirmations()
   helpers.releaseIdleMemory()
@@ -390,14 +397,6 @@ events.onDraw = function()
     end
   end
   if state.app.overlayOpen and state.app.windowOpen then draw() end
-end
-
-events.toggleWindow = function()
-  state.editor.windowHotkeyCount = state.editor.windowHotkeyCount + 1
-  state.app.windowOpen = not state.app.windowOpen
-  if not state.app.windowOpen then helpers.releaseIdleMemory() end
-  log(("[UI] Character Preset Manager window visibility changed to %s.")
-    :format(tostring(state.app.windowOpen)), "info")
 end
 
 events.openEditor = function(keyDown)

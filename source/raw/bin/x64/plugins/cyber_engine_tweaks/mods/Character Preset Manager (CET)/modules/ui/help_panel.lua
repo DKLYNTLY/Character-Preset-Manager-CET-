@@ -314,8 +314,8 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Set these keys under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor key.")
       ui.drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editor.inputCount)
-      ui.drawBindingHelp("Toggle Character Preset Manager (CET)",
-        "vanilla_character_presets_toggle", state.editor.windowHotkeyCount)
+      helpButton("Randomize", "Uses the game's randomizer and its current category locks. R still works in the character screen. Wait until preset loading or recovery finishes.")
+      helpButton("Randomize Settings", "Opens the game's category locks. When you select this in CET, close the overlay to show the settings.")
       end
 
       if showHelpTopic("Load & Restore Appearance",

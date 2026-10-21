@@ -9,6 +9,15 @@ used. See the README and in-game Help for current instructions.
 
 ## 3.1.1
 
+- Moves Randomize and its settings into both menus, using the game's category
+  locks. The original buttons hide when the replacement controls are ready;
+  R still works in the character screen.
+- Gives the simple menu red frames and cyan highlights while keeping its
+  current features. CET remains the preset engine.
+- Removes the unused Toggle Character Preset Manager (CET) binding. Open the
+  complete manager with the normal CET overlay key.
+- Opens Randomize Settings after you close CET when requested from the overlay.
+
 *One complete package with a verified native folder catalog and a dependable CET fallback.*
 
 - Expands the runtime-independent RED4ext DLL into a limited native file

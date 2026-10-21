@@ -39,7 +39,5 @@ registerForEvent("onUpdate", events.onUpdate)
 registerForEvent("onOverlayOpen", events.onOverlayOpen)
 registerForEvent("onOverlayClose", events.onOverlayClose)
 registerForEvent("onDraw", events.onDraw)
-registerHotkey("vanilla_character_presets_toggle",
-  "Toggle Character Preset Manager (CET)", events.toggleWindow)
 registerInput("preset_manager_open_editor_input",
   "Open Full Appearance Editor", events.openEditor)
