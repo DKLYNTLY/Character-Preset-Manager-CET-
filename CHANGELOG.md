@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Highlights key mod names and controls, and italicizes warning text in README
+  and Nexus so important steps are easier to spot.
+
 - Groups README and Nexus help into six task-based sections. Recovery tools
   now sit together, while troubleshooting advice and logs share one section.
 

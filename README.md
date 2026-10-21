@@ -20,9 +20,9 @@ file watching and ACU imports. Both menus use the same library and loader.
 
 > [!IMPORTANT]
 > Remove **Character Customization Anywhere**, then fully restart the game.
-> Both mods change the same character screens and cannot work together.
-> Uninstall Appearance Change Unlocker (ACU) and fully restart the game.
-> Keep only its preset files; the ACU mod itself must not remain installed.
+> Both mods change the same character screens and **cannot work together**.
+> Uninstall **Appearance Change Unlocker (ACU)** and fully restart the game.
+> Keep only its preset files; **the ACU mod itself must not remain installed**.
 > The importer can read those files from the folder listed below without ACU.
 
 ## What you can do
@@ -48,13 +48,13 @@ updates it to format 8.
 
 This release uses these framework versions:
 
-- [Cyber Engine Tweaks 1.37.1](https://www.nexusmods.com/cyberpunk2077/mods/107)
-- [RED4ext 1.30.0](https://www.nexusmods.com/cyberpunk2077/mods/2380)
-- [redscript 0.5.31](https://www.nexusmods.com/cyberpunk2077/mods/1511)
-- [Codeware 1.20.3](https://www.nexusmods.com/cyberpunk2077/mods/7780)
+- [**Cyber Engine Tweaks 1.37.1**](https://www.nexusmods.com/cyberpunk2077/mods/107)
+- [**RED4ext 1.30.0**](https://www.nexusmods.com/cyberpunk2077/mods/2380)
+- [**redscript 0.5.31**](https://www.nexusmods.com/cyberpunk2077/mods/1511)
+- [**Codeware 1.20.3**](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 
-These frameworks must support your installed game version. After a game update,
-check for compatible framework and mod versions before using the editor.
+*These frameworks must support your installed game version. After a game update,
+check for compatible framework and mod versions before using the editor.*
 
 ## First installation
 
@@ -71,8 +71,8 @@ CET remembers where you leave it.
 
 ## Update an existing installation
 
-1. Back up the complete `Character Presets` and `Data` folders from your
-   current mod folder. This keeps presets, sharing files, folder lists, settings,
+1. ***Back up*** *the complete `Character Presets` and `Data` folders from your
+   current mod folder.* This keeps presets, sharing files, folder lists, settings,
    recovery history, and Trash.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
 3. Remove `r6/scripts/CharacterPresetManager` so no old menu scripts remain in the game.
@@ -151,7 +151,7 @@ open the overlay itself.
 ## Use the simple menu
 
 Select a preset once to load it. Open a folder row to see its contents, or use
-Search to narrow the list by preset name, folder, or tag. **Refresh** reads files
+**Search** to narrow the list by preset name, folder, or tag. **Refresh** reads files
 added or changed outside the game.
 
 A closed folder hides its subfolders too. Main folders are cyan; nested folders
@@ -195,9 +195,9 @@ choices, including cyberware layers, clears old choices the preset does not
 use, and checks the saved values at the end. It also rebuilds the visible option
 list; a confirmed value does not replace your visual check.
 
-A warning names choices the game could not confirm. If the same required
+*A warning names choices the game could not confirm. If the same required
 options stay missing after three checks, loading stops; check your character
-mods, correct the appearance if needed, and save it again.
+mods, correct the appearance if needed, and save it again.*
 
 ## Check compatibility
 
@@ -662,10 +662,10 @@ Standalone mirrors, modified releases, and paid redistribution need my written
 permission. Earlier versions keep the permissions that came with those copies.
 Private code edits need permission, except when preparing a direct contribution.
 
-Translations, bug fixes, compatibility patches, and similar changes can be
-approved with my prior written permission. Approval must cover publishing
+*Translations, bug fixes, compatibility patches, and similar changes can be
+approved with my **prior written permission**. Approval must cover publishing
 before you upload anything; credit me, link the original mod, and follow
-the agreed limits. It does not automatically allow a full-mod reupload.
+the agreed limits. It does not automatically allow a full-mod reupload.*
 
 You may submit fixes for me to use in my mods without further permission or payment.
 Contributors keep ownership of their original work; their grant also covers
