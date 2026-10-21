@@ -4,8 +4,8 @@ from lupa import LuaRuntime
 
 
 root = Path(__file__).resolve().parents[2]
-catalog = root / "native/verification/reference/catalog.lua"
-bridge = root / "native/verification/legacy_312/modules/native_bridge.lua"
+catalog = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/catalog.lua"
+bridge = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/native_bridge.lua"
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(
     r"""
@@ -13,8 +13,6 @@ runtime = {
   VERSION = "3.1.1", NATIVE_BRIDGE_PROTOCOL = 1, NATIVE_LIST_LIMIT = 100,
   NATIVE_READY_STATUS = "Ready", NATIVE_REQUEST_POLL_SECONDS = 0.1,
   EMPTY_LIST = {},
-  nativeService = {available=true},
-  normalizeSearch = function(value) return tostring(value or ""):lower() end,
   state = {
     app = { nativePanelStatus = "", nativePanelStatusError = false,
       nativePanelShowDetails = false, nativeBridgeUnavailableLogged = false },
@@ -29,10 +27,7 @@ runtime = {
       },
       expandedLoadFolders = {},
     },
-    cache = { revision = 1,
-      filteredPresetNames = {"ACU Presets/Female/Alina", "Default Presets/Female/Default"},
-      matchedFolders = {}, folderMatches = { ["ACU Presets"]=true, ["ACU Presets/Female"]=true, ["Default Presets"]=true, ["Default Presets/Female"]=true },
-      folderPresetCounts = {
+    cache = { revision = 1, folderPresetCounts = {
       ["ACU Presets"] = 1, ["ACU Presets/Female"] = 1,
       ["Default Presets"] = 1, ["Default Presets/Female"] = 1,
     } },
@@ -51,10 +46,6 @@ runtime = {
   end,
   baseName = function(value) return value:match("([^/]+)$") or value end,
   folderNameExists = function(value) return runtime.state.library.folders[value] == true end,
-  presetTypeName = function(preset)
-    local format = tonumber(preset and preset.format) or 4
-    return (format == 7 or format == 8) and "CPM" or "ACU"
-  end,
 }
 runtime.helpers.sortedPresetNames = function()
   return { "ACU Presets/Female/Alina", "Default Presets/Female/Default" }

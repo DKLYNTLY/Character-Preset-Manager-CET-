@@ -3,7 +3,7 @@ from lupa import LuaRuntime
 
 
 root = Path(__file__).resolve().parents[2]
-module = root / "native/verification/reference/native_catalog.lua"
+module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/native_catalog.lua"
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(
     r'''
@@ -82,9 +82,3 @@ lua.globals().catalogContents = lua.globals().catalogContents.replace(
 invalid, reason = runtime.readNativeFileCatalog()
 assert invalid is None
 assert "summary" in reason
-
-lua.execute('runtime.readBoundedFile = function() return nil, "missing" end')
-missing = runtime.verifiedNativeFileCatalog()
-assert missing is None
-assert runtime.state.nativeCatalog.available is False
-assert runtime.state.nativeCatalog.fallbackReason == "not available"

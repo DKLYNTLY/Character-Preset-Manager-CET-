@@ -1,1 +1,82 @@
-return {version = "3.1.4"}
+local runtime = assert(require("modules/runtime"),
+  "Character Preset Manager runtime did not load")
+if setfenv then setfenv(1, runtime) end
+local _ENV = runtime
+
+MOD_NAME = "Character Preset Manager (CET)"
+VERSION = "3.1.1"
+PRESET_DIR = "Character Presets"
+DATA_DIR = "Data"
+CONFIG_DIR = DATA_DIR .. "/Config"
+CATALOG_DIR = DATA_DIR .. "/Catalog"
+RECOVERY_DIR = DATA_DIR .. "/Recovery"
+LAST_APPEARANCE_FILE = RECOVERY_DIR .. "/LastAppearance.preset"
+HISTORY_DIR = RECOVERY_DIR .. "/Appearance History"
+HISTORY_FILE_PREFIX = HISTORY_DIR .. "/Appearance "
+TRASH_DIR = RECOVERY_DIR .. "/Trash"
+LOG_DIR = DATA_DIR .. "/Logs"
+LOG_ARCHIVE_DIR = LOG_DIR .. "/Archive"
+TRASH_CATALOG_FILE = RECOVERY_DIR .. "/Trash Catalog.txt"
+TRANSACTION_FILE = RECOVERY_DIR .. "/Recovery Journal.txt"
+CATALOG_FILE = CATALOG_DIR .. "/Virtual Folders.txt"
+INVENTORY_FILE = CATALOG_DIR .. "/Preset Inventory.txt"
+IMPORTED_BUNDLES_FILE = CATALOG_DIR .. "/Imported Bundles.txt"
+ACU_IMPORT_REQUEST_FILE = CONFIG_DIR .. "/ACU Import Request.txt"
+ACU_IMPORT_RESULTS_FILE = CATALOG_DIR .. "/ACU Import Results.txt"
+NATIVE_FILE_CATALOG = CATALOG_DIR .. "/Native File Catalog.txt"
+LOG_FILE = LOG_DIR .. "/Activity.log"
+LOG_ARCHIVE_PREFIX = "Activity "
+WINDOW_POSITION_STATUS_FILE = CONFIG_DIR .. "/Window Position Status.txt"
+CONFIG_FILE = CONFIG_DIR .. "/Config.txt"
+LOG_ARCHIVE_LIMIT = 10
+CURRENT_PRESET_FORMAT = 8
+activitySequence = 0
+
+AUTO_LOAD_TIMING = {
+  passInterval = 0.225,
+  pollInterval = 0.05,
+  dependencyTimeout = 1.25,
+  dependencyStableTime = 0.20,
+}
+FORCE_FULL_LOAD_FORMAT_THRESHOLD = 7
+UI_LIST_PAGE_SIZE = 48
+ACTIVITY_LOG_PAGE_SIZE = 60
+SLOW_PREFLIGHT_SECONDS = 0.05
+AUTO_LOAD_LIMITS = {
+  minimumSeconds = 60,
+  secondsPerOption = 2,
+  maximumScannedPresets = 8192,
+  maximumScannedEntries = 1048576,
+}
+STALL_CONFIRMATION_PASSES = 3
+EDITOR_OPEN_TIMEOUT = 5.0
+MAX_TREE_DEPTH = 12
+MAX_PRESET_BYTES = 1048576
+MAX_PRESET_ENTRIES = 4096
+MAX_PRESET_LINES = MAX_PRESET_ENTRIES * 4 + 64
+MAX_PRESET_KEY_BYTES = 256
+MAX_OPTION_INDEX = 4294967295
+FILE_COPY_CHUNK_SIZE = 65536
+MAX_CATALOG_BYTES = 8388608
+MAX_CATALOG_LINES = 32768
+MAX_TRANSACTION_BYTES = 1048576
+MAX_TRANSACTION_LINES = 8192
+MAX_FOLDER_BUNDLE_BYTES = 33554432
+MAX_FOLDER_BUNDLE_PRESETS = 512
+FOLDER_BUNDLE_EXTENSION = ".cpmfolder"
+LIBRARY_BACKUP_EXTENSION = ".cpmbackup"
+MAX_LIBRARY_BACKUP_BYTES = 268435456
+NATIVE_BRIDGE_PROTOCOL = 1
+NATIVE_FILE_PROTOCOL = 1
+NATIVE_LIST_LIMIT = 96
+APPEARANCE_HISTORY_LIMIT = 5
+NATIVE_REQUEST_POLL_SECONDS = 0.05
+ACU_IMPORT_FILES_PER_FRAME = 2
+ACU_IMPORT_POLL_SECONDS = 0.25
+NATIVE_READY_STATUS = "Ready. Choose a preset to load it, or save the current appearance below."
+FALLBACK_NOTICE_DELAY_SECONDS = 8
+FALLBACK_NOTICE_TITLE = "CHARACTER-SCREEN PANEL IS NOT AVAILABLE"
+FALLBACK_NOTICE_MESSAGE = "Please wait for an updated panel and file service."
+FALLBACK_NOTICE_CET_MESSAGE = "For now, open the CET overlay and use Character Preset Manager."
+
+return _ENV

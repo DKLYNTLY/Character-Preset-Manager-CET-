@@ -1,0 +1,151 @@
+# CPM Preset
+# Format: 8
+# Name: Nomad - Male
+# Source: Character Preset Manager (CET)
+# Created: 2026-08-27 11:48:27
+# Modified: 2026-08-27 11:48:27
+# Notes:
+# Tags:
+# Favorite: No
+# Library folder: Default Presets
+#
+# Appearance options
+# Each main line is OptionKey:SavedNumber.
+# Editor slot and Saved choice lines describe the option above them.
+
+LocKey#898870017445300632:9
+# Editor slot: skin_color
+
+LocKey#3358415767503712013:1
+# Editor slot: skin_type_switcher
+# Saved choice: options:02
+
+LocKey#9502141975964618858:13
+# Editor slot: hairstyle
+# Saved choice: options:14
+
+LocKey#6270476291764046520:10
+# Editor slot: hair_color
+
+LocKey#17262437424467603883:8
+# Editor slot: eyes
+
+LocKey#12711989018532128707:0
+# Editor slot: eyes_color
+
+LocKey#7691166931990474829:3
+# Editor slot: eyebrows
+# Saved choice: options:04
+
+LocKey#2149257761322949687:0
+# Editor slot: eyebrows_color
+
+LocKey#7291006053821317046:0
+# Editor slot: eyelash_color
+
+LocKey#4316695547651688874:18
+# Editor slot: nose
+
+LocKey#966737433676891676:1
+# Editor slot: mouth
+
+LocKey#5009244242618885753:3
+# Editor slot: jaw
+
+LocKey#14034341346390445651:4
+# Editor slot: ear
+
+LocKey#7487713073032863221:5
+# Editor slot: beard
+# Saved choice: options:05
+
+LocKey#13707137814640364864:0
+# Editor slot: beard_part
+# Saved choice: options:01
+
+LocKey#7053978468823785611:0
+# Editor slot: beard_color
+
+LocKey#6426888875968525879:0
+# Editor slot: cyberware_switcher
+# Saved choice: options:Common-Off
+
+LocKey#7665632322726285485:1
+# Editor slot: scars
+
+LocKey#7057535516503771275:0
+# Editor slot: facial_tattoo_switcher
+# Saved choice: options:Common-Off
+
+LocKey#9633374630979636519:3
+# Editor slot: piercings
+# Saved choice: options:03
+
+LocKey#1741791618483041089:6
+# Editor slot: piercings_color
+
+LocKey#16056554541361838785:0
+# Editor slot: teeth
+
+LocKey#2482157010324784664:8
+# Editor slot: makeupEyes
+# Saved choice: options:08
+
+LocKey#14413099152454174741:0
+# Editor slot: makeupEyes_color
+
+LocKey#9213787832085884965:0
+# Editor slot: makeupLips_type
+# Saved choice: options:Common-Off
+
+LocKey#6023230796470623251:0
+# Editor slot: makeupLips
+
+LocKey#1500857893903977124:0
+# Editor slot: makeupLips_color
+
+LocKey#4717882986422351521:0
+# Editor slot: makeupCheeks
+# Saved choice: options:Common-Off
+
+LocKey#5901794538846227818:0
+# Editor slot: makeupCheeks_color
+
+LocKey#12418766767975042856:1
+# Editor slot: makeupPimples
+# Saved choice: options:01
+
+LocKey#11868209119990413348:0
+# Editor slot: makeupPimples_color
+
+LocKey#2154265467077242561:0
+# Editor slot: nails_l
+
+LocKey#16223900489692860646:0
+# Editor slot: nails_color
+
+LocKey#7001506230645100200:0
+# Editor slot: nipples_switcher
+# Saved choice: options:Common-On
+
+LocKey#1579145253609442971:0
+# Editor slot: body_tattoo_switcher
+# Saved choice: options:Common-Off
+
+LocKey#15039822261823040660:1
+# Editor slot: body_scars_switcher
+# Saved choice: options:01
+
+LocKey#7775711960886528826:0
+# Editor slot: genitals_switcher
+# Saved choice: options:Common-Off
+
+LocKey#11716572946352461499:0
+# Editor slot: genitals_size
+
+LocKey#2480942087249619917:0
+# Editor slot: pubic_hair
+# Saved choice: options:Common-Off
+
+LocKey#6445917731400909894:0
+# Editor slot: pubic_hair_color

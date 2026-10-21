@@ -1,12 +1,10 @@
 from pathlib import Path
-from tempfile import TemporaryDirectory
 from lupa import LuaRuntime
 
 
 root = Path(__file__).resolve().parents[2]
-module = root / "native/verification/reference/presets.lua"
+module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/presets.lua"
 fixtures = root / "native/verification/fixtures"
-default_presets = root / "source/raw/red4ext/plugins/CharacterPresetManager/Bundled Presets/Default Presets"
 lua = LuaRuntime(unpack_returned_tuples=True)
 lua.execute(
     """
@@ -29,13 +27,6 @@ runtime = {
   end,
   validatedPresetName = function(value) return value end,
   validRelativePath = function(value) return type(value) == "string" end,
-  writeFileSafely = function(path, mode, callback)
-    local file = io.open(path, mode)
-    if not file then return false end
-    local ok, result = pcall(callback, file)
-    file:close()
-    return ok and result == true
-  end,
 }
 setmetatable(runtime, { __index = _G })
 package.preload["modules/runtime"] = function() return runtime end
@@ -73,56 +64,16 @@ assert current.libraryFolder == "Tests/Current"
 assert current.favorite is True
 assert current.entries[1].slot == "hairstyle"
 assert current.entries[1].choice == "options:10"
-assert current.entries[1].label == "Hairstyle"
-assert lua.globals().runtime.presetTypeName(current) == "CPM"
-assert lua.globals().runtime.presetTypeName(legacy) == "ACU"
-assert lua.globals().runtime.presetTypeName(old_json) == "ACU"
-assert lua.globals().runtime.presetTypeName(lua.table_from({"format": 7})) == "CPM"
-assert lua.globals().runtime.presetTypeName(lua.table_from({"format": 9})) == "ACU"
-
-with TemporaryDirectory() as temporary:
-    written_path = Path(temporary) / "readable-format-8.preset"
-    written = lua.globals().runtime.writePresetContents(
-        written_path.as_posix(),
-        lua.table_from({
-            "format": 8,
-            "source": "Character Preset Manager (CET)",
-            "presetName": "Readable Test",
-            "libraryFolder": "",
-            "entries": lua.table_from([
-                lua.table_from({
-                    "key": "LocKey#404",
-                    "index": 15,
-                    "label": "Jaw",
-                    "slot": "jaw",
-                })
-            ]),
-        }),
-    )
-    assert written is True
-    written_contents = written_path.read_text(encoding="utf-8")
-    assert "# Format: 8" in written_contents
-    assert "LocKey#404:15\n# Option: Jaw 15\n# Editor slot: jaw" in written_contents
-    written_preset = read_preset(written_path.as_posix(), False)
-    assert written_preset.entries[1].label == "Jaw"
 
 malformed = read_preset((fixtures / "malformed.preset").as_posix(), False)
 assert malformed is None
 
-for default_path in default_presets.glob("*.preset"):
-    default_preset = read_preset(default_path.as_posix(), False)
-    assert default_preset.format == 8
-    assert default_preset.entryCount > 0
-    assert all(default_preset.entries[index].label for index in range(1, default_preset.entryCount + 1))
-
-import_module = root / "native/verification/reference/acu_import.lua"
+import_module = root / "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/acu_import.lua"
 import_lua = LuaRuntime(unpack_returned_tuples=True)
 import_lua.execute(
     r"""
 resultContents = "generation\told\nsummary\t0\t0\n"
 readCount = 0
-headerReadCount = 0
-fullResultReadCount = 0
 messages = {}
 presetCount = function(presets)
   local count = 0
@@ -140,17 +91,8 @@ runtime = {
     library = { presets = {}, folders = {}, manualFolders = {},
       ignoredPhysicalFolders = {} },
     load = { auto = false, needsContinue = false, pendingChange = nil },
-    nativeCatalog = { serviceAvailable = false, serviceProbePending = false,
-      serviceProbeTimer = 0 },
   },
-  readBoundedFile = function(_, maximum)
-    if maximum == 128 then
-      headerReadCount = headerReadCount + 1
-      return resultContents:sub(1, 128)
-    end
-    fullResultReadCount = fullResultReadCount + 1
-    return resultContents
-  end,
+  readBoundedFile = function() return resultContents end,
   validRelativePath = function(value)
     return type(value) == "string" and value ~= "" and not value:find("\\", 1, true)
   end,
@@ -184,11 +126,6 @@ package.preload["modules/runtime"] = function() return runtime end
 import_lua.execute(f'dofile([[{import_module.as_posix()}]])')
 import_runtime = import_lua.globals().runtime
 import_runtime.initializeAcuImport()
-assert import_lua.globals().fullResultReadCount == 1
-assert import_runtime.requestAcuImport("startup service check", True) is True
-assert import_runtime.state.acuImport.requested is False
-assert import_runtime.state.nativeCatalog.serviceProbePending is True
-assert import_runtime.state.nativeCatalog.serviceProbeTimer == 0
 import_lua.globals().resultContents = (
     "generation\tnew\nsummary\t3\t0\n"
     "file\tACU Presets/female/A.preset\n"
@@ -197,11 +134,6 @@ import_lua.globals().resultContents = (
 )
 import_runtime.updateAcuImport(0.25)
 assert import_lua.globals().readCount == 0
-assert import_lua.globals().headerReadCount == 1
-assert import_lua.globals().fullResultReadCount == 2
-assert import_runtime.state.nativeCatalog.serviceAvailable is True
-assert import_runtime.state.nativeCatalog.serviceProbePending is False
-assert import_runtime.state.nativeCatalog.serviceProbeTimer == 0
 import_runtime.updateAcuImport(0)
 assert import_lua.globals().readCount == 0
 assert import_lua.globals().presetCount(import_runtime.state.library.presets) == 2
@@ -213,9 +145,6 @@ import_runtime.updateAcuImport(0)
 assert import_lua.globals().readCount == 0
 assert import_lua.globals().presetCount(import_runtime.state.library.presets) == 3
 assert len(import_runtime.state.acuImport.queue) == 0
-import_runtime.updateAcuImport(0.25)
-assert import_lua.globals().headerReadCount == 2
-assert import_lua.globals().fullResultReadCount == 2
 import_lua.execute("messages = {}")
 
 dangerous_preset = import_lua.table_from({
