@@ -97,7 +97,7 @@ local function verifyBackupContents(path, expectedNames, expectedFolders)
     lineNumber = lineNumber + 1
     if lineNumber == 1 then
       if line ~= "CPMBACKUP\t1" then
-        return fail("The finished library backup has an invalid first line.")
+        return fail("The new backup has an invalid first line.")
       end
     else
       local configValue = line:match("^CONFIG\t(.*)$")
@@ -112,7 +112,7 @@ local function verifyBackupContents(path, expectedNames, expectedFolders)
         local folder = catalogDecode(folderValue)
         local lowered = folder and folder:lower() or ""
         if not expectedFolderMap[lowered] or seenFolders[lowered] then
-          return fail("The finished library backup has an unexpected folder record.")
+          return fail("The new backup contains an unexpected folder entry.")
         end
         seenFolders[lowered] = true
         folderCount = folderCount + 1
@@ -124,12 +124,12 @@ local function verifyBackupContents(path, expectedNames, expectedFolders)
             or contentsLength == 0 or contentsLength % 2 ~= 0
             or contentsLength > MAX_PRESET_BYTES * 2
             or line:find("[^%x]", contentsStart) then
-          return fail("The finished library backup has an unexpected preset record.")
+          return fail("The new backup contains an unexpected preset entry.")
         end
         seenPresets[lowered] = true
         presetCount = presetCount + 1
       elseif line ~= "" then
-        return fail(("Line %d in the finished library backup is invalid.")
+        return fail(("Line %d in the new backup is invalid.")
           :format(lineNumber))
       end
     end
@@ -137,7 +137,7 @@ local function verifyBackupContents(path, expectedNames, expectedFolders)
   local closeOk, closeResult = pcall(file.close, file)
   if not closeOk or closeResult == nil or not sawConfig
       or presetCount ~= #expectedNames or folderCount ~= #expectedFolders then
-    return false, "The finished library backup does not contain the complete library."
+    return false, "The new backup is missing part of the library."
   end
   return true
 end
@@ -152,7 +152,7 @@ exportLibraryBackup = function()
   end
   local filename = uniqueBackupFilename()
   if not filename then
-    setBackupStatus("The mod could not create an unused library-backup file name.", true)
+    setBackupStatus("No unused filename could be found for the backup.", true)
     return false
   end
   local config = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
@@ -169,7 +169,7 @@ exportLibraryBackup = function()
         return totalBytes <= MAX_LIBRARY_BACKUP_BYTES and file:write(line .. "\n") ~= nil
       end
       if not writeLine("CPMBACKUP\t1") or not writeLine("CONFIG\t" .. encode(config)) then
-        exportError = "The library backup would be larger than the 256 MB limit."
+        exportError = "This backup would exceed the 256 MB limit."
         return false
       end
       for _, folder in ipairs(folders) do
@@ -195,7 +195,7 @@ exportLibraryBackup = function()
         local prefix = "P\t" .. catalogEncode(name) .. "\t"
         totalBytes = totalBytes + #prefix + sourceBytes * 2 + 1
         if totalBytes > MAX_LIBRARY_BACKUP_BYTES or not file:write(prefix) then
-          exportError = "The library backup would be larger than the 256 MB limit."
+          exportError = "This backup would exceed the 256 MB limit."
           return false
         end
         local streamed, streamedBytes = writeEncodedFile(file, source)
@@ -315,7 +315,7 @@ local function readBackup(path)
         local contents = decode(contentsValue)
         if not validRelativePath(name) or not contents or #contents > MAX_PRESET_BYTES
             or backup.names[name:lower()] then
-          file:close(); return nil, "The library backup contains an invalid or repeated preset."
+          file:close(); return nil, "The backup contains an invalid preset or a duplicate entry."
         end
         backup.names[name:lower()] = true
         table.insert(backup.presets, { name = name, contents = contents })
@@ -360,7 +360,7 @@ importLibraryBackup = function()
   end
   local root = needsRoot and uniqueImportRoot() or ""
   if needsRoot and not root then
-    setBackupStatus("The mod could not create a safe folder for colliding backup items.", true)
+    setBackupStatus("A safe folder could not be created for backup items with names already in use.", true)
     return false
   end
   local newPresets = cloneMap(state.library.presets)
@@ -414,7 +414,7 @@ importLibraryBackup = function()
       state.library.ignoredPhysicalFolders)
     writeInventory(state.library.presets, state.library.folders)
     removeFileList(createdFiles)
-    setBackupStatus("The imported presets were removed because the library lists could not be saved.", true)
+    setBackupStatus("The library lists could not be saved, so the new preset copies were removed.", true)
     return false
   end
   local previousConfig = readBoundedFile(CONFIG_FILE, MAX_CATALOG_BYTES)
@@ -435,7 +435,7 @@ importLibraryBackup = function()
         end)
       end, "previous config")
     end
-    setBackupStatus("The imported presets were removed because the settings file could not be restored.", true)
+    setBackupStatus("The saved settings could not be restored, so the new preset copies were removed.", true)
     return false
   end
   state.library.presets, state.library.folders = newPresets, newFolders

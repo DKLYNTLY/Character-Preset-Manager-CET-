@@ -143,7 +143,7 @@ helpers.optionDisplayName = function(option, key)
       return value
     end
   end
-  return "Custom/CCXL option (no localization provided)"
+  return "Custom/CCXL option (no display name)"
 end
 
 function optionAuditIdentity(option, key, occurrence)
@@ -181,7 +181,7 @@ end
 function refreshCustomizationUi()
   local menu = state.editor.activeBodyMorphMenu
   if not menu then
-    log("UI refresh skipped: no active characterCreationBodyMorphMenu controller", "warn")
+    log("Editor controls were not refreshed because no characterCreationBodyMorphMenu screen is open", "warn")
     return false
   end
   local ok, refreshError = pcall(function()
@@ -191,7 +191,7 @@ function refreshCustomizationUi()
     log("UI refresh failed: " .. tostring(refreshError), "error")
     return false
   end
-  log("[UI] Rebuilt the visible customization list from applied preset values.", "info")
+  log("[UI] Refreshed the editor's visible controls using the loaded preset values.", "info")
   return true
 end
 
@@ -202,7 +202,7 @@ function getOptions(forceRefresh)
   end
   local systemOk, system = pcall(Game.GetCharacterCustomizationSystem)
   if not systemOk or not system then
-    local message = "Character customization system is unavailable"
+    local message = "The character editor is not available"
     state.app.optionsMemo = { error = message }
     return nil, nil, message
   end
@@ -218,7 +218,7 @@ function getOptions(forceRefresh)
     )
   end)
   if not ok or type(options) ~= "table" or next(options) == nil then
-    local message = "Customization options haven't loaded yet"
+    local message = "Character options have not loaded yet"
     state.app.optionsMemo = { error = message }
     return nil, nil, message
   end

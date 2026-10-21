@@ -47,7 +47,7 @@ function temporarilyDisableWardrobe()
     return false
   end
   state.editor.wardrobeTemporarilyDisabled = true
-  log("[wardrobe] Active outfit temporarily removed for character customization.", "info")
+  log("[wardrobe] The active outfit was removed while the character editor is open.", "info")
   return true
 end
 
@@ -56,7 +56,7 @@ function restoreTemporarilyDisabledWardrobe()
   local playerOk, player = pcall(Game.GetPlayer)
   local system = equipmentSystem()
   if not playerOk or not player or not system then
-    log("[wardrobe] Outfit restoration is waiting for a valid player and equipment system.", "warn")
+    log("[wardrobe] Waiting for the player and equipment system before putting the outfit back on.", "warn")
     return false
   end
   local ok, restoreError = pcall(function()
@@ -70,7 +70,7 @@ function restoreTemporarilyDisabledWardrobe()
     return false
   end
   state.editor.wardrobeTemporarilyDisabled = false
-  log("[wardrobe] Restored the outfit used before character customization.", "info")
+  log("[wardrobe] Put the outfit back on after character editing.", "info")
   return true
 end
 
@@ -83,7 +83,7 @@ function openFullAppearanceEditor()
     return false
   end
   if not state.editor.hooksAvailable then
-    setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
+    setEditorOpenStatus("This game or CET version does not support the full editor.", true)
     return false
   end
   if helpers.isCustomizationActive() then

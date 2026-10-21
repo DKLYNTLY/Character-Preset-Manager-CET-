@@ -12,13 +12,13 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       and state.library.presets[state.library.selected]
     local loadStatus, loadStatusKind
     if #names == 0 then
-      loadStatus = "Save a preset before trying to load an appearance."
+      loadStatus = "Save or install a preset before loading an appearance."
       loadStatusKind = "info"
     elseif not state.library.selected then
       loadStatus = "Select a preset to enable loading."
       loadStatusKind = "info"
     elseif not state.app.inCustomization then
-      loadStatus = "Open the character creator, a mirror, or a ripperdoc to load the selected preset."
+      loadStatus = "Open new-game creation, the full editor, a mirror, or a supported ripperdoc to load this preset."
       loadStatusKind = "info"
     else
       local messages = {}
@@ -265,9 +265,9 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       ImGui.Indent(8)
       local historyEntries = state.history.entries
       if #historyEntries == 0 then
-        ImGui.TextWrapped("No recovery appearances are available yet. The mod adds one before each normal preset load.")
+        ImGui.TextWrapped("There are no recovery entries yet. One is saved before each normal preset load.")
       else
-        ImGui.TextWrapped("Choose an entry to restore it. The newest appearance is first.")
+        ImGui.TextWrapped("Choose the appearance you want to restore. The latest saved entry appears at the top.")
         for visibleIndex, entry in ipairs(historyEntries) do
           local label = ("Restore %d: %s | %d options | %s##appearanceHistory:%d")
             :format(visibleIndex, tostring(entry.date), tonumber(entry.count) or 0,

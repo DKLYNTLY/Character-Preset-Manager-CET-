@@ -199,6 +199,7 @@ helpers.loadOptionNeedsLongSettle = function(exposedOption, trackingKey)
     helpers.optionDisplayName(exposedOption.option, exposedOption.label),
   }, " "):lower()
   return text:find("hair", 1, true) ~= nil or text:find("beard", 1, true) ~= nil
+    or text:find("cyberware", 1, true) ~= nil
 end
 
 helpers.pollPendingOption = function(options)
@@ -259,6 +260,7 @@ helpers.beginPendingChange = function(system, exposedOption, target, kind, track
   state.load.applySeconds = state.load.applySeconds
     + math.max(0, helpers.loadClock() - started)
   if not ok then return false, applyError end
+  state.app.optionsMemo = nil
   attempts[trackingKey] = (attempts[trackingKey] or 0) + 1
   local longSettle = kind ~= "apply"
     or helpers.loadOptionNeedsLongSettle(exposedOption, trackingKey)
@@ -350,8 +352,8 @@ helpers.checkPendingChange = function(system, scan)
         pending.confirmedDisappeared = disappeared
         state.load.nextInterval = AUTO_LOAD_TIMING.pollInterval
         setStatus("load", disappeared
-          and "A dependent option was replaced. Waiting for the editor to settle."
-          or "The option changed. Waiting for dependent options to settle.")
+          and "A linked option changed. Waiting for the editor to finish updating."
+          or "The choice changed. Waiting for linked options to update.")
         return "waiting"
       end
       if state.load.elapsed - pending.confirmedAt
@@ -412,7 +414,7 @@ helpers.checkPendingChange = function(system, scan)
     state.load.unconfirmed[pending.trackingKey] = true
     if pending.forced then state.load.forcedKeys[pending.trackingKey] = true end
     state.logLoadOnce("apply-not-confirmed:" .. pending.trackingKey,
-      ("[UNCONFIRMED] The game did not update currIndex after %.3fs. The option was applied once and was not repeated: %s targetIndex=%s")
+      ("[UNCONFIRMED] The game did not report the new choice (currIndex) after %.3fs. The choice was applied once and was not repeated: %s targetIndex=%s")
         :format(waited, pending.identity, tostring(pending.target)), "warn")
   end
   return "unconfirmed"
@@ -622,7 +624,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
   if state.load.phase == "precleanup" and scan.structureChanged then
     state.load.remaining = valueCount
     state.load.needsContinue = true
-    log("PRECLEANUP | The editor structure changed while old dependent options were being cleared. Checking the updated option list.", "info")
+    log("PRECLEANUP | The editor's option list changed while old choices were being cleared. Checking the new list.", "info")
     setStatus("load", "The editor changed while old options were cleared. Checking again.")
     return
   end
@@ -633,9 +635,9 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     state.load.remaining = valueCount
     state.load.needsContinue = true
     helpers.clearVisibleLoadSatisfaction(scan)
-    log("CLEANUP | The editor structure changed before cleanup. Verifying the preset again before clearing anything.", "info")
+    log("CLEANUP | The editor's option list changed. Checking the preset again before clearing old choices.", "info")
     setStatus("load",
-      "The editor changed before cleanup. Checking the preset again first.")
+      "The editor changed before cleanup. Checking your saved choices again before clearing old ones.")
     return
   end
 
@@ -693,7 +695,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
               state.loadOptionIdentity(exposedOption.option, label, occurrence),
               current, tostring(clearError)), "error")
           setStatus("load",
-            "Loading stopped because a remaining option could not be cleared safely. Close the editor without confirming, reopen it, and retry.",
+            "Loading stopped because an old choice could not be cleared safely. Close the editor without confirming your appearance, then reopen it and try again.",
             true)
           helpers.logLoadMeasurements("cleanup-failed")
         else
@@ -703,8 +705,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
               current, isPrecleanup and "pre-apply dependent cleanup"
                 or "post-apply leftover cleanup"), "info")
           setStatus("load", isPrecleanup
-            and "Clearing an old dependent option before applying the preset."
-            or "Clearing one remaining option. Waiting for the editor.")
+            and "Clearing an old linked option before loading the preset."
+            or "Clearing one remaining option. Waiting for the editor to update.")
         end
         return
       end
@@ -715,8 +717,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       state.load.needsContinue = true
       state.load.previousUnresolvedSignature = nil
       state.load.unresolvedRepeatCount = 0
-      log("PRECLEANUP | Old exposed dependent options were cleared before applying the preset.", "info")
-      setStatus("load", "Old dependent options cleared. Applying the preset.")
+      log("PRECLEANUP | Cleared old linked options before loading the preset.", "info")
+      setStatus("load", "Old linked options cleared. Now loading your saved preset choices.")
       return
     end
     state.load.phase = "verify"
@@ -725,8 +727,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     state.load.remaining = valueCount
     state.load.needsContinue = true
     helpers.clearVisibleLoadSatisfaction(scan)
-    log("CLEANUP | No additional exposed leftover options require resetting. Verifying the preset.", "info")
-    setStatus("load", "Cleanup complete. Verifying the preset again.")
+    log("CLEANUP | No more visible old choices need clearing. Checking the saved preset values.", "info")
+    setStatus("load", "Old choices cleared. Checking the preset again.")
     return
   end
 
@@ -924,7 +926,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
                   optionAuditIdentity(candidate.option, candidate.label,
                     candidate.occurrence), tostring(current), tostring(target)), "info")
               setStatus("load",
-                "A hairstyle-dependent option was replaced. Its saved choice was matched safely; waiting for the editor.")
+                "A linked hair option changed. Its saved choice was matched; waiting for the editor to update.")
             else
               state.load.needsContinue = false
               state.load.stalled = true
@@ -933,7 +935,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
                   tostring(applyError)), "error")
               helpers.logLoadMeasurements("dependency-remap-failed")
               setStatus("load",
-                "Loading stopped because a replaced hairstyle-dependent option could not be applied safely. Close the editor without confirming, reopen it, and retry.",
+                "Loading stopped because a linked hair option changed and could not be matched safely. Close the editor without confirming your appearance, then reopen it and try again.",
                 true)
             end
             return
@@ -1100,8 +1102,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       state.load.needsContinue = true
       state.load.previousUnresolvedSignature = nil
       state.load.unresolvedRepeatCount = 0
-      log("APPLY | Saved preset options were processed. Checking for genuine leftovers next.", "info")
-      setStatus("load", "Preset options applied. Checking for remaining options.")
+      log("APPLY | Saved choices were processed. Checking for old choices the preset does not use.", "info")
+      setStatus("load", "Saved choices applied. Checking for old choices that remain.")
       return
     end
     if state.load.phase == "verify" and state.load.returnToCleanup then
@@ -1111,8 +1113,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       state.load.needsContinue = true
       state.load.previousUnresolvedSignature = nil
       state.load.unresolvedRepeatCount = 0
-      log("VERIFY | Post-cleanup preset check finished. Checking for another leftover option.", "info")
-      setStatus("load", "Preset checked. Looking for another remaining option.")
+      log("VERIFY | Checked saved choices after cleanup. Looking for another old choice to clear.", "info")
+      setStatus("load", "Saved choices checked. Looking for another old choice.")
       return
     end
     helpers.finalVerifyUnconfirmed()
@@ -1155,15 +1157,15 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
         :format(valueCount, forced)
       state.app.nativePanelShowDetails = true
       setStatus("load", (
-        "Preset fully applied: %d options applied in %d pass%s. Force Full Load matched %d option%s. " ..
+        "Loaded %d saved options in %d pass%s. Force Full Load matched %d option%s. " ..
         "Check the hair, hair color, and other forced options."
       ):format(valueCount, state.load.pass, state.load.pass == 1 and "" or "es", forced,
         forced == 1 and "" or "s"), false, "success")
     else
-      state.app.nativeLoadSummary = ("Loaded %d options. All saved options were confirmed.")
+      state.app.nativeLoadSummary = ("Loaded %d options. The game confirmed every saved value.")
         :format(valueCount)
       state.app.nativePanelShowDetails = false
-      setStatus("load", ("Preset fully applied: %d options applied in %d pass%s.")
+      setStatus("load", ("Loaded %d saved options in %d pass%s.")
         :format(valueCount, state.load.pass, state.load.pass == 1 and "" or "es"),
         false, "success")
     end

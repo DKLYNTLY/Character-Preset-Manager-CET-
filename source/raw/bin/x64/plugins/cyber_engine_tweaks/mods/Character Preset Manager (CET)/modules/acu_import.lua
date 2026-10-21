@@ -120,7 +120,7 @@ logAcuDangerousOptions = function(preset, options, presetName)
       local identity = table.concat({ fingerprint, tostring(entry.key), reason }, "\31")
       if not acu.dangerousLogged[identity] then
         acu.dangerousLogged[identity] = true
-        log(("[ACU SAFETY] Dangerous option found in imported preset '%s': option='%s' reason='%s'. The preset remains imported and unchanged; this warning does not change loading.")
+        log(("[ACU SAFETY] An imported preset has an option that may be unsafe: preset='%s' option='%s' reason='%s'. The imported file is unchanged. This warning does not change loading.")
           :format(tostring(presetName or preset.storage), tostring(entry.key), reason), "warn")
       end
     end
@@ -141,7 +141,7 @@ local function importStorage(storage)
   state.library.presets[logicalName] = preset
   addFolderAncestors(state.library.folders, parentFolder(logicalName))
   addPhysicalFolders(storage)
-  log(("[ACU IMPORT] Added or updated the lightweight record for '%s'.")
+  log(("[ACU IMPORT] Added or updated the library entry for '%s' without reading all its choices.")
     :format(logicalName), "info")
   return true
 end
@@ -164,7 +164,7 @@ local function finishImportQueue()
     message = acu.rejected + acu.skipped > 0
       and ("ACU import found no compatible presets; %d skipped.")
         :format(acu.rejected + acu.skipped)
-      or "Refresh finished. No new or updated ACU presets were found."
+      or "Refresh finished. No new or changed ACU presets were found."
   end
   if message then setStatus("load", message, not saved) end
   acu.queue = {}

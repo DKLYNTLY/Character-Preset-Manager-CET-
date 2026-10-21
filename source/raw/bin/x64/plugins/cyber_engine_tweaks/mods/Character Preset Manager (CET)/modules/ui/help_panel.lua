@@ -275,84 +275,84 @@ if state.ui.helpOpen then
       if showHelpTopic("Main Window & Help Buttons",
           "button buttons controls interface section header open close settings help log search clear find title window") then
       helpHeading("Main Window & Help Buttons")
-      ImGui.TextWrapped("Select any section header to open or close that section. Its arrow shows whether the section is open, and a divider line separates it from the previous section. The window's X closes Character Preset Manager without closing CET.")
-      ImGui.TextWrapped("Each section places its status card below the introductory text and above its controls. The important current value appears on a separate orange line, followed by the instruction or result. Blue means information, green means ready or success, yellow means warning, and red means error.")
-      helpButton("Settings", "Opens or closes the mod's preferences. Opening it closes Help and the Activity Log.")
-      helpButton("Help", "Opens or closes this searchable Help panel. Opening it closes Settings and the Activity Log.")
-      helpButton("Log", "Opens or closes the Activity Log and reads its newest contents.")
-      helpButton("Search", "Applies the words typed in Search Help and shows matching topics. Typing alone does not run the search.")
-      helpButton("Clear", "Clears the Help search and shows every Help topic again.")
-      helpButton("Previous / Next", "Moves through a long list one page at a time. The page line shows the current page and total pages.")
-      helpButton("Open & Edit Appearance", "Opens or closes the controls for launching the full character editor.")
-      helpButton("Load & Restore Appearance", "Opens or closes preset selection, loading, favorites, and appearance recovery.")
-      helpButton("Save & Replace Presets", "Opens or closes the controls for saving the current appearance.")
-      helpButton("Rename & Copy Presets", "Opens or closes the selected preset's rename, copy, tag, note, and file controls.")
-      helpButton("Create & Organize Folders", "Opens or closes folder creation, organization, sharing, and sharing-file removal.")
-      helpButton("Export & Import Backups", "Opens or closes complete-library backup controls.")
-      helpButton("Select & Manage Multiple Presets", "Opens or closes selection and actions for several presets at once.")
-      helpButton("Delete & Restore Items", "Opens or closes individual Trash, recovery, and permanent deletion controls.")
+      ImGui.TextWrapped("Select a section heading to open or close it. The arrow shows its state. Use the window's X to close Character Preset Manager while keeping CET open.")
+      ImGui.TextWrapped("Each section shows its status above the controls. The orange line names the current selection or setting. Blue means information, green means ready or done, yellow means a warning, and red means an error.")
+      helpButton("Settings", "Shows the mod's settings. It closes Help and the Activity Log.")
+      helpButton("Help", "Shows this Help panel. Settings and the Activity Log close when Help opens.")
+      helpButton("Log", "Shows or hides the Activity Log and reads its latest entries.")
+      helpButton("Search", "Shows topics that match your search words. Select Search after typing.")
+      helpButton("Clear", "Clears your search so you can browse all Help topics.")
+      helpButton("Previous / Next", "Moves one page forward or back. The page counter shows where you are in the list.")
+      helpButton("Open & Edit Appearance", "Shows or hides the full editor and randomizer controls.")
+      helpButton("Load & Restore Appearance", "Shows the preset list, load controls, favorites, and appearance history.")
+      helpButton("Save & Replace Presets", "Shows the controls for saving your current appearance.")
+      helpButton("Rename & Copy Presets", "Shows the selected preset's name, copy controls, tags, notes, and file details.")
+      helpButton("Create & Organize Folders", "Shows tools for creating, arranging, and sharing folders, plus controls for removing sharing files.")
+      helpButton("Export & Import Backups", "Shows the controls for backing up or importing your whole library.")
+      helpButton("Select & Manage Multiple Presets", "Shows tools for selecting and working with several presets together.")
+      helpButton("Delete & Restore Items", "Shows Trash, restore controls, and permanent deletion.")
       end
 
       if showHelpTopic("Problems & Compatibility",
           "bug bugs issue issues problem problems error errors troubleshooting stuck infinite loading screen clothing clothes wardrobe outfit no outfit ACU appearance change unlocker character customization anywhere photo mode appearance menu mod incompatible incompatibility compatibility future update patch simple panel missing successor backup") then
       helpHeading("Problems & Compatibility")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
-        "Remove Character Customization Anywhere, then restart the game. It changes the same character screens and cannot be used with Character Preset Manager.")
-      ImGui.TextWrapped("ACU preset files are imported after startup. A background watcher detects later changes, and Refresh requests a check when watching is unavailable. Use Character Preset Manager to load the imported copies, and do not start an ACU load at the same time.")
-      ImGui.TextWrapped("Character Preset Manager is ACU's successor. The complete CET manager, character-screen panel, and native file service are included together. If both packaged parts are unavailable after a Cyberpunk update, use the same preset library in CET while waiting for an updated release.")
-      ImGui.TextWrapped("Keep the same character option mods, versions, and load order that were used to make the preset. If they change, check the appearance and save the preset again.")
-      ImGui.TextWrapped("Photo Mode and Appearance Menu Mod may stay installed, but you cannot save or load presets inside their menus. Use the full editor, a mirror, a ripperdoc, or the new-game editor.")
+        "Remove Character Customization Anywhere and restart the game. Both mods change the same character screens, so they cannot work together.")
+      ImGui.TextWrapped("ACU files are copied into the library after startup. The file service watches for later changes. If a file is missing, select Refresh to check again. Load the copies through Character Preset Manager, and do not start a load in ACU at the same time.")
+      ImGui.TextWrapped("Character Preset Manager follows on from ACU. The package includes the CET manager, simple menu, and file service. If the simple menu or file service stops working after a game update, use CET when its required frameworks support that game version.")
+      ImGui.TextWrapped("Keep the character mods, versions, and load order used when you saved the preset. If your setup changes, check the result and save it again.")
+      ImGui.TextWrapped("You can keep Photo Mode and Appearance Menu Mod installed. Their menus cannot save or load these presets, so use the full editor, a mirror, a ripperdoc, or new-game creation.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "If the game stays on a loading screen after you close an editor, remove all clothing and choose No Outfit before trying again. This is a Cyberpunk issue and can happen without this mod.")
+        "If closing an editor leaves the game on a loading screen, remove all clothing and choose No Outfit before trying again. This can also happen without the mod.")
       end
 
       if showHelpTopic("Open & Edit Appearance",
           "open launch hotkey key binding bindings mirror ripperdoc character creator full appearance editor button") then
       helpHeading("Open & Edit Appearance")
-      ImGui.TextWrapped("Load a saved game, then select Open Full Appearance Editor. You can also use a mirror, a ripperdoc, or the new-game editor.")
-      helpButton("Open Full Appearance Editor", "Opens the game's complete character editor. It is unavailable while an editor is already open or while the editor is still starting.")
-      ImGui.TextWrapped("Set these keys under CET Bindings > Character Preset Manager (CET). Close the CET window before using the editor key.")
+      ImGui.TextWrapped("Load a save and select Open Full Appearance Editor. Mirrors, ripperdocs, and new-game creation also support presets.")
+      helpButton("Open Full Appearance Editor", "Opens the full character editor. Wait until it finishes opening before using another editor control.")
+      ImGui.TextWrapped("Assign the editor key under CET Bindings > Character Preset Manager (CET). Close the CET overlay before pressing it.")
       ui.drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editor.inputCount)
-      helpButton("Randomize", "Uses the game's randomizer and its current category locks. R still works in the character screen. Wait until preset loading or recovery finishes.")
-      helpButton("Randomize Settings", "Opens the game's category locks. When you select this in CET, close the overlay to show the settings.")
+      helpButton("Randomize", "Randomizes your appearance using the game's current locks. R still works in the character screen. Wait for any preset load or recovery to finish first.")
+      helpButton("Randomize Settings", "Shows which appearance categories the randomizer can change. If you use this button in CET, close the overlay to see the settings.")
       end
 
       if showHelpTopic("Load & Restore Appearance",
           "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue cancel button") then
       helpHeading("Load & Restore Appearance")
       ImGui.TextWrapped("1. Open a supported character editor.")
-      ImGui.TextWrapped("2. Scroll through the larger panel on the left or use Search to find a preset. Select a folder row to show or hide the presets inside it.")
-      ImGui.TextWrapped("3. Select a preset to start loading it. Use Check Compatibility in CET when you want to review the preset before loading.")
-      ImGui.TextWrapped("4. Watch Panel Status below the native preset list. It reports overwrite and Trash actions, loading progress, the final result, and failures without opening CET. A red marker means the action needs attention.")
-      ImGui.TextWrapped("5. Use Check Compatibility in CET when you want to review matching, changing, missing, repeated or uncertain, invalid, and cleared options.")
+      ImGui.TextWrapped("2. Find a preset in the simple menu on the left. Use Search to narrow the list, or select a folder to open it.")
+      ImGui.TextWrapped("3. Select a preset to load it. To review it first, use Check Compatibility in CET.")
+      ImGui.TextWrapped("4. Read Panel Status below the preset list. It shows load progress, results, errors, and prompts for Save or Trash. A red marker means something needs attention.")
+      ImGui.TextWrapped("5. Use Check Compatibility in CET to see matches, changes, missing choices, unclear matches, invalid entries, and options that will be cleared.")
       coloredWrapped(0.3, 1.0, 0.4, 1.0,
-        "6. Wait for the final result. The native Panel Status and CET Load status both explain whether every option was confirmed.")
-      ImGui.TextWrapped("After you select a preset, folder, save location, Save, or Trash action, the panel releases that button so Q and E can rotate the character again. Search and Preset Name keep keyboard focus while you are typing.")
+        "6. Wait for loading to finish. Panel Status and the CET Load status say whether the game confirmed each saved choice.")
+      ImGui.TextWrapped("After a preset or button action, Q and E can rotate your character again. Search and Preset Name keep the keyboard while you type.")
       ImGui.TextWrapped("If you change preset files outside CET, select Refresh under Load & Restore Appearance before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "After applying the preset, the mod may clear appearance options that are not saved in it. It checks the preset again after each cleared option.")
-      ImGui.TextWrapped("If loading stops or finishes with a yellow warning, open the Activity Log. Missing or changed character-option mods are the most common cause.")
-      ImGui.TextWrapped("Every preset uses the proven verified loader. It applies and checks changes individually, waits for dependent editor options to settle, clears genuine leftovers, and verifies the final appearance.")
-      ImGui.TextWrapped("Open Advanced Preset Options below the restore controls, then select Check Compatibility when you want to compare the preset with the open editor. The result appears in the Load status card. Selecting a preset does not run this check automatically.")
-      ImGui.TextWrapped("Force Full Load is under Advanced Preset Options to reduce accidental use. Its cautions appear in the Load status card.")
-      ImGui.TextWrapped("Appearance History is directly below Restore Previous Appearance. It keeps five automatic recovery entries and lets you restore any one of them.")
-      ImGui.TextWrapped("The compact selected-preset line shows its name, folder, saved-option count, and format. Open Advanced Preset Options for actions only.")
+        "Loading may clear old appearance options that the preset does not use. The mod checks your saved choices again after each change.")
+      ImGui.TextWrapped("Open the Activity Log if loading stops or ends with a yellow warning. Check for missing or changed character mods.")
+      ImGui.TextWrapped("Both menus use the same loader. It changes one choice at a time, waits for linked options, clears old choices, and checks the saved values at the end. Check the visible result before leaving the editor.")
+      ImGui.TextWrapped("Open Advanced Preset Options and select Check Compatibility to compare a preset with the current editor. Read the result in the Load status card. Choosing a preset alone does not start a check.")
+      ImGui.TextWrapped("Find Force Full Load under Advanced Preset Options. Read its warning in the Load status card before using it.")
+      ImGui.TextWrapped("Appearance History sits below Restore Previous Appearance. Choose one of the five latest recovery entries.")
+      ImGui.TextWrapped("The selected-preset line shows its name, folder, number of saved options, and format. Extra actions are under Advanced Preset Options.")
       helpButton("Preset search", "Filters the preset list by preset name, folder name, or tag as you type.")
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")
-      helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorite presets also appear in the Favorites group.")
+      helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorites also appear together in their own group above the folders.")
       helpButton("Appearance History", "Below Restore Previous Appearance, this shows the five newest recovery appearances and lets you restore one or clear the list.")
       helpButton("Advanced Preset Options", "Below Appearance History, this shows or hides Check Compatibility, Force Full Load, and the favorite action.")
-      ImGui.TextWrapped("Main sections, Help topics, buttons, and selected preset rows use one orange color family. Main headers use white text. Optional controls are responsive centered charcoal buttons with white text, keeping them separate from main sections. Only Open & Edit Appearance starts open. Every other main section starts closed.")
+      ImGui.TextWrapped("CET uses orange for main controls and selected rows, with white section headings. Extra controls use dark buttons. Open & Edit Appearance starts open; the other main sections start closed.")
       helpButton("Check Compatibility", "Checks the selected preset against the open character editor once. The found, missing, repeated, and invalid totals appear in the Load status card.")
       helpButton("Add Selected Preset to Favorites", "Adds the selected preset to the Favorites group without moving it from its folder.")
       helpButton("Remove Selected Preset from Favorites", "Removes the selected preset from the Favorites group without deleting or moving it.")
-      helpButton("Restore Previous Appearance", "Restores the newest appearance history entry. Recovery controls are available in CET so they cannot be confused with ordinary preset loading.")
-      helpButton("Force Full Load: On / Off", "Under Advanced Preset Options, this turns saved-position matching on or off. It can help older presets find renamed options, but you should check the result after loading.")
+      helpButton("Restore Previous Appearance", "Restores the latest saved recovery appearance. The simple menu also offers Undo Last Load and Recovery History.")
+      helpButton("Force Full Load: On / Off", "Allows matching by saved position when an older preset lacks exact details. Find it under Advanced Preset Options, then check the appearance when loading finishes.")
       helpButton("Load Selected Preset", "Starts applying the selected preset to the open character editor.")
-      helpButton("Continue Loading Preset", "Continues a load that needs another pass. The mod normally selects this automatically while loading.")
-      helpButton("Cancel Loading", "Stops the active preset load before it finishes.")
+      helpButton("Continue Loading Preset", "Continues an unfinished load. This normally happens on its own.")
+      helpButton("Cancel Loading", "Stops loading further choices. Changes already made remain visible.")
       end
 
       if showHelpTopic("Save & Replace Presets",
@@ -360,26 +360,26 @@ if state.ui.helpOpen then
       helpHeading("Save & Replace Presets")
       ImGui.TextWrapped("1. Open a supported character editor.")
       ImGui.TextWrapped("2. In the character-screen panel, enter a name in Preset Name.")
-      ImGui.TextWrapped("3. Select Save Location until it shows All Presets or the folder you want.")
-      ImGui.TextWrapped("4. Select Save Preset. If that name already exists, the same button changes to Confirm Overwrite. Select it again only when you want to overwrite the preset.")
-      ImGui.TextWrapped("Move Preset to Trash also changes to Confirm Move to Trash before it moves the selected preset. You can restore it from Trash in CET. Open CET for rename, permanent delete, Trash recovery, Empty Trash, Help, and other advanced actions.")
-      helpButton("Change Save Location", "Below the main save button, this shows or hides the list of folders where the new preset can be saved.")
+      ImGui.TextWrapped("3. Select Save Location to open the folder list, then choose a folder or All Presets.")
+      ImGui.TextWrapped("4. Select Save Preset. If the name is in use, the button changes to Confirm Overwrite. Press it again only to replace that preset.")
+      ImGui.TextWrapped("Move Preset to Trash needs a second press on Confirm Move to Trash. Restore the preset from Trash in CET. CET also has renaming, permanent deletion, Empty Trash, Help, and other tools.")
+      helpButton("Change Save Location", "Shows the folders you can save into. This control is below the main save button.")
       helpButton("All Presets and folder rows", "Chooses the save location. All Presets saves outside every folder.")
-      helpButton("Save New Preset", "Saves the appearance currently shown in the open character editor using the entered name and chosen location.")
-      helpButton("Confirm Overwrite", "Replaces the existing preset with the same name and location. It appears only after Save New Preset finds that name already in use.")
+      helpButton("Save New Preset", "Saves your current appearance under the name and location you chose.")
+      helpButton("Confirm Overwrite", "Replaces the preset with that name in the chosen folder. This prompt appears when the save name is already in use.")
       end
 
       if showHelpTopic("Create & Organize Folders",
           "organize folder folders add rename copy duplicate move remove keep delete trash confirm all presets selected actions imported windows button") then
       helpHeading("Create & Organize Folders")
-      ImGui.TextWrapped("The status card shows the destination used by the folder and preset actions.")
+      ImGui.TextWrapped("The status card names the folder that these actions will use.")
       ImGui.TextWrapped("Select a folder row under Load & Restore Appearance to open or close it. Presets that are not in a folder appear under All Presets.")
-      ImGui.TextWrapped("To favorite a preset, choose it under Load & Restore Appearance, open Advanced Preset Options, then select Add Selected Preset to Favorites. Favorites stay in their original folders and also appear together above the folder list.")
+      ImGui.TextWrapped("Choose a preset under Load & Restore Appearance, then open Advanced Preset Options and select Add Selected Preset to Favorites. It stays in its folder and also appears above the folder list.")
       ImGui.TextWrapped("To move a preset, choose the preset, choose its new folder, then select Move Selected Preset Here. Choose All Presets to remove it from a folder.")
-      ImGui.TextWrapped("A new folder is placed inside the selected folder. Choose All Presets first to create a main folder.")
-      ImGui.TextWrapped("Remove Folder, Keep Presets is under Create & Organize Folders. It removes the folder but moves everything inside it to the folder above, and it never deletes unknown files.")
-      ImGui.TextWrapped("Folders made in CET organize presets only inside the mod. They do not create matching Windows folders and have no set limit.")
-      ImGui.TextWrapped("Windows folders placed inside Character Presets appear with an Imported label. The mod keeps unknown files in those folders safe.")
+      ImGui.TextWrapped("A new folder is placed inside the selected folder. To create a main folder, choose All Presets before adding it.")
+      ImGui.TextWrapped("Use Remove Folder, Keep Presets under Create & Organize Folders to remove only the folder. Its contents move to the folder above. Unknown files are kept.")
+      ImGui.TextWrapped("Folders made in CET organize the library without creating Windows folders. You can nest them with no set depth limit.")
+      ImGui.TextWrapped("Windows folders inside Character Presets show an Imported label. Files the mod does not recognize are kept.")
       helpButton("All Presets and folder rows", "Chooses the destination used by Add Folder and the preset-move buttons. Selecting a folder also makes its management controls available.")
       helpButton("Add Folder", "Creates a folder with the entered name inside the selected folder. Choose All Presets first to create a main folder.")
       helpButton("Rename / Copy / Move / Delete", "Shows or hides the actions for the selected folder.")
@@ -396,7 +396,7 @@ if state.ui.helpOpen then
       if showHelpTopic("Rename & Copy Presets",
           "manage rename duplicate copy tags notes file path details save hide button") then
       helpHeading("Rename & Copy Presets")
-      ImGui.TextWrapped("Choose a preset or folder first. Renaming a preset also renames its .preset file. Renaming a folder changes only the name shown in the mod.")
+      ImGui.TextWrapped("Choose a preset or folder first. A preset rename also changes its .preset filename, while a folder rename only changes its name in the mod.")
       ImGui.TextWrapped("A copy appears beside the original. Copying a folder also copies every preset and folder inside it.")
       ImGui.TextWrapped("Open Rename & Copy Presets to rename or copy the selected preset. Open Tags, Notes & File to edit extra details or copy its file path.")
       helpButton("Rename Preset", "Renames the selected preset and its .preset file using the name entered above the button.")
@@ -409,7 +409,7 @@ if state.ui.helpOpen then
       if showHelpTopic("Select & Manage Multiple Presets",
           "bulk multiple multi select selected all visible clear row target folder move export share trash confirm several presets button") then
       helpHeading("Select & Manage Multiple Presets")
-      ImGui.TextWrapped("Open Select & Manage Multiple Presets to work with several presets at once. Select a preset row to add it to the selection. Select it again to remove it.")
+      ImGui.TextWrapped("Open Select & Manage Multiple Presets to work with a group. Select each preset you want, then select it again to remove it from the group.")
       ImGui.TextWrapped("Use Select All Visible to include every preset shown by the current search. Clear Selection removes every check.")
       ImGui.TextWrapped("After selecting presets, you can move them to one folder, export them together as a .cpmfolder file, or move them to Trash.")
       helpButton("Bulk preset search", "Filters the rows in this section by preset or folder name. It uses the same search text as Load & Restore Appearance.")
@@ -426,9 +426,9 @@ if state.ui.helpOpen then
       if showHelpTopic("Delete & Restore Items",
           "delete trash restore recover recovery empty permanent confirm remove folder preset cpmfolder sharing file button") then
       helpHeading("Delete & Restore Items")
-      ImGui.TextWrapped("Under Create & Organize Folders, you can move a folder and everything inside it to Trash. Under Delete & Restore Items, you can move the selected preset to Trash.")
+      ImGui.TextWrapped("Move a whole folder to Trash under Create & Organize Folders. For one preset, use Delete & Restore Items.")
       ImGui.TextWrapped("You can restore presets and complete folders later. If a name is already in use, the restored item gets a Copy name instead of replacing anything.")
-      ImGui.TextWrapped("Empty Trash Permanently is the only action that permanently deletes files. The character-screen panel and CET both ask for confirmation before moving a preset to recoverable Trash.")
+      ImGui.TextWrapped("Empty Trash Permanently deletes items in Trash. Deleting a backup permanently removes only that backup file. Both menus ask before moving a preset to recoverable Trash.")
       helpButton("Move Selected Preset to Trash", "The first press changes the same button to Confirm Move to Trash. The second press moves the chosen preset to recoverable Trash.")
       helpButton("Confirm Move to Trash", "Confirms moving the selected preset to Trash.")
       helpButton("Restore Folder", "Restores the named folder group, all folders inside it, and all of their presets.")
@@ -442,8 +442,8 @@ if state.ui.helpOpen then
           "share sharing send install export preset file path character presets download upload bug issue wrong option legacy older") then
       helpHeading("Share One Preset")
       ImGui.TextWrapped("Share one appearance by sending its .preset file. To install one, place the file in Character Presets or in a Windows folder inside it, then select Refresh under Load & Restore Appearance.")
-      ImGui.TextWrapped("A current format-8 CPM preset records its preset name and CET folder. The mod uses those details when the saved folder list has no entry for the preset. Older Character Preset Manager files remain readable.")
-      ImGui.TextWrapped("New format-8 preset files begin with CPM Preset and use plain headings and readable option details. Saving over an older preset or saving its optional details updates it to the current format.")
+      ImGui.TextWrapped("A format-8 CPM file stores its preset name and CET folder. These help rebuild a missing folder-list entry. Older preset files still load.")
+      ImGui.TextWrapped("Format-8 files start with CPM Preset and use plain headings and option details. An older file stays unchanged until you overwrite it or save its notes or tags.")
       ImGui.TextWrapped("If an older preset loads the wrong custom option after you change option mods, correct the appearance and save it again in the current format.")
       ui.pathCallout("##presetFolderPath", "Preset Folder",
         "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Character Presets")
@@ -462,7 +462,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("Open Character Preset Manager in CET and look under ACU Presets. If the copies are not shown, select Refresh once and wait a moment. Load the imported copies through Character Preset Manager, not ACU.")
       ImGui.TextWrapped("The original ACU files stay unchanged. New or changed files are copied when needed, and unchanged files are skipped. ACU subfolders are preserved.")
       ImGui.TextWrapped("If a preset does not appear, confirm that it ends in .preset, is not empty, is no larger than 1 MB, and is in the exact ACU folder above. Then check the Activity Log for ACU IMPORT or ACU SAFETY messages.")
-      ImGui.TextWrapped("The Activity Log names internal eye locks and other options that the game marks inactive or not editable. The imported preset stays unchanged, and the warning does not change loading.")
+      ImGui.TextWrapped("The Activity Log lists internal eye locks and other choices the game marks inactive or locked. That warning does not change the imported file or how it loads.")
       end
 
       if showHelpTopic("Share a Folder",
@@ -470,7 +470,7 @@ if state.ui.helpOpen then
       helpHeading("Share a Folder")
       ImGui.TextWrapped("Under Create & Organize Folders, open Share & Import Folders. Choose a non-empty folder and select Export Selected Folder as a .cpmfolder File.")
       ImGui.TextWrapped("To install a shared folder, place its .cpmfolder file in Character Presets, open Share & Import Folders, then select Install .cpmfolder Files from Character Presets.")
-      ImGui.TextWrapped("The mod skips a bundle that was already imported and has not changed. If you deleted its imported folder, you can import the same bundle again.")
+      ImGui.TextWrapped("An unchanged bundle is skipped if its imported folder still exists. If you removed its imported folder, the same file can be imported again.")
       ImGui.TextWrapped("To check a sharing file first, select it under Manage & Remove .cpmfolder Files, then choose View Selected .cpmfolder Contents. The preview does not install or change anything.")
       ImGui.TextWrapped("To remove only a sharing file, open Manage & Remove .cpmfolder Files. Moving the file to Trash does not remove installed presets or folders.")
       helpButton("Share & Import Folders", "Shows or hides the controls used to create and install .cpmfolder sharing files.")
@@ -485,33 +485,33 @@ if state.ui.helpOpen then
       if showHelpTopic("Settings",
           "settings config preset sort name last modified file hide preferences button") then
       helpHeading("Settings")
-      ImGui.TextWrapped("Change Preset Sort Order through the CET Settings tab. CET key choices remain under CET Bindings.")
-      ImGui.TextWrapped("Preset Sort Order is the only preference. Safety and loading behavior are not optional.")
-      ImGui.TextWrapped("The character-screen panel, five-entry appearance history, pre-restore safety save, missing-option warnings, and CET manager stay enabled. Use Check Compatibility in CET when you want comparison details.")
+      ImGui.TextWrapped("Select Settings at the top of the manager to change Preset Sort Order. Assign your editor key under CET Bindings.")
+      ImGui.TextWrapped("Preset Sort Order is the only preference. The mod keeps its load checks and safety features on.")
+      ImGui.TextWrapped("The simple menu, five recovery entries, safety saves, and missing-option warnings stay enabled. Use Check Compatibility in CET for a closer look at saved choices.")
       helpButton("Settings File", "Shows the mirrored settings-file location. The mirror updates automatically and is included in complete-library backups.")
       end
 
       if showHelpTopic("Export & Import Backups",
           "backup export complete everything import selected file dropdown library cpmbackup button") then
       helpHeading("Export & Import Backups")
-      ImGui.TextWrapped("Open Export & Import Backups to export the complete preset library, import a .cpmbackup file, or delete a backup file. Complete backups include presets in Imported Windows folders, folders made in CET, empty CET folders, and settings.")
+      ImGui.TextWrapped("Use Export & Import Backups to save your whole library, import a .cpmbackup file, or delete a backup. Each backup includes presets in imported Windows folders, CET folders, empty CET folders, and settings.")
       helpButton("Export Complete Library Backup", "Creates and verifies a .cpmbackup file containing every preset, the CET folder layout, and the current settings file.")
       helpButton("Refresh Backup File List", "Finds .cpmbackup files added or removed outside the mod while the game is running.")
       helpButton("Backup file", "Chooses which .cpmbackup file to import or permanently delete.")
       helpButton("Import Selected Library Backup", "Imports the selected backup without replacing existing items that use the same names.")
-      helpButton("Delete Selected Backup Permanently / Confirm Delete Selected Backup Permanently", "Permanently deletes only the chosen .cpmbackup file after a required second selection. Presets already in the library are not deleted.")
+      helpButton("Delete Selected Backup Permanently / Confirm Delete Selected Backup Permanently", "Deletes only the chosen .cpmbackup file after a second press. Your installed presets stay in the library.")
       end
 
       if showHelpTopic("Activity Log",
           "activity log debug diagnostic error errors warning warnings report support open refresh copy close technical details hide button") then
       helpHeading("Activity Log")
       ImGui.TextWrapped("Open the activity log to see recent preset actions, warnings, and errors. You can copy the log when asking for help.")
-      ImGui.TextWrapped("A performance warning separates game-option retrieval time from preset-matching time when an option check takes at least 0.05 seconds.")
+      ImGui.TextWrapped("If an option check takes at least 0.05 seconds, the log shows how much time went into reading game options and matching the preset.")
       helpButton("Previous / Next", "Moves through the Activity Log one page at a time. The newest page opens first.")
       helpButton("Refresh", "Reads the newest Activity Log contents from disk.")
-      helpButton("Copy", "Copies the complete loaded Activity Log text to the clipboard, including pages that are not currently shown.")
+      helpButton("Copy", "Copies all loaded log entries to the clipboard, including pages you are not viewing.")
       helpButton("Close", "Closes the Activity Log panel.")
-      helpButton("Technical Details", "Shows or hides editor-launch counters used for troubleshooting the Open Full Appearance Editor action.")
+      helpButton("Technical Details", "Shows counts of editor-opening steps to help find problems with Open Full Appearance Editor.")
       if fullWidthButton("Open Activity Log##openDebugFromHelp", actionButtonHeight) then
         ui.readDiagnosticLog()
         state.ui.debugOpen = true
@@ -523,7 +523,7 @@ if state.ui.helpOpen then
 
       if visibleHelpTopics == 0 and not helpSearchPending then
         ImGui.Spacing()
-        ImGui.TextWrapped("No help topic matches that search. Try a shorter word such as share, bug, load, folder, backup, or Trash.")
+        ImGui.TextWrapped("No topics match your search. Try a shorter word, such as share, bug, load, folder, backup, or Trash.")
       end
 
       ImGui.EndChild()

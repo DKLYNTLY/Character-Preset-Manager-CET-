@@ -5,16 +5,16 @@ local _ENV = runtime
 
 drawEditorSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
-    ImGui.TextWrapped("Opens the game's full character editor. Apartment mirrors offer the same options.")
+    ImGui.TextWrapped("Open the full character editor here or use an apartment mirror. Both show the same options.")
     local editorUnavailable = state.editor.openPending or state.app.inCustomization
       or not state.editor.hooksAvailable
     local editorStatus = state.editor.openPending
-      and "The full appearance editor is opening."
+      and "Opening the full appearance editor."
       or (state.app.inCustomization
-        and "A character customization screen is already open."
+        and "A character editor is already open."
         or (not state.editor.hooksAvailable
-          and "The full editor is not available with this game or CET version."
-          or "Ready to open the full appearance editor."))
+          and "This game or CET version does not support the full editor."
+          or "Ready to open the full editor."))
     drawSectionStatus("editor", "##editorStatus", statusHeight, editorStatus,
       not state.editor.openPending and not state.app.inCustomization
         and state.editor.hooksAvailable and "ready" or "info",

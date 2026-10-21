@@ -487,8 +487,8 @@ function writePresetContents(path, preset)
       "# Library folder: " .. (libraryFolder ~= "" and libraryFolder or "/"),
       "#",
       "# Appearance options",
-      "# Each main line is OptionKey:SavedNumber.",
-      "# Editor slot and Saved choice lines describe the option above them.",
+      "# Each main line gives an option key and its saved number.",
+      "# Editor slot and Saved choice describe the line above them.",
       "",
     }
     for _, line in ipairs(header) do
@@ -674,7 +674,7 @@ function savePreset(confirmOverwrite)
     :format(tostring(state.library.newName), tostring(confirmOverwrite == true)), "info")
   local _, options, optionsError = getOptions()
   if not options then
-    setStatus("create", "Open the character creator, a mirror, or a ripperdoc.", true)
+    setStatus("create", "Open new-game creation, the full editor, a mirror, or a supported ripperdoc.", true)
     log("[create] " .. tostring(optionsError), "warn")
     return
   end
@@ -696,7 +696,7 @@ function savePreset(confirmOverwrite)
   if collision == name then
     local currentFingerprint = fileFingerprint(presetPath(collision))
     if not currentFingerprint then
-      setStatus("create", "The existing preset could not be verified safely.", true)
+      setStatus("create", "The existing preset could not be checked safely.", true)
       return
     end
     if not confirmOverwrite
@@ -731,7 +731,7 @@ function savePreset(confirmOverwrite)
         log(("[SNAPSHOT] Rejected %s | keyBytes=%d maximum=%d")
           :format(identity, #key, MAX_PRESET_KEY_BYTES), "error")
         setStatus("create",
-          ("A character option name is longer than the %d-byte preset limit. Open the Activity Log to see which option caused this.")
+          ("An option name exceeds the %d-byte preset limit. The Activity Log names the option that caused this.")
             :format(MAX_PRESET_KEY_BYTES),
           true
         )
@@ -741,7 +741,7 @@ function savePreset(confirmOverwrite)
         log(("[SNAPSHOT] Rejected %s | savedEntries=%d maximum=%d")
           :format(identity, #entries, MAX_PRESET_ENTRIES), "error")
         setStatus("create",
-          ("The editor contains more than %d active options. Open the Activity Log for details.")
+          ("The editor has more than %d active options. See the Activity Log for details.")
             :format(MAX_PRESET_ENTRIES),
           true
         )
@@ -752,7 +752,7 @@ function savePreset(confirmOverwrite)
         log(("[SNAPSHOT] Rejected %s | index=%s reason='%s' nativeMaximum=%d")
           :format(identity, tostring(currentIndex), indexError, MAX_OPTION_INDEX), "error")
         setStatus("create",
-          "A character option returned a number that the mod cannot use. Open the Activity Log to see which option caused this.",
+          "An option returned a number that cannot be saved. See the Activity Log for the option name and number.",
           true
         )
         return
@@ -819,8 +819,8 @@ function savePreset(confirmOverwrite)
       state.library.presets[name] = nil
     end
     setStatus("create", rolledBack
-      and "The preset was not saved because its folder could not be recorded."
-      or "The folder list could not be saved, and the preset file could not be returned to its earlier state.", true)
+      and "The preset's folder could not be recorded, so the preset was not saved."
+      or "The folder list could not be saved. The preset file could not be put back as it was before.", true)
     return
   end
   state.library.selected = name
@@ -849,7 +849,7 @@ function saveLastAppearanceSnapshot(options)
       local currentIndex = tonumber(option.currIndex)
       if #key > MAX_PRESET_KEY_BYTES or #entries >= MAX_PRESET_ENTRIES
           or optionIndexValidationError(currentIndex) then
-        log(("[RECOVERY SNAPSHOT] Current appearance could not be saved because option '%s' is outside the preset safety limits.")
+        log(("[RECOVERY SNAPSHOT] The current appearance was not saved because option '%s' exceeds the preset safety limits.")
           :format(tostring(key)), "warn")
         return false
       end
@@ -862,7 +862,7 @@ function saveLastAppearanceSnapshot(options)
     end
   end
   if #entries == 0 then
-    log("[RECOVERY SNAPSHOT] Current appearance was not saved because no editable options were available.", "warn")
+    log("[RECOVERY SNAPSHOT] No editable options were found, so the current appearance was not saved.", "warn")
     return false
   end
   local timestamp = logTimestamp()
@@ -871,7 +871,7 @@ function saveLastAppearanceSnapshot(options)
     source = MOD_NAME .. " automatic recovery",
     created = timestamp,
     modified = timestamp,
-    notes = "Appearance saved automatically before the last preset load.",
+    notes = "Appearance saved before the last preset was loaded.",
     tags = "recovery",
     favorite = false,
     managedByCpm = true,
@@ -953,8 +953,8 @@ function renamePreset()
         local repaired = writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
           state.library.ignoredPhysicalFolders)
         setStatus("rename", repaired
-          and "The name shown in the mod could not be changed, and the file could not be moved back. The folder list now uses the new file name."
-          or "The name shown in the mod could not be changed, the file could not be moved back, and the folder list could not be repaired.", true)
+          and "The library name could not be changed, and the file could not be moved back. The folder list now uses the new filename."
+          or "The library name could not be changed. The file could not be moved back, and its folder list could not be repaired.", true)
         return
       end
       os.remove(TRANSACTION_FILE)
@@ -964,7 +964,7 @@ function renamePreset()
         state.library.ignoredPhysicalFolders)
       writeInventory(state.library.presets, state.library.folders)
     end
-    setStatus("rename", "The preset could not be renamed because the folder list or recovery record could not be saved.", true)
+    setStatus("rename", "The folder list or recovery record could not be saved, so the preset was not renamed.", true)
     return
   end
   state.library.selected = newName
@@ -997,7 +997,7 @@ function movePresetToSelectedFolder()
   local preset = state.library.presets[old]
   local folderUpdated, folderChange = state.updatePresetLibraryFolder(preset, newName)
   if not folderUpdated then
-    setStatus("folder", "The preset could not be moved because its saved folder could not be updated.", true)
+    setStatus("folder", "The preset's saved folder could not be updated, so the preset was not moved.", true)
     return false
   end
   state.library.presets[old] = nil
@@ -1009,8 +1009,8 @@ function movePresetToSelectedFolder()
     local folderRestored = state.restorePresetLibraryFolder(folderChange)
     setStatus("folder",
       folderRestored
-        and "The preset could not be moved because the folder list could not be saved."
-        or "The preset folder list could not be saved, and its saved folder could not be returned to the earlier value.",
+        and "The folder list could not be saved, so the preset was not moved."
+        or "The folder list could not be saved. The preset's stored folder could not be put back as it was before.",
       true); return false
   end
   state.library.selected = newName
@@ -1164,7 +1164,7 @@ function duplicatePreset()
   local source = state.library.selected
   local destination = uniquePresetCopyName(source)
   if not destination then
-    setStatus("rename", "Could not find an available name for the duplicate.", true); return
+    setStatus("rename", "No unused name could be found for the copy.", true); return
   end
   local sourcePreset = hydrateNamedPreset(source)
   if not sourcePreset then
@@ -1179,13 +1179,13 @@ function duplicatePreset()
   if not copyFile(presetPath(source), destinationPath) then
     setStatus("rename", cleanupFailureMessage({ destinationPath },
       "The duplicate could not be written.",
-      "The duplicate failed, and its partial file could not be removed."), true); return
+      "Copying failed. The unfinished file could not be removed."), true); return
   end
   local duplicate = readVerifiedPresetCopy(sourcePreset, destinationPath)
   if not duplicate then
     setStatus("rename", cleanupFailureMessage({ destinationPath },
       "The duplicate could not be verified.",
-      "Duplicate verification failed, and its file could not be removed."), true); return
+      "The copy failed its check. Its file could not be removed."), true); return
   end
   duplicate.storage = storage
   state.library.presets[destination] = duplicate
@@ -1193,7 +1193,7 @@ function duplicatePreset()
       state.library.ignoredPhysicalFolders) then
     state.library.presets[destination] = nil
     setStatus("rename", cleanupFailureMessage({ destinationPath },
-      "The copy was removed because the folder list could not be saved.",
+      "The folder list could not be saved, so the copy was removed.",
       "The folder list could not be saved, and the copied file could not be removed."), true)
     return
   end

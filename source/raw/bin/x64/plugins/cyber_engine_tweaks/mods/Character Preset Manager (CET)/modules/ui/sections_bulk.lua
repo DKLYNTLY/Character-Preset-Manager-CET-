@@ -6,13 +6,13 @@ local _ENV = runtime
 drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight,
     narrowTopRow)
   if collapsibleSectionHeader("SELECT & MANAGE MULTIPLE PRESETS", "bulk") then
-    ImGui.TextWrapped("Select several presets, then move them to one folder, export them together, or move them to Trash.")
+    ImGui.TextWrapped("Select the presets you want to work with. Move them to a folder, export them together, or send them to Trash.")
     local visibleNames = helpers.filteredPresetNames()
     local selectedBulkNames = selectedBulkPresetNames()
     local bulkStatus = #visibleNames == 0
       and "No presets match the current search."
       or (#selectedBulkNames == 0
-        and "Select a preset row to add it. Select it again to remove it."
+        and "Select a row to include that preset. Select the row again to leave it out."
         or "Choose an action below.")
     drawSectionStatus("bulk", "##bulkStatus", statusHeight, bulkStatus,
       #selectedBulkNames > 0 and "ready" or "info",

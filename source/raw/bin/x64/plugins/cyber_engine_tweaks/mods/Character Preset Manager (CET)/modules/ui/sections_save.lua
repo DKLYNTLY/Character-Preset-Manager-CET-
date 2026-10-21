@@ -11,7 +11,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
     local statusSaveUnavailable = not state.app.inCustomization
       or validatedPresetName(state.library.newName) == nil
     local saveStatus = not state.app.inCustomization
-      and "Open the character creator, a mirror, or a ripperdoc to save a preset."
+      and "Open new-game creation, the full editor, a mirror, or a supported ripperdoc to save a preset."
       or (validatedPresetName(state.library.newName) == nil
         and "Enter a preset name to enable saving."
         or "Ready to save this appearance.")

@@ -90,7 +90,7 @@ end
 saveAppearanceHistorySnapshot = function(options, action)
   local preset = snapshotFromOptions(options, action)
   if not preset then
-    log("[APPEARANCE HISTORY] No recovery snapshot was saved because the current appearance could not be read safely.", "warn")
+    log("[APPEARANCE HISTORY] The current appearance could not be read safely, so no recovery copy was saved.", "warn")
     return false
   end
   local newest = readPresetFile(historyPath(1))
@@ -102,12 +102,12 @@ saveAppearanceHistorySnapshot = function(options, action)
   for index = limit, 2, -1 do
     local older = readPresetFile(historyPath(index - 1))
     if older and not writePresetPath(historyPath(index), older) then
-      log("[APPEARANCE HISTORY] The recovery list could not be rotated safely.", "warn")
+      log("[APPEARANCE HISTORY] Older entries could not be moved safely to make room for the new recovery copy.", "warn")
       return false
     end
   end
   if not writePresetPath(historyPath(1), preset) then
-    log("[APPEARANCE HISTORY] The newest recovery snapshot could not be saved.", "warn")
+    log("[APPEARANCE HISTORY] The new recovery copy could not be saved.", "warn")
     return false
   end
   for index = limit + 1, 10 do os.remove(historyPath(index)) end
@@ -122,7 +122,7 @@ restoreAppearanceHistory = function(index)
   index = tonumber(index)
   local entry = index and state.history.entries[index]
   if not entry or not entry.preset then
-    setStatus("load", "That appearance history entry is no longer available.", true)
+    setStatus("load", "That recovery appearance is no longer available.", true)
     return false
   end
   local preset = entry.preset
@@ -157,7 +157,7 @@ clearAppearanceHistory = function(confirm)
   state.history.pendingClear = false
   refreshAppearanceHistory()
   return removed, removed and "Appearance history cleared."
-    or "Some appearance history files could not be removed."
+    or "Some saved recovery appearances could not be deleted."
 end
 
 return _ENV

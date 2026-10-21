@@ -163,7 +163,7 @@ function duplicateFolder()
   end
   local destination = uniqueFolderCopyName(source)
   if not destination then
-    setStatus("folder", "Could not find an available name for the duplicate folder.", true); return
+    setStatus("folder", "No unused name could be found for the copied folder.", true); return
   end
   local newPresets = cloneMap(state.library.presets)
   local newFolders = cloneMap(state.library.folders)
@@ -186,34 +186,34 @@ function duplicateFolder()
       preset = hydrateNamedPreset(name)
       if not preset then
         setStatus("folder", cleanupFailureMessage(createdFiles,
-          "Folder duplication stopped because a source preset could not be read.",
+          "Folder copying stopped because an original preset could not be read.",
           "A source preset could not be read, and some partial files could not be removed."), true); return
       end
       local mapped = remapFolderTreePath(name, source, destination)
       if findPresetCollision(mapped) or newPresets[mapped] then
         setStatus("folder", cleanupFailureMessage(createdFiles,
           "The copied folder would contain duplicate preset names.",
-          "Folder duplication found duplicate names, and some partial files could not be removed."), true); return
+          "Folder copying found duplicate names. Some unfinished copies could not be removed."), true); return
       end
       local storage = uniqueStorageName(baseName(mapped), reservedStorage)
       if not storage then
         setStatus("folder", cleanupFailureMessage(createdFiles,
           "The mod could not create a safe file name for the copied preset.",
-          "Storage allocation failed, and some partial files could not be removed."), true); return
+          "A safe file location could not be created. Some unfinished copies could not be removed."), true); return
       end
       local path = PRESET_DIR .. "/" .. storage .. ".preset"
       if not copyFile(presetPath(name), path) then
         table.insert(createdFiles, path)
         setStatus("folder", cleanupFailureMessage(createdFiles,
           "Folder duplication failed; partial preset copies were removed.",
-          "Folder duplication failed, and some partial files could not be removed."), true); return
+          "Folder copying failed. Some unfinished copies could not be removed."), true); return
       end
       local copy = readVerifiedPresetCopy(preset, path)
       if not copy then
         table.insert(createdFiles, path)
         setStatus("folder", cleanupFailureMessage(createdFiles,
           "Folder duplication verification failed; partial copies were removed.",
-          "Folder duplication verification failed, and some partial files could not be removed."), true); return
+          "The copied folder failed its check. Some unfinished copies could not be removed."), true); return
       end
       copy.storage = storage
       newPresets[mapped] = copy
@@ -223,7 +223,7 @@ function duplicateFolder()
   if not persistVirtualState(newPresets, newFolders, newManualFolders,
       state.library.ignoredPhysicalFolders) then
     setStatus("folder", cleanupFailureMessage(createdFiles,
-      "The folder copy was removed because the folder list could not be saved.",
+      "The folder list could not be saved, so the copied folder was removed.",
       "The folder list could not be saved, and some copied files could not be removed."), true); return
   end
   state.library.presets = newPresets
@@ -250,7 +250,7 @@ function removeVirtualFolder()
   if state.library.pendingRemoveFolder ~= folder then
     state.library.pendingRemoveFolder = folder
     setStatus("folder",
-      ("Remove folder \"%s\" and keep its presets? Its presets and nested folders will move to %s. No preset files will be deleted. Select Confirm Remove Folder, Keep Presets.")
+      ("Remove folder \"%s\" and keep its presets? Its presets and nested folders will move to %s. No preset files will be deleted. To proceed, select Confirm Remove Folder, Keep Presets.")
         :format(folder, destinationParent == "" and "All Presets" or ("\"" .. destinationParent .. "\"")))
     return
   end
@@ -265,7 +265,7 @@ function removeVirtualFolder()
       mapped = joinFolder(destinationParent, name:sub(#folder + 2))
     end
     if usedPresets[mapped:lower()] then
-      setStatus("folder", "The folder cannot be removed because preset names would collide.", true); return
+      setStatus("folder", "This folder cannot be removed because some preset names would be duplicated.", true); return
     end
     usedPresets[mapped:lower()] = true
     newPresets[mapped] = preset
@@ -277,7 +277,7 @@ function removeVirtualFolder()
         mapped = joinFolder(destinationParent, candidate:sub(#folder + 2))
       end
       if usedFolders[mapped:lower()] then
-        setStatus("folder", "The folder cannot be removed because folder names would collide.", true); return
+        setStatus("folder", "This folder cannot be removed because some folder names would be duplicated.", true); return
       end
       usedFolders[mapped:lower()] = true
       newFolders[mapped] = true
@@ -336,7 +336,7 @@ function removeVirtualFolder()
       end
       if rolledBack then os.remove(TRANSACTION_FILE) end
       setStatus("folder", rolledBack
-        and "The imported folder was left unchanged because a preset file could not be moved."
+        and "A preset file could not be moved, so the imported folder was left unchanged."
         or "A preset could not be moved, and some earlier moves could not be undone. The mod will try to recover them at the next startup.", true)
       return
     end
@@ -363,7 +363,7 @@ function removeVirtualFolder()
       state.library.ignoredPhysicalFolders)
     if rolledBack then os.remove(TRANSACTION_FILE) end
     setStatus("folder", rolledBack
-        and "The folder was restored because the folder list or recovery record could not be saved."
+        and "The folder list or recovery record could not be saved, so the folder was put back."
         or "The folder removal could not finish or be undone. The mod will try to recover it at the next startup.", true)
     return
   end

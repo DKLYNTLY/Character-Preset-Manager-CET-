@@ -217,7 +217,7 @@ end
 
 runAppearanceRandomizer = function(settings)
   if not canRunAppearanceRandomizer() then
-    return nativeStatus("Randomize is unavailable while the editor is busy or closed.", true)
+    return nativeStatus("Open a character editor and wait for the current action to finish before using Randomize.", true)
   end
   if settings and state.app.overlayOpen then
     state.editor.pendingRandomizeSettings = state.editor.activeBodyMorphMenu
@@ -228,11 +228,11 @@ runAppearanceRandomizer = function(settings)
     return state.editor.activeBodyMorphMenu:CPMRandomize()
   end)
   if not ok or not changed then
-    return nativeStatus("The game's randomizer is unavailable. Try again when the editor is ready.", true)
+    return nativeStatus("The game's randomizer is not ready. Wait for the editor and try again.", true)
   end
   state.app.optionsMemo = nil
   state.invalidatePreflight()
-  return nativeStatus(settings and "Randomize Settings updated." or "The game is randomizing your appearance.", false)
+  return nativeStatus(settings and "Randomize Settings opened or closed." or "The game is randomizing your appearance.", false)
 end
 
 local function handleNativeRequest(action, payload)
@@ -275,7 +275,7 @@ local function handleNativeRequest(action, payload)
       return "list", listPayload(nativeQuery)
     end
     return "list", listPayload(nativeQuery,
-      "That folder is no longer available. Open CET to refresh the list.", true)
+      "That folder is no longer available. Open the CET manager to refresh its folder list.", true)
   end
   if action == "cancel_save_confirmation" then
     state.library.pendingOverwriteName = nil
@@ -366,7 +366,7 @@ local function handleNativeRequest(action, payload)
     state.ui.openSections.load = true
     return "status", "Press your CET binding. Load details are open in Character Preset Manager."
   end
-  return nativeStatus("The native panel sent an unsupported request.", true)
+  return nativeStatus("The simple menu requested an action this version does not support.", true)
 end
 
 setPresetSortPreference = function(value)
@@ -484,14 +484,14 @@ updateNativeBridge = function(delta)
   local actionOk, action = bridgeCall("GetRequestAction")
   local payloadOk, payload = bridgeCall("GetRequestPayload")
   state.app.nativeBridgeSequence = sequence
-  local responseKind, responsePayload = "error", "The native request could not be read."
+  local responseKind, responsePayload = "error", "The simple menu's request could not be read."
   if actionOk and payloadOk then
     local handled, kind, data = pcall(handleNativeRequest,
       tostring(action or ""), tostring(payload or ""))
     if handled then responseKind, responsePayload = kind, data
     else
       responseKind = "error"
-      responsePayload = "The native request failed safely. Use the CET interface."
+      responsePayload = "The simple menu action failed. Open CET to try it there."
       log("[NATIVE PANEL] Request failed: " .. tostring(kind), "error")
     end
   end

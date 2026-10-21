@@ -127,8 +127,8 @@ trashSelectedFolderBundle = function()
   if fileFingerprint(trashPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
     local rolledBack = os.rename(trashPath, selectedPath) ~= nil
     setStatus("folder", rolledBack
-      and "Folder bundle verification failed; the file was returned to Character Presets."
-      or "Folder bundle verification failed, and the file could not be returned from Trash.", true)
+      and "The shared-folder file failed its check and was returned to Character Presets."
+      or "The shared-folder file failed its check and could not be returned from Trash.", true)
     return
   end
   state.trash.bundles[trashFilename] = true
@@ -137,7 +137,7 @@ trashSelectedFolderBundle = function()
   clearFolderBundlePreview()
   state.cache.folderBundleFilesDirty = true
   setStatus("folder",
-    ("Moved shared-folder file \"%s\" to Trash. Presets and folders were not changed.")
+    ("Moved shared-folder file \"%s\" to Trash. Your installed presets and folders were left unchanged.")
       :format(selected), false, "success")
   log(("[FOLDER BUNDLE] Moved file='%s' to Trash as '%s'.")
     :format(selectedPath, trashFilename), "complete")
@@ -217,13 +217,13 @@ local function writePresetBundle(filename, root, folders, names, relativeName)
       if not file:write(header) then return false end
       for _, relativeFolder in ipairs(folders) do
         if not validBundlePath(relativeFolder) then
-          bundleError = "A folder or preset name inside this selection is not safe to export."
+          bundleError = "This selection contains a folder or preset name that cannot be exported safely."
           return false
         end
         local line = "F\t" .. catalogEncode(relativeFolder) .. "\n"
         totalBytes = totalBytes + #line
         if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
-          bundleError = "The shared-folder file would be larger than the 32 MB limit."
+          bundleError = "This shared-folder file would exceed the 32 MB limit."
           return false
         end
         if not file:write(line) then return false end
@@ -248,7 +248,7 @@ local function writePresetBundle(filename, root, folders, names, relativeName)
         end
         totalBytes = totalBytes + #prefix + (sourceBytes * 2) + 1
         if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
-          bundleError = "The shared-folder file would be larger than the 32 MB limit."
+          bundleError = "This shared-folder file would exceed the 32 MB limit."
           return false
         end
         if not file:write(prefix) then return false end
@@ -281,7 +281,7 @@ exportSelectedFolderBundle = function()
   end
   if #names > MAX_FOLDER_BUNDLE_PRESETS then
     setStatus("folder",
-      ("This folder has more than the %d presets allowed in one shared-folder file."):format(MAX_FOLDER_BUNDLE_PRESETS), true); return
+      ("This folder exceeds the limit of %d presets per shared-folder file."):format(MAX_FOLDER_BUNDLE_PRESETS), true); return
   end
   local folders = {}
   for candidate in pairs(state.library.folders) do
@@ -315,7 +315,7 @@ exportSelectedBulkPresetBundle = function()
     setStatus("bulk", "Select at least one preset before exporting.", true); return false
   end
   if #names > MAX_FOLDER_BUNDLE_PRESETS then
-    setStatus("bulk", ("This selection has more than the %d presets allowed in one shared-folder file.")
+    setStatus("bulk", ("This selection exceeds the limit of %d presets per shared-folder file.")
       :format(MAX_FOLDER_BUNDLE_PRESETS), true); return false
   end
   local folderMap = {}
@@ -549,7 +549,7 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   end
   if not writeCatalog(newPresets, newFolders, newManualFolders, newIgnored) then
     return nil, cleanupFailureMessage(createdFiles,
-      "The imported folder was removed again because the folder list could not be saved.",
+      "The folder list could not be saved, so the new folder copy was removed.",
       "The folder list could not be saved, and some imported preset files could not be removed.")
   end
   local inventorySaved = writeInventory(newPresets, newFolders)
@@ -557,7 +557,7 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
     writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
       state.library.ignoredPhysicalFolders)
     return nil, cleanupFailureMessage(createdFiles,
-      "The imported folder was removed again because the preset file list could not be saved.",
+      "The preset file list could not be saved, so the new folder copy was removed.",
       "The preset file list could not be saved, and some imported preset files could not be removed.")
   end
   local leaf = filename:match("([^/]+)$")
@@ -572,8 +572,8 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
       state.library.ignoredPhysicalFolders)
     writeInventory(state.library.presets, state.library.folders)
     return nil, cleanupFailureMessage(createdFiles,
-      "The imported folder was removed again because the completed import could not be recorded.",
-      "The completed import could not be recorded, and some imported preset files could not be removed.")
+      "The completed import could not be recorded, so the new folder copy was removed.",
+      "The completed import could not be recorded. Some new preset copies could not be removed.")
   end
   state.library.presets, state.library.folders = newPresets, newFolders
   state.library.manualFolders, state.library.ignoredPhysicalFolders = newManualFolders, newIgnored

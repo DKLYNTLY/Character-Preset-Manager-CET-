@@ -365,7 +365,7 @@ void WriteRecords(const fs::path& path, const std::map<std::string, Record>& rec
         output << EscapeField(source) << '\t' << record.size << '\t' << record.modified << '\t'
                << EscapeField(record.destination) << '\n';
     if (!AtomicWrite(path, output.str()))
-        LogWarning("Character Preset Manager: the ACU import record could not be saved");
+        LogWarning("Character Preset Manager: could not save the ACU import record.");
 }
 
 void WriteResults(const fs::path& path, const std::vector<std::string>& changed, const std::size_t skipped)
@@ -378,7 +378,7 @@ void WriteResults(const fs::path& path, const std::vector<std::string>& changed,
     for (const auto& destination : changed)
         output << "file\t" << EscapeField(destination) << '\n';
     if (!AtomicWrite(path, output.str()))
-        LogWarning("Character Preset Manager: ACU import results could not be saved");
+        LogWarning("Character Preset Manager: could not save the ACU import results.");
 }
 
 void WriteNativeCatalog(const Paths& paths)
@@ -387,7 +387,7 @@ void WriteNativeCatalog(const Paths& paths)
     fs::create_directories(paths.library, error);
     if (error)
     {
-        LogWarning("Character Preset Manager: the preset folder could not be prepared for the native file catalog");
+        LogWarning("Character Preset Manager: could not prepare the preset folder for the file list.");
         return;
     }
     const auto previous = ReadNativeRecords(paths.catalog);
@@ -476,7 +476,7 @@ void WriteNativeCatalog(const Paths& paths)
         output << "file\t" << EscapeField(relative) << '\t' << record.size << '\t'
                << record.modified << '\t' << record.fingerprint << '\n';
     if (!AtomicWrite(paths.catalog, output.str()))
-        LogWarning("Character Preset Manager: the native file catalog could not be saved");
+        LogWarning("Character Preset Manager: could not save the native file list.");
 }
 
 void Scan(const Paths& paths)
@@ -548,7 +548,7 @@ void Scan(const Paths& paths)
     WriteRecords(paths.record, records);
     WriteResults(paths.results, changed, skipped);
     WriteNativeCatalog(paths);
-    LogInfo("Character Preset Manager: ACU import scan completed");
+    LogInfo("Character Preset Manager: finished checking ACU files for import.");
 }
 
 std::optional<fs::file_time_type> RequestTime(const fs::path& path)
@@ -676,7 +676,7 @@ void Worker(std::stop_token stop)
     const auto paths = ResolvePaths();
     if (!paths)
     {
-        LogWarning("Character Preset Manager: the game folder could not be found for ACU imports");
+        LogWarning("Character Preset Manager: could not find the game folder for ACU imports.");
         return;
     }
     auto requestTime = RequestTime(paths->request);
@@ -685,13 +685,13 @@ void Worker(std::stop_token stop)
     DirectoryWatcher acuWatcher;
     DirectoryWatcher libraryWatcher;
     if (acuWatcher.Start(paths->source))
-        LogInfo("Character Preset Manager: ACU folder watcher started");
+        LogInfo("Character Preset Manager: watching the ACU folder for changes.");
     else
-        LogWarning("Character Preset Manager: ACU folder watcher is unavailable; Refresh remains available");
+        LogWarning("Character Preset Manager: ACU folder watching is not available. Select Refresh to check files.");
     if (libraryWatcher.Start(paths->library))
-        LogInfo("Character Preset Manager: preset folder watcher started");
+        LogInfo("Character Preset Manager: watching the preset folder for changes.");
     else
-        LogWarning("Character Preset Manager: preset folder watcher is unavailable; Refresh remains available");
+        LogWarning("Character Preset Manager: preset folder watching is not available. Select Refresh to check files.");
     Scan(*paths);
     requestTime = RequestTime(paths->request);
     bool watcherChangePending = false;
@@ -727,12 +727,12 @@ void Worker(std::stop_token stop)
         if (acuWatcherResult == DirectoryWatcher::Result::Failed && acuWatcher.Active())
         {
             acuWatcher.Close();
-            LogWarning("Character Preset Manager: ACU folder watcher stopped; Refresh remains available");
+            LogWarning("Character Preset Manager: ACU folder watching stopped. Select Refresh to check files.");
         }
         if (libraryWatcherResult == DirectoryWatcher::Result::Failed && libraryWatcher.Active())
         {
             libraryWatcher.Close();
-            LogWarning("Character Preset Manager: preset folder watcher stopped; Refresh remains available");
+            LogWarning("Character Preset Manager: preset folder watching stopped. Select Refresh to check files.");
         }
         const auto current = RequestTime(paths->request);
         if (current && (!requestTime || *current != *requestTime))
@@ -741,9 +741,9 @@ void Worker(std::stop_token stop)
             Scan(*paths);
             watcherChangePending = false;
             if (!acuWatcher.Active() && acuWatcher.Start(paths->source))
-                LogInfo("Character Preset Manager: ACU folder watcher started after Refresh");
+                LogInfo("Character Preset Manager: watching the ACU folder again after Refresh.");
             if (!libraryWatcher.Active() && libraryWatcher.Start(paths->library))
-                LogInfo("Character Preset Manager: preset folder watcher started after Refresh");
+                LogInfo("Character Preset Manager: watching the preset folder again after Refresh.");
         }
     }
 }
@@ -761,7 +761,7 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
         if (!g_stopEvent)
             return false;
         g_worker = std::jthread(Worker);
-        LogInfo("Character Preset Manager: native file service loaded");
+        LogInfo("Character Preset Manager: the native file service is ready.");
     }
     else if (reason == RED4ext::v1::EMainReason::Unload)
     {

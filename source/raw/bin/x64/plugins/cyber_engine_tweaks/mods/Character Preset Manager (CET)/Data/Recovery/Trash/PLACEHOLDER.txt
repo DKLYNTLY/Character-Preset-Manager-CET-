@@ -1,1 +1,1 @@
-Preset files moved to Trash stay here until you restore or permanently delete them.
+Files sent to Trash stay here. Restore them in CET, or choose permanent deletion when you no longer need them.

@@ -9,11 +9,11 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       "Create folders or move presets between them")
     local folderStatus = state.library.selectedFolder == ""
       and (not state.library.selected
-        and "Enter a folder name to add one, or select a preset before moving it."
+        and "Enter a name to create a folder. Select a preset first if you want to move it."
         or (parentFolder(state.library.selected) == ""
           and "The selected preset is already here."
           or "The selected preset can be moved here."))
-      or "Add a folder or open the selected folder actions."
+      or "Create a folder or open actions for the selected folder."
     drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready",
       "Destination: " .. helpers.breadcrumb(state.library.selectedFolder))
     ImGui.Spacing()
@@ -88,7 +88,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       end
       if folderTrashUnavailable then ImGui.EndDisabled() end
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
-        ("Trash will include %d folder%s inside this one. You can restore them later.")
+        ("This also sends %d nested folder%s to Trash. You can restore the group later.")
           :format(nestedFolderCount, nestedFolderCount == 1 and "" or "s"))
       finishCompactSubsection()
       end
@@ -102,7 +102,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         "Hide Share & Import Folders", "folderSharing") then
     ImGui.Indent(8)
     ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Shared Folder Files")
-    ImGui.TextWrapped("Export a folder for sharing or install .cpmfolder files from Character Presets.")
+    ImGui.TextWrapped("Export a folder to share it. You can also install .cpmfolder files placed in Character Presets.")
     local folderExportUnavailable = state.library.selectedFolder == ""
     if folderExportUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Export Selected Folder as a .cpmfolder File", actionButtonHeight) then
@@ -125,7 +125,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         clearFolderBundlePreview()
         ImGui.TextWrapped("No .cpmfolder files found in Character Presets.")
       else
-        ImGui.TextWrapped("Choose a sharing file below to view its contents or move only that file to Trash.")
+        ImGui.TextWrapped("Choose a sharing file to preview it or send the file to Trash. Installed presets stay in your library.")
         drawPageControls("folderBundleFiles", #bundleFiles,
           UI_LIST_PAGE_SIZE, "Sharing files")
         ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
@@ -203,7 +203,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           end
           ImGui.EndChild()
         end
-        ImGui.TextWrapped("You can restore the file later under Delete & Restore Items.")
+        ImGui.TextWrapped("To get the file back, use Delete & Restore Items.")
       end
       finishCompactSubsection()
     end

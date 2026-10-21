@@ -23,7 +23,7 @@ if not state.app.overlayOpen or not state.app.windowOpen then return end
   local visible = ImGui.Begin("Character Preset Manager (CET)##CPM2")
   if state.ui.initialWindowPlacementPending and initialX then
     state.ui.initialWindowPlacementPending = false
-    log(("[UI] Initial window position forced to the right: displayWidth=%s x=%s y=%s.")
+    log(("[UI] Placed the window on the right for first use: displayWidth=%s x=%s y=%s.")
       :format(tostring(displayWidth), tostring(initialX), tostring(initialY)), "info")
     local wrote = writeFileSafely(WINDOW_POSITION_STATUS_FILE, "w", function(status)
       return status:write((

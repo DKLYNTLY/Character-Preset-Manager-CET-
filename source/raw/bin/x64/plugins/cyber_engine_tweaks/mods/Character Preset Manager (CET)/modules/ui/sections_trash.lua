@@ -5,7 +5,7 @@ local _ENV = runtime
 
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
-      ImGui.TextWrapped("Move presets, folders, and shared-folder files to Trash. You can restore them later.")
+      ImGui.TextWrapped("Send presets, folders, and shared-folder files to Trash. When you want an item back, restore it here.")
       state.ensureTrashViewCache()
       local trashNames = state.trash.cachedNames
       local trashGroupIds = state.trash.cachedGroupIds
@@ -13,7 +13,7 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       local trashCount = #trashNames + #trashGroupIds + #trashBundleNames
       local trashStatus = state.library.selected
         and ("Ready to move %s to Trash."):format(state.library.selected)
-        or "Select a preset under Load & Restore Appearance to move it to Trash."
+        or "Choose a preset under Load & Restore Appearance before sending it to Trash."
       drawSectionStatus("delete", "##trashStatus", statusHeight, trashStatus,
         state.library.selected and "ready" or "info",
         ("Recoverable items: %d"):format(trashCount))

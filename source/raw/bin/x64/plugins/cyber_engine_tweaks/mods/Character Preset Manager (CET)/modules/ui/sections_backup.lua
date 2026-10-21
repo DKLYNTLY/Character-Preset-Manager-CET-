@@ -6,7 +6,7 @@ local _ENV = runtime
 drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight,
     narrowTopRow)
   if collapsibleSectionHeader("EXPORT & IMPORT BACKUPS", "backup") then
-    ImGui.TextWrapped("Save or restore the complete preset library, including folders and settings, or permanently delete a selected backup file.")
+    ImGui.TextWrapped("Back up your whole library, restore a backup, or permanently delete a backup file. Backups include folders and settings.")
     local backupFiles = libraryBackupFiles()
     local selectedBackupAvailable = false
     for _, backupPath in ipairs(backupFiles) do
@@ -21,8 +21,8 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       state.backup.selectedFile = nil
     end
     local backupStatus = #backupFiles == 0
-      and "Export a complete library backup to create your first backup file."
-      or "Choose a backup file to import or permanently delete, or export a new complete backup."
+      and "Use Export Complete Library Backup to save your first backup."
+      or "Choose a backup to import or delete permanently. You can also export a new backup of the whole library."
     drawSectionStatus("backup", "##backupStatus", statusHeight, backupStatus,
       #backupFiles > 0 and "ready" or "info",
       ("Backup files: %d"):format(#backupFiles))

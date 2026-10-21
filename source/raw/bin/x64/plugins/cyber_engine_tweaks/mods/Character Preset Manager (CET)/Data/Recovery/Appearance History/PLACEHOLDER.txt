@@ -1,1 +1,1 @@
-Appearance history recovery files are kept here automatically.
+The mod saves recovery appearances here before loading presets.

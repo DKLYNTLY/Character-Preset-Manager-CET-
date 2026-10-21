@@ -33,7 +33,7 @@ local function updateFallbackNotice(elapsed)
   state.ui.fallbackNoticePending = true
   if not state.ui.fallbackNoticeLogged then
     state.ui.fallbackNoticeLogged = true
-    log("[FALLBACK] The character-screen panel and native file service are unavailable. The CET manager remains available.", "warn")
+    log("[FALLBACK] The simple menu and file service are not available. Open the complete manager in CET.", "warn")
   end
 end
 
@@ -100,8 +100,8 @@ events.onInit = function()
       connectNativeBridgeForMenu(menu)
       clearFallbackNotice()
       log(state.app.nativeBridge
-        and "[UI] Character customization opened; native preset panel is available."
-        or "[UI] Character customization opened; waiting for the packaged panel and native file service.",
+        and "[UI] The character editor opened; the simple preset menu is ready."
+        or "[UI] The character editor opened; waiting for the simple menu and file service.",
         state.app.nativeBridge and "info" or "warn")
     end
   )
@@ -230,7 +230,7 @@ events.onInit = function()
     log(("Full-editor hooks unavailable: controller=%s initialize=%s pause=%s editor=%s")
       :format(tostring(menuObserverError), tostring(menuInitializeObserverError),
         tostring(pauseOverrideError), tostring(editorOverrideError)), "error")
-    setEditorOpenStatus("The full editor is not available with this game or CET version.", true)
+    setEditorOpenStatus("This game or CET version does not support the full editor.", true)
   else
     log("[HOOK] Full-editor launch and mirror-unlock hooks registered.", "info")
   end
@@ -282,6 +282,7 @@ events.onShutdown = function()
 end
 
 events.onUpdate = function(delta)
+  state.app.optionsMemo = nil
   local elapsed = tonumber(delta) or 0
   updateAcuImport(elapsed)
   updateNativeBridge(elapsed)
@@ -332,8 +333,8 @@ events.onUpdate = function(delta)
     state.load.auto = false
     helpers.logLoadMeasurements("safety-limit")
     setStatus("load",
-      "Automatic loading reached its safety limit without stopping or finishing. " ..
-      "This is unusual. Please report it and include the Activity Log.",
+      "Loading took longer than the safety limit allows. " ..
+      "Please report this and include the Activity Log so I can check what happened.",
       true
     )
     return
@@ -351,7 +352,7 @@ events.onUpdate = function(delta)
 end
 
 events.onOverlayOpen = function()
-  log("[UI] CET overlay opened; showing Character Preset Manager. Use Refresh after changing preset files outside CET.", "info")
+  log("[UI] CET opened; showing Character Preset Manager. Select Refresh after changing preset files outside CET.", "info")
   if state.ui.fallbackNoticePending then
     state.ui.fallbackNoticePending = false
     state.ui.fallbackNoticeLayout = nil

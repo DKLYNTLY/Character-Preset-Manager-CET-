@@ -1,1 +1,1 @@
-Character Preset Manager keeps older activity logs here.
+Previous Activity Logs are kept here, with the ten newest archives saved.

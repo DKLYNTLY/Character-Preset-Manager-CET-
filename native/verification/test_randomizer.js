@@ -49,4 +49,11 @@ const output = `${result.stdout || ""}${result.stderr || ""}`;
 assert.strictEqual(result.status, 0, output);
 assert(output.includes("Randomizer runtime smoke test: OK") && !output.includes("stack traceback:"), output);
 process.stdout.write(output);
+const appearance = spawnSync(process.execPath,
+  [cli, path.join(__dirname, "appearance_load_runtime.lua"), path.join(mod, "init.lua")],
+  { cwd: mod, encoding: "utf8" });
+const appearanceOutput = `${appearance.stdout || ""}${appearance.stderr || ""}`;
+assert.strictEqual(appearance.status, 0, appearanceOutput);
+assert(appearanceOutput.includes("Appearance load runtime test: OK") && !appearanceOutput.includes("stack traceback:"), appearanceOutput);
+process.stdout.write(appearanceOutput);
 console.log("Lua parsing and randomizer panel checks: OK");

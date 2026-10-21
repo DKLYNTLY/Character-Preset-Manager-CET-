@@ -9,8 +9,8 @@ if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
         and state.library.presets[state.library.selected]
       ImGui.TextWrapped("Rename, copy, or edit the selected preset.")
       local manageStatus = state.library.selected
-        and "Ready to rename, copy, or edit this preset."
-        or "Select a preset under Load & Restore Appearance to rename, copy, or edit it."
+        and "You can rename, copy, or edit the selected preset."
+        or "Choose a preset under Load & Restore Appearance first. Its rename, copy, and detail controls will appear here."
       drawSectionStatus("rename", "##renameStatus", statusHeight, manageStatus,
         state.library.selected and "ready" or "info",
         "Selected preset: " .. tostring(state.library.selected or "None"))

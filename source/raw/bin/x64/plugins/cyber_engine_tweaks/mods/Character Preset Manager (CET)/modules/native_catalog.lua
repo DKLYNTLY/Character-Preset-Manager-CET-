@@ -205,10 +205,10 @@ verifiedNativeFileCatalog = function()
   state.nativeCatalog.skipped = catalog and catalog.skipped or 0
   state.nativeCatalog.fallbackReason = catalog and nil or reason
   if catalog then
-    log(("[NATIVE FILES] Verified %d files and %d folders against CET's folder check.")
+    log(("[NATIVE FILES] Checked %d files and %d folders against CET's own folder list.")
       :format(#catalog.files, #catalog.directories), "info")
   else
-    log(("[NATIVE FILES] CET used its own safe folder check because the native list %s.")
+    log(("[NATIVE FILES] CET used its own safe folder reader because the DLL's list %s.")
       :format(tostring(reason or "was unavailable")), "info")
   end
   return catalog

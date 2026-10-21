@@ -20,7 +20,7 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   end
   local assignments, catalogFolders, ignoredPhysicalFolders, catalogStatus = helpers.readCatalog()
   if catalogStatus == false then
-    log("[FOLDER LIST] The preset scan stopped because the saved folder list is invalid.", "error")
+    log("[FOLDER LIST] The saved folder list is invalid, so the preset scan stopped.", "error")
     return currentPresets, false
   end
   for storage, logicalName in pairs(recoveryAssignments or {}) do
@@ -115,7 +115,7 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   end
 
   if not scan("", 0) then
-    log(("[FILES] The preset scan did not finish. The last good preset and file lists were kept (reason=%s).")
+    log(("[FILES] The preset scan did not finish. The previous complete preset and file lists were kept (reason=%s).")
       :format(tostring(scanReason or "unspecified")), "error")
     return currentPresets, false
   end
@@ -206,7 +206,7 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   end
 
   if not writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders) then
-    log("[FOLDER LIST] The last good preset list was kept because the saved folder list could not be updated.", "error")
+    log("[FOLDER LIST] The saved folder list could not be updated, so the previous complete preset list was kept.", "error")
     return currentPresets, false
   end
 
@@ -409,7 +409,7 @@ function writeCatalog(presets, folders, manualFolders, ignoredPhysicalFolders)
       (function() local count = 0; for _ in pairs(ignoredPhysicalFolders or {}) do count = count + 1 end; return count end)(),
       tostring(result)), result and "info" or "error")
   if result and not changed then
-    log("[FOLDER LIST] The saved folder list is already current. No file update was needed.", "info")
+    log("[FOLDER LIST] The saved folder list already matches the library. No file was changed.", "info")
   end
   return result
 end

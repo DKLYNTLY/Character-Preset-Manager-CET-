@@ -10,8 +10,8 @@
 # Library folder: Default Presets
 #
 # Appearance options
-# Each main line is OptionKey:SavedNumber.
-# Editor slot and Saved choice lines describe the option above them.
+# Each main line gives an option key and its saved number.
+# Editor slot and Saved choice describe the line above them.
 
 LocKey#898870017445300632:9
 # Editor slot: skin_color

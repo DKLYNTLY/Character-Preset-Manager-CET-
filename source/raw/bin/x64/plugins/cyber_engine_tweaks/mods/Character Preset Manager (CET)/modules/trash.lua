@@ -50,7 +50,7 @@ local function writeTrashCatalog(trash, groups)
   local result, changed = writeLinesIfChanged(
     TRASH_CATALOG_FILE, lines, "Trash list", MAX_CATALOG_BYTES)
   if result and not changed then
-    log("[TRASH] The saved Trash list is already current. No file update was needed.", "info")
+    log("[TRASH] The saved Trash list already matches its contents. No file was changed.", "info")
   end
   return result
 end
@@ -198,7 +198,7 @@ recoverTransaction = function()
   local transaction, transactionError = readTransaction()
   if not transaction then
     if transactionError ~= "missing" then
-      log("[RECOVERY] Transaction journal is invalid; preset scanning was stopped.", "error")
+      log("[RECOVERY] The saved action record is invalid. Preset scanning has stopped.", "error")
       return false, {}, {}, {}, {}
     end
     return true, {}, {}, {}, {}
@@ -206,7 +206,7 @@ recoverTransaction = function()
   if transaction.phase == "committed" then
     local removed = os.remove(TRANSACTION_FILE) ~= nil or not fileExists(TRANSACTION_FILE)
     log(removed and "[RECOVERY] Completed transaction journal cleanup."
-      or "[RECOVERY] The committed transaction is safe, but its journal could not be removed; cleanup will retry next startup.",
+      or "[RECOVERY] The action finished safely, but its saved record could not be removed. Cleanup will try again at the next startup.",
       removed and "info" or "warn")
     return true, {}, {}, {}, {}
   end
@@ -419,7 +419,7 @@ trashPreset = function(source)
   end
   if pendingFingerprint ~= currentFingerprint then
     cancelConfirmations()
-    setStatus("delete", "The preset changed after confirmation. Review it and start deletion again.", true)
+    setStatus("delete", "The preset changed after you confirmed it. Review that file before you start deleting it again.", true)
     return
   end
   state.trash.pendingDeleteName = nil
@@ -465,7 +465,7 @@ trashPreset = function(source)
     if restored then os.remove(TRANSACTION_FILE) end
     setStatus("delete", restored
       and "The preset was returned because the Trash records could not be saved."
-      or "The Trash operation failed, and the preset file could not be restored.", true)
+      or "Moving the preset to Trash failed, and its file could not be put back.", true)
     return
   end
   state.library.selected = nil
@@ -537,7 +537,7 @@ restoreTrashPreset = function(filename)
     if restored then os.remove(TRANSACTION_FILE) end
     setStatus("delete", restored
       and "The preset was returned to Trash because the restore records could not be saved."
-      or "The restore could not finish or return the file to Trash. The mod will try to recover it at the next startup.", true)
+      or "The restore could not finish or return the file to Trash. Recovery will try again when you next start the game.", true)
     return
   end
   state.library.selected = logicalName
@@ -632,7 +632,7 @@ restoreTrashGroup = function(groupId)
       if not rollbackFailed then os.remove(TRANSACTION_FILE) end
       setStatus("delete", rollbackFailed
         and "A restored preset could not be checked, and some files could not be returned to Trash. The mod will try to recover them at the next startup."
-        or "Folder restore verification failed; moved files were returned to Trash.", true)
+        or "The restored folder failed its check. Its moved files were returned to Trash.", true)
       return
     end
     verified.fingerprint = fileFingerprint(plan.destination, MAX_PRESET_BYTES)
@@ -961,8 +961,8 @@ requestBulkTrash = function(names, folder)
   local statusSection = folder and "folder" or "bulk"
   if #names == 0 then
     setStatus(statusSection, folder
-      and "The selected folder contains no presets. Use Remove Folder, Keep Presets."
-      or "Select at least one preset for the bulk action.", true)
+      and "This folder has no presets. To remove it, use Remove Folder, Keep Presets."
+      or "Select at least one preset before using this group action.", true)
     return
   end
   local fingerprint, fingerprintError = bulkTrashFingerprint(names, folder)

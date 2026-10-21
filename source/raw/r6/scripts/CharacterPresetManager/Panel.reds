@@ -195,7 +195,7 @@ public class PresetPanel extends inkCustomController {
     this.randomizeSettingsAction = this.AddAction(root, "RANDOMIZE SETTINGS", 365.0, 48.0, n"OnRandomizeSettings");
     this.randomizeSettingsAction.SetWidth(323.0);
     this.randomizeSettingsAction.SetDisabled(true);
-    let advancedText: ref<inkText> = this.MakeText("Choose a preset to load it. Use the advanced manager to organize, share, or troubleshoot presets.", 29, 34.0, 116.0, 654.0, 58.0);
+    let advancedText: ref<inkText> = this.MakeText("Choose a preset to load it. Open the advanced manager for folders, sharing, or help with a problem.", 29, 34.0, 116.0, 654.0, 58.0);
     advancedText.SetWrapping(true, 644.0);
     advancedText.SetHorizontalAlignment(textHorizontalAlignment.Center);
     advancedText.SetTintColor(HDRColor(1.0, 1.0, 1.0, 1.0));
@@ -292,7 +292,7 @@ public class PresetPanel extends inkCustomController {
     if IsDefined(this.bridge) {
       this.bridge.RegisterPanel(this);
       this.bridge.Request("open", "");
-      if !this.bridge.IsLuaReady() { this.SetStatus("The preset library is connecting.", false); };
+      if !this.bridge.IsLuaReady() { this.SetStatus("Connecting to the preset library.", false); };
     };
     return true;
   }
