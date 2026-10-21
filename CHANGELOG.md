@@ -9,6 +9,10 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Uses Dnydd (formerly known as dklyntly) in the credits and license.
+  Clarifies configuration edits, reupload restrictions, and submitted fixes
+  in a license that can apply across my mods and games.
+
 - Corrects the README and Nexus license label to All Rights Reserved.
 
 - Groups menu instructions with previews, and combines credits, disclosure,

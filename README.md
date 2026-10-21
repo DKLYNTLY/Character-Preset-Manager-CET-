@@ -655,7 +655,7 @@ and reviewed the work before publishing it.
 
 ## Credits
 
-I created and maintain Character Preset Manager as **dklyntly**.
+I created and maintain Character Preset Manager as **Dnydd (formerly known as dklyntly)**.
 
 [ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850)
 by **PotatoOfDoom** came before this project. I kept support for compatible ACU
@@ -675,7 +675,16 @@ I also appreciate the modding community's testing, research, and feedback.
 
 ## License
 
-All Rights Reserved. See [LICENSE](LICENSE) for permitted uses and permission requests.
+All Rights Reserved, by **Dnydd (formerly known as dklyntly)**.
+The same license can cover my mods for Minecraft, Cyberpunk 2077, and other games.
+
+You may edit configuration files and share your own presets. Copies of my mod,
+modified releases, ports, and reused code or assets need my written permission.
+Collections must use official downloads instead of bundling my files.
+
+You may submit fixes for me to use in my mods without further permission or payment.
+Contributors keep ownership of their original work; submitting a contribution
+grants me the rights listed in [LICENSE](LICENSE). Read that file for the full terms.
 
 ## Links and release history
 

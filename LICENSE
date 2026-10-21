@@ -1,38 +1,72 @@
-Copyright (c) 2026 DarklyStudios (dklyntly)
+Copyright (c) 2026 Dnydd (formerly known as dklyntly)
 All Rights Reserved.
 
-This repository and its contents (including but not limited to source code,
-assets, configs, documentation, and any other files) are made publicly
-viewable solely for the purposes of:
+SCOPE AND OWNERSHIP
 
-  - Bug tracking and issue reporting
-  - Community feedback and discussion
-  - Reference by users of the mod
+I am Dnydd, formerly known as dklyntly. These terms apply to each mod and its
+associated files that I release under this license, for Minecraft, Cyberpunk
+2077, or any other game or platform. They cover my code, scripts, plugins,
+assets, interfaces, documentation, and other included files.
 
-This license applies to this mod and all associated files, across any game
-or platform it is released for.
+My mods remain my work. Public access to their files or source code does not
+make them open source or give permission to publish copies. Any third-party
+material identified as separately licensed remains under its own terms.
 
-PERMITTED USE:
-  - This mod MAY be included and used in private modpacks/collections.
-  - This mod MAY be included and used in public modpacks/collections.
-  - Configs, recipes, and similar data files MAY be tweaked or overridden
-    by modpack/collection creators for balance purposes, as part of a pack,
-    provided the mod's own files are not redistributed in modified form
-    outside of that pack.
+PLAYING AND CONFIGURATION
 
-No other permission, express or implied, is granted to any person to copy,
-modify, merge, publish, redistribute, reupload, repackage, decompile for
-redistribution, or sell this mod or its contents, in whole or in part, for
-any purpose other than as described above, without prior written consent
-from the copyright holder.
+You may download, install, and play with my mods. You may keep personal backup
+copies and edit configuration files for your own setup.
 
-Forking or cloning this repository for the purpose of submitting bug fixes,
-pull requests, or contributions back to this repository is permitted.
-Forking or cloning for the purpose of creating and distributing a modified
-or standalone version of this mod elsewhere is NOT permitted without
-explicit written permission from the copyright holder.
+You may share configuration files you edited and original presets you made,
+including through a modpack or collection. These files must not contain my
+code, scripts, plugins, assets, or other mod files. Credit my mod and link to
+its official download when sharing files made for it. Original presets and
+configuration files may earn Nexus Mods Donation Points; paid distribution
+and other third-party monetisation require my prior written permission.
 
-All rights not expressly granted herein are reserved.
+A modpack or collection may reference my mod and arrange downloads from its
+official page through that site's supported tools. This does not allow anyone
+to bundle, mirror, or upload my mod files with the pack. Only configuration
+files may be edited under this permission, except for the fix-submission
+process below.
 
-For licensing inquiries or permission requests, contact:
-darklystudios@outlook.com
+NO COPIED OR MODIFIED RELEASES
+
+Without my prior written permission, you may not copy my work into another
+mod, reuse its code or assets, or publish or distribute any of my mod files.
+This includes unchanged copies, modified versions, ports, standalone versions,
+repackages, bundles, mirrors, and reuploads on any site, service, or platform.
+Giving credit, renaming files, changing the mod's name, or offering it for free
+does not grant permission. You may not claim my work as your own or sell it.
+
+FIXES AND CONTRIBUTIONS
+
+You may inspect the source and make changes solely to prepare a fix or other
+contribution for me. Submit it through my repository or another channel I
+provide. This exception allows a contribution for my review, not a separate
+release, public patch download, or redistribution of my mod.
+
+By intentionally submitting a fix or contribution for inclusion in my work,
+you grant me a worldwide, perpetual, irrevocable, non-exclusive, royalty-free
+license to use, copy, edit, combine, publish, distribute, and sublicense that
+contribution as part of my mods and their associated files. I may include it
+in current or future releases without payment or further permission.
+
+You keep ownership of your original contribution. You must have the right to
+grant these permissions and identify any third-party material or separate
+terms when submitting it. A report, casual suggestion, or unrelated public
+patch is not automatically a submitted code contribution. Submission does not
+require me to accept, use, or maintain the change.
+
+PLATFORM RIGHTS AND OTHER PERMISSIONS
+
+These terms do not restrict rights that applicable law does not allow me to
+limit, or rights already granted under a separate agreement. GitHub's terms
+allow viewing and forking a public repository through its service; those
+platform rights do not make my mod an open-source project or authorize a
+separate mod release under this license.
+
+All rights not expressly granted here are reserved. Ask for prior written
+permission for any other use. Do not assume that credit or silence is consent.
+
+Contact: darklystudios@outlook.com
