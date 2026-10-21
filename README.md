@@ -680,8 +680,9 @@ The same license can cover my mods for Minecraft, Cyberpunk 2077, and other game
 
 You may edit configuration files and share your own presets. Copies of my mod,
 modified releases, ports, and reused code or assets need my written permission.
-Public modpacks and collections may include unmodified official releases
-with credit, a link to the official page, and the license and original notices.
+Public and private modpacks and collections may include and redistribute
+unmodified official releases with credit, a link to the official page, and
+the license and original notices.
 Standalone mirrors, modified releases, and paid redistribution need my written
 permission. Earlier versions keep the permissions that came with those copies.
 Private code edits need permission, except when preparing a direct contribution.

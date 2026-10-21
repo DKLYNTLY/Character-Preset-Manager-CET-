@@ -9,8 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
-- Allows public modpacks and collections to include unmodified official mod
-  releases with credit, the official link, the license, and original notices.
+- Allows public and private modpacks and collections to include and redistribute
+  unmodified official mod releases with credit, the official link, the license,
+  and original notices.
 
 - Clarifies private code edits, written approval, earlier modpack permissions,
   and contributor rights for monetized releases. Adds warranty and liability
