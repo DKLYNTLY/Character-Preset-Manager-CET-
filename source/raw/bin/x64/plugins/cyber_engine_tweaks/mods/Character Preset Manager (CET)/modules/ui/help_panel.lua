@@ -298,7 +298,7 @@ if state.ui.helpOpen then
       helpHeading("Problems & Compatibility")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
         "Remove Character Customization Anywhere and restart the game. Both mods change the same character screens, so they cannot work together.")
-      ImGui.TextWrapped("ACU files are copied into the library after startup. The file service watches for later changes. If a file is missing, select Refresh to check again. Load the copies through Character Preset Manager, and do not start a load in ACU at the same time.")
+      ImGui.TextWrapped("Uninstall Appearance Change Unlocker (ACU) and fully restart the game. Keep only its preset files, which the importer can read without ACU installed. The files are copied into the library after startup, and the file service watches for later changes. If a file is missing, select Refresh to check again.")
       ImGui.TextWrapped("Character Preset Manager follows on from ACU. The package includes the CET manager, simple menu, and file service. If the simple menu or file service stops working after a game update, use CET when its required frameworks support that game version.")
       ImGui.TextWrapped("Keep the character mods, versions, and load order used when you saved the preset. If your setup changes, check the result and save it again.")
       ImGui.TextWrapped("You can keep Photo Mode and Appearance Menu Mod installed. Their menus cannot save or load these presets, so use the full editor, a mirror, a ripperdoc, or new-game creation.")
@@ -458,7 +458,7 @@ if state.ui.helpOpen then
           "ACU appearance change unlocker successor import importing migrate migration preset presets 3.0.0 3.0.1 3.2.1 missing refresh watcher safety dangerous lock eyes") then
       helpHeading("Import ACU Presets")
       ImGui.TextWrapped("Character Preset Manager is ACU's successor and supports the preset layouts used by ACU 3.0.0, 3.0.1, and 3.2.1.")
-      ImGui.TextWrapped("Place the .preset files in bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets, then fully restart the game. The importer checks that folder shortly after startup.")
+      ImGui.TextWrapped("Back up your ACU .preset files, then uninstall ACU itself. Recreate bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets if needed and put only the saved preset files there. Fully restart the game. The importer checks that folder shortly after startup without needing ACU installed.")
       ImGui.TextWrapped("Open Character Preset Manager in CET and look under ACU Presets. If the copies are not shown, select Refresh once and wait a moment. Load the imported copies through Character Preset Manager, not ACU.")
       ImGui.TextWrapped("The original ACU files stay unchanged. New or changed files are copied when needed, and unchanged files are skipped. ACU subfolders are preserved.")
       ImGui.TextWrapped("If a preset does not appear, confirm that it ends in .preset, is not empty, is no larger than 1 MB, and is in the exact ACU folder above. Then check the Activity Log for ACU IMPORT or ACU SAFETY messages.")

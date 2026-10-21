@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Corrects the ACU instructions: uninstall the mod and keep only its preset
+  files. The importer reads those files without ACU installed.
+
 - Keeps CET as the preset engine and complete manager. The simple menu uses
   the same library, while the DLL stays focused on file work.
 - Gives the simple menu red frames, dark backgrounds, and cyan highlights.

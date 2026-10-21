@@ -21,8 +21,9 @@ file watching and ACU imports. Both menus use the same library and loader.
 > [!IMPORTANT]
 > Remove **Character Customization Anywhere**, then fully restart the game.
 > Both mods change the same character screens and cannot work together.
-> ACU can remain installed for its preset folder, but load imported copies
-> through Character Preset Manager. Do not start a load in both mods at once.
+> Uninstall Appearance Change Unlocker (ACU) and fully restart the game.
+> Keep only its preset files; the ACU mod itself must not remain installed.
+> The importer can read those files from the folder listed below without ACU.
 
 ## What you can do
 
@@ -311,7 +312,8 @@ layouts without changing your original files.
 
 ## Import steps
 
-1. Put ACU files ending in `.preset` here:
+1. Back up your ACU `.preset` files, uninstall ACU, and keep only the presets.
+   Recreate this folder if needed, then put the saved files here:
 
    ```text
    bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets
@@ -322,8 +324,7 @@ layouts without changing your original files.
 4. Open Character Preset Manager in CET and look under **ACU Presets**.
 5. If a file is missing, select **Refresh** once and wait a moment.
 6. Use **Check Compatibility** if you want to review a copy before loading it.
-7. Load the copy through Character Preset Manager; do not start an ACU load
-   at the same time.
+7. Load the copy through Character Preset Manager. ACU must stay uninstalled.
 
 Copies go into `Character Presets/ACU Presets`, keeping ACU's subfolders.
 The originals are not moved, renamed, or rewritten. Changed files are copied
