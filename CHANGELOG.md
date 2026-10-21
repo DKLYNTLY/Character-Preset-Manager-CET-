@@ -5,25 +5,36 @@ was then, including controls and paths that may have changed. Use the README
 and in-game Help for current steps.
 
 <details open>
-<summary><strong>Latest release â€” 3.1.1</strong></summary>
+<summary><strong>Latest release — 3.1.5</strong></summary>
 
-## 3.1.1
+## 3.1.5
 
-- Reads a fresh character-option list on each update instead of keeping old
-  option objects across frames. Cyberware layers now get the same extra settling
-  time as linked hair options before the next choice loads.
+- Keeps CET as the preset engine and complete manager. The simple menu uses
+  the same library, while the DLL stays focused on file work.
+- Gives the simple menu red frames, dark backgrounds, and cyan highlights.
+  Updates the README preview with a new screenshot from the character editor.
+- Moves Randomize and Randomize Settings into both menus. The original game
+  buttons hide when the replacements are ready, and R still works in the
+  character screen.
+- Keeps the game's randomizer and category locks. From CET, choose Randomize
+  Settings and close the overlay to open the game's settings.
+- Reads fresh editor options across updates instead of reusing stale option
+  objects across frames. Cyberware layers get extra settling time before the next choice
+  loads, as linked hair options already do.
+- Removes the unused Toggle Character Preset Manager (CET) binding.
+  Use the normal CET overlay key to open the complete manager.
 - Rewrites the README, Help, menu explanations, warnings, logs, and packaged
   instructions in plain language. Corrects the Save Location steps and explains
-  that the loader checks saved values while the player checks the visible result.
+  which results the game can confirm.
+- Keeps readable format 8 and support for older CPM and compatible ACU files.
+  Finding or loading an older file does not rewrite it.
 
-- Moves Randomize and its settings into both menus, using the game's category
-  locks. The original buttons hide when the replacement controls are ready;
-  R still works in the character screen.
-- Gives the simple menu red frames and cyan highlights while keeping its
-  current features. CET remains the preset engine.
-- Removes the unused Toggle Character Preset Manager (CET) binding. Open the
-  complete manager with the normal CET overlay key.
-- Opens Randomize Settings after you close CET when requested from the overlay.
+</details>
+
+<details>
+<summary><strong>Version 3.1.1</strong></summary>
+
+## 3.1.1
 
 *One package with a checked file list and the complete CET manager.*
 

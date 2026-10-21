@@ -8,7 +8,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
-<p align="center"><strong>Current version: 3.1.1</strong></p>
+<p align="center"><strong>Current version: 3.1.5</strong></p>
 
 Character Preset Manager saves your character's appearance as a preset you can
 load again later. It follows on from Appearance Change Unlocker (ACU) and reads
@@ -63,7 +63,7 @@ Open the complete manager with your normal CET overlay key. The unused
 
 ### Simple menu
 
-![The simple menu in Cyberpunk's character editor](images/Simple%20Menu.png)
+![The updated simple menu in Cyberpunk's character editor](images/Simple%20Menu.png)
 
 Find a preset on the left and select it to load. The same panel has save,
 recovery, Trash, and advanced-manager controls.
@@ -102,7 +102,7 @@ check for compatible framework and mod versions before using the editor.
 1. Download the mod from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
 2. Install the four required frameworks: CET, RED4ext, redscript, and Codeware.
 3. Remove Character Customization Anywhere and fully restart the game.
-4. Extract `Character Preset Manager (CET) 3.1.1.zip` into the main
+4. Extract `Character Preset Manager (CET) 3.1.5.zip` into the main
    `Cyberpunk 2077` folder. Merge its `bin`, `r6`, and `red4ext` folders with
    the folders already there.
 5. Start the game, open CET, and choose **Character Preset Manager**.
@@ -112,13 +112,14 @@ CET remembers where you leave it.
 
 ## Update an existing installation
 
-1. Back up the `.preset`, `.cpmfolder`, and `.cpmbackup` files you want to keep
-   from `Character Presets`.
+1. Back up the complete `Character Presets` and `Data` folders from your
+   current mod folder. This keeps presets, sharing files, folder lists, settings,
+   recovery history, and Trash.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
 3. Remove `r6/scripts/CharacterPresetManager` so no old menu scripts remain in the game.
    Your presets are stored elsewhere.
-4. Install version 3.1.1 and its four required frameworks.
-5. Put your saved preset and sharing files back in `Character Presets`.
+4. Install version 3.1.5 and its four required frameworks.
+5. Restore your saved `Character Presets` and `Data` folders.
 6. Fully restart the game.
 
 Keep a separate copy of older presets if you still need them in an earlier
