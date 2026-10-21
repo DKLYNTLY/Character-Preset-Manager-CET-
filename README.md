@@ -680,7 +680,11 @@ The same license can cover my mods for Minecraft, Cyberpunk 2077, and other game
 
 You may edit configuration files and share your own presets. Copies of my mod,
 modified releases, ports, and reused code or assets need my written permission.
-Collections must use official downloads instead of bundling my files.
+Public modpacks and collections may include unmodified official releases
+with credit, a link to the official page, and the license and original notices.
+Standalone mirrors, modified releases, and paid redistribution need my written
+permission. Earlier versions keep the permissions that came with those copies.
+Private code edits need permission, except when preparing a direct contribution.
 
 Translations, bug fixes, compatibility patches, and similar changes can be
 approved with my prior written permission. Approval must cover publishing
@@ -688,8 +692,13 @@ before you upload anything; credit me, link the original mod, and follow
 the agreed limits. It does not automatically allow a full-mod reupload.
 
 You may submit fixes for me to use in my mods without further permission or payment.
-Contributors keep ownership of their original work; submitting a contribution
-grants me the rights listed in [LICENSE](LICENSE). Read that file for the full terms.
+Contributors keep ownership of their original work; their grant also covers
+future monetized releases without compensation or a share of revenue.
+
+Written approval must come from my contact email or an account identified on
+my official mod page or repository. The license includes warranty and liability
+limits where the law allows them, while preserving mandatory protections.
+Read [LICENSE](LICENSE) for the full terms and approved uses.
 
 ## Links and release history
 

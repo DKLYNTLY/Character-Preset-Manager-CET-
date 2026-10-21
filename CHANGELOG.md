@@ -9,6 +9,13 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Allows public modpacks and collections to include unmodified official mod
+  releases with credit, the official link, the license, and original notices.
+
+- Clarifies private code edits, written approval, earlier modpack permissions,
+  and contributor rights for monetized releases. Adds warranty and liability
+  limits while preserving rights that the law does not allow me to exclude.
+
 - Clarifies that translations, fixes, compatibility patches, and similar
   changes may be approved with my prior written permission.
 
