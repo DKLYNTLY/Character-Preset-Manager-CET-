@@ -41,6 +41,9 @@ New files use readable format 8. Older CPM and compatible ACU files stay
 unchanged when found or loaded; overwriting one, or saving its notes or tags,
 updates it to format 8.
 
+<details>
+<summary><strong>Menus and previews</strong></summary>
+
 ## Choose a menu
 
 | Menu | Use it for |
@@ -83,7 +86,9 @@ controls, or use Help to find a specific action.
 Apartment mirrors show the full character-creation list. They use the same
 preset tools as the Full Appearance Editor.
 
-<details open>
+</details>
+
+<details>
 <summary><strong>Install or update the mod</strong></summary>
 
 ## Requirements
@@ -635,6 +640,9 @@ right. **Advanced Preset Manager** points you there but cannot open CET itself.
 
 </details>
 
+<details>
+<summary><strong>About this mod</strong></summary>
+
 ## Personal presets
 
 My character shown in the screenshots is not included. I do not plan to share my personal preset as a download.
@@ -665,12 +673,18 @@ for the simple menu.
 I credit CD Projekt Red for Cyberpunk 2077 and its character system.
 I also appreciate the modding community's testing, research, and feedback.
 
+## License
+
+All Rights Reserved. See [LICENSE](LICENSE) for permitted uses and permission requests.
+
 ## Links and release history
 
 [Download on Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886) ·
 [GitHub source](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-) ·
 [Discord and support](https://discord.com/invite/mUGHmQxHG8) ·
-[Changelog](CHANGELOG.md) · [MIT license](LICENSE)
+[Changelog](CHANGELOG.md) · [All Rights Reserved license](LICENSE)
 
 See the changelog for earlier releases and their controls or file layouts.
 The instructions above describe the current mod.
+
+</details>
