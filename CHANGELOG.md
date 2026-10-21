@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Updates the Nexus description style and puts every section after What you
+  can do in a spoiler, with its heading left visible.
+
 - Corrects the ACU instructions: uninstall the mod and keep only its preset
   files. The importer reads those files without ACU installed.
 
