@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Adds dividers between topics inside README and Nexus spoilers so each
+  set of instructions is easier to distinguish.
+
 - Highlights key mod names and controls, and italicizes warning text in README
   and Nexus so important steps are easier to spot.
 

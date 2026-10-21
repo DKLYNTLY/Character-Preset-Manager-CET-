@@ -56,6 +56,8 @@ This release uses these framework versions:
 *These frameworks must support your installed game version. After a game update,
 check for compatible framework and mod versions before using the editor.*
 
+---
+
 ## First installation
 
 1. Download the mod from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
@@ -68,6 +70,8 @@ check for compatible framework and mod versions before using the editor.*
 
 The CET window starts near the right side. Move or resize it as needed;
 CET remembers where you leave it.
+
+---
 
 ## Update an existing installation
 
@@ -84,6 +88,8 @@ CET remembers where you leave it.
 Keep a separate copy of older presets if you still need them in an earlier
 mod version. Loading alone does not upgrade their file format.
 
+---
+
 ## Supported screens
 
 Save and load in new-game creation, the Full Appearance Editor, apartment
@@ -95,6 +101,8 @@ Photo Mode and Appearance Menu Mod can remain installed. Their own menus do
 not provide the character-editor data this mod needs, so open a supported
 screen before saving, loading, comparing, or restoring an appearance.
 
+---
+
 ## Character-option mods
 
 CC and CCXL choices work when they appear in the game's normal character
@@ -103,6 +111,8 @@ screens. Linked options and separate eye colors are supported.
 Keep the mods, versions, body and eye choices, and load order used to make a
 preset. If that setup changes, check the result and save the corrected appearance
 again; missing custom choices cannot be recreated by the mod.
+
+---
 
 ## Character Customization Anywhere
 
@@ -133,6 +143,8 @@ the overlay to see the game's settings.
 Open the complete manager with your normal CET overlay key. The unused
 **Toggle Character Preset Manager (CET)** binding has been removed.
 
+---
+
 ## Optional editor key
 
 Open **CET Bindings > Character Preset Manager (CET)** and assign
@@ -142,11 +154,15 @@ in normal gameplay.
 Help shows the assigned key when CET provides it. Otherwise, Help reports
 whether that input has been received during the current game session.
 
+---
+
 ## Open the advanced manager
 
 Select **Advanced Preset Manager**, then open your CET overlay and choose
 **Character Preset Manager** from the menu on the right. The button cannot
 open the overlay itself.
+
+---
 
 ## Use the simple menu
 
@@ -171,6 +187,8 @@ selected file. Restore it or delete it permanently through CET.
 
 **Cancel Load** stops further changes. Choices already applied remain visible,
 so check the result before confirming your appearance.
+
+---
 
 ## Use the complete CET manager
 
@@ -199,6 +217,8 @@ list; a confirmed value does not replace your visual check.
 options stay missing after three checks, loading stops; check your character
 mods, correct the appearance if needed, and save it again.*
 
+---
+
 ## Check compatibility
 
 Choose a preset, open **Advanced Preset Options**, and select
@@ -208,6 +228,8 @@ old choices that loading will clear.
 
 Checks run when you request them. Selecting a preset, opening CET, refreshing,
 changing Force Full Load, or finishing a load does not start another comparison.
+
+---
 
 ## Force Full Load
 
@@ -221,6 +243,8 @@ you choose a current preset. You can change it yourself. After adding, removing,
 or reordering character mods, check hair, colors, and other matched choices,
 then save the corrected preset in format 8.
 
+---
+
 ## Randomize
 
 Use **Randomize** or **Randomize Settings** in either menu. The settings choose
@@ -229,6 +253,8 @@ which categories the game can change, and both menus share those locks.
 
 From CET, select **Randomize Settings**, then close the overlay to open the
 settings. These actions are unavailable while a preset is loading or restoring.
+
+---
 
 ## Interface previews
 
@@ -239,12 +265,16 @@ settings. These actions are unavailable while a preset is loading or restoring.
 Find a preset on the left and select it to load. The same panel has save,
 recovery, Trash, and advanced-manager controls.
 
+---
+
 ### Complete CET manager
 
 ![The complete CET preset manager](images/Advanced%20Menu.gif)
 
 CET keeps all library tools in one window. Open a section heading to see its
 controls, or use Help to find a specific action.
+
+---
 
 ### Full apartment mirrors
 
@@ -268,6 +298,8 @@ The importer reads these layouts:
 
 JSON is a text format with named fields. The importer reads these older
 layouts without changing your original files.
+
+---
 
 ## Import steps
 
@@ -297,6 +329,8 @@ If a preset is still missing, check its path, `.preset` extension, and size.
 It must not be empty or exceed 1 MB. Then look for **ACU IMPORT** and
 **ACU SAFETY** entries in the Activity Log.
 
+---
+
 ## Where files are stored
 
 Presets and exports are stored here:
@@ -312,6 +346,8 @@ Send one `.preset` file to share an appearance. To install one, put it in
 A preset can contain up to 4,096 valid options and 16,448 lines, with a total
 size of 1 MB. Each option key is limited to 256 bytes. Option numbers must fit
 in an unsigned 32-bit value, from 0 to 4,294,967,295.
+
+---
 
 ## Readable format 8
 
@@ -343,6 +379,8 @@ Each main line holds the option key and its saved number. **Editor slot** and
 help rebuild a missing library entry; `/` means **All Presets**. Older files
 remain readable, but may not contain these recovery details.
 
+---
+
 ## Notes, tags, and favorites
 
 Choose a preset, then open **Rename & Copy Presets > Tags, Notes & File** to
@@ -353,6 +391,8 @@ To pin a preset, choose **Add Selected Preset to Favorites** under
 **Load & Restore Appearance > Advanced Preset Options**. It stays in its
 original folder and also appears in Favorites; current files store this in
 the readable header.
+
+---
 
 ## CET folders
 
@@ -367,6 +407,8 @@ library location. Copies use names such as `Copy` or `Copy 2` when needed.
 Copying a folder includes all its presets and nested folders.
 **Remove Folder, Keep Presets** moves those contents to the folder above
 without permanently deleting presets.
+
+---
 
 ## Imported Windows folders
 
@@ -383,6 +425,8 @@ Linked folders and Windows junctions are not supported. A scan stops if an
 entry cannot be checked safely or a physical folder is more than 12 levels
 deep; this limit does not apply to folders made inside CET.
 
+---
+
 ## Share a folder
 
 A `.cpmfolder` file contains one CET folder, its nested folders, and their
@@ -395,6 +439,8 @@ presets. Notes, tags, favorites, and other supported preset details are included
 
 One file can hold up to 512 presets and 32 MB. Empty folders cannot be exported.
 Large exports are written one preset at a time to limit memory use.
+
+---
 
 ## Preview or install a shared folder
 
@@ -411,6 +457,8 @@ not remove presets or folders already installed from it.
 folder. An unchanged file is skipped while that folder exists. Changed files
 can be imported again, and duplicate names receive a `Copy` name. Failed
 imports are not marked complete.
+
+---
 
 ## Work with several presets
 
@@ -442,6 +490,8 @@ A backup cannot exceed 256 MB. **Delete Selected Backup Permanently** removes
 only the selected `.cpmbackup` file, leaving installed presets alone. Check
 the displayed filename before confirming deletion.
 
+---
+
 ## Appearance history
 
 Before a normal load, the mod saves your current appearance for recovery.
@@ -455,6 +505,8 @@ or **Appearance History** to choose an entry.
 History is separate from your preset library. Its files are stored in
 `Data/Recovery/Appearance History`.
 
+---
+
 ## Move items to Trash
 
 Presets, shared-folder files, and whole folder groups can be moved to Trash.
@@ -465,11 +517,15 @@ If a name is in use, the restored item gets a `Copy` name instead of replacing
 anything. Imported Windows folders are removed only when empty; unknown files
 are never deleted.
 
+---
+
 ## Interrupted actions
 
 If the game closes during a move, rename, Trash action, or restore, the mod
 tries to finish or undo that action at the next startup. If Trash cannot be
 read safely, the last good list and folder details are kept.
+
+---
 
 ## Permanent deletion
 
@@ -488,11 +544,15 @@ Wait briefly for CET to load. If the message stays, check CET, RED4ext,
 redscript, and Codeware, then reinstall the complete mod and fully restart
 the game. Changes to redscript files require a new game session.
 
+---
+
 ## The simple menu is missing after an update
 
 Use the complete CET manager when CET and its required game functions support
 your version. Your files are still in the same library. Update the mod and
 its frameworks when compatible versions become available.
+
+---
 
 ## Game updates
 
@@ -508,10 +568,14 @@ If the catalog is missing, late, outdated, or different, CET uses its own safe
 folder list. If both the panel and file service are unavailable, a small reminder in the
 character screen points to CET.
 
+---
+
 ## The CET window is missing
 
 Open the overlay and choose **Character Preset Manager** from the menu on the
 right. **Advanced Preset Manager** points you there but cannot open CET itself.
+
+---
 
 ## Loading screen after closing an editor
 
@@ -522,11 +586,15 @@ make this more likely.
 Remove all clothing and choose **No Outfit** before opening the editor if this
 happens. Put your clothes and outfit back on afterward.
 
+---
+
 ## A preset reports missing choices
 
 Check the character mods, versions, body and eye choices, and load order used
 to create it. **Check Compatibility** gives more detail. Correct the appearance
 and save a new format-8 preset after changing your setup.
+
+---
 
 ## Old cyberware or another old choice stays visible
 
@@ -537,6 +605,8 @@ character for you.
 
 If an old choice remains, include the newest Activity Log when reporting it.
 Name the preset and the choice that stayed visible so I can follow the load.
+
+---
 
 ## Activity Log
 
@@ -555,11 +625,15 @@ connections, file actions, loading, warnings, errors, and missing choices.
 If an option check takes at least 0.05 seconds, a warning separates the time
 spent reading the game from the time spent matching presets.
 
+---
+
 ## Search Help
 
 Open **Help**, type a word or phrase, then select **Search**. Topics pause
 while you type. Try words such as `share`, `bug`, `clothing`, `ACU`, `backup`,
 `Trash`, or `favorite`; matching also uses related terms.
+
+---
 
 ## Settings
 
@@ -569,6 +643,8 @@ to sort by name or last changed date. Key assignments remain under
 
 The mod saves settings to `Data/Config/Config.txt` and updates that file when
 you change them through CET. Do not edit it while the game is running.
+
+---
 
 ## Data folders
 
@@ -585,6 +661,8 @@ Data/
 `-- Logs/
     `-- Archive/
 ```
+
+---
 
 ## Performance
 
@@ -622,11 +700,15 @@ notes, tags, and favorites remain ready for the next use.
 
 My character shown in the screenshots is not included. I do not plan to share my personal preset as a download.
 
+---
+
 ## AI disclosure
 
 I used AI to help write and review parts of the interface, Lua, redscript,
 documentation, and release checks. I made the final design and release choices
 and reviewed the work before publishing it.
+
+---
 
 ## Credits
 
@@ -647,6 +729,8 @@ for the simple menu.
 
 I credit CD Projekt Red for Cyberpunk 2077 and its character system.
 I also appreciate the modding community's testing, research, and feedback.
+
+---
 
 ## License
 
@@ -675,6 +759,8 @@ Written approval must come from my contact email or an account identified on
 my official mod page or repository. The license includes warranty and liability
 limits where the law allows them, while preserving mandatory protections.
 Read [LICENSE](LICENSE) for the full terms and approved uses.
+
+---
 
 ## Links and release history
 
