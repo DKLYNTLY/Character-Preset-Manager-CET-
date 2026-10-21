@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Groups README and Nexus help into six task-based sections. Recovery tools
+  now sit together, while troubleshooting advice and logs share one section.
+
 - Allows public and private modpacks and collections to include and redistribute
   unmodified official mod releases with credit, the official link, the license,
   and original notices.

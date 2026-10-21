@@ -42,54 +42,7 @@ unchanged when found or loaded; overwriting one, or saving its notes or tags,
 updates it to format 8.
 
 <details>
-<summary><strong>Menus and previews</strong></summary>
-
-## Choose a menu
-
-| Menu | Use it for |
-|---|---|
-| **Complete CET manager** | Every preset tool, including folders, sharing, backups, compatibility checks, Help, and logs |
-| **Simple menu in the character screen** | Search, one-click loading, saving, recovery, Trash, and Randomize |
-
-The simple menu uses red frames and cyan highlights to match the game.
-**Randomize** and **Randomize Settings** sit below its title and also appear
-under **Open & Edit Appearance** in CET. Both use the game's randomizer and
-category locks. The original buttons hide only when the replacements are ready.
-
-**R** still works in the character screen. Wait for loading or recovery to
-finish before randomizing; from CET, select **Randomize Settings**, then close
-the overlay to see the game's settings.
-
-Open the complete manager with your normal CET overlay key. The unused
-**Toggle Character Preset Manager (CET)** binding has been removed.
-
-## Interface previews
-
-### Simple menu
-
-![The updated simple menu in Cyberpunk's character editor](images/Simple%20Menu.png)
-
-Find a preset on the left and select it to load. The same panel has save,
-recovery, Trash, and advanced-manager controls.
-
-### Complete CET manager
-
-![The complete CET preset manager](images/Advanced%20Menu.gif)
-
-CET keeps all library tools in one window. Open a section heading to see its
-controls, or use Help to find a specific action.
-
-### Full apartment mirrors
-
-![Full character options in an apartment mirror](images/Mirror.gif)
-
-Apartment mirrors show the full character-creation list. They use the same
-preset tools as the Full Appearance Editor.
-
-</details>
-
-<details>
-<summary><strong>Install or update the mod</strong></summary>
+<summary><strong>Install, update, and check compatibility</strong></summary>
 
 ## Requirements
 
@@ -131,20 +84,6 @@ CET remembers where you leave it.
 Keep a separate copy of older presets if you still need them in an earlier
 mod version. Loading alone does not upgrade their file format.
 
-## Optional editor key
-
-Open **CET Bindings > Character Preset Manager (CET)** and assign
-**Open Full Appearance Editor**. Close the overlay before pressing the key
-in normal gameplay.
-
-Help shows the assigned key when CET provides it. Otherwise, Help reports
-whether that input has been received during the current game session.
-
-</details>
-
-<details>
-<summary><strong>Supported character screens and other mods</strong></summary>
-
 ## Supported screens
 
 Save and load in new-game creation, the Full Appearance Editor, apartment
@@ -165,38 +104,49 @@ Keep the mods, versions, body and eye choices, and load order used to make a
 preset. If that setup changes, check the result and save the corrected appearance
 again; missing custom choices cannot be recreated by the mod.
 
-## Game updates
-
-An update can change the character screens or the functions used by the loader.
-CET, RED4ext, redscript, and Codeware may also need updates.
-
-If only the simple menu stops working, use the complete CET manager once its
-requirements support the new game version. It uses the same files. A missing
-panel does not mean your presets were deleted.
-
-The DLL provides a file catalog that CET checks against its own folder reader.
-If the catalog is missing, late, outdated, or different, CET uses its own safe
-folder list. If both the panel and file service are unavailable, a small reminder in the
-character screen points to CET.
-
 ## Character Customization Anywhere
 
 Remove it and restart the game. It changes the same mirrors and character
 screens as Character Preset Manager.
 
-## Loading screen after closing an editor
-
-Cyberpunk can remain on a loading screen after an editor closes, even without
-this mod. Clothing, wardrobe outfits, Equipment-EX, and detailed outfits may
-make this more likely.
-
-Remove all clothing and choose **No Outfit** before opening the editor if this
-happens. Put your clothes and outfit back on afterward.
-
 </details>
 
 <details>
-<summary><strong>Save, load, randomize, and recover an appearance</strong></summary>
+<summary><strong>Use the menus: save, load, and randomize</strong></summary>
+
+## Choose a menu
+
+| Menu | Use it for |
+|---|---|
+| **Complete CET manager** | Every preset tool, including folders, sharing, backups, compatibility checks, Help, and logs |
+| **Simple menu in the character screen** | Search, one-click loading, saving, recovery, Trash, and Randomize |
+
+The simple menu uses red frames and cyan highlights to match the game.
+**Randomize** and **Randomize Settings** sit below its title and also appear
+under **Open & Edit Appearance** in CET. Both use the game's randomizer and
+category locks. The original buttons hide only when the replacements are ready.
+
+**R** still works in the character screen. Wait for loading or recovery to
+finish before randomizing; from CET, select **Randomize Settings**, then close
+the overlay to see the game's settings.
+
+Open the complete manager with your normal CET overlay key. The unused
+**Toggle Character Preset Manager (CET)** binding has been removed.
+
+## Optional editor key
+
+Open **CET Bindings > Character Preset Manager (CET)** and assign
+**Open Full Appearance Editor**. Close the overlay before pressing the key
+in normal gameplay.
+
+Help shows the assigned key when CET provides it. Otherwise, Help reports
+whether that input has been received during the current game session.
+
+## Open the advanced manager
+
+Select **Advanced Preset Manager**, then open your CET overlay and choose
+**Character Preset Manager** from the menu on the right. The button cannot
+open the overlay itself.
 
 ## Use the simple menu
 
@@ -280,29 +230,33 @@ which categories the game can change, and both menus share those locks.
 From CET, select **Randomize Settings**, then close the overlay to open the
 settings. These actions are unavailable while a preset is loading or restoring.
 
-## Appearance history
+## Interface previews
 
-Before a normal load, the mod saves your current appearance for recovery.
-Up to five different entries are kept, with identical copies skipped. Restoring
-an older entry creates a new safety save first.
+### Simple menu
 
-Use **Undo Last Load** or **Recovery History** in the simple menu. In CET,
-open **Load & Restore Appearance** and use **Restore Previous Appearance**
-or **Appearance History** to choose an entry.
+![The updated simple menu in Cyberpunk's character editor](images/Simple%20Menu.png)
 
-History is separate from your preset library. Its files are stored in
-`Data/Recovery/Appearance History`.
+Find a preset on the left and select it to load. The same panel has save,
+recovery, Trash, and advanced-manager controls.
 
-## Open the advanced manager
+### Complete CET manager
 
-Select **Advanced Preset Manager**, then open your CET overlay and choose
-**Character Preset Manager** from the menu on the right. The button cannot
-open the overlay itself.
+![The complete CET preset manager](images/Advanced%20Menu.gif)
+
+CET keeps all library tools in one window. Open a section heading to see its
+controls, or use Help to find a specific action.
+
+### Full apartment mirrors
+
+![Full character options in an apartment mirror](images/Mirror.gif)
+
+Apartment mirrors show the full character-creation list. They use the same
+preset tools as the Full Appearance Editor.
 
 </details>
 
 <details>
-<summary><strong>Import ACU presets</strong></summary>
+<summary><strong>Manage presets: imports, folders, and sharing</strong></summary>
 
 ## Supported ACU files
 
@@ -342,11 +296,6 @@ or its loading behavior.
 If a preset is still missing, check its path, `.preset` extension, and size.
 It must not be empty or exceed 1 MB. Then look for **ACU IMPORT** and
 **ACU SAFETY** entries in the Activity Log.
-
-</details>
-
-<details>
-<summary><strong>Preset files, folders, and personal details</strong></summary>
 
 ## Where files are stored
 
@@ -434,11 +383,6 @@ Linked folders and Windows junctions are not supported. A scan stops if an
 entry cannot be checked safely or a physical folder is more than 12 levels
 deep; this limit does not apply to folders made inside CET.
 
-</details>
-
-<details>
-<summary><strong>Sharing, backups, and bulk actions</strong></summary>
-
 ## Share a folder
 
 A `.cpmfolder` file contains one CET folder, its nested folders, and their
@@ -478,6 +422,11 @@ Move the selection to one folder, export it, or move it to Trash.
 **Export Selected** creates a `.cpmfolder` file that keeps each preset's path
 inside a **Selected Presets** group when imported.
 
+</details>
+
+<details>
+<summary><strong>Backups, recovery, and Trash</strong></summary>
+
 ## Back up the whole library
 
 Under **Export & Import Backups**, select **Export Complete Library Backup**.
@@ -493,10 +442,18 @@ A backup cannot exceed 256 MB. **Delete Selected Backup Permanently** removes
 only the selected `.cpmbackup` file, leaving installed presets alone. Check
 the displayed filename before confirming deletion.
 
-</details>
+## Appearance history
 
-<details>
-<summary><strong>Trash and recovery</strong></summary>
+Before a normal load, the mod saves your current appearance for recovery.
+Up to five different entries are kept, with identical copies skipped. Restoring
+an older entry creates a new safety save first.
+
+Use **Undo Last Load** or **Recovery History** in the simple menu. In CET,
+open **Load & Restore Appearance** and use **Restore Previous Appearance**
+or **Appearance History** to choose an entry.
+
+History is separate from your preset library. Its files are stored in
+`Data/Recovery/Appearance History`.
 
 ## Move items to Trash
 
@@ -523,7 +480,86 @@ restoring and permanent deletion are available through CET.
 </details>
 
 <details>
-<summary><strong>Settings, files, and performance</strong></summary>
+<summary><strong>Troubleshooting, logs, and settings</strong></summary>
+
+## The menu says the library is connecting
+
+Wait briefly for CET to load. If the message stays, check CET, RED4ext,
+redscript, and Codeware, then reinstall the complete mod and fully restart
+the game. Changes to redscript files require a new game session.
+
+## The simple menu is missing after an update
+
+Use the complete CET manager when CET and its required game functions support
+your version. Your files are still in the same library. Update the mod and
+its frameworks when compatible versions become available.
+
+## Game updates
+
+An update can change the character screens or the functions used by the loader.
+CET, RED4ext, redscript, and Codeware may also need updates.
+
+If only the simple menu stops working, use the complete CET manager once its
+requirements support the new game version. It uses the same files. A missing
+panel does not mean your presets were deleted.
+
+The DLL provides a file catalog that CET checks against its own folder reader.
+If the catalog is missing, late, outdated, or different, CET uses its own safe
+folder list. If both the panel and file service are unavailable, a small reminder in the
+character screen points to CET.
+
+## The CET window is missing
+
+Open the overlay and choose **Character Preset Manager** from the menu on the
+right. **Advanced Preset Manager** points you there but cannot open CET itself.
+
+## Loading screen after closing an editor
+
+Cyberpunk can remain on a loading screen after an editor closes, even without
+this mod. Clothing, wardrobe outfits, Equipment-EX, and detailed outfits may
+make this more likely.
+
+Remove all clothing and choose **No Outfit** before opening the editor if this
+happens. Put your clothes and outfit back on afterward.
+
+## A preset reports missing choices
+
+Check the character mods, versions, body and eye choices, and load order used
+to create it. **Check Compatibility** gives more detail. Correct the appearance
+and save a new format-8 preset after changing your setup.
+
+## Old cyberware or another old choice stays visible
+
+Wait for the final status before confirming your appearance. The loader reads
+fresh option lists as the game updates and waits for cyberware and other linked
+choices to settle. It checks saved values, but it cannot inspect the rendered
+character for you.
+
+If an old choice remains, include the newest Activity Log when reporting it.
+Name the preset and the choice that stayed visible so I can follow the load.
+
+## Activity Log
+
+Select **Log** at the top of CET, or open it through Help. You can read or
+copy the log in game. Its file is here:
+
+```text
+bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
+```
+
+Each full game launch starts a new log. The previous file is dated and moved
+to the archive, which keeps the ten newest logs. Entries cover startup, menu
+connections, file actions, loading, warnings, errors, and missing choices.
+**More Technical Details** shows information for tracking down problems.
+
+If an option check takes at least 0.05 seconds, a warning separates the time
+spent reading the game from the time spent matching presets.
+
+## Search Help
+
+Open **Help**, type a word or phrase, then select **Search**. Topics pause
+while you type. Try words such as `share`, `bug`, `clothing`, `ACU`, `backup`,
+`Trash`, or `favorite`; matching also uses related terms.
 
 ## Settings
 
@@ -576,67 +612,6 @@ than checked every frame.
 Temporary loading data is freed when a load finishes. Closing or hiding CET
 also drops full preset contents and lists that can be rebuilt. Names, folders,
 notes, tags, and favorites remain ready for the next use.
-
-</details>
-
-<details>
-<summary><strong>Help and troubleshooting</strong></summary>
-
-## Activity Log
-
-Select **Log** at the top of CET, or open it through Help. You can read or
-copy the log in game. Its file is here:
-
-```text
-bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
-```
-
-Each full game launch starts a new log. The previous file is dated and moved
-to the archive, which keeps the ten newest logs. Entries cover startup, menu
-connections, file actions, loading, warnings, errors, and missing choices.
-**More Technical Details** shows information for tracking down problems.
-
-If an option check takes at least 0.05 seconds, a warning separates the time
-spent reading the game from the time spent matching presets.
-
-## Search Help
-
-Open **Help**, type a word or phrase, then select **Search**. Topics pause
-while you type. Try words such as `share`, `bug`, `clothing`, `ACU`, `backup`,
-`Trash`, or `favorite`; matching also uses related terms.
-
-## The menu says the library is connecting
-
-Wait briefly for CET to load. If the message stays, check CET, RED4ext,
-redscript, and Codeware, then reinstall the complete mod and fully restart
-the game. Changes to redscript files require a new game session.
-
-## The simple menu is missing after an update
-
-Use the complete CET manager when CET and its required game functions support
-your version. Your files are still in the same library. Update the mod and
-its frameworks when compatible versions become available.
-
-## A preset reports missing choices
-
-Check the character mods, versions, body and eye choices, and load order used
-to create it. **Check Compatibility** gives more detail. Correct the appearance
-and save a new format-8 preset after changing your setup.
-
-## Old cyberware or another old choice stays visible
-
-Wait for the final status before confirming your appearance. The loader reads
-fresh option lists as the game updates and waits for cyberware and other linked
-choices to settle. It checks saved values, but it cannot inspect the rendered
-character for you.
-
-If an old choice remains, include the newest Activity Log when reporting it.
-Name the preset and the choice that stayed visible so I can follow the load.
-
-## The CET window is missing
-
-Open the overlay and choose **Character Preset Manager** from the menu on the
-right. **Advanced Preset Manager** points you there but cannot open CET itself.
 
 </details>
 
