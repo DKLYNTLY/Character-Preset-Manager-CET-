@@ -32,13 +32,13 @@ end
 function advanced.draw()
   if not overlayOpen then return end
   if ImGui.Begin("Character Preset Manager - Technical Tools " .. constants.version) then
-    ImGui.TextWrapped("Save, load and manage presets inside an appearance editor. This optional menu contains force loading and technical details.")
+    ImGui.TextWrapped("Save, load and organize presets in an appearance editor. Use this optional menu for force loading and technical information.")
     local native = bridge()
     if not native or not native:IsReady() then
-      ImGui.TextWrapped("Open an appearance editor. If the preset tools do not appear, install matching native files, redscript, RED4ext and Codeware, then restart the game.")
+      ImGui.TextWrapped("Open an appearance editor first. If the preset tools are missing, install the complete Character Preset Manager package with redscript, RED4ext and Codeware. Then restart the game.")
     else
       ImGui.Separator()
-      ImGui.TextWrapped("Force Full Load uses less certain matching where it can do so safely. It cannot replace missing named custom choices. Check the appearance afterward.")
+      ImGui.TextWrapped("Force Full Load uses less certain matches where it is safe to do so. It cannot replace a missing named custom choice. Check your appearance when loading finishes.")
       if native:IsBusy() then
         ImGui.Text("Wait for the current action to finish.")
       elseif ImGui.Button(confirmation and "Confirm Force Full Load" or "Force Full Load") then

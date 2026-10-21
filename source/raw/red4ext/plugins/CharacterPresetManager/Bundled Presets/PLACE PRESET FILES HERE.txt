@@ -1,1 +1,5 @@
-These are bundled examples. Put your own .preset files in red4ext/plugins/CharacterPresetManager/Character Presets. The mod creates that folder when the library first opens.
+This folder holds the bundled examples. Put your own .preset files here:
+
+red4ext/plugins/CharacterPresetManager/Character Presets
+
+The mod creates that folder when you first open the library.

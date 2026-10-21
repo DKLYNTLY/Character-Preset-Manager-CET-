@@ -1,18 +1,22 @@
 # Changelog
 
-The newest release appears first. Older sections show what changed at the time
-of each release. They may mention controls or file locations that are no longer
-used. See the README and in-game Help for current instructions.
+The newest release is listed first. Older sections describe each release as it
+was, so some controls and file locations have since changed. Use the README and
+in-game Help for current instructions.
 
 <details open>
 <summary><strong>Current build — 3.1.4</strong></summary>
 
 ## 3.1.4
 
+- I rewrote the README, packaged instructions, Help and current messages in
+  plain language. Controls, file paths, limits and safety steps keep their
+  meaning.
+- I saved the writing rules in the local project instructions for future work.
 - I now use **dnydd (formerly dklyntly)** in my credits and author details.
 - The README now links to my existing license without the incorrect MIT label.
-- The download now includes my license alongside the separate third-party licenses.
-  The permissions in my license have not changed.
+- The download now includes my license alongside the separate third-party
+  licenses. The permissions in my license have not changed.
 
 </details>
 
@@ -22,7 +26,8 @@ used. See the README and in-game Help for current instructions.
 ## 3.1.3
 
 - **Native tools:** Saving, loading and library management use the game menus
-  and native service. CET is optional for force loading and technical information.
+  and native service. CET is optional for force loading and technical
+  information.
 - **Manage Presets:** Folders, notes, tags, favorites, bulk actions, sharing,
   backups, Trash, recovery, settings and Help open inside an appearance editor.
 - **Smaller CET menu:** Opening CET uses the same native controller and does not
@@ -35,8 +40,8 @@ used. See the README and in-game Help for current instructions.
 - **Compatibility:** Readable format 8 and supported older CPM and ACU files
   remain readable. Finding or loading an older file does not rewrite it.
 
-I have not checked this version inside the game. See the
-[validation report](native/verification/VALIDATION.md) for current results.
+I have not checked this version inside the game. See the [validation
+report](native/verification/VALIDATION.md) for current results.
 
 </details>
 
@@ -48,18 +53,20 @@ I have not checked this version inside the game. See the
 Automated checks have passed. In-game checks remain outstanding; see the
 [validation report](native/verification/VALIDATION.md).
 
-- **Shared preset tools:** Both interfaces now use the required RED4ext plugin for
-  preset files, organization, sharing, backups, Trash, and recovery. Install the
-  complete package; Help and diagnostics remain available if files are missing.
+- **Shared preset tools:** Both interfaces now use the required RED4ext plugin
+  for preset files, organization, sharing, backups, Trash, and recovery. Install
+  the complete package; Help and diagnostics remain available if files are
+  missing.
 - **Safer recovery:** Unfinished moves from earlier versions are restored with
   their folder records. Conflicting copies are kept for review.
 - **Named-choice verification:** The final appearance check follows the saved
   named choice when its position has changed.
-- **Panel controls:** Show/Hide Preset Panel targets the appearance panel.
-  Hide Presets removes its background and controls; Show Presets restores the
-  same search, selection, and scroll position. Load cancellation remains available.
+- **Panel controls:** Show/Hide Preset Panel targets the appearance panel. Hide
+  Presets removes its background and controls; Show Presets restores the same
+  search, selection, and scroll position. Load cancellation remains available.
 - **Choose before loading:** Selecting a row shows its details. Load applies it.
-  Secondary actions are under More Actions, and the randomizer keeps its normal position.
+  Secondary actions are under More Actions, and the randomizer keeps its normal
+  position.
 - **Custom choices:** Force Full Load no longer substitutes a saved position
   when a named custom choice cannot be found safely.
 - **Appearance comparison:** A choice matched by its editor slot is no longer
@@ -67,7 +74,7 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - **Clearer results:** Partial and failed loads identify skipped choices and
   direct you to the Activity Log for details.
 - **Wardrobe restoration:** Pending restoration is retried after the editor
-  closes. Wardrobe access already disabled by the game is left alone.
+  closes. The mod leaves wardrobe access alone if the game already disabled it.
 - **ACU reading:** Malformed JSON numbers are rejected. Native reader/writer
   comparison tests now cover supported formats and readable format 8.
 - **Instructions:** Current controls, ACU limits, the body-type limitation, and
@@ -80,23 +87,26 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.1.1
 
-*One complete package with a verified native folder catalog and a dependable CET fallback.*
+This release puts the checked native folder list and CET fallback in one
+package.
 
-- Expands the runtime-independent RED4ext DLL into a limited native file
-  service. It watches both ACU's preset folder and Character Preset Manager's
-  own library without calling Cyberpunk gameplay functions.
-- Writes a versioned catalog containing supported relative file paths, folders,
-  sizes, modified dates, and fingerprints. Unchanged files reuse their saved
-  fingerprints so large backup files are not opened again on every startup.
+- Expands the RED4ext DLL into a limited file service. It watches both ACU's
+  preset folder and Character Preset Manager's library without calling Cyberpunk
+  gameplay functions.
+- Writes a file list with its own format version. It records supported paths
+  relative to the library, folders, sizes, modified dates and fingerprints,
+  which identify file contents. Files that have not changed reuse their saved
+  fingerprints, so large backups do not need to be read at every startup.
 - Rejects unsafe paths, linked folders, reparse points, excessive nesting,
   unsupported files, unreadable files, and files beyond the catalog safety
-  limit. Writes continue to use temporary files and atomic replacement.
-- Makes CET verify the native catalog against its own safe directory scan before
-  using it. CET falls back immediately when the DLL is missing, late, outdated,
-  invalid, or reports a different library.
+  limit. Writes still use temporary files and replace each destination in one
+  step.
+- Makes CET check the native file list against its own safe folder scan before
+  using that list. CET uses its own scan if the DLL is missing, late, outdated
+  or invalid, or if the DLL reports a different library.
 - Keeps the single preset reader, old CPM formats, supported ACU formats,
-  appearance matching, compatibility checks, and complete loading engine in
-  Lua. The DLL does not interpret or apply character choices.
+  appearance matching, compatibility checks, and complete loading engine in Lua.
+  The DLL does not interpret or apply character choices.
 - Packages the character-screen panel, complete CET manager, and native file
   service together in `Character Preset Manager (CET) 3.1.1.zip`.
 - Adds a small character-screen reminder only when both the panel bridge and
@@ -110,8 +120,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Labels formats 7 and 8 as **CPM preset**. Every other supported layout is
   labeled **ACU preset** and shows ACU-specific help about CC and CCXL choices
   shifting after option-mod or load-order changes.
-- Adds fixtures and automated checks for format 8, legacy CPM, ACU 3.0.0,
-  ACU 3.0.1, ACU 3.2.1, malformed presets, the native catalog protocol,
+- Adds fixtures and automated checks for format 8, legacy CPM, ACU 3.0.0, ACU
+  3.0.1, ACU 3.2.1, malformed presets, the native catalog protocol,
   fingerprints, folder watching, safe fallback, and atomic ACU imports.
 - Prevents avoidable play-time file work. CET now reads only the small ACU
   results generation header during its rate-limited poll and parses full results
@@ -126,24 +136,25 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.1.0
 
-*Focused ACU preset importing without changing the proven CET manager or loading engine.*
+This release adds ACU imports while keeping the CET manager and loading engine.
 
 - Adds a small RED4ext background service that checks
   `AppearanceChangeUnlocker/character-presets` after a short startup delay.
 - Uses a background folder watcher to detect later ACU changes. **Refresh** is
-  the fallback when watching is unavailable. It never runs scheduled full
-  scans, scans every frame, or scans because a menu opens.
+  the fallback when watching is unavailable. It never runs scheduled full scans,
+  scans every frame, or scans because a menu opens.
 - Imports safe files into the physical `Character Presets/ACU Presets` folder
-  and preserves their ACU subfolders. Each changed file is written to a staging
-  file and then moved into place atomically.
+  and preserves their ACU subfolders. Each changed file is first written to a
+  temporary file, then moved into place in one step.
 - Checks file names, sizes, and modified dates before reading changed contents.
-  A saved import record prevents unchanged files from being copied again.
+  The saved import record stops files from being copied again if they have not
+  changed.
 - Supports the camel-case JSON layout from ACU 3.0.0, the snake-case JSON layout
   from ACU 3.0.1, and the text or native JSON layouts supported by ACU 3.2.1.
 - Sends CET a small list of changed imports instead of asking it to rescan the
   preset library. CET adds no more than two lightweight records per frame.
-- Defers full imported-preset reads until the preset is selected, checked, or
-  loaded. Character-screen initialization no longer opens preset files.
+- Waits to read a full imported preset until it is selected, checked or loaded.
+  Opening the character screen no longer opens preset files.
 - Compares a selected ACU preset with the game's current editor options. The
   Activity Log names internal eye locks and other saved options that the game
   marks inactive or not editable. The imported file is kept unchanged, and the
@@ -156,8 +167,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
   complete CET manager remains the backup when the simple panel needs an update.
 - Fixes collapsed folders showing nested folders in the simple panel and CET
   manager. Nested folders now appear only when every parent is expanded, except
-  during a search, and use a yellow child marker to separate them from cyan
-  main folders.
+  during a search, and use a yellow child marker to separate them from cyan main
+  folders.
 
 </details>
 
@@ -166,11 +177,12 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.0.9
 
-*Smoother character-editor opening when a preset library is present.*
+This release reduces work while opening the character editor with a preset
+library.
 
 - Moves preset-file detail reads out of the character screen's opening frame.
 - Prepares two preset records per frame before connecting the character-screen
-  panel, instead of preparing the whole library while Cyberpunk builds the
+  panel. It no longer prepares the whole library while Cyberpunk builds the
   editor.
 - Keeps search, favorites, tags, selected-preset details, and all panel actions
   unchanged. The panel shows its connecting state until preparation finishes.
@@ -182,10 +194,11 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.0.8
 
-*More recovery and library controls in the character screen, using the same compact space.*
+This release adds recovery and library controls within the existing
+character-screen panel.
 
-- Adds **Refresh** beside Search so preset files changed outside the game can
-  be shown without opening CET.
+- Adds **Refresh** beside Search so preset files changed outside the game can be
+  shown without opening CET.
 - Adds a selected-preset card with its folder, saved-option count, file format,
   and tags. The preset name and details now share one compact line.
 - Adds **Undo Last Load** for the newest recovery appearance and **Recovery
@@ -202,13 +215,13 @@ Automated checks have passed. In-game checks remain outstanding; see the
   the everyday load, recovery, save, and Trash controls.
 - Shortens the panel introduction and shows nine preset, folder, recovery, or
   save-location rows in the shared list area.
-- Disables conflicting save, Trash, search, and recovery controls while a
-  picker is open or an appearance operation is running.
-- Caches the native panel's prepared preset rows by library, search, and folder
-  state. Save-location rows are cached separately until the library changes.
-- Reads appearance-history files only when the player opens Recovery History.
-  No editor scan, compatibility check, or preset refresh was added to the
-  normal frame-update path.
+- Disables conflicting save, Trash, search, and recovery controls while a picker
+  is open or an appearance operation is running.
+- Keeps prepared preset rows in memory until the library, search or folder state
+  changes. Save-location rows are cached separately until the library changes.
+- Reads appearance-history files only when the player opens Recovery History. No
+  editor scan, compatibility check, or preset refresh was added to the normal
+  frame-update path.
 - Adds clear space below the three-line panel introduction and distributes the
   preset list, selected details, recovery controls, status, and save controls
   farther down the available panel height.
@@ -220,8 +233,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Gives the first Cancel Load press priority over list updates that can happen
   when button focus is released. The panel immediately changes the button and
   status to **Canceling load...** while Lua completes the request.
-- Adds a clear gap below Search so the first preset folder no longer touches
-  or clips into the Search field border.
+- Adds a clear gap below Search so the first preset folder no longer touches or
+  clips into the Search field border.
 - Centers the description, text-entry fields, selected-preset details, preset
   rows, and action labels. The main title and Panel Status stay left-aligned.
 - Adds thin divider lines between the description, Search, preset list,
@@ -238,7 +251,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.0.7
 
-*Preset controls inside Cyberpunk's character screens, with safer appearance recovery.*
+This release adds preset controls to Cyberpunk's character screens and improves
+appearance recovery.
 
 - Clears old dependent choices before applying a preset, preventing hidden
   options such as Alina's heterochromia and separate eye colors from remaining
@@ -251,8 +265,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
   Search. Preset rows and the lower action buttons now sit closer together.
 - After **Open CET Menu** is pressed, Panel Status explains how to use the CET
   binding and find the Character Preset Manager menu on the right.
-- Uses one translucent charcoal background behind the complete panel. Its
-  right edge stops at the title area instead of extending over the character.
+- Uses one translucent charcoal background behind the complete panel. Its right
+  edge stops at the title area instead of extending over the character.
 - Connects CET to the exact bridge used by each active appearance screen and
   sends the preset list immediately. This prevents mirrors and the Full
   Appearance Editor from remaining on **connecting**.
@@ -275,8 +289,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
   the Full Appearance Editor, apartment mirrors, and ripperdoc appearance
   editors.
 - Replaces the new-game screen's three preset buttons with the complete preset
-  library. Six packaged starter presets preserve the Corpo, Nomad, and
-  Streetkid choices for both body types.
+  library. Six packaged starter presets preserve the Corpo, Nomad, and Streetkid
+  choices for both body types.
 - Adds a larger native panel farther left on the character screen. It uses the
   red and cyan colors from Cyberpunk's character-customization controls,
   increases the text size, and moves the game's Randomize controls below it.
@@ -285,8 +299,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
   fields. Buttons now use translucent charcoal-black surfaces with red labels
   and a cyan selected state instead of solid bright red blocks.
 - Shortens the native panel on its character-facing side so it covers less of
-  the appearance preview. Removes the distracting scroll caption and static
-  scrollbar; mouse-wheel, stick, and navigation scrolling continue to work.
+  the appearance preview. Removes the scroll caption and fixed scrollbar.
+  Scrolling still works with the mouse wheel, stick and navigation controls.
 - Extends the panel downward to just above Randomize and shows ten preset rows
   at once. The remaining room gives Panel Status more space while the save
   controls stay together.
@@ -296,9 +310,9 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Uses a standard hyphen in the combined Panel Status line because the game's
   font could leave the whole message invisible when it contained a long dash.
 - Removes the cyan preset-availability subtitle and raises **Character Preset
-  Manager** to align with the game's **Customize Your Look** heading. Search
-  and the preset list move upward, giving Panel Status more than twice its
-  previous message height without moving the bottom controls.
+  Manager** to align with the game's **Customize Your Look** heading. Search and
+  the preset list move upward, giving Panel Status more than twice its previous
+  message height without moving the bottom controls.
 - Matches every preset and action button's resting transparency to the Search
   and Preset Name fields. Red and cyan labels remain fully readable, with a
   temporary stronger surface only while a button is pressed.
@@ -306,9 +320,9 @@ Automated checks have passed. In-game checks remain outstanding; see the
   Status begins directly below the tenth row and receives the recovered space.
 - Keeps strong references to the Panel Status text and color rail so the game
   cannot discard them while the panel remains open.
-- Makes Panel Status event-driven and hidden when there is nothing important to
-  report. It no longer repeats old CET editor guidance, search counts, folder
-  browsing, or save-location changes. Loading, overwrite, Trash, and error
+- Updates Panel Status when something happens and hides it when there is nothing
+  to report. It stops repeating old CET editor guidance, search counts, folder
+  browsing and save-location changes. Loading, overwrite, Trash, and error
   messages remain visible, and Trash messages persist through list refreshes.
 - Adds a reminder to native Trash confirmations and completed moves that CET is
   where the preset can be restored or deleted permanently.
@@ -323,21 +337,21 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Applies button transparency through the widget itself so resting charcoal
   backgrounds remain translucent in the game instead of appearing opaque.
 - Fixes native overwrite confirmation being canceled when Save released focus
-  from an unchanged Preset Name field. Only an actual name edit now cancels the
-  pending confirmation, preserving the existing fingerprint safety check.
+  from an unchanged Preset Name field. Only editing the name now cancels the
+  pending confirmation. The existing fingerprint safety check still applies.
 - Changes preset and action button surfaces from maroon to translucent
-  charcoal-black like the CET window. The **Character Preset Manager** title
-  now uses the same cyan as folder rows.
+  charcoal-black like the CET window. The **Character Preset Manager** title now
+  uses the same cyan as folder rows.
 - Rewrites the native panel introduction around its everyday actions and adds
   one clearly labeled **Panel Status** area. Search results, folder changes,
   saves, Trash confirmations, loading progress, final results, and failures now
   appear there without requiring the CET overlay. Errors use a red marker.
 - Keeps the panel's original single-click preset loading behavior.
-- Combines the native status heading and message into one always-visible line
-  so search, selection, loading, save, and Trash results cannot appear in an
-  empty area below a separate heading.
-- Releases a clicked native button's UI focus after its action so Cyberpunk's
-  Q and E character rotation keeps working. Search and Preset Name still keep
+- Combines the native status heading and message into one always-visible line so
+  search, selection, loading, save, and Trash results cannot appear in an empty
+  area below a separate heading.
+- Releases a clicked native button's UI focus after its action so Cyberpunk's Q
+  and E character rotation keeps working. Search and Preset Name still keep
   keyboard focus while the player is typing.
 - Starts with only **Open & Edit Appearance** expanded in the CET window. Every
   other main section starts collapsed and can still be opened normally.
@@ -348,10 +362,10 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Uses the proven verified loader from version 3.0.6 for every preset. It keeps
   the same deliberate waits, dependency handling, cleanup, and final checks
   instead of using the experimental Fast Load path.
-- Places **Search** above one scrollable list ordered like CET's **Load & Restore
-  Appearance** list. Folder rows open and close their presets, Favorites stay at
-  the top, and presets outside folders appear last. Mouse-wheel and controller
-  scrolling are handled by the visible list rows.
+- Places **Search** above one scrollable list ordered like CET's **Load &
+  Restore Appearance** list. Folder rows open and close their presets, Favorites
+  stay at the top, and presets outside folders appear last. Mouse-wheel and
+  controller scrolling are handled by the visible list rows.
 - Places **Preset Name**, **Save Location**, **Save Preset**, and **Move Preset
   to Trash** below the list. When needed, the same button changes to **Confirm
   Overwrite** or **Confirm Move to Trash** for the second press. No separate
@@ -381,25 +395,24 @@ Automated checks have passed. In-game checks remain outstanding; see the
   complete history can be cleared with confirmation.
 - Renames **Preset Options** to **Advanced Preset Options** for compatibility
   checks, Force Full Load, and Favorites.
-- Keeps only **Preset Sort Order** as a preference. It is available in the CET
-  Settings tab. The reminder notification,
-  clothing-warning setting and behavior, and Activity Log detail setting are
-  removed.
+- Keeps only **Preset Sort Order** as a preference. Open CET Settings to change
+  it. The reminder notification, clothing-warning setting and behavior, and
+  Activity Log detail setting are removed.
 - Keeps the native panel, five-entry history, pre-restore safety save,
   missing-option warnings, and CET fallback enabled instead of exposing settings
   that could weaken normal operation. Comparison details remain available in
   CET.
 - Polls the native request bridge 20 times per second. Preset comparison and
-  library refresh work runs only after a matching
-  user action, preventing repeating scans during normal frames.
+  library refresh work runs only after a matching user action, preventing
+  repeating scans during normal frames.
 - Fixes the native panel's redscript compilation against the installed game
   definitions by using supported color values, string comparison, and widget
   removal calls.
 - Requires only Cyber Engine Tweaks 1.37.1, RED4ext 1.30.0, redscript 0.5.31,
   and Codeware 1.20.3 or newer.
-- Keeps older Character Preset Manager and compatible ACU preset files
-  loadable. ACU and Character Customization Anywhere remain incompatible and
-  must be removed before starting the game.
+- Keeps older Character Preset Manager and compatible ACU preset files loadable.
+  ACU and Character Customization Anywhere remain incompatible and must be
+  removed before starting the game.
 
 </details>
 
@@ -408,7 +421,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.0.6
 
-*Smoother CET performance for large appearance setups and libraries.*
+This release reduces CET menu work for large appearance setups and preset
+libraries.
 
 - Keeps preset selection lightweight by showing only the preset name, folder,
   and saved-option count. It no longer starts a compatibility scan.
@@ -429,8 +443,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Adds a divider line before every main section, making section boundaries easy
   to see without relying only on the header text.
 - Moves every main status card below its section introduction and above the
-  controls. Current requirements, warnings, and results are easier to see
-  before selecting an action.
+  controls. This makes requirements, warnings and results easier to see before
+  you choose an action.
 - Places optional control bars after each section's main actions. The Save
   status card now includes the selected save location, and repeated section
   details were removed to keep the main path clear.
@@ -463,7 +477,7 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.0.5
 
-*Faster access to useful details and more consistent controls.*
+This release makes details easier to reach and controls more consistent.
 
 - Fixes complete-library backups failing while checking the size of the first
   preset file.
@@ -483,8 +497,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
   instead of loose colored text.
 - Labels new format-8 files as **CPM Preset** and records their preset name and
   CET library folder in readable text. If a preset has no saved folder-list
-  entry, the mod can rebuild its name and folder from the preset file. Older
-  CPM and compatible ACU presets remain readable.
+  entry, the mod can rebuild its name and folder from the preset file. Older CPM
+  and compatible ACU presets remain readable.
 - Adds **View Selected .cpmfolder Contents** so a sharing file's main folder,
   nested folders, and included presets can be checked before installation.
 - Releases finished preset-loading data after it is no longer needed, reducing
@@ -493,12 +507,12 @@ Automated checks have passed. In-game checks remain outstanding; see the
   mod window is hidden. Preset names, notes, tags, favorites, and other details
   remain available and are read again when needed.
 - Clears the displayed Activity Log from memory when its panel closes.
-- Prevents the Lua 200-local-variable startup failure from returning by keeping
-  the affected shared functions in one stable helper namespace. This also
-  prevents missing-function errors in preset, folder, log, and session actions.
+- Prevents the startup failure caused by Lua's limit of 200 local variables. The
+  affected functions now share one helper group. This also prevents
+  missing-function errors in preset, folder, log, and session actions.
 - Splits the mod into smaller, focused files so Lua compiles each part
-  separately. The menu sections and preset loader are also divided into
-  shorter functions without changing controls, preset files, or loading rules.
+  separately. The menu sections and preset loader are also divided into shorter
+  functions without changing controls, preset files, or loading rules.
 - Organizes the mod's internal working data into focused groups for presets,
   loading, Trash, the interface, cached lists, the editor, and status messages.
   This does not change controls, preset files, or loading behavior.
@@ -522,8 +536,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
   option.
 - Keeps the selected preset's folder and its parent folders open after a search
   is cleared.
-- Adds **Copy File Path** under **Rename & Copy Presets > Tags, Notes & File**. It
-  copies the complete path from the Cyberpunk 2077 game folder.
+- Adds **Copy File Path** under **Rename & Copy Presets > Tags, Notes & File**.
+  It copies the full path, starting from the Cyberpunk 2077 game folder.
 - Uses the same status handling for every folder action, keeping message colors
   consistent.
 - Uses one shared safe-writing path for preset, settings, catalog, bundle, log,
@@ -532,9 +546,9 @@ Automated checks have passed. In-game checks remain outstanding; see the
   compatible ACU preset files remain fully readable.
 - Simplifies the Load button's disabled state without changing when it can be
   used.
-- Runs one final read-only check before the load summary. An option that finishes
-  changing near the end of a load is now confirmed instead of being left as an
-  unconfirmed result.
+- Runs one final read-only check before the load summary. An option that
+  finishes changing near the end of a load is now confirmed instead of being
+  left as an unconfirmed result.
 - Reuses loader work tables and rebuilds the full option-list fingerprint only
   when the option count changes or a recent change may affect dependent options.
 - Checks a pending option every 0.05 seconds, while ordinary passes now wait
@@ -542,54 +556,56 @@ Automated checks have passed. In-game checks remain outstanding; see the
   changes.
 - Reuses the game's option list within the same update frame instead of asking
   the game for it more than once.
-- Turns **Force Full Load** off when a current preset is selected and turns it on
-  automatically for an older preset that needs position-based matching. The
+- Turns **Force Full Load** off when a current preset is selected and turns it
+  on automatically for an older preset that needs position-based matching. The
   manual control remains available for either choice.
 - Removes the repeating equipped-clothing scan from the Load status. Help still
-  explains the clothing and **No Outfit** workaround, and active wardrobe outfits
-  are still removed temporarily and restored afterward.
+  explains the clothing and **No Outfit** workaround, and active wardrobe
+  outfits are still removed temporarily and restored afterward.
 - Places **Clear** and **Refresh** on a full-width row below preset search in a
   narrow window, so neither label is cut off.
-- Adds **Select & Manage Multiple Presets** so one selection can be moved to a chosen folder,
-  exported as one shared-folder file, or moved to Trash.
-- Moves those controls into a separate **Select & Manage Multiple Presets** section
-  instead of hiding them under **Delete & Restore Items**.
-- Makes every bulk preset row a clear selection button that changes to **Selected**
-  and can be selected again to remove it from the group.
+- Adds **Select & Manage Multiple Presets** so one selection can be moved to a
+  chosen folder, exported as one shared-folder file, or moved to Trash.
+- Moves those controls into a separate **Select & Manage Multiple Presets**
+  section instead of hiding them under **Delete & Restore Items**.
+- Makes every bulk preset row a clear selection button that changes to
+  **Selected** and can be selected again to remove it from the group.
 - Adds persistent Favorites. Favorite presets stay in their folders and also
   appear in a pinned group above the regular preset tree.
-- Places **Add Selected Preset to Favorites** under **Load & Restore Appearance > Favorites & Details**, keeping it available without treating
-  the small action as a primary workflow.
-- Adds complete `.cpmbackup` export and import. A backup contains
-  every preset, the CET folder layout, and the current settings file without
-  overwriting colliding items in an existing library.
+- Places **Add Selected Preset to Favorites** under **Load & Restore Appearance
+  > Favorites & Details**, keeping it available without treating the small
+  action as a primary workflow.
+- Adds complete `.cpmbackup` export and import. A backup contains every preset,
+  the CET folder layout, and the current settings file without overwriting
+  colliding items in an existing library.
 - Moves complete-library export and import out of Settings into a visible
   **Export & Import Backups** section with direct controls.
-- Saves a hidden recovery snapshot before each new preset load and adds a
-  **Load & Restore Appearance** action to restore the appearance that was active before that load.
-  Snapshot failure is logged and never delays or blocks loading.
+- Saves a hidden recovery snapshot before each new preset load and adds a **Load
+  & Restore Appearance** action to restore the appearance that was active before
+  that load. Snapshot failure is logged and never delays or blocks loading.
 - Adds Help search with topic keywords and common terms such as **share**,
   **bug**, **clothing**, **ACU**, **backup**, **Trash**, and **favorite**.
-- Adds a clear **Search** button and pauses the long Help list while text is being
-  entered, preventing repeated redraws and making search results obvious.
+- Adds a clear **Search** button and pauses the long Help list while text is
+  being entered, preventing repeated redraws and making search results obvious.
 - Replaces vague expandable labels with labels that name the controls inside,
   including folder actions, preset details, bulk actions, and backup tools.
-- Groups `.cpmfolder` install and export under **Share & Import Folders**,
-  with file removal under **Manage & Remove .cpmfolder Files**.
-  Removing a sharing file still states that installed presets and folders are not deleted.
-- Uses clearly named secondary buttons for Favorites and details, preset details,
-  folder sharing, Settings, and Activity Log tools so each primary workflow stays short
-  and focused.
+- Groups `.cpmfolder` install and export under **Share & Import Folders**, with
+  file removal under **Manage & Remove .cpmfolder Files**. Removing a sharing
+  file still states that installed presets and folders are not deleted.
+- Uses clearly named secondary buttons for Favorites and details, preset
+  details, folder sharing, Settings, and Activity Log tools so each primary
+  workflow stays short and focused.
 - Renames every main section with the same **action & action + object** pattern.
-- Keeps **Favorites & Details** above **Restore Previous Appearance**, places the
-  favorite action below the preset details, keeps **Force Full Load** unchanged,
-  and removes the extra undo heading.
-- Renames **Save Folder Choices** to **Save Location** and removes
-  the `Optional:` and `Folder:` prefixes from secondary buttons.
+- Keeps **Favorites & Details** above **Restore Previous Appearance**, places
+  the favorite action below the preset details, keeps **Force Full Load**
+  unchanged, and removes the extra undo heading.
+- Renames **Save Folder Choices** to **Save Location** and removes the
+  `Optional:` and `Folder:` prefixes from secondary buttons.
 - Expands searchable in-game Help with a plain explanation for every button,
-  including changing labels, confirmation actions, selection rows, and dropdowns.
-- Renames the expanded **Hide Optional Preset Tools** label to
-  **Hide Tags, Notes & File**.
+  including changing labels, confirmation actions, selection rows, and
+  dropdowns.
+- Renames the expanded **Hide Optional Preset Tools** label to **Hide Tags,
+  Notes & File**.
 
 </details>
 
@@ -598,10 +614,12 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.0.4
 
-*Readable preset files with full older-format support.*
+This release makes new preset files easier to read and keeps older formats
+supported.
 
 - Adds format 8 for newly saved presets.
-- Replaces percent-encoded header values such as `%20` and `%3A` with plain text.
+- Replaces percent-encoded header values such as `%20` and `%3A` with plain
+  text.
 - Gives each file a clear title, preset information, and short instructions for
   reading its appearance entries.
 - Keeps the familiar `OptionKey:SavedNumber` line for every character option.
@@ -609,9 +627,11 @@ Automated checks have passed. In-game checks remain outstanding; see the
   option they describe.
 - Continues reading every older Character Preset Manager format and compatible
   ACU preset files.
-- Ignores ordinary comment lines instead of reporting them as damaged preset data.
+- Ignores ordinary comment lines instead of reporting them as damaged preset
+  data.
 - Updates an older preset to format 8 when the user overwrites it or saves its
-  optional notes or tags. Simply finding or loading an older file does not change it.
+  optional notes or tags. Simply finding or loading an older file does not
+  change it.
 - Keeps all format-7 CCXL choice matching and **Force Full Load** information in
   the new layout.
 - Raises the safe line limit from 8,192 to 16,448 so the readable layout can
@@ -662,14 +682,15 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Fixes numbered Activity Log archives so they remain inside the Archive folder
   when two sessions receive the same date and time.
 - Removes unused diagnostic and option-position state.
-- Reconnects the fast loader to the current editor options before it reuses saved
-  work, preventing an old game reference from being applied after the list changes.
+- Reconnects the fast loader to the current editor options before it reuses
+  saved work, preventing an old game reference from being applied after the list
+  changes.
 - Checks newly discovered preset files during startup while continuing to reuse
   lightweight saved details for presets that were already known.
 - Loads lightweight source presets before duplicating a folder, so an untouched
   preset no longer causes copy verification to fail.
-- Shares repeated copy cleanup, preset hydration and verification, cache
-  invalidation, and panel status resets without weakening their safety checks.
+- Shares the code that cleans up copies, reads and checks full presets, clears
+  saved working lists, and resets panel status. The safety checks stay in place.
 - Removes two shared-folder cleanup attempts that ran before any files had been
   created and now reports if later partial files cannot be removed.
 - Fixes empty or partly drawn menu panels caused by core helpers being hidden
@@ -682,17 +703,17 @@ Automated checks have passed. In-game checks remain outstanding; see the
   counts instead of turning either case into a real zero-option preset.
 - Stops retrying the same leftover editor option forever when the game reports
   success but does not keep the change, then continues applying the preset.
-- Applies the saved preset before clearing remaining options. Hairstyle-dependent
-  color options that disappear during the hairstyle change are no longer cleared
-  first.
+- Applies the saved preset before clearing remaining options.
+  Hairstyle-dependent color options that disappear during the hairstyle change
+  are no longer cleared first.
 - Checks the preset again after every cleanup change so a dependency rebuild
   cannot leave an earlier saved option unverified.
-- Waits for a live option value to change, or for a dependent option to disappear,
-  before treating an application as successful. A successful game call alone is
-  no longer enough.
-- Replaces rapid three-pass applications with elapsed-time deadlines and fresh
-  option lists. If the game keeps returning an old `currIndex`, the change is
-  reported as unconfirmed and is not applied repeatedly.
+- Waits for a live option value to change, or for a dependent option to
+  disappear, before treating an application as successful. A successful game
+  call alone is no longer enough.
+- Replaces three rapid attempts with time limits and fresh option lists. If the
+  game keeps returning an old `currIndex`, the change is reported as unconfirmed
+  and is not applied repeatedly.
 - Advances an ordinary option on the next normal check instead of targeted
   polling or a separate 0.20-second settling period. Hairstyles and other
   option-list rebuilds still receive a longer stable period.
@@ -704,9 +725,9 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Limits full choice-structure inspection to preset-related options. The first
   instrumented game test spent 65.1 of 70.2 seconds scanning all 1,496 exposed
   options, which caused continuous lag.
-- Uses a clear final warning for saved options or cleanup changes the game did not
-  confirm. A later pass can no longer replace that warning with a false fully
-  applied message.
+- Uses a clear final warning for saved options or cleanup changes the game did
+  not confirm. A later pass can no longer replace that warning with a false
+  fully applied message.
 - Treats a hidden dependent option saved as zero as already clear. It no longer
   appears as missing in the option check or stops an otherwise complete load.
 - Keeps retrieving a fresh game option list after each applied change. Small
@@ -738,7 +759,7 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ## 3.0.3
 
-*More reliable CCXL choices, safer forced loading, and clearer instructions.*
+This release improves CCXL matching, forced loading and instructions.
 
 - Adds format-7 presets. They keep the normal option name and also save the
   option's position in the editor and a stable name for the selected choice when
@@ -748,11 +769,12 @@ Automated checks have passed. In-game checks remain outstanding; see the
   when the saved choice still exists.
 - Adds the optional **Force Full Load** setting for related options that were
   renamed, such as a hair-color option tied to one hairstyle.
-- Current presets use the saved editor position and choice during forced loading.
-  Older presets use a limited position check and show a warning because they
-  cannot identify a hairstyle after the list changes.
+- Current presets use the saved editor position and choice during forced
+  loading. Older presets use a limited position check and show a warning because
+  they cannot identify a hairstyle after the list changes.
 - Does not use an old choice number when a format-7 preset's saved choice is no
-  longer available. This prevents the mod from knowingly choosing the wrong item.
+  longer available. This prevents the mod from knowingly choosing the wrong
+  item.
 - Places the window inside the screen area available to the game, including when
   Windows display scaling is active.
 - Removes the unnecessary "already in this folder" note after a successful move.
@@ -761,8 +783,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Adds **Shared Folder Files**. It moves one selected `.cpmfolder` file to Trash
   without changing any presets or folders. The file can be restored or removed
   with **Empty Trash Permanently**.
-- Moves a selected shared-folder file to Trash with one click. The old two-step
-  confirmation could reset before the second click.
+- Moves a selected shared-folder file to Trash with one click. The old
+  confirmation could reset while waiting for the second click.
 - Ignores temporary values such as `userdata: 0x...` when saving a choice name.
   Older affected presets safely use their saved choice number instead.
 - Checks stable choice names only when needed and remembers the result during
@@ -792,8 +814,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
   and shareable `.cpmfolder` files.
 - Keeps imported `.cpmfolder` files unchanged and records completed imports in
   `Data/Catalog/Imported Bundles.txt`.
-- Skips a file only when its name and contents match an earlier completed import.
-  A changed file with the same name can be imported again.
+- Skips a file only when its name and contents match an earlier completed
+  import. A changed file with the same name can be imported again.
 - Records an import only after all preset and folder information is saved. A
   failed import can be tried again.
 - Does not move loose files left by older releases. A clean replacement install
@@ -807,7 +829,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 ## 3.0.1
 
 - Shows a preset's full path, such as `sa/Femme Fatale V2`.
-- Lets CET remember the window size while keeping 420 by 700 as the first-use size.
+- Lets CET remember the window size while keeping 420 by 700 as the first-use
+  size.
 - Renames the safe folder action to **Remove Folder, Keep Presets** and adds a
   clear confirmation showing where the contents will move.
 - Moves known presets out of an Imported Windows folder before removing it. A
@@ -821,11 +844,12 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Fixes a startup failure caused by the main Lua file becoming too large for a
   LuaJIT limit.
 - Wraps long guidance so it remains readable in a narrow CET window.
-- Keeps the character-screen reminder on until the user turns it off in Settings.
-- Renames the main sections to **Load Preset**, **Rename & Copy**, and
-  **Delete & Restore**.
-- Removes old folder-slot cleanup and retired reminder, Trash, and import systems.
-  Older preset files remain readable.
+- Keeps the character-screen reminder on until the user turns it off in
+  Settings.
+- Renames the main sections to **Load Preset**, **Rename & Copy**, and **Delete
+  & Restore**.
+- Removes old folder-slot cleanup and retired reminder, Trash, and import
+  systems. Older preset files remain readable.
 
 </details>
 
@@ -837,10 +861,12 @@ Automated checks have passed. In-game checks remain outstanding; see the
 ### Interface and instructions
 
 - Reorganizes the README and changelog into topic and release groups.
-- Explains the limited use of AI for menu layout planning and expands the credits.
+- Explains the limited use of AI for menu layout planning and expands the
+  credits.
 - Adds the official Discord link and lists EKT Custom Character Creator as a
   compatible example.
-- Fixes the save-destination chooser so it stays open and shows the new location.
+- Fixes the save-destination chooser so it stays open and shows the new
+  location.
 - Uses consistent button sizes and shows whether the reminder is on or off.
 - Groups Trash, restore, and permanent cleanup controls together.
 - Makes folder arrows, secondary buttons, selected rows, and first-open window
@@ -854,7 +880,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Saves the full folder group when moving a folder to Trash, including empty
   folders inside it, and restores the group in one action.
 - Checks Trash records for unsafe names, paths, sizes, and excessive content.
-- Remembers search results, folder counts, and selections until the data changes.
+- Remembers search results, folder counts, and selections until the data
+  changes.
 - Avoids rewriting folder and Trash files when their contents did not change.
 - Treats invalid dates as unknown and reports incomplete file-list updates as
   warnings instead of showing a false success.
@@ -871,7 +898,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Adds **Remove Folder, Keep Presets**.
 - Adds preset source, dates, notes, and tags.
 - Renames a preset's shareable `.preset` file when the preset is renamed.
-- Moves developer counters under advanced details and places the Activity Log in Help.
+- Moves developer counters under advanced details and places the Activity Log in
+  Help.
 - Keeps full apartment mirror options unchanged.
 
 </details>
@@ -881,10 +909,14 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ### 2.0.8
 
-- Makes the character-screen reminder smaller, sharper, centered, and easier to read.
-- Keeps the reminder visible until CET opens and saves the user's reminder choice.
-- Places the reminder, Activity Log, and Help controls in one responsive top row.
-- Fixes the full-editor button staying disabled after some character screens close.
+- Makes the character-screen reminder smaller, sharper, centered, and easier to
+  read.
+- Keeps the reminder visible until CET opens and saves the user's reminder
+  choice.
+- Places the reminder, Activity Log, and Help controls in one responsive top
+  row.
+- Fixes the full-editor button staying disabled after some character screens
+  close.
 - Reduces repeated work while the menu, reminder, search, Help, and automatic
   loading are active.
 - Adds clear messages for preset limits and invalid character-option values.
@@ -898,21 +930,23 @@ Automated checks have passed. In-game checks remain outstanding; see the
 ### 2.0.6
 
 - Shows assigned editor and window keys in Help when CET can provide them.
-- Clarifies that Photo Mode and Appearance Menu Mod may stay installed, but their
-  own menus cannot be used to save or load.
+- Clarifies that Photo Mode and Appearance Menu Mod may stay installed, but
+  their own menus cannot be used to save or load.
 - Stops an unsafe or overly deep Windows-folder scan without replacing the last
   good preset list.
 - Adds size, line, option-count, name-length, and choice-number limits for
   imported presets.
 - Stops guessing when a saved CCXL option is missing.
-- Replaces the 16 packaged folder slots with unlimited folders stored by the mod.
+- Replaces the 16 packaged folder slots with unlimited folders stored by the
+  mod.
 - Finds Windows folders inside `Character Presets` and labels them Imported.
 - Improves safe copying, file-list updates, new-game checks, editor fallback,
   name checks, and error messages.
 
 ### 2.0.5
 
-- Removes unreliable automatic checks for ACU and Character Customization Anywhere.
+- Removes unreliable automatic checks for ACU and Character Customization
+  Anywhere.
 - Moves the most important compatibility warnings to the top of Help.
 - Simplifies section controls and user-facing text.
 - Adds the clothing and **No Outfit** workaround for Cyberpunk's loading-screen
@@ -945,10 +979,11 @@ Automated checks have passed. In-game checks remain outstanding; see the
 ### 2.0.0
 
 - Renames the project to **Character Preset Manager (CET)** and updates its mod
-  folder, preset folder, files, window, key label, Help, project file, and archive.
+  folder, preset folder, files, window, key label, Help, project file, and
+  archive.
 - Renames `character-presets` to `Character Presets`.
-- Requires a clean update from 1.0.x: back up presets, remove the old mod folder,
-  install 2.0.0, and restore the presets.
+- Requires a clean update from 1.0.x: back up presets, remove the old mod
+  folder, install 2.0.0, and restore the presets.
 - Opens the renamed window near the right side the first time and remembers the
   user's chosen position after that.
 
@@ -970,11 +1005,13 @@ Automated checks have passed. In-game checks remain outstanding; see the
 - Adds consistent full-width buttons and status panels.
 - Detects preset and folder changes made outside CET.
 - Adds preset and folder copying with cleanup after an incomplete copy.
-- Adds confirmed permanent folder deletion and shows how many presets it affects.
+- Adds confirmed permanent folder deletion and shows how many presets it
+  affects.
 
 ### 1.0.16
 
-- Adds Windows-folder scanning, folder creation, rename, safe deletion, and preset moves.
+- Adds Windows-folder scanning, folder creation, rename, safe deletion, and
+  preset moves.
 - Refuses to delete a non-empty folder.
 - Uses 16 packaged folder slots because of the CET file limits used at the time.
 
@@ -994,7 +1031,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ### 1.0.13
 
-- Adds clearer name fields, full-width preset deletion, and responsive panel sizes.
+- Adds clearer name fields, full-width preset deletion, and responsive panel
+  sizes.
 - Adds an in-menu log viewer with Refresh and Copy.
 - Adds an ACU information button when the old automatic check finds ACU.
 
@@ -1006,9 +1044,9 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ### 1.0.11
 
-- Refreshes the visible character choices after loading so the screen matches the
-  applied preset without using Next and Back.
-- Makes editor observation failures non-fatal.
+- Refreshes the visible character choices after loading so the screen matches
+  the applied preset without using Next and Back.
+- Keeps the mod running if it cannot watch editor changes.
 - Adds clearer ACU recovery steps, safe preset-name checks, confirmed deletion,
   and one current plus one previous session log.
 
@@ -1021,8 +1059,10 @@ Automated checks have passed. In-game checks remain outstanding; see the
 ### 1.0.9
 
 - Stops several missing ACU entries from fighting over one CCXL option.
-- Leaves unclear matches unchanged instead of repeatedly changing the appearance.
-- Expands the README with saving, loading, ACU import, CCXL, and Photo Mode details.
+- Leaves unclear matches unchanged instead of repeatedly changing the
+  appearance.
+- Expands the README with saving, loading, ACU import, CCXL, and Photo Mode
+  details.
 
 ### 1.0.8
 
@@ -1040,7 +1080,8 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 - Makes loading one click and waits between automatic passes.
 - Stops after three checks find the same missing options.
-- Adds the ACU preset bridge used at that time and shows those presets as read-only.
+- Adds the ACU preset bridge used at that time and shows those presets as
+  read-only.
 
 ### 1.0.5
 
@@ -1054,7 +1095,7 @@ Automated checks have passed. In-game checks remain outstanding; see the
 
 ### 1.0.2
 
-- Internal test build; not released.
+- This was an internal test build and was not released.
 
 ### 1.0.1
 

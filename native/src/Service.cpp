@@ -124,7 +124,7 @@ Json Service::SubmitRaw(std::uint64_t session, const std::string& action, const 
     if (!accepting_) return Failure("The preset service is shutting down.");
     if (!sessionOpen_ || session != session_)
         return Failure("That editor session has closed.");
-    if (operations_.size() >= MaximumOperations) return Failure("The preset service is busy. Wait for pending actions to finish.");
+    if (operations_.size() >= MaximumOperations) return Failure("The preset service is busy. Wait for the queued actions to finish before trying again.");
     const bool appearance = action == "plan_load";
     if (appearance && appearanceId_ != 0) return Failure("Another appearance load is already in progress.");
     if (action == "load_step" && appearanceId_ == 0) return Failure("Start an appearance load before requesting its next change.");
@@ -200,7 +200,7 @@ Json Service::Cancel(std::uint64_t session, std::uint64_t operationId)
     auto& operation = *found->second;
     std::unique_lock commitLock(operation.context.commitMutex_, std::try_to_lock);
     if (!commitLock.owns_lock() || operation.context.committed_)
-        return Failure("The file change has already started finishing and cannot be canceled.");
+        return Failure("The file change is being saved and can no longer be canceled.");
     if (!Finished(operation.status)) operation.context.canceled_ = true;
     return {{"protocol", Protocol}, {"accepted", true}, {"operation", operationId}};
 }

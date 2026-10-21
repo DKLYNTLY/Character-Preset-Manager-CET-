@@ -31,11 +31,11 @@ bool TargetPath(const std::string& path)
 std::string Read(const fs::path& path, std::size_t maximum = MaximumFileBytes)
 {
     const auto size = fs::file_size(path);
-    if (size > maximum) throw std::runtime_error("A transaction file exceeds the size limit.");
+    if (size > maximum) throw std::runtime_error("A file used for this action is larger than the size limit.");
     std::ifstream file(path, std::ios::binary);
     std::string text(static_cast<std::size_t>(size), '\0');
     if (!file.read(text.data(), static_cast<std::streamsize>(size)))
-        throw std::runtime_error("A transaction file could not be read completely.");
+        throw std::runtime_error("A file used for this action could not be read in full.");
     return text;
 }
 
@@ -104,7 +104,7 @@ void FileTransaction::Finish(const Json& manifest)
 {
     if (!manifest.is_object() || manifest.value("version", 0) != 1 || !manifest.contains("changes") ||
         !manifest["changes"].is_array() || manifest["changes"].size() > MaximumChanges)
-        throw std::runtime_error("Saved file recovery information is invalid. No further files were changed.");
+        throw std::runtime_error("The saved recovery information is invalid. No other files were changed during this attempt.");
     std::set<std::string> paths;
     std::size_t index = 0;
     for (const auto& change : manifest["changes"])
@@ -120,7 +120,7 @@ void FileTransaction::Finish(const Json& manifest)
         const bool hadBefore = change.at("before").get<bool>();
         const bool hasAfter = change.at("after").get<bool>();
         if ((hadBefore && !fs::is_regular_file(before)) || (hasAfter && !fs::is_regular_file(after)))
-            throw std::runtime_error("A recovery copy is missing. No further files were changed.");
+            throw std::runtime_error("A recovery copy is missing. No other files were changed during this attempt.");
         const bool alreadyDone = hasAfter ? Same(target, after) : !fs::exists(target);
         if (!alreadyDone && (hadBefore ? !Same(target, before) : fs::exists(target)))
             throw std::runtime_error("A file changed outside Character Preset Manager during recovery. Its contents were kept.");
@@ -144,7 +144,7 @@ void FileTransaction::Finish(const Json& manifest)
                 if (fs::exists(install)) fs::remove(install);
                 WriteNew(install, Read(after));
                 if (!MoveFileExW(install.c_str(), target.c_str(), MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH))
-                    throw std::runtime_error("A file change could not finish. Recovery will retry it before the next library change.");
+                    throw std::runtime_error("A file change could not finish. Recovery will try again before the next library change.");
             }
         }
         else if (fs::exists(target) && !fs::remove(target))

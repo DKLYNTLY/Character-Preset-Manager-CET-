@@ -324,7 +324,7 @@ public class PresetPanel extends inkCustomController {
     if IsDefined(this.bridge) {
       this.bridge.RegisterPanel(this);
 
-      if !this.bridge.IsReady() { this.SetStatus("Install matching Character Preset Manager files, RED4ext, redscript and Codeware, then restart the game.", true); };
+      if !this.bridge.IsReady() { this.SetStatus("Install the complete Character Preset Manager package with RED4ext, redscript and Codeware. Then restart the game.", true); };
     };
     this.StartHeartbeat();
     return true;
@@ -677,7 +677,7 @@ public class PresetPanel extends inkCustomController {
           + " | Missing: " + summary[3] + " | Repeated: " + summary[4]
           + " | Invalid: " + summary[5] + " | Will clear: " + summary[6], false);
       } else {
-        this.SetStatus("Compatibility could not be checked. Select a preset and check again.", true);
+        this.SetStatus("The compatibility check failed. Select a preset, then try the check again.", true);
       };
       return;
     };

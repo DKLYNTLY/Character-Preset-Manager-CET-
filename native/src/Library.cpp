@@ -287,7 +287,7 @@ void Library::RecoverLegacy(OperationContext& context)
             const auto destination = operation == "restore" ? other : main;
             const bool hasSource = fs::exists(SafePath(source)), hasDestination = fs::exists(SafePath(destination));
             if (hasSource && hasDestination)
-                throw std::runtime_error("Both copies of an unfinished file move exist. They were kept for review; recovery could not choose between them.");
+                throw std::runtime_error("Both copies of an unfinished file move still exist. Recovery could not choose which copy to use, so both were kept for review.");
             if (!hasSource && !hasDestination)
                 throw std::runtime_error("A file needed for an unfinished move is missing. The recovery record was kept.");
             if (hasSource)
@@ -393,7 +393,7 @@ Json Library::Refresh(OperationContext& context)
         {
             context.CheckCanceled();
             if (++visited > MaximumCatalogLines) throw std::runtime_error("The preset folder has too many items.");
-            if (iterator.depth() > 12) throw std::runtime_error("The preset folders are nested too deeply.");
+            if (iterator.depth() > 12) throw std::runtime_error("The preset folders have more than 12 nested levels.");
             const auto relative = Utf8(iterator->path().lexically_relative(root));
             const auto path = SafePath("Character Presets/" + relative);
             if (iterator->is_directory())
@@ -450,7 +450,7 @@ Json Library::Refresh(OperationContext& context)
         auto name = preferred;
         for (unsigned int suffix = 2; used.contains(Lower(name)); ++suffix)
         {
-            if (suffix > 9999) throw std::runtime_error("A unique preset name could not be assigned.");
+            if (suffix > 9999) throw std::runtime_error("The mod could not find an unused preset name.");
             const auto tail = " " + std::to_string(suffix);
             const auto folder = Parent(preferred);
             name = (folder.empty() ? "" : folder + '/') + Leaf(preferred).substr(0, 64 - tail.size()) + tail;
@@ -759,7 +759,7 @@ Json Library::Mutate(const Json& request, OperationContext& context)
     if (!request.contains("revision") || request.at("revision") != revision_)
         throw std::runtime_error("The library changed. Refresh the selection before trying again.");
     if (fs::exists(SafePath("Data/Recovery/Recovery Journal.txt")))
-        throw std::runtime_error("An earlier library action needs recovery before native changes can begin.");
+        throw std::runtime_error("An earlier library action needs recovery. Refresh before changing saved files.");
     FileTransaction transaction([this](const auto& path) { return SafePath(path); });
     transaction.Recover();
     const std::string catalogPath = "Data/Catalog/Virtual Folders.txt";
@@ -804,7 +804,7 @@ Json Library::Mutate(const Json& request, OperationContext& context)
         {
             const auto next = key.starts_with(name + '/') ? map(key) : key;
             if (!used.insert(Lower(next)).second)
-                throw std::runtime_error("The folder cannot be removed because preset names would overlap.");
+                throw std::runtime_error("Removing this folder would give two presets the same name.");
             if (next != key) patchFolder(key, next, preset.at("storage").get<std::string>());
             updated[next] = preset;
         }
@@ -817,7 +817,7 @@ Json Library::Mutate(const Json& request, OperationContext& context)
             if (folder == name) { manual.erase(folder); ignored[folder] = true; continue; }
             const auto next = folder.starts_with(name + '/') ? map(folder) : folder;
             if (!used.insert(Lower(next)).second)
-                throw std::runtime_error("The folder cannot be removed because nested folder names would overlap.");
+                throw std::runtime_error("Removing this folder would give two nested folders the same name.");
             Ancestors(updated, next);
             if (next != folder) { manual.erase(folder); ignored[folder] = true; }
         }
@@ -934,7 +934,7 @@ Json Library::Mutate(const Json& request, OperationContext& context)
         const bool exists = presets.contains(name);
         if (action != "save" && !exists) throw std::runtime_error("Select an available preset first.");
         if (action == "save" && exists && !request.value("replace", false))
-            throw std::runtime_error("That preset already exists. Confirm replacement before saving.");
+            throw std::runtime_error("That preset already exists. Confirm that you want to replace it before saving.");
         if (!exists && ContainsName(presets, name)) throw std::runtime_error("A preset with that name already exists.");
         Json preset;
         if (exists) preset = ParsePreset(CheckedContents(name));
@@ -1027,7 +1027,7 @@ Json Library::ImportAcu(OperationContext& context)
     FileTransaction transaction([this](const auto& path) { return SafePath(path); });
     transaction.Recover();
     if (fs::exists(SafePath("Data/Recovery/Recovery Journal.txt")))
-        throw std::runtime_error("An earlier library action needs recovery before imports can begin.");
+        throw std::runtime_error("An earlier library action needs recovery. Refresh before you import any more files.");
     const auto game = manager_.parent_path().parent_path().parent_path();
     const auto acu = manager_.parent_path().filename() == "plugins" && manager_.parent_path().parent_path().filename() == "red4ext"
         ? game / "bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker" : manager_.parent_path() / "AppearanceChangeUnlocker";
@@ -1179,13 +1179,13 @@ Json Library::ArchiveAction(const Json& request, OperationContext& context)
             return {{"filename", filename}, {"root", archive.root}, {"names", names}, {"folders", folders}, {"fingerprint", fingerprint}, {"revision", revision_}};
         }
         if (request.value("fingerprint", std::string{}) != fingerprint)
-            throw std::runtime_error("The selected shared file changed. Preview it again before continuing.");
+            throw std::runtime_error("The selected shared file changed. Open its preview again before you continue.");
         if (action != "backup_delete" && action != "bundle_trash" && action != "bundle_restore") archive = ReadArchive(text, backup);
     }
     if (request.value("revision", std::uint64_t{}) != revision_)
         throw std::runtime_error("The library changed. Refresh before trying again.");
     if (fs::exists(SafePath("Data/Recovery/Recovery Journal.txt")))
-        throw std::runtime_error("An earlier library action needs recovery before native changes can begin.");
+        throw std::runtime_error("An earlier library action needs recovery. Refresh before changing saved files.");
     std::optional<std::string> currentCatalog;
     if (fs::exists(SafePath(catalogPath))) currentCatalog = Read(catalogPath, MaximumCatalogBytes);
     if (currentCatalog != catalogContents_) throw std::runtime_error("The saved folder list changed. Refresh before trying again.");
@@ -1282,7 +1282,7 @@ Json Library::ArchiveAction(const Json& request, OperationContext& context)
                     fingerprint.empty() || fingerprint.front() == ':' || fingerprint.back() == ':' || fingerprint.find("::") != std::string::npos ||
                     std::any_of(fingerprint.begin(), fingerprint.end(), [](char c) { return (c < '0' || c > '9') && c != ':'; }) ||
                     (!root.empty() && !Relative(root)))
-                    throw std::runtime_error("The imported-folder list is invalid. No shared folders were changed.");
+                    throw std::runtime_error("The imported-folder list is invalid. Your shared folders were kept as they were.");
                 registry[Lower(name)] = {{"filename", name}, {"fingerprint", fingerprint}, {"root", root}};
             }
         }
@@ -1519,7 +1519,7 @@ Json Library::Trash(const Json& request, OperationContext& context)
     if (request.value("revision", std::uint64_t{}) != revision_)
         throw std::runtime_error("The library changed. Refresh before trying again.");
     if (fs::exists(SafePath("Data/Recovery/Recovery Journal.txt")))
-        throw std::runtime_error("An earlier library action needs recovery before native changes can begin.");
+        throw std::runtime_error("An earlier library action needs recovery. Refresh before changing saved files.");
     std::optional<std::string> currentCatalog;
     if (fs::exists(SafePath(libraryCatalogPath))) currentCatalog = Read(libraryCatalogPath, MaximumCatalogBytes);
     if (currentCatalog != catalogContents_) throw std::runtime_error("The saved folder list changed. Refresh before trying again.");
@@ -1708,7 +1708,7 @@ Json Library::History(const Json& request, OperationContext& context)
         return {{"preset", preset}, {"index", index}, {"fingerprint", fingerprint}};
     }
     if (fs::exists(SafePath("Data/Recovery/Recovery Journal.txt")))
-        throw std::runtime_error("An earlier library action needs recovery before native changes can begin.");
+        throw std::runtime_error("An earlier library action needs recovery. Refresh before changing saved files.");
     std::vector<FileChange> changes;
     if (action == "history_clear")
     {
@@ -1726,14 +1726,14 @@ Json Library::History(const Json& request, OperationContext& context)
         preset["presetName"] = "Appearance History";
         preset["libraryFolder"] = "";
         preset["source"] = "Character Preset Manager (CET) appearance history";
-        preset["notes"] = request.value("description", "Automatic recovery snapshot");
+        preset["notes"] = request.value("description", "Appearance saved for recovery");
         preset["tags"] = "appearance history";
         preset["favorite"] = false;
         preset["created"] = Timestamp();
         preset["modified"] = preset["created"];
         const auto saved = WritePreset(preset);
         const auto verified = ParsePreset(saved);
-        if (verified.is_null()) throw std::runtime_error("The recovery snapshot could not be checked safely.");
+        if (verified.is_null()) throw std::runtime_error("The saved recovery appearance could not be checked safely.");
         auto sameAppearance = [](const Json& first, const Json& second) {
             if (first.is_null() || second.is_null() || first.at("entries").size() != second.at("entries").size()) return false;
             for (std::size_t index = 0; index < first.at("entries").size(); ++index)
@@ -1747,13 +1747,13 @@ Json Library::History(const Json& request, OperationContext& context)
             return true;
         };
         if (contents.contains(1) && sameAppearance(verified, ParsePreset(contents.at(1))))
-            return {{"saved", false}, {"message", "This appearance is already the newest recovery snapshot."}, {"fingerprint", fingerprint}};
+            return {{"saved", false}, {"message", "This appearance matches the newest saved recovery appearance."}, {"fingerprint", fingerprint}};
         for (int index = 5; index >= 2; --index)
         {
             if (contents.contains(index - 1))
             {
                 if (ParsePreset(contents.at(index - 1)).is_null())
-                    throw std::runtime_error("An older recovery snapshot could not be read. It was kept for review.");
+                    throw std::runtime_error("An older recovery appearance could not be read. Its file was kept for review.");
                 changes.push_back({historyPath(index), contents.at(index - 1)});
             }
             else if (contents.contains(index)) changes.push_back({historyPath(index), std::nullopt});
@@ -1772,7 +1772,7 @@ Json Library::History(const Json& request, OperationContext& context)
     transaction.Apply(changes, context);
     auto result = History({{"action", "history"}}, context);
     result["saved"] = action == "history_save";
-    result["message"] = action == "history_save" ? "Recovery snapshot saved." : "Appearance history cleared.";
+    result["message"] = action == "history_save" ? "Recovery appearance saved." : "Appearance history cleared.";
     return result;
 }
 }

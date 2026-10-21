@@ -126,49 +126,49 @@ public class PresetManager extends inkCustomController {
     let labels: array<String>;
     ArrayClear(this.actions);
     if value == 0 {
-      this.instruction.SetText("Select a preset. Edit its notes and tags below. Use Rename or Move with a full destination name, such as My Folder/My Preset.");
+      this.instruction.SetText("Select a preset to edit its notes and tags below. For Rename or Move, enter the full destination, such as My Folder/My Preset.");
       this.primary.SetDefaultText("Notes, or full destination name"); this.secondary.SetDefaultText("Tags");
       labels = ["LOAD", "SAVE NOTES / TAGS", "FAVORITE", "DUPLICATE", "RENAME", "MOVE", "MARK / UNMARK", "MOVE MARKED", "TRASH SELECTED", "TRASH MARKED", "COMPARE", "REFRESH"];
       this.actions = ["load", "metadata", "favorite", "duplicate", "rename", "move", "mark", "move_many", "delete", "trash_move", "compare", "refresh"];
       this.bridge.Request("current", "");
     };
     if value == 1 {
-      this.instruction.SetText("Enter a folder name below. For Rename or Copy, enter the destination in the second field. Removing a folder keeps its presets in the parent folder.");
+      this.instruction.SetText("Enter the folder name in the first field. To rename or copy it, enter the destination in the second field. Remove Folder keeps the presets in the parent folder.");
       this.primary.SetDefaultText("Folder name"); this.secondary.SetDefaultText("Destination folder");
       labels = ["CREATE FOLDER", "RENAME FOLDER", "COPY FOLDER", "REMOVE FOLDER", "SAVE LOCATION", "ROOT LOCATION", "TRASH FOLDER"];
       this.actions = ["create_folder", "rename_folder", "duplicate_folder", "remove_folder", "save_location", "root_location", "trash_folder"];
       this.bridge.Request("folder_list", "");
     };
     if value == 2 {
-      this.instruction.SetText("Select a shared file or backup to preview it. Import keeps existing presets. Export writes a file into Character Presets in the native mod folder.");
+      this.instruction.SetText("Preview a shared file or backup before importing it. Your existing presets are kept. Export saves a file in red4ext/plugins/CharacterPresetManager/Character Presets.");
       this.primary.SetDefaultText("Shared file or backup name"); this.secondary.SetDefaultText("Folder to export, or leave empty for marked presets");
       labels = ["LIST FILES", "PREVIEW SHARED", "IMPORT SHARED", "EXPORT SHARED", "PREVIEW BACKUP", "RESTORE BACKUP", "CREATE BACKUP", "DELETE BACKUP", "TRASH SHARED"];
       this.actions = ["archive_list", "bundle_preview", "bundle_import", "bundle_export", "backup_preview", "backup_import", "backup_export", "backup_delete", "bundle_trash"];
       this.bridge.Request("archive_list", "");
     };
     if value == 3 {
-      this.instruction.SetText("Select an item from Trash or appearance history. Restore brings it back. Empty Trash and Clear History require a second selection to confirm.");
+      this.instruction.SetText("Select an item in Trash or appearance history, then choose Restore to bring it back. Empty Trash and Clear History delete saved files permanently. Select either action twice to confirm.");
       this.primary.SetDefaultText("Selected recovery item"); this.secondary.SetDefaultText("Unused");
       labels = ["SHOW TRASH", "RESTORE ITEM", "EMPTY TRASH", "SHOW HISTORY", "RESTORE HISTORY", "UNDO LAST LOAD", "CLEAR HISTORY", "ACTIVITY LOG", "RESTORE SHARED FILE", "RESTORE FOLDER"];
       this.actions = ["trash_query", "trash_restore", "trash_empty", "history", "restore_history", "restore_previous", "history_clear", "log", "bundle_restore", "restore_group"];
       this.bridge.Request("trash_query", "");
     };
     if value == 4 {
-      this.instruction.SetText("Choose the preset order below. To assign a key, select Bind Editor Key or Bind Panel Key, then press the key. Backspace clears that binding.");
+      this.instruction.SetText("Choose how to sort presets. To assign a key, select Bind Editor Key or Bind Panel Key and press the key you want. Press Backspace to clear that binding.");
       this.primary.SetDefaultText("Unused"); this.secondary.SetDefaultText("Unused");
       labels = ["SORT BY NAME", "SORT BY DATE", "BIND EDITOR KEY", "BIND PANEL KEY", "SHOW SETTINGS"];
       this.actions = ["sort_name", "sort_date", "bind_editor", "bind_panel", "config_read"];
       this.bridge.Request("config_read", "");
     };
     if value == 5 {
-      this.instruction.SetText("Everyday preset tools work without CET. CET provides optional force loading and technical details.");
+      this.instruction.SetText("You can save, load and manage presets without CET. Install CET if you also want force loading and technical information.");
       this.primary.SetDefaultText("Unused"); this.secondary.SetDefaultText("Unused");
       labels = ["HOW TO USE", "FILE LOCATIONS", "COMPATIBILITY", "ACTIVITY LOG"];
       this.actions = ["help", "paths", "compatibility", "log"];
-      this.output.SetText("Choose a Help topic. Select Back to Editor to return to saving and loading.");
+      this.output.SetText("Choose a topic below. Select Back to Editor when you want to save or load presets.");
     };
     if value == 6 {
-      this.instruction.SetText("Mark presets from any page. Mark Page adds the current search page. Enter a destination folder to move them, or leave it empty for All Presets. Export keeps their folder paths.");
+      this.instruction.SetText("Mark presets across pages and folders. Mark Page adds all presets on the current search page. To move them, enter a destination folder or leave it empty for All Presets. Export keeps each preset's folder path.");
       this.primary.SetDefaultText("Destination folder"); this.secondary.SetDefaultText("Unused");
       labels = ["MARK / UNMARK", "MARK PAGE", "CLEAR MARKS", "MOVE MARKED", "TRASH MARKED", "EXPORT MARKED"];
       this.actions = ["mark", "mark_page", "clear_marks", "move_many", "trash_move", "bundle_export"];
@@ -224,10 +224,10 @@ public class PresetManager extends inkCustomController {
   private func Execute(action: String) -> Void {
     let text: String = this.primary.GetText();
     let extra: String = this.secondary.GetText();
-    if Equals(action, "help") { this.output.SetText("Select a preset row, then Load to apply it. Save Preset stores the current appearance. More Actions includes recovery and compatibility. Manage Presets contains folders, notes, sharing and backups. Hide Presets clears the panel so you can use the game's controls. Loads can be canceled; applied choices remain visible."); return; };
-    if Equals(action, "paths") { this.output.SetText("Presets: red4ext/plugins/CharacterPresetManager/Character Presets. Settings, recovery and logs: red4ext/plugins/CharacterPresetManager/Data. The first update copies the old CET library and keeps the originals. Conflicts are kept under Data/Migration/Conflicts. Back up both Character Presets and Data."); return; };
-    if Equals(action, "compatibility") { this.output.SetText("Requires matching native files, redscript, RED4ext and Codeware. CET is optional. Older CPM and compatible ACU presets stay readable and are upgraded only when overwritten or when notes or tags are saved. Missing custom choices cannot be recreated. Loading does not change an existing character's gender or body type. Use a supported appearance editor. Remove Character Customization Anywhere before using the full editor."); return; };
-    if Equals(action, "bind_editor") || Equals(action, "bind_panel") { InputService.Get().BindKey(Equals(action, "bind_editor")); this.output.SetText("Press the key to assign. Backspace clears the binding."); return; };
+    if Equals(action, "help") { this.output.SetText("Select a preset row and choose Load to apply it. To save your current appearance, enter a name and choose Save Preset. More Actions has recovery and compatibility tools. Open Manage Presets for folders, notes, sharing and backups. Hide Presets clears the panel so you can reach the game's controls. Cancel Load stops further changes, leaving applied choices visible."); return; };
+    if Equals(action, "paths") { this.output.SetText("Presets: red4ext/plugins/CharacterPresetManager/Character Presets. Settings, recovery and logs: red4ext/plugins/CharacterPresetManager/Data. Back up both folders in full. When you first open the library after updating, the mod copies the old CET library and keeps the originals. Differing old files are saved under Data/Migration/Conflicts for review."); return; };
+    if Equals(action, "compatibility") { this.output.SetText("Install the complete package, plus redscript, RED4ext and Codeware. CET is optional. Older CPM and compatible ACU presets stay readable; they update only when you overwrite them or save notes or tags. The mod cannot recreate missing custom choices. Loading keeps an existing character's gender and body type, and needs a supported appearance editor. Before you use the Full Appearance Editor, remove Character Customization Anywhere, then close and restart the game fully."); return; };
+    if Equals(action, "bind_editor") || Equals(action, "bind_panel") { InputService.Get().BindKey(Equals(action, "bind_editor")); this.output.SetText("Press the key you want to use. To clear this binding, press Backspace."); return; };
     if Equals(action, "sort_name") { action = "config_save"; text = "name"; };
     if Equals(action, "sort_date") { action = "config_save"; text = "modified"; };
     if Equals(action, "root_location") { action = "save_location"; text = ""; };
@@ -236,7 +236,7 @@ public class PresetManager extends inkCustomController {
     let destructive: Bool = Equals(action, "trash_empty") || Equals(action, "history_clear") || Equals(action, "backup_delete") || Equals(action, "remove_folder") || Equals(action, "trash_move") || Equals(action, "bundle_trash") || Equals(action, "trash_folder");
     if destructive && NotEquals(this.confirmation, token) {
       this.confirmation = token;
-      this.output.SetText("Select the same action again to confirm. Empty Trash, Clear History and Delete Backup permanently remove the selected saved files.");
+      this.output.SetText("Select this action again to confirm it. Empty Trash, Clear History and Delete Backup delete the selected saved files permanently.");
       return;
     };
     this.bridge.RequestExtended(action, text, extra, destructive);

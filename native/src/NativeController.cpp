@@ -196,7 +196,7 @@ Json NativeController::Execute(const Json& request, OperationContext& context)
         if (!existing.is_null() && pendingConfirmation_ != token)
         {
             pendingConfirmation_ = token; confirmationFingerprint_ = existing.at("fingerprint");
-            return List(context, "A preset already has that name. Select Confirm Overwrite to replace it.");
+            return List(context, "A preset already has that name. Select Confirm Overwrite if you want to replace it.");
         }
         if (!existing.is_null() && existing.at("fingerprint") != confirmationFingerprint_) throw std::runtime_error("That preset changed. Select it again before replacing it.");
         Call({{"action", "save"}, {"name", name}, {"preset", Capture(request.at("options"))}, {"replace", !existing.is_null()}}, context);
@@ -240,7 +240,7 @@ Json NativeController::Execute(const Json& request, OperationContext& context)
             const auto key = previousChange_.at("trackingKey").get<std::string>();
             if (previousChange_.at("kind") == "apply") { state_["satisfied"][key] = true; state_["unconfirmed"][key] = true; }
             else state_["cleanupSkipped"][key] = true;
-            Log("Unconfirmed choice: " + Field(previousChange_, "label") + ". The choice was applied once.");
+            Log("Could not confirm choice: " + Field(previousChange_, "label") + ". It was applied once, but the editor did not confirm the result.");
         }
         auto result = PlanAppearance({{"preset", preset_}, {"state", state_}, {"options", request.at("options")}});
         state_ = result.at("state");
@@ -249,15 +249,15 @@ Json NativeController::Execute(const Json& request, OperationContext& context)
         std::string message = outcome;
         for (const auto& detail : result["details"]) Log("Skipped " + Field(detail, "label") + ": " + Field(detail, "reason"));
         if (outcome == "complete") message = "Loaded. All saved choices were confirmed.";
-        if (outcome == "partial") message = "Partially loaded. Some choices could not be matched or confirmed. See Activity Log.";
-        if (outcome == "failed") message = "Load failed. Saved choices could not be matched safely. See Activity Log.";
+        if (outcome == "partial") message = "Partially loaded. Some choices could not be matched or confirmed, so check your appearance. Read Activity Log for details.";
+        if (outcome == "failed") message = "Load failed. The saved choices could not be matched safely in this editor. Read Activity Log for details.";
         if (outcome == "change") { const auto position = previousChange_.at("position").get<std::size_t>(); message = "Applying " + (position > 0 && position <= request["options"].size() ? request["options"][position - 1].value("label", Field(previousChange_, "label")) : Field(previousChange_, "label")); Log(message); }
         if (outcome == "complete" || outcome == "partial" || outcome == "failed") Log(message);
         result["snapshotHash"] = std::hash<std::string>{}(request.at("options").dump());
         result["kind"] = outcome; result["payload"] = message;
         return result;
     }
-    if (action == "cancel_load") { preset_ = Json(); previousChange_ = Json(); Log("Loading canceled. Choices already applied remain visible."); return {{"kind", "status"}, {"payload", lastMessage_}}; }
+    if (action == "cancel_load") { preset_ = Json(); previousChange_ = Json(); Log("Loading canceled. The choices already applied are still visible."); return {{"kind", "status"}, {"payload", lastMessage_}}; }
     if (action == "history")
     {
         const auto result = Call({{"action", "history"}}, context);

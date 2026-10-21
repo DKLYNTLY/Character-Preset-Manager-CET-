@@ -42,12 +42,12 @@ void Copy(const fs::path& source, const fs::path& target, const std::string& con
         std::ofstream output(temporary, std::ios::binary | std::ios::trunc);
         output.write(contents.data(), static_cast<std::streamsize>(contents.size()));
         output.flush();
-        if (!output) throw std::runtime_error("The library copy could not be saved. Original files were kept.");
+        if (!output) throw std::runtime_error("The library copy could not be saved. Your original files are still in their old location.");
     }
     if (Contents(temporary) != contents || Contents(source) != contents)
         throw std::runtime_error("A file changed during migration. Retry after closing other preset tools.");
     if (!MoveFileExW(temporary.c_str(), target.c_str(), MOVEFILE_WRITE_THROUGH))
-        throw std::runtime_error("The verified library copy could not be installed. Original files were kept.");
+        throw std::runtime_error("The checked library copy could not be put in place. Your original files were kept.");
     if (Contents(target) != contents) throw std::runtime_error("A copied preset file failed verification.");
 }
 }
@@ -89,7 +89,7 @@ std::string MigrateStorage(const fs::path& source, const fs::path& destination)
             Copy(iterator->path(), target, contents);
         }
     }
-    if (conflicts) return "Some old files differ from the native library. Both copies were kept. Review Data/Migration/Conflicts before retrying migration. The active library was not replaced.";
+    if (conflicts) return "Some old files differ from those in the native library. Both copies were kept for review. Check Data/Migration/Conflicts before trying the move again. Your active library was kept in place.";
     fs::create_directories(marker.parent_path());
     const auto temporary = marker.parent_path() / L"Completed.tmp";
     Safe(temporary);

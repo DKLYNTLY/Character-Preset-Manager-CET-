@@ -136,16 +136,16 @@ public class NativeBridge extends ScriptableSystem {
         cancel.operation = this.operation;
         let result: ref<NativeReply> = new NativeReply();
         CPMNativeExchange(cancel, result);
-        this.Sync("status", "Loading canceled. Choices already applied remain visible.", false);
+        this.Sync("status", "Loading canceled. The choices already applied are still visible.", false);
         return;
       };
     };
     if this.operation != 0ul || this.waiting || (this.loading && NotEquals(action, "step")) {
-      if Equals(action, "list") { this.queuedSearch = payload; this.hasQueuedSearch = true; } else { this.Sync("status", "Wait for the current action, or cancel the load.", true); };
+      if Equals(action, "list") { this.queuedSearch = payload; this.hasQueuedSearch = true; } else { this.Sync("status", "Wait for this action to finish, or cancel the load.", true); };
       return;
     };
     if !this.ready || this.session == 0ul {
-      this.Sync("error", "Install matching native files, redscript, RED4ext and Codeware, then restart the game.", false);
+      this.Sync("error", "Install the complete Character Preset Manager package with redscript, RED4ext and Codeware. Then restart the game.", false);
       return;
     };
     if Equals(action, "step") {
@@ -169,7 +169,7 @@ public class NativeBridge extends ScriptableSystem {
       this.SetBusy(true, "Working...", false);
     } else {
       this.loading = false;
-      this.Sync("error", StrLen(reply.payload) > 0 ? reply.payload : "The native preset service is unavailable. Restart the game after installing the complete package.", false);
+      this.Sync("error", StrLen(reply.payload) > 0 ? reply.payload : "The preset service is unavailable. Install the complete package and restart the game.", false);
     };
   }
 
