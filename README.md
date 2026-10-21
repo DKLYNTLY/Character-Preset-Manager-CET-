@@ -682,6 +682,11 @@ You may edit configuration files and share your own presets. Copies of my mod,
 modified releases, ports, and reused code or assets need my written permission.
 Collections must use official downloads instead of bundling my files.
 
+Translations, bug fixes, compatibility patches, and similar changes can be
+approved with my prior written permission. Approval must cover publishing
+before you upload anything; credit me, link the original mod, and follow
+the agreed limits. It does not automatically allow a full-mod reupload.
+
 You may submit fixes for me to use in my mods without further permission or payment.
 Contributors keep ownership of their original work; submitting a contribution
 grants me the rights listed in [LICENSE](LICENSE). Read that file for the full terms.
