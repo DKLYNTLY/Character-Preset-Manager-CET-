@@ -59,14 +59,28 @@ check for compatible framework and mod versions before using the editor.*
 ## First installation
 
 1. Download the mod from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
-2. Install the four required frameworks: CET, RED4ext, redscript, and Codeware.
+2. Install all four required frameworks: **Cyber Engine Tweaks (CET)**,
+   **RED4ext**, **redscript**, and **Codeware**. CET is required for both menus.
 3. Remove Character Customization Anywhere and fully restart the game.
 4. Extract `Character Preset Manager (CET) 3.1.5.zip` into the main
    `Cyberpunk 2077` folder. Merge its `bin`, `r6`, and `red4ext` folders with
    the folders already there.
-5. Start the game, open CET, and choose **Character Preset Manager**.
+5. Start the game. If CET asks you to choose an overlay key on its first launch,
+   finish that setup and close the overlay.
+6. Open character creation for a new game, or load a save and use an apartment
+   mirror to change your appearance. The **simple menu** appears on the left
+   of the character screen automatically.
+7. Use **Preset Name**, **Save Location**, and **Save Preset** to save your
+   appearance, or select a preset in the list to load it. Read **Panel Status**
+   for progress and check the result before confirming your appearance.
 
-The CET window starts near the right side. Move or resize it as needed;
+The simple menu includes saving, loading, search, folders, recovery, Trash,
+and randomizing. Keep the CET overlay closed while using those controls.
+
+For more tools, select **Advanced Preset Manager**, then open CET with your
+chosen overlay key and select **Character Preset Manager** from its menu.
+The complete manager includes backups, sharing, compatibility checks, Help,
+and logs. It starts near the right side; move or resize it as needed, and
 CET remembers where you leave it.
 
 ---

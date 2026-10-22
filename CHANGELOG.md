@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Updates first-install steps to start with the simple menu in the character screen.
+  Explains CET setup and where to find the complete manager for more tools.
+
 - Removes the Supported screens overview and keeps the Important notice for ACU users.
   Moves the Character Customization Anywhere warning to incompatibility and adds CC and CCXL examples.
 
