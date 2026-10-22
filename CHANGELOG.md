@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Removes the Supported screens overview and keeps the Important notice for ACU users.
+  Moves the Character Customization Anywhere warning to incompatibility and adds CC and CCXL examples.
+
 - Keeps an option cache in memory and checks current choice lists before using it.
   Added, removed, or reordered choices update the cached list automatically.
 - Adds **Refresh options** to the complete manager for a manual cache reset.

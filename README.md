@@ -19,8 +19,6 @@ controls to the game's character screens, while a small native DLL handles
 file watching and ACU imports. Both menus use the same library and loader.
 
 > [!IMPORTANT]
-> Remove **Character Customization Anywhere**, then fully restart the game.
-> Both mods change the same character screens and **cannot work together**.
 > Uninstall **Appearance Change Unlocker (ACU)** and fully restart the game.
 > Keep only its preset files; **the ACU mod itself must not remain installed**.
 > The importer can read those files from the folder listed below without ACU.
@@ -90,23 +88,15 @@ mod version. Loading alone does not upgrade their file format.
 
 ---
 
-## Supported screens
-
-Save and load in new-game creation, the Full Appearance Editor, apartment
-mirrors, or supported ripperdoc appearance editors. The simple menu appears in
-these screens when its requirements are working, and CET can control the same
-editor without that panel.
-
-Photo Mode and Appearance Menu Mod can remain installed. Their own menus do
-not provide the character-editor data this mod needs, so open a supported
-screen before saving, loading, comparing, or restoring an appearance.
-
----
-
 ## Character-option mods
 
 CC and CCXL choices work when they appear in the game's normal character
 screens. Linked options and separate eye colors are supported.
+
+Examples include [EKT Custom Character Creator - FEMV ONLY](https://www.nexusmods.com/cyberpunk2077/mods/12807)
+for facial choices and [Head Cyberware CCXL](https://www.nexusmods.com/cyberpunk2077/mods/23969)
+for added cyberware choices. Install each mod and its requirements separately;
+presets save choices, not the mod files.
 
 Keep the mods, versions, body and eye choices, and load order used to make a
 preset. If that setup changes, check the result and save the corrected appearance
@@ -114,10 +104,10 @@ again; missing custom choices cannot be recreated by the mod.
 
 ---
 
-## Character Customization Anywhere
+## Incompatibility
 
-Remove it and restart the game. It changes the same mirrors and character
-screens as Character Preset Manager.
+Remove **Character Customization Anywhere**, then fully restart the game.
+Both mods change the same character screens and **cannot work together**.
 
 </details>
 
