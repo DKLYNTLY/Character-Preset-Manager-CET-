@@ -555,6 +555,30 @@ restoring and permanent deletion are available through CET.
 <details>
 <summary><strong>Troubleshooting, logs, and settings</strong></summary>
 
+## Activity Log
+
+Select **Log** at the top of CET, or open it through Help. You can read or
+copy the log in game. Its file is here:
+
+```text
+bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
+```
+
+Each full game launch starts a new log. The previous file is dated and moved
+to the archive, which keeps the ten newest logs. Entries cover startup, menu
+connections, file actions, loading, warnings, errors, and missing choices.
+**More Technical Details** shows information for tracking down problems.
+
+If an option check takes at least 0.05 seconds, a warning separates the time
+spent reading the game from the time spent matching presets.
+
+
+For help or to report a problem, join [**Discord and support**](https://discord.com/invite/mUGHmQxHG8).
+Include your newest **Activity Log**, what you were doing, and what went wrong.
+Check the common issues below for steps you can try first.
+
+---
+
 ## The menu says the library is connecting
 
 Wait briefly for CET to load. If the message stays, check CET, RED4ext,
@@ -622,25 +646,6 @@ character for you.
 
 If an old choice remains, include the newest Activity Log when reporting it.
 Name the preset and the choice that stayed visible so I can follow the load.
-
----
-
-## Activity Log
-
-Select **Log** at the top of CET, or open it through Help. You can read or
-copy the log in game. Its file is here:
-
-```text
-bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
-```
-
-Each full game launch starts a new log. The previous file is dated and moved
-to the archive, which keeps the ten newest logs. Entries cover startup, menu
-connections, file actions, loading, warnings, errors, and missing choices.
-**More Technical Details** shows information for tracking down problems.
-
-If an option check takes at least 0.05 seconds, a warning separates the time
-spent reading the game from the time spent matching presets.
 
 ---
 

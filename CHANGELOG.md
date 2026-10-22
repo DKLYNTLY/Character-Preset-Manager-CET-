@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Puts the Activity Log and Discord support link first in troubleshooting.
+  Common issues follow so reports and possible fixes are easier to find.
+
 - Updates first-install steps to start with the simple menu in the character screen.
   Explains CET setup and where to find the complete manager for more tools.
 
