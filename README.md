@@ -8,7 +8,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
-<p align="center"><strong>Current version: 3.1.5</strong></p>
+<p align="center"><strong>Current version: 3.1.5</strong> · <a href="CHANGELOG.md">Changelog</a></p>
 
 Character Preset Manager saves your character's appearance as a preset you can
 load again later. It follows on from Appearance Change Unlocker (ACU) and reads
@@ -102,7 +102,9 @@ mod version. Loading alone does not upgrade their file format.
 
 ---
 
-## Character-option mods
+## Compatibility
+
+### Character-option mods
 
 CC and CCXL choices work when they appear in the game's normal character
 screens. Linked options and separate eye colors are supported.
@@ -116,9 +118,7 @@ Keep the mods, versions, body and eye choices, and load order used to make a
 preset. If that setup changes, check the result and save the corrected appearance
 again; missing custom choices cannot be recreated by the mod.
 
----
-
-## Incompatibility
+### Incompatibility
 
 Remove **Character Customization Anywhere**, then fully restart the game.
 Both mods change the same character screens and **cannot work together**.
@@ -303,7 +303,7 @@ preset tools as the Full Appearance Editor.
 </details>
 
 <details>
-<summary><strong>Manage presets: imports, folders, and sharing</strong></summary>
+<summary><strong>Manage presets: imports, sharing, backups, and recovery</strong></summary>
 
 ## Supported ACU files
 
@@ -487,10 +487,7 @@ Move the selection to one folder, export it, or move it to Trash.
 **Export Selected** creates a `.cpmfolder` file that keeps each preset's path
 inside a **Selected Presets** group when imported.
 
-</details>
-
-<details>
-<summary><strong>Backups, recovery, and Trash</strong></summary>
+---
 
 ## Back up the whole library
 
@@ -553,7 +550,7 @@ restoring and permanent deletion are available through CET.
 </details>
 
 <details>
-<summary><strong>Troubleshooting, logs, and settings</strong></summary>
+<summary><strong>Troubleshooting, FAQ, and settings</strong></summary>
 
 ## Activity Log
 
@@ -579,7 +576,9 @@ Check the common issues below for steps you can try first.
 
 ---
 
-## The menu says the library is connecting
+## Bug FAQ
+
+### The menu says the library is connecting
 
 Wait briefly for CET to load. If the message stays, check CET, RED4ext,
 redscript, and Codeware, then reinstall the complete mod and fully restart
@@ -587,7 +586,7 @@ the game. Changes to redscript files require a new game session.
 
 ---
 
-## The simple menu is missing after an update
+### The simple menu is missing after an update
 
 Use the complete CET manager when CET and its required game functions support
 your version. Your files are still in the same library. Update the mod and
@@ -595,7 +594,7 @@ its frameworks when compatible versions become available.
 
 ---
 
-## Game updates
+### Game updates
 
 An update can change the character screens or the functions used by the loader.
 CET, RED4ext, redscript, and Codeware may also need updates.
@@ -611,14 +610,14 @@ character screen points to CET.
 
 ---
 
-## The CET window is missing
+### The CET window is missing
 
 Open the overlay and choose **Character Preset Manager** from the menu on the
 right. **Advanced Preset Manager** points you there but cannot open CET itself.
 
 ---
 
-## Loading screen after closing an editor
+### Loading screen after closing an editor
 
 Cyberpunk can remain on a loading screen after an editor closes, even without
 this mod. Clothing, wardrobe outfits, Equipment-EX, and detailed outfits may
@@ -629,7 +628,7 @@ happens. Put your clothes and outfit back on afterward.
 
 ---
 
-## A preset reports missing choices
+### A preset reports missing choices
 
 Check the character mods, versions, body and eye choices, and load order used
 to create it. **Check Compatibility** gives more detail. Correct the appearance
@@ -637,7 +636,7 @@ and save a new format-8 preset after changing your setup.
 
 ---
 
-## Old cyberware or another old choice stays visible
+### Old cyberware or another old choice stays visible
 
 Wait for the final status before confirming your appearance. The loader reads
 fresh option lists as the game updates and waits for cyberware and other linked
@@ -684,75 +683,10 @@ Data/
     `-- Archive/
 ```
 
----
-
-## Performance
-
-Compatibility checks run only when requested. Fresh editor reads and old-choice
-cleanup run while loading and stop when it finishes. Randomizer controls check
-whether the editor is ready without scanning every appearance choice.
-
-The file service checks ACU's folder shortly after startup, then watches for
-changes. **Refresh** requests another check when watching is unavailable.
-Names, sizes, and changed dates help it avoid reading unchanged files.
-
-The same service watches `Character Presets` and writes a versioned catalog
-with file fingerprints, which are values used to detect changed contents.
-CET checks that catalog against its own safe folder list before using it.
-If they differ, CET uses its own reader.
-
-Changed ACU files are copied to a temporary location before entering the library.
-CET adds no more than two imported file records per frame and reads their
-full contents only when selected, checked, or loaded.
-
-Large CET lists and logs use pages. The simple menu scrolls through its preset
-rows instead. Backup lists and recovery availability are remembered rather
-than checked every frame.
-
-Temporary loading data is freed when a load finishes. Closing or hiding CET
-also drops full preset contents and lists that can be rebuilt. Names, folders,
-notes, tags, and favorites remain ready for the next use.
-
 </details>
 
 <details>
 <summary><strong>About this mod</strong></summary>
-
-## Personal presets
-
-My character shown in the screenshots is not included. I do not plan to share my personal preset as a download.
-
----
-
-## AI disclosure
-
-I used AI to help write and review parts of the interface, Lua, redscript,
-documentation, and release checks. I made the final design and release choices
-and reviewed the work before publishing it.
-
----
-
-## Credits
-
-I created and maintain Character Preset Manager as **Dnydd (formerly known as dklyntly)**.
-
-[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850)
-by **PotatoOfDoom** came before this project. I kept support for compatible ACU
-presets so existing collections can still be used. My format, code, menus,
-loader, and controls are separate implementations.
-
-[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
-by **keanuWheeze** inspired my Full Appearance Editor.
-
-[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107) was created
-by **yamashi** and is maintained by its contributors. I use CET for scripting
-and the complete menu, RED4ext for the file service, and redscript with Codeware
-for the simple menu.
-
-I credit CD Projekt Red for Cyberpunk 2077 and its character system.
-I also appreciate the modding community's testing, research, and feedback.
-
----
 
 ## License
 
@@ -780,18 +714,39 @@ future monetized releases without compensation or a share of revenue.
 Written approval must come from my contact email or an account identified on
 my official mod page or repository. The license includes warranty and liability
 limits where the law allows them, while preserving mandatory protections.
-Read [LICENSE](LICENSE) for the full terms and approved uses.
+
+Read [the full All Rights Reserved license](LICENSE) for the terms and approved uses.
 
 ---
 
-## Links and release history
+## Personal presets
 
-[Download on Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886) ·
-[GitHub source](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-) ·
-[Discord and support](https://discord.com/invite/mUGHmQxHG8) ·
-[Changelog](CHANGELOG.md) · [All Rights Reserved license](LICENSE)
+My character shown in the screenshots is not included. I do not plan to share my personal preset as a download.
 
-See the changelog for earlier releases and their controls or file layouts.
-The instructions above describe the current mod.
+---
+
+## Credits
+
+I used AI to help write and review parts of the interface, Lua, redscript,
+documentation, and release checks. I made the final design and release choices
+and reviewed the work before publishing it.
+
+I created and maintain Character Preset Manager as **Dnydd (formerly known as dklyntly)**.
+
+[ACU - Character Preset Manager](https://www.nexusmods.com/cyberpunk2077/mods/3850)
+by **PotatoOfDoom** came before this project. I kept support for compatible ACU
+presets so existing collections can still be used. My format, code, menus,
+loader, and controls are separate implementations.
+
+[Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
+by **keanuWheeze** inspired my Full Appearance Editor.
+
+[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107) was created
+by **yamashi** and is maintained by its contributors. I use CET for scripting
+and the complete menu, RED4ext for the file service, and redscript with Codeware
+for the simple menu.
+
+I credit CD Projekt Red for Cyberpunk 2077 and its character system.
+I also appreciate the modding community's testing, research, and feedback.
 
 </details>

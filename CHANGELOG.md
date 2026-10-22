@@ -9,6 +9,10 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Groups common problems under Bug FAQ and moves recovery into preset management.
+  Removes Performance, puts the license first in About, and places links beside related text.
+- Combines AI assistance with Credits and groups character-mod support under Compatibility.
+
 - Puts the Activity Log and Discord support link first in troubleshooting.
   Common issues follow so reports and possible fixes are easier to find.
 
