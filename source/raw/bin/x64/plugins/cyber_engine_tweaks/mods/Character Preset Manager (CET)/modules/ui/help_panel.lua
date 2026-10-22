@@ -342,6 +342,7 @@ if state.ui.helpOpen then
       helpButton("Clear", "Clears the preset search and shows the complete preset list.")
       helpButton("Refresh", "Reads preset, folder, Trash, and sharing-file changes made outside the mod without restarting it.")
       helpButton("Preset and folder rows", "A preset row selects that preset. A folder row opens or closes the folder. Favorites also appear together in their own group above the folders.")
+      helpButton("Refresh options", "Clears the option cache and reads the current editor list again. Saved choice lists are checked as they are used, including after a linked style changes. This does not reload mod files; restart the game after changing mods when needed.")
       helpButton("Appearance History", "Below Restore Previous Appearance, this shows the five newest recovery appearances and lets you restore one or clear the list.")
       helpButton("Advanced Preset Options", "Below Appearance History, this shows or hides Check Compatibility, Force Full Load, and the favorite action.")
       ImGui.TextWrapped("CET uses orange for main controls and selected rows, with white section headings. Extra controls use dark buttons. Open & Edit Appearance starts open; the other main sections start closed.")

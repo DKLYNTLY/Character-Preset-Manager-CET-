@@ -9,6 +9,11 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Keeps an option cache in memory and checks current choice lists before using it.
+  Added, removed, or reordered choices update the cached list automatically.
+- Adds **Refresh options** to the complete manager for a manual cache reset.
+
+
 - Loads presets in three batches: old choices, main choices, then linked details.
   Checks afterward catch choices that the game resets or cannot confirm.
 

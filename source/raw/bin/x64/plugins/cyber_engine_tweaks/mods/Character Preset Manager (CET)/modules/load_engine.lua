@@ -616,35 +616,37 @@ helpers.runLoadBatch = function()
     local scan = helpers.scanLoadOptions(options, state.load.savedCounts, state.load.savedSlotCounts)
     local selected, target
     for _, candidate in ipairs(scan.exposed) do
-      local key = candidate.key
-      local entry = state.load.savedEntryByKey[key]
-      local wanted = state.load.values[key]
-      local countMatches = scan.activeCounts[candidate.label] == state.load.savedCounts[candidate.label]
-      if batch.stage == 1 then
-        local hasSavedSlot = candidate.slot and (state.load.savedSlotCounts[candidate.slot] or 0) > 0
-        local clearSavedSlot = false
-        if hasSavedSlot and scan.activeSlotCounts[candidate.slot] == state.load.savedSlotCounts[candidate.slot] then
-          for _, saved in ipairs(state.load.orderedEntries) do
-            if saved.slot == candidate.slot and saved.slotOccurrence == candidate.slotOccurrence
-                and tonumber(saved.index) == 0 then clearSavedSlot = true; break end
+      if not visited[candidate.key] then
+        local key = candidate.key
+        local entry = state.load.savedEntryByKey[key]
+        local wanted = state.load.values[key]
+        local countMatches = scan.activeCounts[candidate.label] == state.load.savedCounts[candidate.label]
+        if batch.stage == 1 then
+          local hasSavedSlot = candidate.slot and (state.load.savedSlotCounts[candidate.slot] or 0) > 0
+          local clearSavedSlot = false
+          if hasSavedSlot and scan.activeSlotCounts[candidate.slot] == state.load.savedSlotCounts[candidate.slot] then
+            for _, saved in ipairs(state.load.orderedEntries) do
+              if saved.slot == candidate.slot and saved.slotOccurrence == candidate.slotOccurrence
+                  and tonumber(saved.index) == 0 then clearSavedSlot = true; break end
+            end
           end
+          if state.load.resetBefore and (not hasSavedSlot or clearSavedSlot)
+              and candidate.occurrence > (state.load.savedCounts[candidate.label] or 0) then
+            wanted = 0
+          else wanted = nil end
+        elseif not countMatches or not entry
+            or helpers.isSecondaryLoadOption(candidate) ~= (batch.stage == 3) then
+          wanted = nil
+        elseif entry.slot and entry.slot ~= candidate.slot then
+          wanted = nil
+        elseif entry.choice then
+          wanted = helpers.resolveLoadChoice(candidate.option, entry.choice)
         end
-        if state.load.resetBefore and (not hasSavedSlot or clearSavedSlot)
-            and candidate.occurrence > (state.load.savedCounts[candidate.label] or 0) then
-          wanted = 0
-        else wanted = nil end
-      elseif not countMatches or not entry
-          or helpers.isSecondaryLoadOption(candidate) ~= (batch.stage == 3) then
-        wanted = nil
-      elseif entry.slot and entry.slot ~= candidate.slot then
-        wanted = nil
-      elseif entry.choice then
-        wanted = helpers.resolveLoadChoice(candidate.option, entry.choice)
-      end
-      if not visited[key] and wanted ~= nil and optionIndexIsValid(wanted)
-          and (tonumber(candidate.option.currIndex) or 0) ~= wanted then
-        selected, target = candidate, wanted
-        break
+        if not visited[key] and wanted ~= nil and optionIndexIsValid(wanted)
+            and (tonumber(candidate.option.currIndex) or 0) ~= wanted then
+          selected, target = candidate, wanted
+          break
+        end
       end
     end
     if not selected then break end

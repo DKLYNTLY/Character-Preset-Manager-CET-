@@ -32,6 +32,7 @@ LOG_ARCHIVE_LIMIT = 10
 CURRENT_PRESET_FORMAT = 8
 activitySequence = 0
 
+OPTION_CHOICE_CACHE_LIMIT = 16384
 AUTO_LOAD_TIMING = {
   passInterval = 0.225,
   pollInterval = 0.05,

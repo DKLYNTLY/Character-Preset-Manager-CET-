@@ -228,6 +228,17 @@ Choose a preset, open **Advanced Preset Options**, and select
 choices, missing options, repeated or unclear matches, invalid entries, and
 old choices that loading will clear.
 
+The mod keeps an option cache in memory while the character editor is open.
+It checks current lists as they are used, so added, removed, renamed, or reordered
+choices replace stale entries. Linked choices are checked again after their style
+changes. Game objects are always read from the current editor.
+
+Use **Refresh options** in **Load & Restore Appearance** to clear this cache
+and read the current editor list again. This is separate from **Refresh**, which
+updates preset files. Wait for loading to finish before refreshing options.
+Installing or removing character mods may still require restarting the game;
+refreshing cannot make the game load new mod files.
+
 Checks run when you request them. Selecting a preset, opening CET, refreshing,
 changing Force Full Load, or finishing a load does not start another comparison.
 

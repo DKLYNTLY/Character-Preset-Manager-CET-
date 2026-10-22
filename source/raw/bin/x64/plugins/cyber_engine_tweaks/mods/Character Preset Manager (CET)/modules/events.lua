@@ -88,7 +88,7 @@ events.onInit = function()
     "characterCreationBodyMorphMenu",
     "OnInitialize",
     function(menu)
-      state.app.optionsMemo = nil
+      helpers.clearOptionCatalog()
       temporarilyDisableWardrobe()
       if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
         helpers.logLoadMeasurements("editor-opened")
@@ -110,7 +110,7 @@ events.onInit = function()
     "characterCreationBodyMorphMenu",
     "OnUninitialize",
     function()
-      state.app.optionsMemo = nil
+      helpers.clearOptionCatalog()
       if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
         helpers.logLoadMeasurements("editor-closed")
       end
@@ -260,6 +260,7 @@ events.onInit = function()
 end
 
 events.onShutdown = function()
+  helpers.clearOptionCatalog()
   helpers.auditSection("SESSION END")
   log(("[SUMMARY] inputs=%d controllerCaptures=%d pauseRedirects=%d editorPuppets=%d")
     :format(state.editor.inputCount, state.editor.controllerCaptureCount,

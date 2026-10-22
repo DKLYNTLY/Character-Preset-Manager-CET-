@@ -94,6 +94,13 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           :format(added, updated, removed, #helpers.sortedPresetNames())
         or "Refresh failed; the previous list was kept.", not refreshed)
     end
+    local refreshOptionsUnavailable = not state.app.inCustomization
+      or state.load.auto or state.load.needsContinue or state.load.pendingChange
+    if refreshOptionsUnavailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Refresh options##refreshOptionCatalog", actionButtonHeight) then
+      helpers.refreshOptionCatalog()
+    end
+    if refreshOptionsUnavailable then ImGui.EndDisabled() end
     ensureFilteredViewCache()
     local queryActive = state.cache.queryActive
     local matchedFolders = state.cache.matchedFolders
