@@ -124,6 +124,8 @@ screens as Character Preset Manager.
 <details>
 <summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
+Loading runs in three fast stages: clear old choices, apply main choices, then apply linked colors and details. The mod waits between stages for the editor to update and checks the saved choices afterward. Check your appearance before confirming the editor.
+
 ## Choose a menu
 
 | Menu | Use it for |

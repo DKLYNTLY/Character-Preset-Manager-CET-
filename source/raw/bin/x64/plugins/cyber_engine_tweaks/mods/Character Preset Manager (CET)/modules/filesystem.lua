@@ -91,6 +91,7 @@ function resetLoadState()
   state.load.targetPolls = 0
   state.load.targetPollSeconds = 0
   state.load.targetFallbacks = 0
+  state.load.batch = nil
   state.load.pendingChange = nil
   state.load.pendingElapsed = 0
   state.load.phase = "apply"

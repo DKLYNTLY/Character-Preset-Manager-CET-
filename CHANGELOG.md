@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
+- Loads presets in three batches: old choices, main choices, then linked details.
+  Checks afterward catch choices that the game resets or cannot confirm.
+
 - Adds dividers between topics inside README and Nexus spoilers so each
   set of instructions is easier to distinguish.
 
