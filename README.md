@@ -44,22 +44,12 @@ updates it to format 8.
 
 ## Requirements
 
-The current scripts target **Cyberpunk 2077 2.5**. Install versions of these
-frameworks that support your game:
+This release uses these framework versions:
 
-- [**Cyber Engine Tweaks (CET)**](https://www.nexusmods.com/cyberpunk2077/mods/107)
-- [**RED4ext**](https://www.nexusmods.com/cyberpunk2077/mods/2380)
-- [**redscript**](https://www.nexusmods.com/cyberpunk2077/mods/1511)
-
-**Codeware is no longer required.** Both menus share the same preset library,
-and the simple menu now uses the game's own buttons and text inputs.
-Keep Codeware if another installed mod needs it, using a compatible version.
-
-This change is in source only. Existing release archives still contain the
-older menu and need Codeware.
-
-*The scripts compile against the 2.5 base game without Codeware. I have not
-yet checked both menus in a running 2.5 game, so full compatibility is unconfirmed.*
+- [**Cyber Engine Tweaks 1.37.1**](https://www.nexusmods.com/cyberpunk2077/mods/107)
+- [**RED4ext 1.30.0**](https://www.nexusmods.com/cyberpunk2077/mods/2380)
+- [**redscript 0.5.31**](https://www.nexusmods.com/cyberpunk2077/mods/1511)
+- [**Codeware 1.20.3**](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 
 *These frameworks must support your installed game version. After a game update,
 check for compatible framework and mod versions before using the editor.*
@@ -69,8 +59,8 @@ check for compatible framework and mod versions before using the editor.*
 ## First installation
 
 1. Download the mod from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
-2. Install all three required frameworks: **Cyber Engine Tweaks (CET)**,
-   **RED4ext**, and **redscript**. CET is required for both menus.
+2. Install all four required frameworks: **Cyber Engine Tweaks (CET)**,
+   **RED4ext**, **redscript**, and **Codeware**. CET is required for both menus.
 3. Remove Character Customization Anywhere and fully restart the game.
 4. Extract `Character Preset Manager (CET) 3.1.5.zip` into the main
    `Cyberpunk 2077` folder. Merge its `bin`, `r6`, and `red4ext` folders with
@@ -591,7 +581,7 @@ Check the common issues below for steps you can try first.
 ### The menu says the library is connecting
 
 Wait briefly for CET to load. If the message stays, check CET, RED4ext,
-and redscript, then reinstall the complete mod and fully restart
+redscript, and Codeware, then reinstall the complete mod and fully restart
 the game. Changes to redscript files require a new game session.
 
 ---
@@ -607,7 +597,7 @@ its frameworks when compatible versions become available.
 ### Game updates
 
 An update can change the character screens or the functions used by the loader.
-CET, RED4ext, and redscript may also need updates.
+CET, RED4ext, redscript, and Codeware may also need updates.
 
 If only the simple menu stops working, use the complete CET manager once its
 requirements support the new game version. It uses the same files. A missing
@@ -753,8 +743,8 @@ by **keanuWheeze** inspired my Full Appearance Editor.
 
 [Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107) was created
 by **yamashi** and is maintained by its contributors. I use CET for scripting
-and the complete menu, RED4ext for the file service, and redscript with the
-game's native UI widgets for the simple menu.
+and the complete menu, RED4ext for the file service, and redscript with Codeware
+for the simple menu.
 
 I credit CD Projekt Red for Cyberpunk 2077 and its character system.
 I also appreciate the modding community's testing, research, and feedback.

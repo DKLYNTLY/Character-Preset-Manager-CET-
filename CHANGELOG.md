@@ -9,11 +9,6 @@ and in-game Help for current steps.
 
 ## 3.1.5
 
-- Removes the Codeware requirement while keeping both preset menus.
-  The simple menu uses the game's buttons and text inputs, with cleanup when the editor closes.
-- Targets Cyberpunk 2077 2.5 and compiles against its base scripts without Codeware.
-  In-game checks are still needed before I can confirm full compatibility.
-
 - Groups common problems under Bug FAQ and moves recovery into preset management.
   Removes Performance, puts the license first in About, and places links beside related text.
 - Combines AI assistance with Credits and groups character-mod support under Compatibility.

@@ -71,7 +71,7 @@ state.app.overlayOpen = true
 state.app.windowOpen = true
 state.app.inCustomization = true
 local values = { cyberware_switcher = 10, cyberware_2_switcher = 2 }
-local elapsed, pending = 0, {}
+local elapsed, pendingValue, pendingSlot, due = 0, nil, nil, nil
 local changes, reads = {}, 0
 local visibleCyberware = true
 function system:GetUnitedOptions()
@@ -88,10 +88,9 @@ function system:GetUnitedOptions()
   return rows
 end
 function system:ApplyChangeToOption(target, index)
-  local slot = target.info.uiSlot
-  assert(pending[slot] == nil, "the same option was changed before cyberware settled")
-  pending[slot] = { value = index, due = elapsed + 0.15 }
-  changes[slot] = (changes[slot] or 0) + 1
+  assert(pendingSlot == nil, "another option was changed before cyberware settled")
+  pendingSlot, pendingValue, due = target.info.uiSlot, index, elapsed + 0.15
+  changes[pendingSlot] = (changes[pendingSlot] or 0) + 1
 end
 state.app.optionsMemo = nil
 runtime.getOptions()
@@ -110,18 +109,16 @@ state.library.presets[state.library.selected] = {
   },
 }
 runtime.loadPreset()
-assert(state.load.needsContinue, "the loader finished before delayed changes settled")
-assert(visibleCyberware, "the delayed game model applied cyberware instantly")
+assert(state.load.pendingChange and state.load.pendingChange.longSettle,
+  "cyberware was treated as an instant change")
 state.load.auto = state.load.needsContinue
 for _ = 1, 200 do
   elapsed = elapsed + 0.05
-  for slot, change in pairs(pending) do
-    if elapsed >= change.due then
-      values[slot] = change.value
-      pending[slot] = nil
-    end
+  if due and elapsed >= due then
+    values[pendingSlot] = pendingValue
+    visibleCyberware = values.cyberware_switcher ~= 0 or values.cyberware_2_switcher ~= 0
+    pendingSlot, pendingValue, due = nil, nil, nil
   end
-  visibleCyberware = values.cyberware_switcher ~= 0 or values.cyberware_2_switcher ~= 0
   events.onUpdate(0.05)
   if not state.load.auto and not state.load.needsContinue then break end
 end
@@ -144,13 +141,11 @@ runtime.loadPreset()
 state.load.auto = state.load.needsContinue
 for _ = 1, 200 do
   elapsed = elapsed + 0.05
-  for slot, change in pairs(pending) do
-    if elapsed >= change.due then
-      values[slot] = change.value
-      pending[slot] = nil
-    end
+  if due and elapsed >= due then
+    values[pendingSlot] = pendingValue
+    visibleCyberware = values.cyberware_switcher ~= 0 or values.cyberware_2_switcher ~= 0
+    pendingSlot, pendingValue, due = nil, nil, nil
   end
-  visibleCyberware = values.cyberware_switcher ~= 0 or values.cyberware_2_switcher ~= 0
   events.onUpdate(0.05)
   if not state.load.auto and not state.load.needsContinue then break end
 end

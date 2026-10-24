@@ -1,4 +1,5 @@
 module CPM
+import Codeware.UI.*
 
 public class PanelFrame extends IScriptable {
   private let edges: array<ref<inkRectangle>>;
@@ -42,15 +43,7 @@ public class PanelFrame extends IScriptable {
   }
 }
 
-public class PanelButton extends IScriptable {
-  private let m_root: ref<inkCanvas>;
-  private let m_label: ref<inkText>;
-  private let m_isDisabled: Bool;
-  private let m_isHovered: Bool;
-  private let m_isPressed: Bool;
-  private let listener: wref<IScriptable>;
-  private let listenerEvent: CName;
-  private let listenerCallback: CName;
+public class PanelButton extends CustomButton {
   protected let frame: ref<PanelFrame>;
   protected let fill: wref<inkRectangle>;
   protected let style: Int32;
@@ -62,14 +55,12 @@ public class PanelButton extends IScriptable {
     root.SetInteractive(true);
     root.SetSupportFocus(true);
     let fill: ref<inkRectangle> = new inkRectangle();
-    fill.SetInteractive(false);
     fill.SetAnchor(inkEAnchor.Fill);
     fill.SetTintColor(HDRColor(0.045, 0.008, 0.012, 1.0));
     fill.SetOpacity(0.48);
     fill.Reparent(root);
     let frame: ref<PanelFrame> = PanelFrame.Create(root);
     let label: ref<inkText> = new inkText();
-    label.SetInteractive(false);
     label.SetAnchor(inkEAnchor.Fill);
     label.SetFontFamily("base\\gameplay\\gui\\fonts\\raj\\raj.inkfontfamily");
     label.SetFontStyle(n"Semi-Bold");
@@ -84,10 +75,7 @@ public class PanelButton extends IScriptable {
     this.m_label = label;
     this.frame = frame;
     this.fill = fill;
-    root.RegisterToCallback(n"OnEnter", this, n"OnEnter");
-    root.RegisterToCallback(n"OnLeave", this, n"OnLeave");
-    root.RegisterToCallback(n"OnPress", this, n"OnPress");
-    root.RegisterToCallback(n"OnRelease", this, n"OnRelease");
+    this.SetRootWidget(root);
   }
 
   protected func ApplyDisabledState() -> Void { this.m_root.SetOpacity(this.m_isDisabled ? 0.32 : 1.0); }
@@ -137,84 +125,18 @@ public class PanelButton extends IScriptable {
     };
     this.ApplyPressedState();
   }
-  public func GetRootWidget() -> ref<inkCanvas> { return this.m_root; }
-  public func SetText(text: String) -> Void { this.m_label.SetText(text); }
-  public func SetPosition(x: Float, y: Float) -> Void { this.m_root.SetMargin(new inkMargin(x, y, 0.0, 0.0)); }
-  public func SetWidth(width: Float) -> Void { this.m_root.SetWidth(width); }
-  public func Reparent(parent: ref<inkCompoundWidget>) -> Void { this.m_root.Reparent(parent); }
-  public func RegisterToCallback(eventName: CName, target: ref<IScriptable>, callback: CName) -> Void {
-    this.listener = target;
-    this.listenerEvent = eventName;
-    this.listenerCallback = callback;
-    this.m_root.RegisterToCallback(eventName, target, callback);
-  }
-  public func SetDisabled(disabled: Bool) -> Void {
-    this.m_isDisabled = disabled;
-    if disabled { this.m_isPressed = false; this.m_isHovered = false; };
-    this.m_root.SetInteractive(!disabled);
-    this.m_root.SetSupportFocus(!disabled);
-    this.ApplyDisabledState();
-    this.ApplyHoveredState();
-    this.ApplyPressedState();
-  }
-  protected cb func OnEnter(evt: ref<inkPointerEvent>) -> Bool {
-    this.m_isHovered = !this.m_isDisabled;
-    this.ApplyHoveredState();
-    return false;
-  }
-  protected cb func OnLeave(evt: ref<inkPointerEvent>) -> Bool {
-    this.m_isHovered = false;
-    this.m_isPressed = false;
-    this.ApplyHoveredState();
-    this.ApplyPressedState();
-    return false;
-  }
-  protected cb func OnPress(evt: ref<inkPointerEvent>) -> Bool {
-    if !this.m_isDisabled && evt.IsAction(n"click") {
-      this.m_isPressed = true;
-      this.ApplyPressedState();
-      evt.Handle();
-      return true;
-    };
-    return false;
-  }
-  protected cb func OnRelease(evt: ref<inkPointerEvent>) -> Bool {
-    if !evt.IsAction(n"click") { return false; };
-    let activate: Bool = this.m_isPressed && !this.m_isDisabled;
-    this.m_isPressed = false;
-    this.ApplyPressedState();
-    if activate {
-      this.m_root.CallCustomCallback(n"OnBtnClick");
-      evt.Handle();
-    };
-    return activate;
-  }
-  public func Dispose() -> Void {
-    if IsDefined(this.listener) {
-      this.m_root.UnregisterFromCallback(this.listenerEvent, this.listener, this.listenerCallback);
-      this.listener = null;
-    };
-    this.m_root.UnregisterFromCallback(n"OnEnter", this, n"OnEnter");
-    this.m_root.UnregisterFromCallback(n"OnLeave", this, n"OnLeave");
-    this.m_root.UnregisterFromCallback(n"OnPress", this, n"OnPress");
-    this.m_root.UnregisterFromCallback(n"OnRelease", this, n"OnRelease");
-    this.SetDisabled(true);
-  }
   public static func Create(text: String) -> ref<PanelButton> {
     let button: ref<PanelButton> = new PanelButton();
-    button.CreateWidgets();
+    button.CreateInstance();
     button.SetText(text);
     return button;
   }
 }
 
-public class PresetPanel extends IScriptable {
-  private let root: ref<inkCanvas>;
-  private let owner: wref<characterCreationBodyMorphMenu>;
-  private let attached: Bool;
+public class PresetPanel extends inkCustomController {
   private let bridge: wref<NativeBridge>;
-  private let search: ref<PanelTextInput>;
-  private let presetName: ref<PanelTextInput>;
+  private let search: ref<HubTextInput>;
+  private let presetName: ref<HubTextInput>;
   private let statusText: ref<inkText>;
   private let statusRail: ref<inkRectangle>;
   private let selectedInfo: ref<inkText>;
@@ -249,7 +171,7 @@ public class PresetPanel extends IScriptable {
   private let recoveryAvailable: Bool;
   private let showLoadDetails: Bool;
 
-  private func Build() -> Bool {
+  protected cb func OnCreate() -> Bool {
     let root: ref<inkCanvas> = new inkCanvas();
     root.SetName(n"CharacterPresetManagerPanel");
     root.SetAnchor(inkEAnchor.TopLeft);
@@ -280,14 +202,16 @@ public class PresetPanel extends IScriptable {
     advancedText.Reparent(root);
     this.AddDivider(root, 190.0);
 
-    this.search = PanelTextInput.Create();
+    this.search = HubTextInput.Create();
     this.search.SetName(n"PresetSearch");
     this.search.SetDefaultText("SEARCH");
     this.search.SetWidth(492.0);
     this.search.SetMaxLength(64);
+    this.SetInputTransparency(this.search);
+    this.CenterInputText(this.search);
     this.search.GetRootWidget().SetMargin(new inkMargin(34.0, 208.0, 0.0, 0.0));
     this.search.RegisterToCallback(n"OnInput", this, n"OnSearchChanged");
-    this.search.Reparent(root);
+    this.search.Reparent(root, this.GetGameController());
     this.refreshAction = this.AddAction(root, "REFRESH", 534.0, 208.0, n"OnRefresh");
     this.refreshAction.SetWidth(154.0);
     this.AddDivider(root, 300.0);
@@ -299,7 +223,7 @@ public class PresetPanel extends IScriptable {
       listButton.RegisterToCallback(n"OnBtnClick", this, n"OnListClick");
       listButton.GetRootWidget().RegisterToCallback(n"OnAxis", this, n"OnPanelScroll");
       listButton.GetRootWidget().RegisterToCallback(n"OnRelative", this, n"OnPanelScroll");
-      listButton.Reparent(root);
+      listButton.Reparent(root, this.GetGameController());
       ArrayPush(this.listButtons, listButton);
       index += 1;
     };
@@ -316,7 +240,7 @@ public class PresetPanel extends IScriptable {
     this.cancelLoadAction.SetStyle(2);
     this.cancelLoadAction.SetDisabled(true);
     this.cancelLoadAction.RegisterToCallback(n"OnBtnClick", this, n"OnCancelLoad");
-    this.cancelLoadAction.Reparent(root);
+    this.cancelLoadAction.Reparent(root, this.GetGameController());
     this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 956.0, n"OnRestorePrevious");
     this.undoAction.SetWidth(323.0);
     this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 956.0, n"OnHistory");
@@ -339,14 +263,16 @@ public class PresetPanel extends IScriptable {
     this.detailsAction.SetStyle(3);
     this.detailsAction.GetRootWidget().SetVisible(false);
     this.AddDivider(root, 1256.0);
-    this.presetName = PanelTextInput.Create();
+    this.presetName = HubTextInput.Create();
     this.presetName.SetName(n"PresetName");
     this.presetName.SetDefaultText("PRESET NAME");
     this.presetName.SetWidth(654.0);
     this.presetName.SetMaxLength(64);
+    this.SetInputTransparency(this.presetName);
+    this.CenterInputText(this.presetName);
     this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1270.0, 0.0, 0.0));
     this.presetName.RegisterToCallback(n"OnInput", this, n"OnPresetNameChanged");
-    this.presetName.Reparent(root);
+    this.presetName.Reparent(root, this.GetGameController());
     this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1362.0, n"OnSaveLocation");
     this.locationButton.SetWidth(654.0);
     this.locationButton.SetStyle(3);
@@ -357,12 +283,24 @@ public class PresetPanel extends IScriptable {
     this.trashAction.SetStyle(2);
     this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1536.0, n"OnOpenCET");
     this.openCETAction.SetWidth(654.0);
-    this.root = root;
+    this.SetRootWidget(root);
     return true;
   }
 
-  public func GetRootWidget() -> ref<inkCanvas> { return this.root; }
-  public func GetGameController() -> ref<characterCreationBodyMorphMenu> { return this.owner; }
+  protected cb func OnInitialize() -> Bool {
+    this.RegisterToGlobalInputCallback(n"OnPostOnRelease", this, n"OnGlobalRelease");
+    if IsDefined(this.bridge) {
+      this.bridge.RegisterPanel(this);
+      this.bridge.Request("open", "");
+      if !this.bridge.IsLuaReady() { this.SetStatus("Connecting to the preset library.", false); };
+    };
+    return true;
+  }
+  protected cb func OnUninitialize() -> Bool {
+    this.UnregisterFromGlobalInputCallback(n"OnPostOnRelease", this, n"OnGlobalRelease");
+    if IsDefined(this.bridge) { this.bridge.UnregisterPanel(this); };
+    return true;
+  }
 
   private func MakeText(text: String, size: Int32, x: Float, y: Float, width: Float, height: Float) -> ref<inkText> {
     let widget: ref<inkText> = new inkText();
@@ -374,6 +312,26 @@ public class PresetPanel extends IScriptable {
     widget.SetSize(width, height);
     widget.SetTintColor(HDRColor(0.882353, 0.913725, 0.901961, 1.0));
     return widget;
+  }
+  private func SetInputTransparency(input: ref<HubTextInput>) -> Void {
+    let root: ref<inkCompoundWidget> = input.GetRootWidget() as inkCompoundWidget;
+    if IsDefined(root) {
+      let background: ref<inkWidget> = root.GetWidgetByPathName(n"theme/bg");
+      if IsDefined(background) { background.SetOpacity(0.0); };
+      let fill: ref<inkRectangle> = new inkRectangle();
+      fill.SetAnchor(inkEAnchor.Fill);
+      fill.SetTintColor(HDRColor(0.045, 0.008, 0.012, 1.0));
+      fill.SetOpacity(0.48);
+      fill.Reparent(root, 0);
+      PanelFrame.Create(root);
+    };
+  }
+  private func CenterInputText(input: ref<HubTextInput>) -> Void {
+    let root: ref<inkCompoundWidget> = input.GetRootWidget() as inkCompoundWidget;
+    if IsDefined(root) {
+      let content: ref<inkWidget> = root.GetWidgetByPathName(n"viewport/content");
+      if IsDefined(content) { content.SetHAlign(inkEHorizontalAlign.Center); };
+    };
   }
   private func AddDivider(parent: ref<inkCanvas>, y: Float) -> Void {
     let divider: ref<inkRectangle> = new inkRectangle();
@@ -402,7 +360,7 @@ public class PresetPanel extends IScriptable {
     button.SetWidth(270.0);
     button.SetStyle(1);
     button.RegisterToCallback(n"OnBtnClick", this, callback);
-    button.Reparent(parent);
+    button.Reparent(parent, this.GetGameController());
     ArrayPush(this.actionButtons, button);
     return button;
   }
@@ -419,8 +377,6 @@ public class PresetPanel extends IScriptable {
     this.statusRail.SetVisible(false);
   }
   private func ReleaseButtonFocus() -> Void {
-    this.search.Blur();
-    this.presetName.Blur();
     this.GetGameController().RequestSetFocus(null);
   }
 
@@ -568,8 +524,8 @@ public class PresetPanel extends IScriptable {
     this.refreshAction.SetDisabled(this.busy);
     this.locationButton.SetDisabled(this.busy);
     this.cancelLoadAction.SetDisabled(!this.busy || this.cancelRequested);
-    this.search.SetEnabled(!this.busy && this.mode == 0);
-    this.presetName.SetEnabled(!this.busy && this.mode == 0);
+    this.search.GetRootWidget().SetInteractive(!this.busy && this.mode == 0);
+    this.presetName.GetRootWidget().SetInteractive(!this.busy && this.mode == 0);
   }
   protected cb func OnSaveLocation(widget: wref<inkWidget>) -> Bool {
     this.mode = this.mode == 1 ? 0 : 1;
@@ -583,7 +539,6 @@ public class PresetPanel extends IScriptable {
   }
 
   protected cb func OnPanelScroll(evt: ref<inkPointerEvent>) -> Bool {
-    if this.busy || this.search.IsFocused() || this.presetName.IsFocused() { return false; };
     if (evt.IsAction(n"mouse_wheel") || evt.IsAction(n"right_stick_y"))
         && evt.GetAxisData() != 0.0 {
       this.ScrollBy(evt.GetAxisData() > 0.0 ? -3 : 3);
@@ -592,9 +547,6 @@ public class PresetPanel extends IScriptable {
     return false;
   }
   protected cb func OnGlobalRelease(evt: ref<inkPointerEvent>) -> Bool {
-    if !this.attached { return false; };
-    if this.HandleTextInputRelease(evt) { return true; };
-    if this.search.IsFocused() || this.presetName.IsFocused() { return false; };
     if !this.IsPanelWidget(evt.GetTarget()) { return false; };
     if evt.IsAction(n"navigate_down") {
       this.ScrollBy(1);
@@ -607,12 +559,6 @@ public class PresetPanel extends IScriptable {
       return true;
     };
     return false;
-  }
-  public func HandleTextInputRelease(evt: ref<inkPointerEvent>) -> Bool {
-    if !this.attached { return false; };
-    let searchHandled: Bool = this.search.HandleRelease(evt);
-    let nameHandled: Bool = this.presetName.HandleRelease(evt);
-    return searchHandled || nameHandled;
   }
   private func IsPanelWidget(widget: wref<inkWidget>) -> Bool {
     while IsDefined(widget) {
@@ -631,7 +577,6 @@ public class PresetPanel extends IScriptable {
   }
 
   public func OnBusyChanged(isBusy: Bool, message: String, isError: Bool) -> Void {
-    if !this.attached { return; };
     this.busy = isBusy;
     if !isBusy {
       this.cancelRequested = false;
@@ -647,7 +592,6 @@ public class PresetPanel extends IScriptable {
     if StrLen(message) > 0 { this.SetStatus(message, isError); };
   }
   public func OnBridgeResponse(kind: String, payload: String, isBusy: Bool) -> Void {
-    if !this.attached { return; };
     this.OnBusyChanged(isBusy, "", false);
     if Equals(kind, "list") { this.ReadPresetList(payload); return; };
     if Equals(kind, "history") { this.ReadHistory(payload); return; };
@@ -793,48 +737,17 @@ public class PresetPanel extends IScriptable {
     };
   }
 
-  public static func Create(bridge: ref<NativeBridge>, owner: ref<characterCreationBodyMorphMenu>) -> ref<PresetPanel> {
-    if !IsDefined(bridge) || !IsDefined(owner) { return null; };
-    if !IsDefined(owner.GetRootCompoundWidget()) { return null; };
+  public static func Create(bridge: ref<NativeBridge>) -> ref<PresetPanel> {
     let panel: ref<PresetPanel> = new PresetPanel();
     panel.bridge = bridge;
-    panel.owner = owner;
-    if !panel.Build() { return null; };
-    panel.root.Reparent(owner.GetRootCompoundWidget());
-    panel.attached = true;
-    owner.RegisterToGlobalInputCallback(n"OnPostOnRelease", panel, n"OnGlobalRelease");
-    bridge.RegisterPanel(panel);
-    panel.OnBusyChanged(bridge.IsBusy(), "", false);
-    bridge.Request("open", "");
-    if !bridge.IsLuaReady() { panel.SetStatus("Connecting to the preset library.", false); };
+    panel.CreateInstance();
     return panel;
   }
   public func Detach() -> Void {
-    if !this.attached { return; };
-    this.attached = false;
-    this.owner.UnregisterFromGlobalInputCallback(n"OnPostOnRelease", this, n"OnGlobalRelease");
-    this.owner.RequestSetFocus(null);
     if IsDefined(this.bridge) { this.bridge.UnregisterPanel(this); };
-    this.search.Dispose();
-    this.presetName.Dispose();
-    let index: Int32 = 0;
-    while index < ArraySize(this.listButtons) {
-      this.listButtons[index].GetRootWidget().UnregisterFromCallback(n"OnAxis", this, n"OnPanelScroll");
-      this.listButtons[index].GetRootWidget().UnregisterFromCallback(n"OnRelative", this, n"OnPanelScroll");
-      this.listButtons[index].Dispose();
-      index += 1;
-    };
-    index = 0;
-    while index < ArraySize(this.actionButtons) {
-      this.actionButtons[index].Dispose();
-      index += 1;
-    };
-    this.cancelLoadAction.Dispose();
-    let parent: ref<inkCompoundWidget> = this.root.GetParentWidget() as inkCompoundWidget;
-    if IsDefined(parent) { parent.RemoveChild(this.root); };
-    this.root = null;
-    this.owner = null;
-    this.bridge = null;
+    let root: ref<inkWidget> = this.GetRootWidget();
+    let parent: ref<inkCompoundWidget> = root.GetParentWidget() as inkCompoundWidget;
+    if IsDefined(parent) { parent.RemoveChild(root); };
   }
 }
 
@@ -850,14 +763,9 @@ public func CPMGetNativeBridge() -> ref<NativeBridge> {
 protected cb func OnInitialize() -> Bool {
   wrappedMethod();
   let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
-  if IsDefined(this.cpmPresetPanel) {
-    this.cpmPresetPanel.Detach();
-    this.cpmPresetPanel = null;
-  };
   if IsDefined(bridge) {
-    this.cpmPresetPanel = PresetPanel.Create(bridge, this);
-  };
-  if IsDefined(this.cpmPresetPanel) {
+    this.cpmPresetPanel = PresetPanel.Create(bridge);
+    this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
     let settings: ref<inkWidget> = inkWidgetRef.Get(this.m_randomizationSettingsWidget);
     if IsDefined(settings) {
       settings.Reparent(this.GetRootCompoundWidget());
@@ -946,7 +854,6 @@ protected cb func OnRandomize(e: ref<inkPointerEvent>) -> Bool {
 
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnButtonRelease(evt: ref<inkPointerEvent>) -> Bool {
-  if IsDefined(this.cpmPresetPanel) && this.cpmPresetPanel.HandleTextInputRelease(evt) { return true; };
   if IsDefined(this.cpmPresetPanel) && evt.IsAction(n"back")
       && inkWidgetRef.IsVisible(this.m_randomizationSettingsWidget) {
     this.CPMRandomizeSettings();
