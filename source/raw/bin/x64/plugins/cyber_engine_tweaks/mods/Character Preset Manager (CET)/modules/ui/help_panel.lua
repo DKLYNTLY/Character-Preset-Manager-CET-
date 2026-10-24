@@ -300,6 +300,8 @@ if state.ui.helpOpen then
         "Remove Character Customization Anywhere and restart the game. Both mods change the same character screens, so they cannot work together.")
       ImGui.TextWrapped("Uninstall Appearance Change Unlocker (ACU) and fully restart the game. Keep only its preset files, which the importer can read without ACU installed. The files are copied into the library after startup, and the file service watches for later changes. If a file is missing, select Refresh to check again.")
       ImGui.TextWrapped("Character Preset Manager follows on from ACU. The package includes the CET manager, simple menu, and file service. If the simple menu or file service stops working after a game update, use CET when its required frameworks support that game version.")
+      ImGui.TextWrapped("Both menus need CET, RED4ext, and redscript versions that support your game. Codeware is no longer required by this mod; keep a compatible version if another mod needs it.")
+      ImGui.TextWrapped("The current scripts target Cyberpunk 2077 2.5 and compile without Codeware. I have not yet checked both menus in a running 2.5 game, so full compatibility is unconfirmed.")
       ImGui.TextWrapped("CC and CCXL examples include EKT Custom Character Creator - FEMV ONLY for facial choices and Head Cyberware CCXL for added cyberware choices. Install each mod and its requirements separately; presets save choices, not the mod files.")
       ImGui.TextWrapped("Keep the character mods, versions, and load order used when you saved the preset. If your setup changes, check the result and save it again.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
