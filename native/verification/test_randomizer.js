@@ -56,4 +56,18 @@ const appearanceOutput = `${appearance.stdout || ""}${appearance.stderr || ""}`;
 assert.strictEqual(appearance.status, 0, appearanceOutput);
 assert(appearanceOutput.includes("Appearance load runtime test: OK") && !appearanceOutput.includes("stack traceback:"), appearanceOutput);
 process.stdout.write(appearanceOutput);
+const uncached = spawnSync(process.execPath,
+  [cli, path.join(__dirname, "appearance_load_runtime.lua"), path.join(mod, "init.lua"), "uncached"],
+  { cwd: mod, encoding: "utf8" });
+const uncachedOutput = `${uncached.stdout || ""}${uncached.stderr || ""}`;
+assert.strictEqual(uncached.status, 0, uncachedOutput);
+assert(uncachedOutput.includes("Appearance load runtime test: OK") && !uncachedOutput.includes("stack traceback:"), uncachedOutput);
+console.log("Uncached appearance load comparison: OK");
+const advanced = spawnSync(process.execPath,
+  [cli, path.join(__dirname, "advanced_menu_runtime.lua"), path.join(mod, "init.lua")],
+  { cwd: mod, encoding: "utf8" });
+const advancedOutput = `${advanced.stdout || ""}${advanced.stderr || ""}`;
+assert.strictEqual(advanced.status, 0, advancedOutput);
+assert(advancedOutput.includes("Advanced menu runtime test: OK") && !advancedOutput.includes("stack traceback:"), advancedOutput);
+process.stdout.write(advancedOutput);
 console.log("Lua parsing and randomizer panel checks: OK");

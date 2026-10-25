@@ -20,6 +20,10 @@ if not state.app.overlayOpen or not state.app.windowOpen then return end
     ImGui.SetNextWindowPos(initialX, initialY, positionCondition)
   end
   ImGui.SetNextWindowSize(420, 700, ImGuiCond.FirstUseEver)
+  if state.ui.focusWindowRequested then
+    ImGui.SetNextWindowFocus()
+    state.ui.focusWindowRequested = false
+  end
   local visible = ImGui.Begin("Character Preset Manager (CET)##CPM2")
   if state.ui.initialWindowPlacementPending and initialX then
     state.ui.initialWindowPlacementPending = false

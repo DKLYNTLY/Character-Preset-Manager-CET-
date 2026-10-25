@@ -14,7 +14,7 @@ set(RED4EXT_USE_PCH OFF CACHE BOOL "" FORCE)
 add_subdirectory("${RED4EXT_SDK_PATH}" RED4ext.SDK)
 
 add_library(CharacterPresetManagerNative SHARED src/Main.cpp)
-target_link_libraries(CharacterPresetManagerNative PRIVATE RED4ext::SDK)
+target_link_libraries(CharacterPresetManagerNative PRIVATE RED4ext::SDK user32)
 target_compile_definitions(CharacterPresetManagerNative PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(CharacterPresetManagerNative PRIVATE /W4 /permissive- /EHsc)
 
@@ -26,7 +26,7 @@ set_target_properties(CharacterPresetManagerNative PROPERTIES
 option(CPM_BUILD_TESTS "Build the native file service tests" OFF)
 if(CPM_BUILD_TESTS)
   add_executable(CharacterPresetManagerNativeTests verification/ImporterTest.cpp)
-  target_link_libraries(CharacterPresetManagerNativeTests PRIVATE RED4ext::SDK)
+  target_link_libraries(CharacterPresetManagerNativeTests PRIVATE RED4ext::SDK user32)
   target_compile_definitions(CharacterPresetManagerNativeTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
   target_compile_options(CharacterPresetManagerNativeTests PRIVATE /W4 /permissive- /EHsc)
 endif()

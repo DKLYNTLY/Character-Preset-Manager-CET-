@@ -12,9 +12,11 @@
 #include <cwctype>
 #include <filesystem>
 #include <fstream>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <optional>
+#include <regex>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -566,6 +568,153 @@ bool WaitFor(std::stop_token stop, const std::chrono::milliseconds duration)
     return g_waitCondition.wait_for(lock, duration, [&] { return stop.stop_requested(); });
 }
 
+std::vector<WORD> DecodeOverlayBinding(const std::string& text)
+{
+    if (text.size() > 1048576)
+        return {};
+    const std::regex pattern(R"("cet"\s*:\s*\{[^{}]*"overlay_key"\s*:\s*([0-9]+)\s*[,}])");
+    std::smatch match;
+    if (!std::regex_search(text, match, pattern))
+        return {};
+    std::uint64_t encoded = 0;
+    try { encoded = std::stoull(match[1].str()); }
+    catch (...) { return {}; }
+    std::vector<WORD> keys;
+    bool ended = false;
+    for (int shift = 48; shift >= 0; shift -= 16)
+    {
+        const auto key = static_cast<WORD>((encoded >> shift) & 0xFFFF);
+        if (!key) { ended = true; continue; }
+        if (ended || key <= VK_XBUTTON2 || key > 0xFE ||
+            std::find(keys.begin(), keys.end(), key) != keys.end())
+            return {};
+        keys.push_back(key);
+    }
+    return keys;
+}
+
+std::vector<INPUT> OverlayInputs(const std::vector<WORD>& keys)
+{
+    std::vector<INPUT> inputs;
+    for (const auto key : keys)
+    {
+        INPUT input{};
+        input.type = INPUT_KEYBOARD;
+        input.ki.wVk = key;
+        if (key == VK_RCONTROL || key == VK_RMENU || key == VK_INSERT ||
+            key == VK_DELETE || key == VK_HOME || key == VK_END || key == VK_PRIOR ||
+            key == VK_NEXT || (key >= VK_LEFT && key <= VK_DOWN) || key == VK_DIVIDE ||
+            key == VK_NUMLOCK || key == VK_SNAPSHOT || key == VK_LWIN || key == VK_RWIN || key == VK_APPS)
+            input.ki.dwFlags = KEYEVENTF_EXTENDEDKEY;
+        inputs.push_back(input);
+    }
+    const auto count = inputs.size();
+    for (auto index = count; index > 0; --index)
+    {
+        auto input = inputs[index - 1];
+        input.ki.dwFlags |= KEYEVENTF_KEYUP;
+        inputs.push_back(input);
+    }
+    return inputs;
+}
+
+std::string ReadOverlayFile(const fs::path& path)
+{
+    std::error_code error;
+    const auto size = fs::file_size(path, error);
+    if (error || size > 1048576)
+        return {};
+    std::ifstream stream(path, std::ios::binary);
+    return std::string(std::istreambuf_iterator<char>(stream), {});
+}
+
+bool GameIsForeground()
+{
+    DWORD process = 0;
+    GetWindowThreadProcessId(GetForegroundWindow(), &process);
+    return process == GetCurrentProcessId();
+}
+
+struct OverlayEnvironment
+{
+    std::function<bool()> foreground = GameIsForeground;
+    std::function<bool(std::stop_token)> wait = [](std::stop_token stop) {
+        return WaitFor(stop, std::chrono::milliseconds(50));
+    };
+    std::function<bool()> held = [] {
+        for (int key = 1; key <= 0xFE; ++key)
+            if (GetAsyncKeyState(key) & 0x8000)
+                return true;
+        return false;
+    };
+    std::function<UINT(std::vector<INPUT>&)> send = [](std::vector<INPUT>& inputs) {
+        return SendInput(static_cast<UINT>(inputs.size()), inputs.data(), sizeof(INPUT));
+    };
+};
+
+class OverlayOpener
+{
+public:
+    explicit OverlayOpener(const fs::path& manager, OverlayEnvironment environment = {})
+        : request_(manager / L"Data" / L"Config" / L"CET Overlay Request.txt"),
+          result_(manager / L"Data" / L"Config" / L"CET Overlay Result.txt"),
+          bindings_(manager.parent_path().parent_path() / L"bindings.json"),
+          previous_(ReadOverlayFile(request_)), environment_(std::move(environment)) {}
+
+    void Poll(std::stop_token stop)
+    {
+        const auto request = ReadOverlayFile(request_);
+        if (request == previous_)
+            return;
+        previous_ = request;
+        const auto separator = request.find('\t');
+        if (separator == std::string::npos || request.substr(separator + 1) != "open")
+            return;
+        const auto id = request.substr(0, separator);
+        if (id.empty() || id.size() > 80 || id.find_first_not_of("0123456789-") != std::string::npos)
+            return;
+        const auto keys = DecodeOverlayBinding(ReadOverlayFile(bindings_));
+        if (keys.empty()) { Respond(id, "binding-unavailable"); return; }
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(1);
+        for (;;)
+        {
+            if (!environment_.foreground() || environment_.wait(stop))
+            { Respond(id, "cancelled"); return; }
+            if (ReadOverlayFile(request_) != request)
+                return;
+            if (!environment_.held())
+                break;
+            if (std::chrono::steady_clock::now() >= deadline)
+            { Respond(id, "keys-held"); return; }
+        }
+        if (!environment_.foreground()) { Respond(id, "cancelled"); return; }
+        if (stop.stop_requested() || ReadOverlayFile(request_) != request)
+            return;
+        auto inputs = OverlayInputs(keys);
+        const auto sent = environment_.send(inputs);
+        if (sent != inputs.size())
+        {
+            std::vector<INPUT> releases(inputs.begin() + keys.size(), inputs.end());
+            environment_.send(releases);
+            Respond(id, "input-failed");
+            return;
+        }
+        Respond(id, "sent");
+    }
+
+private:
+    void Respond(const std::string& id, const std::string& status)
+    {
+        std::ofstream output(result_, std::ios::binary | std::ios::trunc);
+        output << id << '\t' << status;
+        LogInfo("Character Preset Manager: CET opening request " + status + ".");
+    }
+
+    fs::path request_, result_, bindings_;
+    std::string previous_;
+    OverlayEnvironment environment_;
+};
+
 class DirectoryWatcher
 {
 public:
@@ -680,6 +829,7 @@ void Worker(std::stop_token stop)
         return;
     }
     auto requestTime = RequestTime(paths->request);
+    OverlayOpener overlay(paths->library.parent_path());
     if (WaitFor(stop, std::chrono::duration_cast<std::chrono::milliseconds>(kStartupDelay)))
         return;
     DirectoryWatcher acuWatcher;
@@ -698,6 +848,7 @@ void Worker(std::stop_token stop)
     auto watcherScanDue = std::chrono::steady_clock::time_point{};
     while (!stop.stop_requested())
     {
+        overlay.Poll(stop);
         auto timeout = kRequestPoll;
         const auto beforeWait = std::chrono::steady_clock::now();
         if (watcherChangePending)

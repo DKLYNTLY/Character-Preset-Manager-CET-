@@ -316,11 +316,13 @@ if state.ui.helpOpen then
         state.editor.inputCount)
       helpButton("Randomize", "Randomizes your appearance using the game's current locks. R still works in the character screen. Wait for any preset load or recovery to finish first.")
       helpButton("Randomize Settings", "Shows which appearance categories the randomizer can change. If you use this button in CET, close the overlay to see the settings.")
+      helpButton("Advanced Preset Manager", "Opens CET and shows the complete manager using your saved CET binding. Keep the game in focus and release other keys. If it does not open, press your CET binding yourself.")
       end
 
       if showHelpTopic("Load & Restore Appearance",
           "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue cancel button") then
       helpHeading("Load & Restore Appearance")
+      ImGui.TextWrapped("Select a preset once to load it automatically. Hair, cyberware, and linked choices may need a brief wait between changes. Check any unconfirmed-value warning before confirming the editor.")
       ImGui.TextWrapped("1. Open a supported character editor.")
       ImGui.TextWrapped("2. Find a preset in the simple menu on the left. Use Search to narrow the list, or select a folder to open it.")
       ImGui.TextWrapped("3. Select a preset to load it. To review it first, use Check Compatibility in CET.")

@@ -573,6 +573,20 @@ end
 helpers.runLoadBatch = function()
   local batch = state.load.batch
   if not batch then return false end
+  if state.load.pendingChange then
+    local system, options = getOptions(true)
+    if not options then
+      state.load.batch = nil
+      state.load.pendingChange = nil
+      state.load.needsContinue = false
+      state.load.stalled = true
+      setStatus("load", "Loading stopped because the editor closed. Reopen it and try again.", true)
+      return true
+    end
+    local scan = helpers.scanLoadOptions(options, state.load.savedCounts, state.load.savedSlotCounts)
+    local result = helpers.checkPendingChange(system, scan)
+    if result == "waiting" or result == "failed" then return true end
+  end
   local stages = { "Clearing old choices", "Applying main choices", "Applying linked details" }
   if batch.waitUntil then
     local _, options = getOptions(true)
@@ -592,6 +606,7 @@ helpers.runLoadBatch = function()
         and state.load.elapsed < batch.deadline then return true end
     batch.stage = batch.stage + 1
     batch.waitUntil = nil
+    batch.visited = nil
     if batch.stage > 3 then
       state.load.batch = nil
       state.load.phase = "apply"
@@ -601,7 +616,8 @@ helpers.runLoadBatch = function()
     end
   end
   setStatus("load", ("Stage %d of 3: %s."):format(batch.stage, stages[batch.stage]))
-  local visited = {}
+  batch.visited = batch.visited or {}
+  local visited = batch.visited
   local writes = 0
   while writes < 512 do
     local system, options = getOptions(true)
@@ -652,6 +668,22 @@ helpers.runLoadBatch = function()
     if not selected then break end
     visited[selected.key] = true
     writes = writes + 1
+    if helpers.loadOptionNeedsLongSettle(selected, selected.key) then
+      local kind = batch.stage == 1 and "precleanup" or "apply"
+      local ok, reason = helpers.beginPendingChange(system, selected, target, kind,
+        selected.key, tonumber(selected.option.currIndex) or 0)
+      if not ok then
+        state.load.batch = nil
+        state.load.needsContinue = false
+        state.load.stalled = true
+        log("FAILED | Batch stage " .. tostring(batch.stage) .. " | " .. tostring(reason), "error")
+        setStatus("load", "Loading stopped because a choice could not be changed safely. Close the editor without confirming, then reopen it and try again.", true)
+      else
+        log(("BATCH WAIT | stage=%d | %s | target=%s"):format(batch.stage,
+          state.loadOptionIdentity(selected.option, selected.label, selected.occurrence), tostring(target)), "info")
+      end
+      return true
+    end
     local started = helpers.loadClock()
     local ok, reason = pcall(system.ApplyChangeToOption, system, selected.option, target)
     state.load.applySeconds = state.load.applySeconds + math.max(0, helpers.loadClock() - started)
@@ -1315,6 +1347,13 @@ function loadPreset()
     + math.max(0, helpers.loadClock() - optionsStarted)
   state.load.optionCalls = state.load.optionCalls + 1
   if not options then
+    if state.load.needsContinue then
+      state.load.batch = nil
+      state.load.pendingChange = nil
+      state.load.needsContinue = false
+      state.load.auto = false
+      state.load.stalled = true
+    end
     setStatus("load", "Open a customization screen before loading a preset.", true)
     log("[load] " .. tostring(optionsError), "warn")
     return

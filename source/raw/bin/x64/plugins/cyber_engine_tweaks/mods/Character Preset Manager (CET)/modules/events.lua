@@ -260,6 +260,7 @@ events.onInit = function()
 end
 
 events.onShutdown = function()
+  helpers.finishOverlayRequest()
   helpers.clearOptionCatalog()
   helpers.auditSection("SESSION END")
   log(("[SUMMARY] inputs=%d controllerCaptures=%d pauseRedirects=%d editorPuppets=%d")
@@ -285,6 +286,7 @@ end
 events.onUpdate = function(delta)
   state.app.optionsMemo = nil
   local elapsed = tonumber(delta) or 0
+  helpers.updateOverlayRequest(elapsed)
   updateAcuImport(elapsed)
   updateNativeBridge(elapsed)
   updateFallbackNotice(elapsed)
@@ -353,6 +355,7 @@ events.onUpdate = function(delta)
 end
 
 events.onOverlayOpen = function()
+  helpers.finishOverlayRequest()
   log("[UI] CET opened; showing Character Preset Manager. Select Refresh after changing preset files outside CET.", "info")
   if state.ui.fallbackNoticePending then
     state.ui.fallbackNoticePending = false

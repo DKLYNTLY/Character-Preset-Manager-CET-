@@ -61,6 +61,9 @@ assert(loadfile(initPath))()
 local runtime = require("modules/runtime")
 local state = runtime.state
 local helpers = runtime.helpers
+if arg[2] == "uncached" then
+  helpers.cachedOptionChoices = function() return nil end
+end
 
 runtime.saveAppearanceHistorySnapshot = function() return true end
 runtime.refreshCustomizationUi = function() return true end
@@ -109,8 +112,7 @@ state.library.presets[state.library.selected] = {
   },
 }
 runtime.loadPreset()
-assert(state.load.pendingChange and state.load.pendingChange.longSettle,
-  "cyberware was treated as an instant change")
+local sawLongSettle = false
 state.load.auto = state.load.needsContinue
 for _ = 1, 200 do
   elapsed = elapsed + 0.05
@@ -120,8 +122,13 @@ for _ = 1, 200 do
     pendingSlot, pendingValue, due = nil, nil, nil
   end
   events.onUpdate(0.05)
+  if state.load.pendingChange then
+    assert(state.load.pendingChange.longSettle, "cyberware was treated as an instant change")
+    sawLongSettle = true
+  end
   if not state.load.auto and not state.load.needsContinue then break end
 end
+assert(sawLongSettle, "cyberware never waited for the editor to settle")
 assert(not visibleCyberware, "old cyberware remained when the load finished")
 assert(values.cyberware_switcher == 0 and values.cyberware_2_switcher == 0)
 assert(changes.cyberware_switcher == 1 and changes.cyberware_2_switcher == 1,
@@ -154,4 +161,83 @@ assert(visibleCyberware and values.cyberware_switcher == 1 and values.cyberware_
 assert(changes.cyberware_switcher == 2 and changes.cyberware_2_switcher == 2,
   "saved cyberware was applied more than once")
 assert(not state.load.needsContinue and not state.load.stalled)
+runtime.resetLoadState()
+local hair = { hairstyle = 1, hair_color = 1 }
+local hairPending, hairDue, hairTarget
+local hairWrites = {}
+local editorClosed = false
+function system:GetUnitedOptions()
+  if editorClosed then return nil end
+  local rows = {}
+  for _, slot in ipairs({ "hairstyle", "hair_color" }) do
+    rows[#rows + 1] = {
+      currIndex = hair[slot], isEditable = true, isActive = true,
+      info = { name = slot, uiSlot = slot, options = {
+        { localizedName = "First" }, { localizedName = "Second" },
+      } },
+    }
+  end
+  return rows
+end
+function system:ApplyChangeToOption(target, index)
+  assert(not hairPending, "a linked choice was changed before the hair update finished")
+  hairPending, hairTarget, hairDue = target.info.uiSlot, index, elapsed + 0.15
+  hairWrites[hairPending] = (hairWrites[hairPending] or 0) + 1
+end
+state.library.selected = "linked hair"
+state.library.presets[state.library.selected] = { format = 8, entries = {
+  { key = "hairstyle", slot = "hairstyle", slotOccurrence = 1, index = 0, choice = "options:First" },
+  { key = "hair_color", slot = "hair_color", slotOccurrence = 1, index = 0, choice = "options:First" },
+} }
+runtime.loadPreset()
+state.load.auto = state.load.needsContinue
+for _ = 1, 300 do
+  elapsed = elapsed + 0.05
+  if hairDue and elapsed >= hairDue then
+    hair[hairPending] = hairTarget
+    if hairPending == "hairstyle" then hair.hair_color = 1 end
+    hairPending, hairDue, hairTarget = nil, nil, nil
+  end
+  events.onUpdate(0.05)
+  if not state.load.auto and not state.load.needsContinue then break end
+end
+assert(hair.hairstyle == 0 and hair.hair_color == 0, "linked hair appearance did not finish")
+assert(hairWrites.hairstyle == 1 and hairWrites.hair_color == 1, "hair changes were repeated")
+assert(not state.load.stalled and next(state.load.unconfirmed) == nil)
+runtime.resetLoadState()
+hair.hairstyle, hair.hair_color = 1, 1
+runtime.loadPreset()
+state.load.auto = state.load.needsContinue
+for _ = 1, 30 do
+  elapsed = elapsed + 0.05
+  events.onUpdate(0.05)
+  if state.load.pendingChange then break end
+end
+assert(state.load.pendingChange, "no pending hair change to test editor closure")
+editorClosed = true
+events.onUpdate(0.05)
+assert(not state.load.needsContinue and state.load.stalled and not state.load.pendingChange,
+  "editor closure left a pending load")
+runtime.resetLoadState()
+assert(not state.load.auto and not state.load.batch and not state.load.pendingChange,
+  "cancelling did not release the load state")
+editorClosed = false
+state.app.optionsMemo = nil
+hairPending, hairDue, hairTarget = nil, nil, nil
+local unconfirmedWrites = {}
+function system:ApplyChangeToOption(target, index)
+  local slot = target.info.uiSlot
+  unconfirmedWrites[slot] = (unconfirmedWrites[slot] or 0) + 1
+end
+runtime.loadPreset()
+state.load.auto = state.load.needsContinue
+for _ = 1, 300 do
+  events.onUpdate(0.05)
+  if not state.load.auto and not state.load.needsContinue then break end
+end
+assert(unconfirmedWrites.hairstyle == 1 and unconfirmedWrites.hair_color == 1,
+  "unexpected unconfirmed writes: hair=" .. tostring(unconfirmedWrites.hairstyle) ..
+    " color=" .. tostring(unconfirmedWrites.hair_color))
+assert(state.app.nativeLoadSummary:find("could not be confirmed", 1, true),
+  "unconfirmed hair changes were reported as fully confirmed")
 print("Appearance load runtime test: OK")

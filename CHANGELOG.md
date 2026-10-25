@@ -9,6 +9,11 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Waits for hair, cyberware, and linked choices during automatic preset loading.
+  Selecting a preset once still runs the whole load, with warnings for values the game cannot confirm.
+- Opens CET and the CPM window from **Advanced Preset Manager** using the saved overlay binding.
+  If opening fails, the menu explains how to open CET manually.
+
 - Labels the code from commit `855856753bfde664a890c7541e6bf2d3cffa2f2a` as version 4.0.0.
   This version change keeps the same features, dependencies, and preset format.
 

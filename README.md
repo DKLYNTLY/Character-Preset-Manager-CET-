@@ -77,8 +77,8 @@ check for compatible framework and mod versions before using the editor.*
 The simple menu includes saving, loading, search, folders, recovery, Trash,
 and randomizing. Keep the CET overlay closed while using those controls.
 
-For more tools, select **Advanced Preset Manager**, then open CET with your
-chosen overlay key and select **Character Preset Manager** from its menu.
+For more tools, select **Advanced Preset Manager** to open CET and show the
+complete manager. Keep the game in focus while it opens.
 The complete manager includes backups, sharing, compatibility checks, Help,
 and logs. It starts near the right side; move or resize it as needed, and
 CET remembers where you leave it.
@@ -164,9 +164,12 @@ whether that input has been received during the current game session.
 
 ## Open the advanced manager
 
-Select **Advanced Preset Manager**, then open your CET overlay and choose
-**Character Preset Manager** from the menu on the right. The button cannot
-open the overlay itself.
+Select **Advanced Preset Manager** to open CET and show the CPM window.
+The native helper reads your saved CET binding and presses it once after you
+release the mouse button. Keep the game in focus and release other keys.
+
+If CET does not open, press its overlay binding yourself. Set that binding in
+CET first if you have not chosen one; CPM does not change your bindings.
 
 ---
 
@@ -175,6 +178,10 @@ open the overlay itself.
 Select a preset once to load it. Open a folder row to see its contents, or use
 **Search** to narrow the list by preset name, folder, or tag. **Refresh** reads files
 added or changed outside the game.
+
+Loading finishes automatically after that one click. The loader waits for hair,
+cyberware, and linked choices to settle before sending another change.
+If a value cannot be confirmed, check the warning and appearance before continuing.
 
 A closed folder hides its subfolders too. Main folders are cyan; nested folders
 are yellow and begin with `>`. Favorites appear near the top, and presets outside
@@ -612,8 +619,9 @@ character screen points to CET.
 
 ### The CET window is missing
 
-Open the overlay and choose **Character Preset Manager** from the menu on the
-right. **Advanced Preset Manager** points you there but cannot open CET itself.
+Select **Advanced Preset Manager** to open CET and show the window.
+If it does not open, keep the game in focus, release other keys, and check that
+the native file service is installed. You can also press your CET binding yourself.
 
 ---
 

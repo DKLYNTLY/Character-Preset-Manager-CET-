@@ -9,12 +9,49 @@ local nativeRowsCache = {}
 local nativeRowsCount = 0
 local nativeLocationsRevision = -1
 local nativeLocationsCache = {}
+local overlayRequestPath = CONFIG_DIR .. "/CET Overlay Request.txt"
+local overlayResultPath = CONFIG_DIR .. "/CET Overlay Result.txt"
+local overlayRequestCounter = 0
+local overlayRequest = nil
+local overlayFallback = "CET did not open. Press your CET binding to show Character Preset Manager."
+local bridgeCall
+
+local function writeOverlayRequest(id, action)
+  return writeFileSafely(overlayRequestPath, "w", function(file)
+    return file:write(id .. "\t" .. action) ~= nil
+  end)
+end
+
+helpers.finishOverlayRequest = function()
+  if overlayRequest then
+    writeOverlayRequest(overlayRequest.id, "cancel")
+    overlayRequest = nil
+  end
+end
+
+helpers.updateOverlayRequest = function(delta)
+  if not overlayRequest then return end
+  if state.app.overlayOpen then
+    helpers.finishOverlayRequest()
+    return
+  end
+  overlayRequest.elapsed = overlayRequest.elapsed + math.max(0, tonumber(delta) or 0)
+  local result = readBoundedFile(overlayResultPath, 256)
+  local id, status = tostring(result or ""):match("^([%d%-]+)\t([%a%-]+)$")
+  if (id == overlayRequest.id and status ~= "sent") or overlayRequest.elapsed >= 3 then
+    helpers.finishOverlayRequest()
+    state.app.nativePanelStatus = overlayFallback
+    state.app.nativePanelStatusError = true
+    bridgeCall("SetBusy", false, overlayFallback, true)
+    log("[NATIVE PANEL] " .. overlayFallback, "warn")
+  end
+end
 
 local function cleanField(value)
   return tostring(value or ""):gsub("[%c]", " ")
 end
 
-local function bridgeCall(method, ...)
+bridgeCall = function(method, ...)
   local bridge = state.app.nativeBridge
   if not bridge then return false, nil end
   local methodOk, callable = pcall(function() return bridge[method] end)
@@ -359,7 +396,14 @@ local function handleNativeRequest(action, payload)
   end
   if action == "open_advanced" then
     state.app.windowOpen = true
-    return "status", "Press your CET binding, then open Character Preset Manager on the right."
+    state.ui.focusWindowRequested = true
+    if state.app.overlayOpen then return "status", "Character Preset Manager is open in CET." end
+    if overlayRequest then return "status", "Opening Character Preset Manager in CET..." end
+    overlayRequestCounter = overlayRequestCounter + 1
+    local id = tostring(os.time()) .. "-" .. tostring(overlayRequestCounter)
+    if not writeOverlayRequest(id, "open") then return "error", overlayFallback end
+    overlayRequest = { id = id, elapsed = 0 }
+    return "status", "Opening Character Preset Manager in CET..."
   end
   if action == "open_load_details" then
     state.app.windowOpen = true
