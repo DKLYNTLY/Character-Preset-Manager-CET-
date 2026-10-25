@@ -8,7 +8,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
-<p align="center"><strong>Current version: 3.1.5</strong> · <a href="CHANGELOG.md">Changelog</a></p>
+<p align="center"><strong>Current version: 4.0.0</strong> · <a href="CHANGELOG.md">Changelog</a></p>
 
 Character Preset Manager saves your character's appearance as a preset you can
 load again later. It follows on from Appearance Change Unlocker (ACU) and reads
@@ -62,7 +62,7 @@ check for compatible framework and mod versions before using the editor.*
 2. Install all four required frameworks: **Cyber Engine Tweaks (CET)**,
    **RED4ext**, **redscript**, and **Codeware**. CET is required for both menus.
 3. Remove Character Customization Anywhere and fully restart the game.
-4. Extract `Character Preset Manager (CET) 3.1.5.zip` into the main
+4. Extract `Character Preset Manager (CET) 4.0.0.zip` into the main
    `Cyberpunk 2077` folder. Merge its `bin`, `r6`, and `red4ext` folders with
    the folders already there.
 5. Start the game. If CET asks you to choose an overlay key on its first launch,
@@ -93,7 +93,7 @@ CET remembers where you leave it.
 2. Remove the old `Character Preset Manager (CET)` mod folder.
 3. Remove `r6/scripts/CharacterPresetManager` so no old menu scripts remain in the game.
    Your presets are stored elsewhere.
-4. Install version 3.1.5 and its four required frameworks.
+4. Install version 4.0.0 and its four required frameworks.
 5. Restore your saved `Character Presets` and `Data` folders.
 6. Fully restart the game.
 

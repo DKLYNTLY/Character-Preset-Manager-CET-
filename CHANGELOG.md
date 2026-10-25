@@ -5,7 +5,17 @@ was then, including controls and paths that may have changed. Use the README
 and in-game Help for current steps.
 
 <details open>
-<summary><strong>Latest release — 3.1.5</strong></summary>
+<summary><strong>Latest version - 4.0.0</strong></summary>
+
+## 4.0.0
+
+- Labels the code from commit `855856753bfde664a890c7541e6bf2d3cffa2f2a` as version 4.0.0.
+  This version change keeps the same features, dependencies, and preset format.
+
+</details>
+
+<details>
+<summary><strong>3.1.5</strong></summary>
 
 ## 3.1.5
 
