@@ -44,12 +44,12 @@ updates it to format 8.
 
 ## Requirements
 
-This release uses these framework versions:
+Cyberpunk 2077 **2.5** requires at least these framework versions:
 
-- [**Cyber Engine Tweaks 1.37.1**](https://www.nexusmods.com/cyberpunk2077/mods/107)
-- [**RED4ext 1.30.0**](https://www.nexusmods.com/cyberpunk2077/mods/2380)
-- [**redscript 0.5.31**](https://www.nexusmods.com/cyberpunk2077/mods/1511)
-- [**Codeware 1.20.3**](https://www.nexusmods.com/cyberpunk2077/mods/7780)
+- [**Cyber Engine Tweaks 1.38.0 or newer**](https://www.nexusmods.com/cyberpunk2077/mods/107)
+- [**RED4ext 1.31.0 or newer**](https://www.nexusmods.com/cyberpunk2077/mods/2380)
+- [**redscript 0.5.32 or newer**](https://www.nexusmods.com/cyberpunk2077/mods/1511)
+- [**Codeware 1.21.1 or newer**](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 
 *These frameworks must support your installed game version. After a game update,
 check for compatible framework and mod versions before using the editor.*

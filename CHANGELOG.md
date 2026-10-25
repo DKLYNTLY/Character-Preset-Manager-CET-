@@ -5,17 +5,20 @@ was then, including controls and paths that may have changed. Use the README
 and in-game Help for current steps.
 
 <details open>
-<summary><strong>Latest version - 4.0.0</strong></summary>
+<summary><strong>Latest release - 4.0.0</strong></summary>
 
 ## 4.0.0
+
+- Sets game 2.5 minimum requirements to CET 1.38.0, RED4ext 1.31.0, redscript 0.5.32, and Codeware 1.21.1.
+  Newer framework versions must also support your installed game version.
 
 - Waits for hair, cyberware, and linked choices during automatic preset loading.
   Selecting a preset once still runs the whole load, with warnings for values the game cannot confirm.
 - Opens CET and the CPM window from **Advanced Preset Manager** using the saved overlay binding.
   If opening fails, the menu explains how to open CET manually.
 
-- Labels the code from commit `855856753bfde664a890c7541e6bf2d3cffa2f2a` as version 4.0.0.
-  This version change keeps the same features, dependencies, and preset format.
+- Builds on commit `855856753bfde664a890c7541e6bf2d3cffa2f2a` with the loading and menu changes listed above.
+  Preset format 8 and older CPM and compatible ACU files remain supported.
 
 </details>
 

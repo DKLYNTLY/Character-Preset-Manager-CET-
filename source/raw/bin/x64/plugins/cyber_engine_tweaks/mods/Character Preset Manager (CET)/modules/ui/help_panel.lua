@@ -296,6 +296,7 @@ if state.ui.helpOpen then
       if showHelpTopic("Problems & Compatibility",
           "bug bugs issue issues problem problems error errors troubleshooting stuck infinite loading screen clothing clothes wardrobe outfit no outfit ACU appearance change unlocker character customization anywhere photo mode appearance menu mod incompatible incompatibility compatibility future update patch simple panel missing successor backup") then
       helpHeading("Problems & Compatibility")
+      ImGui.TextWrapped("For game 2.5, install CET 1.38.0, RED4ext 1.31.0, redscript 0.5.32, and Codeware 1.21.1 or newer. These are the minimum versions; each framework must also support your installed game version.")
       coloredWrapped(1.0, 0.4, 0.4, 1.0,
         "Remove Character Customization Anywhere and restart the game. Both mods change the same character screens, so they cannot work together.")
       ImGui.TextWrapped("Uninstall Appearance Change Unlocker (ACU) and fully restart the game. Keep only its preset files, which the importer can read without ACU installed. The files are copied into the library after startup, and the file service watches for later changes. If a file is missing, select Refresh to check again.")
