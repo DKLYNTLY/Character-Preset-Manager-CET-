@@ -1,6 +1,23 @@
 # Loading and voice checks
 
-## Automated checks
+## Follow-up after the in-game report
+
+The saved Activity Log shows CORPO - Female taking about 18 seconds and 225
+passes in build `d3c852a`. Cleanup waited about two-thirds of a second per
+old choice, while group confirmation waited separately for linked changes.
+Some values were reported as unconfirmed after only 0.02 to 0.08 seconds.
+Other warnings named eyelash selectors that the editor did not expose.
+
+The follow-up build clears old choices, applies main choices, then applies
+colors and linked details. Each stage writes small groups across updates
+and confirms its pending choices together, with a shared settling period.
+Missing selectors remain warnings; the loader does not substitute another choice.
+
+At the user's request, I am checking code compilation and package contents
+for this build and leaving behavior checks to the next in-game test.
+The earlier simulation results below describe `d3c852a`, not this follow-up.
+
+## Earlier automated checks
 
 I ran `node native/verification/test_randomizer.js` after these changes.
 It parses the shipped Lua files and checks the randomizer, menu actions,

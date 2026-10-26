@@ -9,6 +9,11 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Clears old choices first, applies main choices next, then applies colors and linked details.
+  Shares confirmation across each stage instead of waiting for every choice in turn.
+- Gives delayed game values time to update before reporting an unconfirmed choice.
+  Missing-choice logs now include saved editor slots, and load measurements are written to the Activity Log.
+
 - Uses the 3.1.5 loader as the base for smaller groups of preset changes.
   Reads current options once per pass and checks each group together, with waits for linked choices.
 - Limits each group to four changes and yields after four milliseconds of work applying choices.

@@ -92,6 +92,9 @@ function resetLoadState()
   state.load.targetPollSeconds = 0
   state.load.targetFallbacks = 0
   state.load.batch = nil
+  state.load.stageApplied = nil
+  state.load.stagePending = nil
+  state.load.choiceStage = nil
   state.load.pendingChange = nil
   state.load.pendingElapsed = 0
   state.load.phase = "apply"
@@ -321,7 +324,6 @@ end
 log = function(message, level)
   level = level or "info"
   local technical = tostring(message):find("[PERFORMANCE]", 1, true) == 1
-    or tostring(message):find("[MEASURE]", 1, true) == 1
     or tostring(message):find("[editor diagnostic]", 1, true) == 1
   if technical and level ~= "error" then return end
   writeLog(message, level)

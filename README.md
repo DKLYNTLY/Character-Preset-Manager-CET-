@@ -128,7 +128,7 @@ Both mods change the same character screens and **cannot work together**.
 <details>
 <summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
-Loading prepares saved choices together and applies them in small groups. It waits for linked choices, clears unused old choices, and checks the result. Check your appearance before confirming the editor.
+Loading clears old choices first, applies main choices next, then applies colors and linked details. Each stage uses small groups across updates, followed by a shared check. Check your appearance before confirming the editor.
 
 ## Choose a menu
 
