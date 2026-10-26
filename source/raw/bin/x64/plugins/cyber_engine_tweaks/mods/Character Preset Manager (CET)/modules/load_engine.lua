@@ -176,6 +176,7 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
   end
   if rebuildSignature then state.load.lastStructureSignature = result.signature end
   state.load.lastOptionCount = optionCount
+  state.load.scanCalls = state.load.scanCalls + 1
   state.load.scanSeconds = state.load.scanSeconds + math.max(0, helpers.loadClock() - started)
   return result
 end
@@ -421,12 +422,15 @@ helpers.checkPendingChange = function(system, scan)
 end
 
 helpers.logLoadMeasurements = function(result)
-  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | option checks=%d time=%.6fs | full scans=%.6fs | dependency polls=%d time=%.6fs fallbacks=%d | choice matching=%.6fs | applied calls=%.6fs | waiting=%.3fs | dependency changes=%d")
+  local current = state.load.updateStarted
+    and math.max(0, helpers.loadClock() - state.load.updateStarted) or 0
+  state.load.longestUpdate = math.max(state.load.longestUpdate, current)
+  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | option checks=%d time=%.6fs | full scans=%d time=%.6fs | dependency polls=%d time=%.6fs fallbacks=%d | choice matching=%.6fs | applied calls=%.6fs | waiting=%.3fs | dependency changes=%d | longest update=%.6fs")
     :format(tostring(result), tostring(state.load.presetName or state.library.selected),
       state.load.elapsed, state.load.optionCalls, state.load.optionsSeconds,
-      state.load.scanSeconds, state.load.targetPolls, state.load.targetPollSeconds,
+      state.load.scanCalls, state.load.scanSeconds, state.load.targetPolls, state.load.targetPollSeconds,
       state.load.targetFallbacks, state.load.choiceSeconds, state.load.applySeconds,
-      state.load.waitSeconds, state.load.structureChanges), "info")
+      state.load.waitSeconds, state.load.structureChanges, state.load.longestUpdate), "info")
 end
 
 helpers.releaseFinishedLoadWorkingData = function()
@@ -560,148 +564,88 @@ helpers.finalVerifyUnconfirmed = function()
   return cleared
 end
 
-helpers.isSecondaryLoadOption = function(candidate)
-  local text = table.concat({ tostring(candidate.label or ""),
-    tostring(candidate.slot or ""),
-    helpers.optionDisplayName(candidate.option, candidate.label) }, " "):lower()
-  for _, word in ipairs({ "color", "colour", "tint", "intensity", "opacity" }) do
-    if text:find(word, 1, true) then return true end
+helpers.confirmLoadGroup = function(system, scan)
+  local group = state.load.batch
+  if not group then return end
+  state.load.batch = nil
+  for index, pending in ipairs(group) do
+    state.load.pendingChange = pending
+    if helpers.checkPendingChange(system, scan) == "waiting" then
+      local remaining = {}
+      for nextIndex = index + 1, #group do
+        remaining[#remaining + 1] = group[nextIndex]
+      end
+      if #remaining > 0 then state.load.batch = remaining end
+      return "waiting"
+    end
   end
-  return false
+  state.load.pendingChange = nil
+  state.load.nextInterval = 0
 end
 
-helpers.runLoadBatch = function()
-  local batch = state.load.batch
-  if not batch then return false end
-  if state.load.pendingChange then
-    local system, options = getOptions(true)
-    if not options then
-      state.load.batch = nil
-      state.load.pendingChange = nil
-      state.load.needsContinue = false
-      state.load.stalled = true
-      setStatus("load", "Loading stopped because the editor closed. Reopen it and try again.", true)
-      return true
+helpers.applyLoadGroup = function(system, options, scan)
+  local prepared = {}
+  for _, candidate in ipairs(scan.exposed) do
+    local key = candidate.key
+    local entry = state.load.savedEntryByKey[key]
+    if entry and not state.load.satisfied[key]
+        and scan.activeCounts[candidate.label] == state.load.savedCounts[candidate.label]
+        and (not entry.slot or entry.slot == candidate.slot) then
+      local target = state.load.values[key]
+      if entry.choice then
+        target = helpers.resolveLoadChoice(candidate.option, entry.choice,
+          state.load.resolvedChoiceIndexes[key])
+        state.load.resolvedChoiceIndexes[key] = target
+      end
+      if target ~= nil and optionIndexIsValid(target)
+          and (tonumber(candidate.option.currIndex) or 0) ~= target then
+        prepared[#prepared + 1] = { candidate = candidate, target = target }
+      end
     end
-    local scan = helpers.scanLoadOptions(options, state.load.savedCounts, state.load.savedSlotCounts)
-    local result = helpers.checkPendingChange(system, scan)
-    if result == "waiting" or result == "failed" then return true end
   end
-  local stages = { "Clearing old choices", "Applying main choices", "Applying linked details" }
-  if batch.waitUntil then
-    local _, options = getOptions(true)
-    if not options then
-      state.load.needsContinue = false
-      state.load.stalled = true
-      state.load.batch = nil
-      setStatus("load", "Loading stopped because the editor closed. Reopen it and try again.", true)
-      return true
-    end
-    state.load.forceStructureScan = true
-    local scan = helpers.scanLoadOptions(options, state.load.savedCounts, state.load.savedSlotCounts)
-    if scan.structureChanged then
-      batch.waitUntil = state.load.elapsed + AUTO_LOAD_TIMING.dependencyStableTime
-    end
-    if state.load.elapsed < batch.waitUntil
-        and state.load.elapsed < batch.deadline then return true end
-    batch.stage = batch.stage + 1
-    batch.waitUntil = nil
-    batch.visited = nil
-    if batch.stage > 3 then
-      state.load.batch = nil
-      state.load.phase = "apply"
+  local group = {}
+  local started = helpers.loadClock()
+  for _, change in ipairs(prepared) do
+    if #group >= AUTO_LOAD_TIMING.maximumGroupChanges
+        or helpers.loadClock() - started >= AUTO_LOAD_TIMING.groupBudgetSeconds then break end
+    local candidate = change.candidate
+    local option = options[candidate.position]
+    if #options ~= state.load.lastOptionCount or option ~= candidate.option
+        or not option.isEditable or not option.isActive
+        or optionKey(option) ~= candidate.label or optionSlot(option) ~= candidate.slot
+        or helpers.loadChoiceShape(option) ~= candidate.choiceShape
+        or (state.load.savedEntryByKey[candidate.key].choice
+          and not optionChoiceMatchesIndex(option,
+            state.load.savedEntryByKey[candidate.key].choice, change.target)) then
       state.load.forceStructureScan = true
-      setStatus("load", "All three stages finished. Checking your saved choices.")
-      return true
+      state.load.needsContinue = true
+      state.load.nextInterval = 0
+      if #group == 0 then return true end
+      break
     end
-  end
-  setStatus("load", ("Stage %d of 3: %s."):format(batch.stage, stages[batch.stage]))
-  batch.visited = batch.visited or {}
-  local visited = batch.visited
-  local writes = 0
-  while writes < 512 do
-    local system, options = getOptions(true)
-    if not options then
-      state.load.batch = nil
-      state.load.needsContinue = false
-      state.load.stalled = true
-      setStatus("load", "Loading stopped because the editor closed. Reopen it and try again.", true)
-      return true
-    end
-    state.load.forceStructureScan = true
-    local scan = helpers.scanLoadOptions(options, state.load.savedCounts, state.load.savedSlotCounts)
-    local selected, target
-    for _, candidate in ipairs(scan.exposed) do
-      if not visited[candidate.key] then
-        local key = candidate.key
-        local entry = state.load.savedEntryByKey[key]
-        local wanted = state.load.values[key]
-        local countMatches = scan.activeCounts[candidate.label] == state.load.savedCounts[candidate.label]
-        if batch.stage == 1 then
-          local hasSavedSlot = candidate.slot and (state.load.savedSlotCounts[candidate.slot] or 0) > 0
-          local clearSavedSlot = false
-          if hasSavedSlot and scan.activeSlotCounts[candidate.slot] == state.load.savedSlotCounts[candidate.slot] then
-            for _, saved in ipairs(state.load.orderedEntries) do
-              if saved.slot == candidate.slot and saved.slotOccurrence == candidate.slotOccurrence
-                  and tonumber(saved.index) == 0 then clearSavedSlot = true; break end
-            end
-          end
-          if state.load.resetBefore and (not hasSavedSlot or clearSavedSlot)
-              and candidate.occurrence > (state.load.savedCounts[candidate.label] or 0) then
-            wanted = 0
-          else wanted = nil end
-        elseif not countMatches or not entry
-            or helpers.isSecondaryLoadOption(candidate) ~= (batch.stage == 3) then
-          wanted = nil
-        elseif entry.slot and entry.slot ~= candidate.slot then
-          wanted = nil
-        elseif entry.choice then
-          wanted = helpers.resolveLoadChoice(candidate.option, entry.choice)
-        end
-        if not visited[key] and wanted ~= nil and optionIndexIsValid(wanted)
-            and (tonumber(candidate.option.currIndex) or 0) ~= wanted then
-          selected, target = candidate, wanted
-          break
-        end
-      end
-    end
-    if not selected then break end
-    visited[selected.key] = true
-    writes = writes + 1
-    if helpers.loadOptionNeedsLongSettle(selected, selected.key) then
-      local kind = batch.stage == 1 and "precleanup" or "apply"
-      local ok, reason = helpers.beginPendingChange(system, selected, target, kind,
-        selected.key, tonumber(selected.option.currIndex) or 0)
-      if not ok then
-        state.load.batch = nil
-        state.load.needsContinue = false
-        state.load.stalled = true
-        log("FAILED | Batch stage " .. tostring(batch.stage) .. " | " .. tostring(reason), "error")
-        setStatus("load", "Loading stopped because a choice could not be changed safely. Close the editor without confirming, then reopen it and try again.", true)
-      else
-        log(("BATCH WAIT | stage=%d | %s | target=%s"):format(batch.stage,
-          state.loadOptionIdentity(selected.option, selected.label, selected.occurrence), tostring(target)), "info")
-      end
-      return true
-    end
-    local started = helpers.loadClock()
-    local ok, reason = pcall(system.ApplyChangeToOption, system, selected.option, target)
-    state.load.applySeconds = state.load.applySeconds + math.max(0, helpers.loadClock() - started)
-    state.app.optionsMemo = nil
+    local dependent = helpers.loadOptionNeedsLongSettle(candidate, candidate.key)
+    if dependent and #group > 0 then break end
+    local ok, reason = helpers.beginPendingChange(system, candidate, change.target,
+      "apply", candidate.key, tonumber(option.currIndex) or 0)
     if not ok then
-      state.load.batch = nil
       state.load.needsContinue = false
       state.load.stalled = true
-      log("FAILED | Batch stage " .. tostring(batch.stage) .. " | " .. tostring(reason), "error")
+      log("FAILED | A prepared choice could not be applied: " .. tostring(reason), "error")
       setStatus("load", "Loading stopped because a choice could not be changed safely. Close the editor without confirming, then reopen it and try again.", true)
       return true
     end
-    log(("BATCH | stage=%d | %s | target=%s"):format(batch.stage,
-      state.loadOptionIdentity(selected.option, selected.label, selected.occurrence), tostring(target)), "info")
+    state.load.values[candidate.key] = change.target
+    log(("CHANGE | pass=%d | %s | target=%s")
+      :format(state.load.pass, state.load.pendingChange.identity, tostring(change.target)), "info")
+    if dependent then return true end
+    group[#group + 1] = state.load.pendingChange
+    state.load.pendingChange = nil
   end
-  batch.waitUntil = state.load.elapsed + AUTO_LOAD_TIMING.dependencyStableTime
-  batch.deadline = state.load.elapsed + AUTO_LOAD_TIMING.dependencyTimeout
-  state.load.nextInterval = AUTO_LOAD_TIMING.pollInterval
+  if #group == 0 then return false end
+  state.load.batch = group
+  state.load.nextInterval = 0
+  state.load.needsContinue = true
+  setStatus("load", ("Applied %d choices. Checking the group on the next update."):format(#group))
   return true
 end
 
@@ -720,7 +664,6 @@ beginLoadPass = function(preset, loadName)
   state.load.cleanupAttempts = {}
   state.load.cleanupSkipped = {}
   state.load.phase = state.load.resetBefore and "precleanup" or "apply"
-  state.load.batch = { stage = 1 }
   state.load.needsContinue = true
   state.load.returnToCleanup = false
   local values, savedCounts, orderedEntries, savedSlotCounts,
@@ -737,9 +680,11 @@ end
 continueLoadPass = function(system, options, preset, values, savedCounts,
     orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
   state.load.stalled = false
-  if valueCount == 0 then setStatus("load", "The preset contains no saved options.", true); return end
-
-  if helpers.runLoadBatch() then return end
+  if valueCount == 0 then
+    state.load.needsContinue = false
+    setStatus("load", "The preset contains no saved options.", true)
+    return
+  end
 
   if state.load.pass == 1 then
     log(("Preset='%s' | saved=%d options | editor exposes=%d options | format=%s")
@@ -763,6 +708,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
 
   local pendingResult = helpers.checkPendingChange(system, scan)
   if pendingResult == "waiting" or pendingResult == "failed" then return end
+  if helpers.confirmLoadGroup(system, scan) == "waiting" then return end
+  state.load.nextInterval = 0
   if (pendingResult == "settled" or pendingResult == "unconfirmed")
       and state.load.phase == "verify" then
     state.load.remaining = valueCount
@@ -881,6 +828,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     setStatus("load", "Old choices cleared. Checking the preset again.")
     return
   end
+
+  if helpers.applyLoadGroup(system, options, scan) then return end
 
   local satisfiedBefore = 0
   for _, exposedOption in ipairs(exposed) do
@@ -1322,7 +1271,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
   end
 end
 
-function loadPreset()
+local function performPresetLoad()
   helpers.syncForceFullLoadSelection()
   local loadName = state.load.overrideName or state.library.selected
   local selectedPreset = state.load.overridePreset
@@ -1382,6 +1331,17 @@ function loadPreset()
     helpers.releaseFinishedLoadWorkingData()
     state.invalidatePreflight()
   end
+  return result
+end
+
+function loadPreset()
+  state.app.loadInvocation = state.app.loadInvocation + 1
+  local started = helpers.loadClock()
+  state.load.updateStarted = started
+  local result = performPresetLoad()
+  state.load.longestUpdate = math.max(state.load.longestUpdate,
+    math.max(0, helpers.loadClock() - started))
+  state.load.updateStarted = nil
   return result
 end
 

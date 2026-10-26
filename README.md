@@ -128,7 +128,7 @@ Both mods change the same character screens and **cannot work together**.
 <details>
 <summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
-Loading runs in three fast stages: clear old choices, apply main choices, then apply linked colors and details. The mod waits between stages for the editor to update and checks the saved choices afterward. Check your appearance before confirming the editor.
+Loading prepares saved choices together and applies them in small groups. It waits for linked choices, clears unused old choices, and checks the result. Check your appearance before confirming the editor.
 
 ## Choose a menu
 
@@ -306,6 +306,11 @@ controls, or use Help to find a specific action.
 
 Apartment mirrors show the full character-creation list. They use the same
 preset tools as the Full Appearance Editor.
+
+To change your voice, choose **Voice Tone**, then select **Confirm** in the
+character editor. Your voice is saved after appearance confirmation finishes,
+without changing your body type. Cancelling keeps your previous voice.
+Voice is separate from the saved preset options.
 
 </details>
 

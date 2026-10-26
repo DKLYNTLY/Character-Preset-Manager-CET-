@@ -9,6 +9,15 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Uses the 3.1.5 loader as the base for smaller groups of preset changes.
+  Reads current options once per pass and checks each group together, with waits for linked choices.
+- Limits each group to four changes and yields after four milliseconds of work applying choices.
+  Adds scan counts and the longest loading update to the Activity Log.
+- Adds a voice confirmation step for apartment mirrors and the Full Appearance Editor.
+  The selected voice is written to the player's saved state only after appearance confirmation finishes.
+  Cancelling keeps the previous voice, and changing voice leaves body type alone.
+  I have checked compilation; voice playback and save/reload checks in game are still pending.
+
 - Sets game 2.5 minimum requirements to CET 1.38.0, RED4ext 1.31.0, redscript 0.5.32, and Codeware 1.21.1.
   Newer framework versions must also support your installed game version.
 

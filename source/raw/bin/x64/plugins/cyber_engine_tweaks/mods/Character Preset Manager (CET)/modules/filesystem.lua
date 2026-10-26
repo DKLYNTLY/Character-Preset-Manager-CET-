@@ -97,6 +97,8 @@ function resetLoadState()
   state.load.phase = "apply"
   state.load.elapsed = 0
   state.load.optionsSeconds = 0
+  state.load.scanCalls = 0
+  state.load.longestUpdate = 0
   state.load.scanSeconds = 0
   state.load.choiceSeconds = 0
   state.load.applySeconds = 0

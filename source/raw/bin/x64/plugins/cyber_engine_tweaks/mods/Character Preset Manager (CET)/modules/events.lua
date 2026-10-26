@@ -288,6 +288,7 @@ events.onUpdate = function(delta)
   local elapsed = tonumber(delta) or 0
   helpers.updateOverlayRequest(elapsed)
   updateAcuImport(elapsed)
+  local loadInvocationBeforeBridge = state.app.loadInvocation
   updateNativeBridge(elapsed)
   updateFallbackNotice(elapsed)
   if not state.editor.openPending and not state.load.auto then
@@ -302,7 +303,7 @@ events.onUpdate = function(delta)
       setEditorOpenStatus("The editor did not open. Return to normal gameplay and retry.", true)
     end
   end
-  if not state.load.auto then return end
+  if not state.load.auto or state.app.loadInvocation ~= loadInvocationBeforeBridge then return end
 
   state.load.elapsed = state.load.elapsed + elapsed
   if state.load.pendingChange then

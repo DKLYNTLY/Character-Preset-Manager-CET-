@@ -34,6 +34,8 @@ activitySequence = 0
 
 OPTION_CHOICE_CACHE_LIMIT = 16384
 AUTO_LOAD_TIMING = {
+  maximumGroupChanges = 4,
+  groupBudgetSeconds = 0.004,
   passInterval = 0.225,
   pollInterval = 0.05,
   dependencyTimeout = 1.25,

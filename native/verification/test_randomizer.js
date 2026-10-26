@@ -71,3 +71,10 @@ assert.strictEqual(advanced.status, 0, advancedOutput);
 assert(advancedOutput.includes("Advanced menu runtime test: OK") && !advancedOutput.includes("stack traceback:"), advancedOutput);
 process.stdout.write(advancedOutput);
 console.log("Lua parsing and randomizer panel checks: OK");
+const groups = spawnSync(process.execPath,
+  [cli, path.join(__dirname, "loading_groups_runtime.lua"), path.join(mod, "init.lua")],
+  { cwd: mod, encoding: "utf8" });
+const groupsOutput = `${groups.stdout || ""}${groups.stderr || ""}`;
+assert.strictEqual(groups.status, 0, groupsOutput);
+assert(groupsOutput.includes("Loading groups runtime test: OK") && !groupsOutput.includes("stack traceback:"), groupsOutput);
+process.stdout.write(groupsOutput);
