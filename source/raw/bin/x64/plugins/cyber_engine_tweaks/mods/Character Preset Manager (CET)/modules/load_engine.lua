@@ -191,8 +191,7 @@ helpers.resolveLoadChoice = function(option, choice, cachedIndex)
 end
 
 helpers.loadOptionNeedsLongSettle = function(exposedOption, trackingKey)
-  local profile = helpers.optionProfile(exposedOption.option)
-  if profile and profile.link ~= "" then return true end
+  if helpers.optionLinkedRole(exposedOption.option) >= 0 then return true end
   if state.load.dependencyKeys[trackingKey] then return true end
   local text = table.concat({
     tostring(exposedOption.label or ""),
@@ -423,17 +422,16 @@ helpers.checkPendingChange = function(system, scan)
 end
 
 helpers.logLoadMeasurements = function(result)
-  local catalog = state.app.optionCatalog or {}
   local current = state.load.updateStarted
     and math.max(0, helpers.loadClock() - state.load.updateStarted) or 0
   state.load.longestUpdate = math.max(state.load.longestUpdate, current)
-  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | option checks=%d time=%.6fs | full scans=%d time=%.6fs | dependency polls=%d time=%.6fs fallbacks=%d | choice matching=%.6fs | applied calls=%.6fs | waiting=%.3fs | dependency changes=%d | longest update=%.6fs | cached choice lists=%d hits=%d")
+  log(("[MEASURE] Load %s | preset='%s' | elapsed=%.3fs | option checks=%d time=%.6fs | full scans=%d time=%.6fs | dependency polls=%d time=%.6fs fallbacks=%d | choice matching=%.6fs | applied calls=%.6fs | waiting=%.3fs | dependency changes=%d | longest update=%.6fs | option cache=%s")
     :format(tostring(result), tostring(state.load.presetName or state.library.selected),
       state.load.elapsed, state.load.optionCalls, state.load.optionsSeconds,
       state.load.scanCalls, state.load.scanSeconds, state.load.targetPolls, state.load.targetPollSeconds,
       state.load.targetFallbacks, state.load.choiceSeconds, state.load.applySeconds,
       state.load.waitSeconds, state.load.structureChanges, state.load.longestUpdate,
-      catalog.builds or 0, catalog.hits or 0), "info")
+      helpers.optionCatalogStatistics()), "info")
 end
 
 helpers.releaseFinishedLoadWorkingData = function()
@@ -603,8 +601,8 @@ helpers.confirmLoadGroup = function(system, scan)
 end
 
 helpers.isSecondaryLoadOption = function(candidate)
-  local profile = helpers.optionProfile(candidate.option)
-  if profile and profile.link ~= "" then return not profile.linkController end
+  local role = helpers.optionLinkedRole(candidate.option)
+  if role >= 0 then return role == 1 end
   local text = table.concat({ tostring(candidate.label or ""),
     tostring(candidate.slot or ""),
     helpers.optionDisplayName(candidate.option, candidate.label) }, " "):lower()

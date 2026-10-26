@@ -84,83 +84,25 @@ helpers.optionChoiceKey = function(option, index)
   return nil
 end
 
+helpers.nativeOptionCatalogReady = function()
+  if state.app.nativeOptionCatalogReady ~= nil then return state.app.nativeOptionCatalogReady end
+  local ok, version = pcall(function() return CPMOptionCatalog.Ready() end)
+  state.app.nativeOptionCatalogReady = ok and version == 1
+  log(state.app.nativeOptionCatalogReady
+    and "[OPTIONS] The native option catalog is connected."
+    or "[FALLBACK] The native option catalog is unavailable. CET will match choices directly; restart after installing the matching DLL.",
+    state.app.nativeOptionCatalogReady and "info" or "warn")
+  return state.app.nativeOptionCatalogReady
+end
+
 helpers.clearOptionCatalog = function()
+  if helpers.nativeOptionCatalogReady() then pcall(CPMOptionCatalog.Clear) end
   state.app.optionCatalog = nil
-  state.app.optionChoiceBindings = nil
   state.app.optionsMemo = nil
 end
 
 helpers.bindOptionCatalog = function(options)
-  local previous = state.app.optionCatalog or { entries = {}, builds = 0, hits = 0, queue = {}, cursor = 1 }
-  local entries, occurrences = {}, {}
-  local bindings = setmetatable({}, { __mode = "k" })
-  for _, option in ipairs(options) do
-    local label = optionKey(option)
-    if label then
-      local slot = optionSlot(option) or ""
-      local group = tostring(#label) .. ":" .. label .. tostring(#slot) .. ":" .. slot
-      occurrences[group] = (occurrences[group] or 0) + 1
-      local key = group .. ":" .. tostring(occurrences[group])
-      local entry = previous.entries[key]
-      if not entry then
-        entry = { label = label, slot = slot, fields = {}, checked = {}, missing = {}, epoch = 0 }
-        local ok, link, controller = pcall(function()
-          return NameToString(option.info.link), option.info.linkController
-        end)
-        entry.link = ok and tostring(link or "") or ""
-        entry.linkController = ok and controller == true or false
-        if entry.link == "None" then entry.link = "" end
-        previous.queue[#previous.queue + 1] = { entry = entry, option = option, epoch = entry.epoch }
-      end
-      entries[key] = entry
-      bindings[option] = { entry = entry,
-        checked = state.app.optionCacheHooksReady and entry.checked or {},
-        missing = state.app.optionCacheHooksReady and entry.missing or {} }
-    end
-  end
-  if previous.cursor == 1 and previous.builds == 0 then
-    local active, inactive = {}, {}
-    for _, job in ipairs(previous.queue) do
-      local queue = job.option.isEditable and job.option.isActive and active or inactive
-      queue[#queue + 1] = job
-    end
-    for _, job in ipairs(inactive) do active[#active + 1] = job end
-    previous.queue = active
-  end
-  previous.entries = entries
-  state.app.optionCatalog = previous
-  state.app.optionChoiceBindings = bindings
-end
-
-helpers.cachedOptionChoices = function(option, field, size)
-  local binding = state.app.optionChoiceBindings and state.app.optionChoiceBindings[option]
-  if not binding or size > OPTION_CHOICE_CACHE_LIMIT then return nil end
-  local cached = binding.entry.fields[field]
-  if binding.checked[field] and cached and cached.size == size then
-    state.app.optionCatalog.hits = state.app.optionCatalog.hits + 1
-    return cached
-  end
-  local values, indexes = {}, {}
-  local same = cached and cached.size == size
-  local member = field == "options" and "localizedName" or nil
-  for index = 0, size - 1 do
-    local value = choiceCollectionValue(option.info, field, index, member)
-    values[index + 1] = value or false
-    if not cached or cached.values[index + 1] ~= values[index + 1] then same = false end
-  end
-  if not same then
-    for position, value in ipairs(values) do
-      if value then
-        if indexes[value] ~= nil then indexes[value] = false
-        else indexes[value] = position - 1 end
-      end
-    end
-    cached = { size = size, values = values, indexes = indexes }
-    binding.entry.fields[field] = cached
-    state.app.optionCatalog.builds = state.app.optionCatalog.builds + 1
-  end
-  binding.checked[field] = true
-  return cached
+  state.app.optionCatalog = { options = options }
 end
 
 helpers.isOffChoice = function(value)
@@ -168,117 +110,45 @@ helpers.isOffChoice = function(value)
   return value == "off" or value == "common-off" or value == "none" or value == "common-none"
 end
 
-helpers.optionProfile = function(option)
-  local binding = state.app.optionChoiceBindings and state.app.optionChoiceBindings[option]
-  return binding and binding.entry or nil
+helpers.optionLinkedRole = function(option)
+  if helpers.nativeOptionCatalogReady() then return CPMOptionCatalog.Role(option) end
+  local ok, link, controller = pcall(function()
+    return NameToString(option.info.link), option.info.linkController
+  end)
+  if ok and link and link ~= "" and link ~= "None" then return controller and 0 or 1 end
+  return -1
 end
 
 helpers.cleanupOptionTarget = function(option)
-  local profile = helpers.optionProfile(option)
-  if profile and profile.offIndex ~= nil then
-    if profile.offIndex == 0 or helpers.isOffChoice(choiceCollectionValue(
-        option.info, "options", profile.offIndex, "localizedName")) then return profile.offIndex end
-    profile.offIndex = nil
-    profile.fields.options = nil
-  end
+  if helpers.nativeOptionCatalogReady() then return CPMOptionCatalog.Cleanup(option) end
   local ok, size = pcall(function() return #(option.info.options or {}) end)
-  local target = 0
   if ok and size <= OPTION_CHOICE_CACHE_LIMIT then
-    local cached = helpers.cachedOptionChoices(option, "options", size)
-    if cached then
-      for position, value in ipairs(cached.values) do
-        if helpers.isOffChoice(value) then target = position - 1; break end
-      end
-    else
-      for index = 0, size - 1 do
-        if helpers.isOffChoice(choiceCollectionValue(option.info, "options", index, "localizedName")) then
-          target = index
-          break
-        end
+    for index = 0, size - 1 do
+      if helpers.isOffChoice(choiceCollectionValue(option.info, "options", index, "localizedName")) then
+        return index
       end
     end
   end
-  if profile then profile.offIndex = target end
-  return target
+  return 0
 end
 
 helpers.invalidateOptionCatalogEntry = function(option)
-  local catalog = state.app.optionCatalog
-  if not catalog or not option then return end
-  local label, slot = optionKey(option), optionSlot(option) or ""
-  for _, entry in pairs(catalog.entries) do
-    if entry.label == label and entry.slot == slot then
-      entry.fields = {}
-      entry.checked = {}
-      entry.missing = {}
-      entry.offIndex = nil
-      entry.epoch = entry.epoch + 1
-      catalog.queue[#catalog.queue + 1] = { entry = entry, option = option, epoch = entry.epoch }
-    end
-  end
+  if state.app.optionCatalog then state.app.optionCatalog.warmed = false end
+  if option and helpers.nativeOptionCatalogReady() then CPMOptionCatalog.Invalidate(option) end
 end
 
 helpers.warmOptionCatalog = function()
   if not state.app.inCustomization or state.load.auto or state.load.needsContinue then return end
   if not state.app.optionCatalog then getOptions(); return end
   local catalog = state.app.optionCatalog
-  local started = helpers.loadClock()
-  local steps = 0
-  while steps < 64 and helpers.loadClock() - started < 0.002 do
-    local job = catalog.queue[catalog.cursor]
-    if not job then
-      catalog.queue = {}
-      catalog.cursor = 1
-      return
-    end
-    local entry = job.entry
-    local field = ({ "options", "definitions", "morphNames" })[job.field or 1]
-    if job.epoch ~= entry.epoch or not field then
-      catalog.queue[catalog.cursor] = false
-      catalog.cursor = catalog.cursor + 1
-    elseif entry.fields[field] then
-      job.values = nil
-      job.field = (job.field or 1) + 1
-    else
-      if not job.values then
-        local ok, size = pcall(function() return #(job.option.info[field] or {}) end)
-        job.size = ok and tonumber(size) or 0
-        job.values, job.indexes, job.effects = {}, {}, {}
-        job.position = 0
-      end
-      if job.size > OPTION_CHOICE_CACHE_LIMIT then
-        job.values = nil
-        job.field = (job.field or 1) + 1
-      elseif job.position >= job.size then
-        entry.fields[field] = { size = job.size, values = job.values,
-          indexes = job.indexes, effects = job.effects }
-        entry.checked[field] = true
-        catalog.builds = catalog.builds + 1
-        job.values = nil
-        job.field = (job.field or 1) + 1
-      else
-        local index = job.position
-        local member = field == "options" and "localizedName" or nil
-        local value = choiceCollectionValue(job.option.info, field, index, member)
-        job.values[index + 1] = value or false
-        if value then
-          if job.indexes[value] ~= nil then job.indexes[value] = false
-          else job.indexes[value] = index end
-        end
-        local ok, actions = pcall(function() return job.option.info[field][index + 1].actions end)
-        if ok and type(actions) == "table" then
-          local effects = {}
-          for _, action in ipairs(actions) do
-            effects[#effects + 1] = { kind = tostring(action.type), params = tostring(action.params),
-              immediate = action.applyImmediately == true, slot = action.applyToUISlot == true }
-          end
-          job.effects[index + 1] = effects
-        end
-        job.position = index + 1
-      end
-    end
-    steps = steps + 1
+  if not catalog.warmed and helpers.nativeOptionCatalogReady() then
+    catalog.warmed = CPMOptionCatalog.Warm(catalog.options, 128) == 0
   end
+end
+
+helpers.optionCatalogStatistics = function()
+  if helpers.nativeOptionCatalogReady() then return CPMOptionCatalog.Statistics() end
+  return "CET direct matching"
 end
 
 helpers.refreshOptionCatalog = function()
@@ -293,7 +163,9 @@ helpers.refreshOptionCatalog = function()
     return false
   end
   local count = 0
-  for _ in pairs(state.app.optionCatalog.entries) do count = count + 1 end
+  for _, option in ipairs(state.app.optionCatalog.options) do
+    if option.isEditable and option.isActive then count = count + 1 end
+  end
   state.invalidatePreflight()
   setStatus("load", ("Refreshed %d editor options. Saved choices will be checked when you load or compare a preset."):format(count))
   return true
@@ -309,25 +181,9 @@ function optionChoiceIndex(option, choice)
   local member = field == "options" and "localizedName" or nil
   local sizeOk, size = pcall(function() return #(option.info[field] or {}) end)
   if not sizeOk or type(size) ~= "number" or size > MAX_OPTION_INDEX then return nil end
-  local cached = helpers.cachedOptionChoices(option, field, size)
-  if cached then
-    local index = cached.indexes[wanted]
-    if type(index) ~= "number" then
-      local binding = state.app.optionChoiceBindings[option]
-      binding.missing = binding.missing or {}
-      if binding.missing[choice] then return nil end
-      binding.missing[choice] = true
-      binding.checked[field] = nil
-      cached = helpers.cachedOptionChoices(option, field, size)
-      index = cached.indexes[wanted]
-      if type(index) ~= "number" then return nil end
-    end
-    if choiceCollectionValue(option.info, field, index, member) == wanted then return index end
-    local binding = state.app.optionChoiceBindings[option]
-    binding.checked[field] = nil
-    cached = helpers.cachedOptionChoices(option, field, size)
-    index = cached.indexes[wanted]
-    return type(index) == "number" and index or nil
+  if helpers.nativeOptionCatalogReady() then
+    local index = tonumber(CPMOptionCatalog.Match(option, choice))
+    return index and index >= 0 and index or nil
   end
   local match = nil
   for index = 0, size - 1 do
@@ -346,6 +202,9 @@ function optionChoiceMatchesIndex(option, choice, index)
   if not option or not option.info or wanted == "" or not index
       or index ~= math.floor(index) or index < 0 or index > MAX_OPTION_INDEX then
     return false
+  end
+  if helpers.nativeOptionCatalogReady() and index <= 2147483647 then
+    return CPMOptionCatalog.Matches(option, choice, index)
   end
   local member = field == "options" and "localizedName" or nil
   return choiceCollectionValue(option.info, field, index, member) == wanted

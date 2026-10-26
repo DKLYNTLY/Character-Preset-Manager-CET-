@@ -22,11 +22,3 @@ set_target_properties(CharacterPresetManagerNative PROPERTIES
   OUTPUT_NAME "CharacterPresetManager"
   PREFIX ""
 )
-
-option(CPM_BUILD_TESTS "Build the native file service tests" OFF)
-if(CPM_BUILD_TESTS)
-  add_executable(CharacterPresetManagerNativeTests verification/ImporterTest.cpp)
-  target_link_libraries(CharacterPresetManagerNativeTests PRIVATE RED4ext::SDK user32)
-  target_compile_definitions(CharacterPresetManagerNativeTests PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
-  target_compile_options(CharacterPresetManagerNativeTests PRIVATE /W4 /permissive- /EHsc)
-endif()

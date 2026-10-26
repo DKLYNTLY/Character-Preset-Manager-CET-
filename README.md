@@ -242,10 +242,15 @@ Choose a preset, open **Advanced Preset Options**, and select
 choices, missing options, repeated or unclear matches, invalid entries, and
 old choices that loading will clear.
 
-The mod builds an option catalog in the background while the editor is open.
-It includes inactive options, choice lookups, and links and actions supplied by
-the game and installed character mods. Presets can use the cached lookups as
-soon as they are ready, without waiting for the whole catalog to finish.
+The bundled DLL owns the option catalog and choice matching. It warms active
+choice lookups while the editor is idle, with small records for inactive options.
+Full inactive choice lists are built only when needed; unused action copies
+are no longer stored in Lua. Game-provided links still guide the loading order.
+
+The catalog holds up to 65,536 choice identities and clears when the editor
+closes. It can discard older lists when full and rebuild them as needed.
+Installing this update requires replacing the bundled DLL and restarting the
+game; CET and Codeware are still required.
 
 Editor update events clear affected cached choices, and loading checks each
 selected choice against its current selector before applying it. Closing the

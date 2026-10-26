@@ -22,6 +22,8 @@
 #include <thread>
 #include <vector>
 
+#include "OptionCatalog.hpp"
+
 namespace
 {
 namespace fs = std::filesystem;
@@ -906,6 +908,9 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
 {
     if (reason == RED4ext::v1::EMainReason::Load)
     {
+        auto rtti = RED4ext::CRTTISystem::Get();
+        rtti->AddRegisterCallback(CPMOptions::Register);
+        rtti->AddPostRegisterCallback(CPMOptions::PostRegister);
         g_handle = handle;
         g_sdk = sdk;
         g_stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);
@@ -936,7 +941,7 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
 RED4EXT_C_EXPORT void RED4EXT_CALL Query(RED4ext::v1::PluginInfo* info)
 {
     info->name = L"Character Preset Manager Native File Service";
-    info->author = L"dklyntly";
+    info->author = L"Dnydd";
     info->version = RED4EXT_V1_SEMVER(4, 0, 0);
     info->runtime = RED4EXT_V1_RUNTIME_VERSION_INDEPENDENT;
     info->sdk = RED4EXT_V1_SDK_VERSION_CURRENT;
