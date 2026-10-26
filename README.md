@@ -128,7 +128,7 @@ Both mods change the same character screens and **cannot work together**.
 <details>
 <summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
-Loading clears old choices the selected preset does not use, then applies main choices followed by colors and linked details. It leaves options used by the preset for the apply stages instead of resetting every option first. Each stage uses small groups across updates and a shared check; review your appearance before confirming the editor.
+Loading clears unused old choices, applies main choices, then applies linked colors and details. Changes run in small groups, with a shared check after each stage. Automatic camera focus pauses until loading finishes or is cancelled. Check your appearance before confirming the editor.
 
 ## Choose a menu
 
@@ -221,9 +221,6 @@ To load an appearance:
 4. Select **Load Selected Preset** once and wait for the final status.
 5. Check the visible result before confirming the editor.
 
-Automatic camera focus pauses while a preset loads. The editor can focus
-options again once loading finishes or you cancel it.
-
 The loader reads the current options as the editor updates. It waits for linked
 choices, including cyberware layers, clears old choices the preset does not
 use, and checks the saved values at the end. It also rebuilds the visible option
@@ -242,25 +239,10 @@ Choose a preset, open **Advanced Preset Options**, and select
 choices, missing options, repeated or unclear matches, invalid entries, and
 old choices that loading will clear.
 
-The DLL parses library presets in the background and stores a compact read cache
-under `Data/Catalog/Parsed Presets` inside the mod folder. It adds parsed entry
-counts to the native file index, while CET still handles the menus and loading.
-A cache is used only when its fingerprint matches the current source file;
-if it is missing or stale, CET reads the original immediately.
-
-Original presets are not rewritten or upgraded by this cache. Older CPM formats
-and compatible ACU JSON files remain supported, with the built-in CET JSON
-reader available for fallback reads. Save, load, recovery, and sharing controls
-keep their existing behavior; generated caches do not need to be shared.
-
-The DLL handles ACU file import and library file watching. Choice matching
-currently runs directly in CET; the native option catalog was withdrawn after
-startup failures during plugin registration. Unused Lua action copies and
-large cached choice tables remain removed.
-
-Loading checks choices against the current editor and uses game-provided links
-to guide the order. CET and Codeware remain required, and the catalog does not
-predict changes made by arbitrary mod scripts.
+The mod keeps an option cache in memory while the character editor is open.
+It checks current lists as they are used, so added, removed, renamed, or reordered
+choices replace stale entries. Linked choices are checked again after their style
+changes. Game objects are always read from the current editor.
 
 Use **Refresh options** in **Load & Restore Appearance** to clear this cache
 and read the current editor list again. This is separate from **Refresh**, which
@@ -325,10 +307,7 @@ controls, or use Help to find a specific action.
 Apartment mirrors show the full character-creation list. They use the same
 preset tools as the Full Appearance Editor.
 
-To change your voice, choose **Voice Tone**, then select **Confirm** in the
-character editor. Your voice is saved after appearance confirmation finishes,
-without changing your body type. Cancelling keeps your previous voice.
-Voice is separate from the saved preset options.
+**Voice Tone cannot be changed mid-game.** Choose your voice during new-game character creation; confirming appearance edits does not save a different voice.
 
 </details>
 

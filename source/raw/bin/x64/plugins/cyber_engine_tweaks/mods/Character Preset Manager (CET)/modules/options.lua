@@ -84,46 +84,62 @@ helpers.optionChoiceKey = function(option, index)
   return nil
 end
 
-helpers.nativeOptionCatalogReady = function()
-  return false
-end
-
 helpers.clearOptionCatalog = function()
-  if helpers.nativeOptionCatalogReady() then pcall(CPMOptionCatalog.Clear) end
   state.app.optionCatalog = nil
+  state.app.optionChoiceBindings = nil
   state.app.optionsMemo = nil
 end
 
 helpers.bindOptionCatalog = function(options)
-  state.app.optionCatalog = { options = options }
-end
-
-helpers.optionLinkedRole = function(option)
-  if helpers.nativeOptionCatalogReady() then return CPMOptionCatalog.Role(option) end
-  local ok, link, controller = pcall(function()
-    return NameToString(option.info.link), option.info.linkController
-  end)
-  if ok and link and link ~= "" and link ~= "None" then return controller and 0 or 1 end
-  return -1
-end
-
-helpers.invalidateOptionCatalogEntry = function(option)
-  if state.app.optionCatalog then state.app.optionCatalog.warmed = false end
-  if option and helpers.nativeOptionCatalogReady() then CPMOptionCatalog.Invalidate(option) end
-end
-
-helpers.warmOptionCatalog = function()
-  if not state.app.inCustomization or state.load.auto or state.load.needsContinue then return end
-  if not state.app.optionCatalog then getOptions(); return end
-  local catalog = state.app.optionCatalog
-  if not catalog.warmed and helpers.nativeOptionCatalogReady() then
-    catalog.warmed = CPMOptionCatalog.Warm(catalog.options, 128) == 0
+  local previous = state.app.optionCatalog or { entries = {}, builds = 0, hits = 0 }
+  local entries, occurrences = {}, {}
+  local bindings = setmetatable({}, { __mode = "k" })
+  for _, option in ipairs(options) do
+    local label = optionKey(option)
+    if label and option.isEditable and option.isActive then
+      local slot = optionSlot(option) or ""
+      local group = tostring(#label) .. ":" .. label .. tostring(#slot) .. ":" .. slot
+      occurrences[group] = (occurrences[group] or 0) + 1
+      local key = group .. ":" .. tostring(occurrences[group])
+      local entry = previous.entries[key] or { label = label, slot = slot, fields = {} }
+      entries[key] = entry
+      bindings[option] = { entry = entry, checked = {} }
+    end
   end
+  previous.entries = entries
+  state.app.optionCatalog = previous
+  state.app.optionChoiceBindings = bindings
 end
 
-helpers.optionCatalogStatistics = function()
-  if helpers.nativeOptionCatalogReady() then return CPMOptionCatalog.Statistics() end
-  return "CET direct matching"
+helpers.cachedOptionChoices = function(option, field, size)
+  local binding = state.app.optionChoiceBindings and state.app.optionChoiceBindings[option]
+  if not binding or size > OPTION_CHOICE_CACHE_LIMIT then return nil end
+  local cached = binding.entry.fields[field]
+  if binding.checked[field] and cached and cached.size == size then
+    state.app.optionCatalog.hits = state.app.optionCatalog.hits + 1
+    return cached
+  end
+  local values, indexes = {}, {}
+  local same = cached and cached.size == size
+  local member = field == "options" and "localizedName" or nil
+  for index = 0, size - 1 do
+    local value = choiceCollectionValue(option.info, field, index, member)
+    values[index + 1] = value or false
+    if not cached or cached.values[index + 1] ~= values[index + 1] then same = false end
+  end
+  if not same then
+    for position, value in ipairs(values) do
+      if value then
+        if indexes[value] ~= nil then indexes[value] = false
+        else indexes[value] = position - 1 end
+      end
+    end
+    cached = { size = size, values = values, indexes = indexes }
+    binding.entry.fields[field] = cached
+    state.app.optionCatalog.builds = state.app.optionCatalog.builds + 1
+  end
+  binding.checked[field] = true
+  return cached
 end
 
 helpers.refreshOptionCatalog = function()
@@ -138,9 +154,7 @@ helpers.refreshOptionCatalog = function()
     return false
   end
   local count = 0
-  for _, option in ipairs(state.app.optionCatalog.options) do
-    if option.isEditable and option.isActive then count = count + 1 end
-  end
+  for _ in pairs(state.app.optionCatalog.entries) do count = count + 1 end
   state.invalidatePreflight()
   setStatus("load", ("Refreshed %d editor options. Saved choices will be checked when you load or compare a preset."):format(count))
   return true
@@ -156,9 +170,16 @@ function optionChoiceIndex(option, choice)
   local member = field == "options" and "localizedName" or nil
   local sizeOk, size = pcall(function() return #(option.info[field] or {}) end)
   if not sizeOk or type(size) ~= "number" or size > MAX_OPTION_INDEX then return nil end
-  if helpers.nativeOptionCatalogReady() then
-    local index = tonumber(CPMOptionCatalog.Match(option, choice))
-    return index and index >= 0 and index or nil
+  local cached = helpers.cachedOptionChoices(option, field, size)
+  if cached then
+    local index = cached.indexes[wanted]
+    if type(index) ~= "number" then return nil end
+    if choiceCollectionValue(option.info, field, index, member) == wanted then return index end
+    local binding = state.app.optionChoiceBindings[option]
+    binding.checked[field] = nil
+    cached = helpers.cachedOptionChoices(option, field, size)
+    index = cached.indexes[wanted]
+    return type(index) == "number" and index or nil
   end
   local match = nil
   for index = 0, size - 1 do
@@ -177,9 +198,6 @@ function optionChoiceMatchesIndex(option, choice, index)
   if not option or not option.info or wanted == "" or not index
       or index ~= math.floor(index) or index < 0 or index > MAX_OPTION_INDEX then
     return false
-  end
-  if helpers.nativeOptionCatalogReady() and index <= 2147483647 then
-    return CPMOptionCatalog.Matches(option, choice, index)
   end
   local member = field == "options" and "localizedName" or nil
   return choiceCollectionValue(option.info, field, index, member) == wanted

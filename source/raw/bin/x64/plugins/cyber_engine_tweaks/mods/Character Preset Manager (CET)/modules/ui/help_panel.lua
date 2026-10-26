@@ -310,12 +310,12 @@ if state.ui.helpOpen then
       if showHelpTopic("Open & Edit Appearance",
           "open launch hotkey key binding bindings mirror ripperdoc character creator full appearance editor voice tone feminine masculine confirm cancel button") then
       helpHeading("Open & Edit Appearance")
+      ImGui.TextWrapped("Voice Tone cannot be changed mid-game. Choose your voice during new-game character creation.")
       ImGui.TextWrapped("Load a save and select Open Full Appearance Editor. Mirrors, ripperdocs, and new-game creation also support presets.")
       helpButton("Open Full Appearance Editor", "Opens the full character editor. Wait until it finishes opening before using another editor control.")
       ImGui.TextWrapped("Assign the editor key under CET Bindings > Character Preset Manager (CET). Close the CET overlay before pressing it.")
       ui.drawBindingHelp("Open Full Appearance Editor", "preset_manager_open_editor_input",
         state.editor.inputCount)
-      ImGui.TextWrapped("In a mirror or the Full Appearance Editor, choose Voice Tone and select Confirm. Your voice is saved when appearance confirmation finishes. Cancelling keeps the previous voice; this choice does not change body type or preset files.")
       helpButton("Randomize", "Randomizes your appearance using the game's current locks. R still works in the character screen. Wait for any preset load or recovery to finish first.")
       helpButton("Randomize Settings", "Shows which appearance categories the randomizer can change. If you use this button in CET, close the overlay to see the settings.")
       helpButton("Advanced Preset Manager", "Opens CET and shows the complete manager using your saved CET binding. Keep the game in focus and release other keys. If it does not open, press your CET binding yourself.")
@@ -335,7 +335,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("After a preset or button action, Q and E can rotate your character again. Search and Preset Name keep the keyboard while you type.")
       ImGui.TextWrapped("If you change preset files outside CET, select Refresh under Load & Restore Appearance before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Loading clears old choices the preset does not use, then applies main choices followed by colors and linked details. It does not reset every option first; each stage shares a check afterward.")
+        "Loading clears old choices first, applies main choices next, then applies colors and linked details. Each stage uses small groups across updates, followed by a shared check.")
       ImGui.TextWrapped("Open the Activity Log if loading stops or ends with a yellow warning. Check for missing or changed character mods.")
       ImGui.TextWrapped("Both menus use the same loader. Choices share a check at the end of each stage, with time for the editor to finish linked updates. Check the visible result before leaving the editor.")
       ImGui.TextWrapped("Open Advanced Preset Options and select Check Compatibility to compare a preset with the current editor. Read the result in the Load status card. Choosing a preset alone does not start a check.")

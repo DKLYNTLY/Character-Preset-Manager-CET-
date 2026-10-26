@@ -66,12 +66,9 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
           if not validRelativePath(inventoryName) then inventoryName = storage end
           if type(previousPresets[inventoryName]) == "table"
               and validRelativePath(assignments[storage]) then
-            local indexed = nativeCatalog and nativeCatalog.fileByRelative[childRelative:lower()]
-            local count = indexed and indexed.parsedEntryCount
             preset = {
-              entryCount = count or 0,
-              entryCountKnown = count ~= nil,
-              format = indexed and indexed.parsedFormat,
+              entryCount = 0,
+              entryCountKnown = false,
               metadataLoaded = false,
               lazy = true,
             }

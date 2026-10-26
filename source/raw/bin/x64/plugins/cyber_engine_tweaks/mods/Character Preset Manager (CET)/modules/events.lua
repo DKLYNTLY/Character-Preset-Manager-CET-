@@ -132,22 +132,6 @@ events.onInit = function()
     log("[HOOK] Character customization UI observers registered.", "info")
   end
 
-  local optionCacheHooksOk, optionCacheHooksError = pcall(function()
-    Observe("characterCreationBodyMorphMenu", "OnOptionUpdated", function(_, event)
-      if event then helpers.invalidateOptionCatalogEntry(event.option) end
-    end)
-    Observe("characterCreationBodyMorphMenu", "OnAppearanceSwitched", function(_, event)
-      for _, pair in ipairs(event and event.pairs or {}) do
-        helpers.invalidateOptionCatalogEntry(pair.prevOption)
-        helpers.invalidateOptionCatalogEntry(pair.currOption)
-      end
-    end)
-  end)
-  state.app.optionCacheHooksReady = optionCacheHooksOk
-  if not optionCacheHooksOk then
-    log("Option cache updates could not be connected: " .. tostring(optionCacheHooksError), "warn")
-  end
-
   local cameraHookOk, cameraHookError = pcall(
     Override,
     "BaseCharacterCreationController",
@@ -322,7 +306,6 @@ events.onUpdate = function(delta)
   local loadInvocationBeforeBridge = state.app.loadInvocation
   updateNativeBridge(elapsed)
   updateFallbackNotice(elapsed)
-  helpers.warmOptionCatalog()
   if not state.editor.openPending and not state.load.auto then
     return
   end

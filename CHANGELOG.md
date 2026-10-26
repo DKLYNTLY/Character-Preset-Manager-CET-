@@ -9,47 +9,10 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
-- Adds background CPM and ACU preset parsing to the existing DLL file service.
-  Writes a compact read cache and parsed entry counts without registering game types or changing the loader.
-- Checks the current source fingerprint before using a parsed cache.
-  Keeps direct reads as a fallback and leaves original preset files unchanged.
-- Replaces the custom Lua JSON parser with CET's built-in decoder for fallback reads.
-  Format 8 and older CPM and compatible ACU files remain supported.
-
-- Withdraws the native option catalog after startup failures during plugin registration.
-  Restores the file-service DLL path and uses CET for choice matching, keeping the camera, cleanup, and voice changes.
-
-- Defers native option-class creation until the game's registration callback.
-  This removes game-memory access during DLL loading, which could stop startup before scripts ran.
-
-- Removes unused Lua action copies and the large cached choice tables.
-  The native catalog experiment was withdrawn after startup failures; CET and Codeware are still required.
-- Removes simulated gameplay tests, old benchmark scripts, and the standalone test executable.
-  Keeps a Lua code checker, with DLL and game-script compilation for build checks.
-
-- Pauses automatic camera focus while presets and recovery appearances load.
-  The editor can focus options again once loading finishes or is cancelled.
-
-- Uses game-provided links to guide the loading order.
-  Choice matching currently runs directly in CET while the native registration issue is unresolved.
-- Restores cleanup of old choices the selected preset does not use.
-  Removes the reset-everything step and the Off-or-first-choice lookup, while keeping staged loading and the camera guard.
-- Checks a saved choice at its recorded position before searching other positions.
-  Adds cache counts to load measurements so the next game log shows whether cached lists were used.
-
-- Clears old choices first, applies main choices next, then applies colors and linked details.
-  Shares confirmation across each stage instead of waiting for every choice in turn.
-- Gives delayed game values time to update before reporting an unconfirmed choice.
-  Missing-choice logs now include saved editor slots, and load measurements are written to the Activity Log.
-
-- Uses the 3.1.5 loader as the base for smaller groups of preset changes.
-  Reads current options once per pass and checks each group together, with waits for linked choices.
-- Limits each group to four changes and yields after four milliseconds of work applying choices.
-  Adds scan counts and the longest loading update to the Activity Log.
-- Adds a voice confirmation step for apartment mirrors and the Full Appearance Editor.
-  The selected voice is written to the player's saved state only after appearance confirmation finishes.
-  Cancelling keeps the previous voice, and changing voice leaves body type alone.
-  I have checked compilation; voice playback and save/reload checks in game are still pending.
+- Keeps staged preset loading and pauses automatic camera focus while loading.
+  Restores the original file service and removes the later cache and cleanup experiments.
+- Removes the voice-change hook.
+  Voice Tone cannot be changed mid-game; choose your voice when creating a new character.
 
 - Sets game 2.5 minimum requirements to CET 1.38.0, RED4ext 1.31.0, redscript 0.5.32, and Codeware 1.21.1.
   Newer framework versions must also support your installed game version.
