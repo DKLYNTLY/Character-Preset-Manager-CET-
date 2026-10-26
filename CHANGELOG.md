@@ -5,14 +5,25 @@ was then, including controls and paths that may have changed. Use the README
 and in-game Help for current steps.
 
 <details open>
-<summary><strong>Latest release - 4.0.0</strong></summary>
+<summary><strong>Latest release - 4.0.1</strong></summary>
+
+## 4.0.1
+
+- Applies presets in small groups through cleanup, main choices, and linked details.
+  Shares confirmation across each stage while keeping the original file service and preset reader.
+- Pauses automatic camera focus during preset loading and recovery.
+  Normal focus resumes when loading ends or is cancelled.
+- Documents that Voice Tone cannot be changed mid-game.
+  Choose your voice during new-game character creation; confirming appearance edits does not save a different voice.
+- Keeps preset format 8 and support for older CPM and compatible ACU presets.
+  Cleanup removes unused old choices without resetting every editable option.
+
+</details>
+
+<details>
+<summary><strong>4.0.0</strong></summary>
 
 ## 4.0.0
-
-- Keeps staged preset loading and pauses automatic camera focus while loading.
-  Restores the original file service and removes the later cache and cleanup experiments.
-- Removes the voice-change hook.
-  Voice Tone cannot be changed mid-game; choose your voice when creating a new character.
 
 - Sets game 2.5 minimum requirements to CET 1.38.0, RED4ext 1.31.0, redscript 0.5.32, and Codeware 1.21.1.
   Newer framework versions must also support your installed game version.
