@@ -4,7 +4,7 @@
 
 <p align="center">
   <strong><a href="https://www.nexusmods.com/cyberpunk2077/mods/31886">Download on Nexus Mods</a></strong>
-  · <a href="https://discord.com/invite/mUGHmQxHG8">Discord and support</a>
+  · <a href="https://discord.com/invite/mUGHmQxHG8">Discord</a>
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
@@ -592,7 +592,7 @@ If an option check takes at least 0.05 seconds, a warning separates the time
 spent reading the game from the time spent matching presets.
 
 
-For help or to report a problem, join [**Discord and support**](https://discord.com/invite/mUGHmQxHG8).
+For help or to report a problem, join [**Discord**](https://discord.com/invite/mUGHmQxHG8).
 Include your newest **Activity Log**, what you were doing, and what went wrong.
 Check the common issues below for steps you can try first.
 

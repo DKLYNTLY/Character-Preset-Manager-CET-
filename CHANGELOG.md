@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Groups the CurseForge guide by task and labels the community link as Discord.
+  Keeps optional Ko-fi support separate from help and bug reports.
+
 - Adds Ko-fi and PayPal buttons to the README and all four Nexus mod pages.
   Uses the new PayPal link and removes the repeated Ko-fi text on Nexus.
 
