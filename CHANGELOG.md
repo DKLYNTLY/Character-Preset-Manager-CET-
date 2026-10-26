@@ -9,6 +9,8 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Adds a visible showcase video to the README and Nexus description.
+  Expands the credits for the required framework authors and ChatGPT's help with UIs and issue diagnosis.
 - Applies presets in small groups through cleanup, main choices, and linked details.
   Shares confirmation across each stage while keeping the original file service and preset reader.
 - Pauses automatic camera focus during preset loading and recovery.

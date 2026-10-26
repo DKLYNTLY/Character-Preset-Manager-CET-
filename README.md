@@ -39,6 +39,12 @@ New files use readable format 8. Older CPM and compatible ACU files stay
 unchanged when found or loaded; overwriting one, or saving its notes or tags,
 updates it to format 8.
 
+## Showcase
+
+Watch my mod showcase to see Character Preset Manager in action.
+
+[![Watch my Character Preset Manager showcase](https://img.youtube.com/vi/zxrJ2Ryq-G8/hqdefault.jpg)](https://www.youtube.com/watch?v=zxrJ2Ryq-G8)
+
 <details>
 <summary><strong>Install, update, and check compatibility</strong></summary>
 
@@ -737,9 +743,11 @@ My character shown in the screenshots is not included. I do not plan to share my
 
 ## Credits
 
-I used AI to help write and review parts of the interface, Lua, redscript,
-documentation, and release checks. I made the final design and release choices
-and reviewed the work before publishing it.
+I credit **ChatGPT by OpenAI** for helping me build the UIs, diagnose issues,
+and write and review parts of the Lua, redscript, documentation, and release
+checks. This mod is not all AI-generated; I promise there is human code in
+here too. I made the final design and release choices and reviewed the work
+before publishing it.
 
 I created and maintain Character Preset Manager as **Dnydd (formerly known as dklyntly)**.
 
@@ -751,10 +759,12 @@ loader, and controls are separate implementations.
 [Character Customization Anywhere](https://www.nexusmods.com/cyberpunk2077/mods/3930)
 by **keanuWheeze** inspired my Full Appearance Editor.
 
-[Cyber Engine Tweaks](https://www.nexusmods.com/cyberpunk2077/mods/107) was created
-by **yamashi** and is maintained by its contributors. I use CET for scripting
-and the complete menu, RED4ext for the file service, and redscript with Codeware
-for the simple menu.
+I thank the authors and contributors of all four required frameworks:
+
+- [**Cyber Engine Tweaks**](https://www.nexusmods.com/cyberpunk2077/mods/107) by **yamashi** and its contributors, for scripting and the complete menu.
+- [**RED4ext**](https://www.nexusmods.com/cyberpunk2077/mods/2380) by **WopsS** and its contributors, for the native file service.
+- [**redscript**](https://www.nexusmods.com/cyberpunk2077/mods/1511) by **jac3km4** and its contributors, for the simple menu scripts.
+- [**Codeware**](https://www.nexusmods.com/cyberpunk2077/mods/7780) by **psiberx** and its contributors, for the simple menu's UI tools and game access.
 
 I credit CD Projekt Red for Cyberpunk 2077 and its character system.
 I also appreciate the modding community's testing, research, and feedback.
