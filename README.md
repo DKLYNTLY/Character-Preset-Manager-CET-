@@ -8,6 +8,13 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">GitHub source</a>
 </p>
 
+<p align="center">If you enjoy my mods, you can support my work through Ko-fi or PayPal.</p>
+
+<p align="center">
+  <a href="https://ko-fi.com/A3G129JCLF"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"></a>
+  · <a href="https://www.paypal.com/ncp/payment/98KCFK9VXGXH6"><strong>Support me through PayPal</strong></a>
+</p>
+
 <p align="center"><strong>Current version: 4.0.1</strong> · <a href="CHANGELOG.md">Changelog</a></p>
 
 Character Preset Manager saves your character's appearance as a preset you can

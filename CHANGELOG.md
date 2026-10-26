@@ -9,6 +9,8 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Adds Ko-fi and PayPal links to the README and all four Nexus mod pages.
+
 - Adds a visible showcase video to the README and Nexus description.
   Expands the credits for the required framework authors and ChatGPT's help with UIs and issue diagnosis.
 - Applies presets in small groups through cleanup, main choices, and linked details.
