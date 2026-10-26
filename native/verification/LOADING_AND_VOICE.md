@@ -1,5 +1,16 @@
 # Loading and voice checks
 
+## Camera focus update
+
+The combined test archive uses `6418e1a` plus the automatic-focus guard in
+`events.lua` and the camera hold around `loadPreset`.
+It includes the background option catalog and Off-or-first-choice cleanup.
+The guard blocks camera-view requests while loading, including the final
+control-list refresh, and releases the hold when the loading call returns.
+
+I checked Lua compilation for the combined source and inspected the archive.
+Camera movement still needs the next in-game check.
+
 ## Option catalog and cleanup update
 
 The next build fills choice lookups in the background, including inactive

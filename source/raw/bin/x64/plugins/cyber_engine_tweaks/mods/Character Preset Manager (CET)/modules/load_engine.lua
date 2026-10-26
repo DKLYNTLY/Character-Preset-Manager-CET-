@@ -1388,10 +1388,14 @@ function loadPreset()
   state.app.loadInvocation = state.app.loadInvocation + 1
   local started = helpers.loadClock()
   state.load.updateStarted = started
-  local result = performPresetLoad()
+  local previousCameraHold = state.app.presetCameraHold
+  state.app.presetCameraHold = true
+  local ok, result = pcall(performPresetLoad)
+  state.app.presetCameraHold = previousCameraHold
   state.load.longestUpdate = math.max(state.load.longestUpdate,
     math.max(0, helpers.loadClock() - started))
   state.load.updateStarted = nil
+  if not ok then error(result, 0) end
   return result
 end
 

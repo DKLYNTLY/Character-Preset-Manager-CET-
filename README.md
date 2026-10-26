@@ -221,6 +221,9 @@ To load an appearance:
 4. Select **Load Selected Preset** once and wait for the final status.
 5. Check the visible result before confirming the editor.
 
+Automatic camera focus pauses while a preset loads. The editor can focus
+options again once loading finishes or you cancel it.
+
 The loader reads the current options as the editor updates. It waits for linked
 choices, including cyberware layers, clears old choices the preset does not
 use, and checks the saved values at the end. It also rebuilds the visible option

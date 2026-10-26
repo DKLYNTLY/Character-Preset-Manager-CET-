@@ -148,6 +148,21 @@ events.onInit = function()
     log("Option cache updates could not be connected: " .. tostring(optionCacheHooksError), "warn")
   end
 
+  local cameraHookOk, cameraHookError = pcall(
+    Override,
+    "BaseCharacterCreationController",
+    "RequestCameraChange",
+    function(_, slotName, delayed, wrappedMethod)
+      if state.app.inCustomization and (state.app.presetCameraHold
+          or state.load.auto or state.load.needsContinue) then return end
+      return wrappedMethod(slotName, delayed == true)
+    end
+  )
+  if not cameraHookOk then
+    log("Automatic camera focus could not be paused during preset loading: " ..
+      tostring(cameraHookError), "warn")
+  end
+
   local newGameEnterOk, newGameEnterError = pcall(
     Observe,
     "MenuScenario_CharacterCustomization",

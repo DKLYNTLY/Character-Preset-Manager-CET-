@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Pauses automatic camera focus while presets and recovery appearances load.
+  The editor can focus options again once loading finishes or is cancelled.
+
 - Builds an option catalog in the background while the character editor is open.
   Keeps choice lookups and available link/action data, then clears affected choices when the editor reports updates.
 - Resets every editable active option to Off or its first choice before loading a preset.
