@@ -4,153 +4,18 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 
 local function decodeJsonPreset(contents)
-  local position, length = 1, #contents
-  local function skipSpace()
-    while position <= length and contents:sub(position, position):match("%s") do
-      position = position + 1
-    end
-  end
-  local parseValue
-  local function parseString()
-    if contents:sub(position, position) ~= '"' then return nil, false end
-    position = position + 1
-    local parts = {}
-    while position <= length do
-      local character = contents:sub(position, position)
-      if character == '"' then
-        position = position + 1
-        return table.concat(parts), true
-      end
-      if character == "\\" then
-        local escaped = contents:sub(position + 1, position + 1)
-        local replacements = {
-          ['"'] = '"', ["\\"] = "\\", ["/"] = "/", b = "\b",
-          f = "\f", n = "\n", r = "\r", t = "\t",
-        }
-        if replacements[escaped] then
-          parts[#parts + 1] = replacements[escaped]
-          position = position + 2
-        elseif escaped == "u" then
-          local hexadecimal = contents:sub(position + 2, position + 5)
-          local codepoint = #hexadecimal == 4 and tonumber(hexadecimal, 16) or nil
-          if not codepoint then return nil, false end
-          position = position + 6
-          if codepoint >= 0xD800 and codepoint <= 0xDBFF
-              and contents:sub(position, position + 1) == "\\u" then
-            local trailing = tonumber(contents:sub(position + 2, position + 5), 16)
-            if trailing and trailing >= 0xDC00 and trailing <= 0xDFFF then
-              codepoint = 0x10000 + (codepoint - 0xD800) * 0x400
-                + trailing - 0xDC00
-              position = position + 6
-            end
-          end
-          local encodedOk, encoded = false, nil
-          if utf8 and utf8.char then
-            encodedOk, encoded = pcall(utf8.char, codepoint)
-          end
-          if encodedOk then
-            parts[#parts + 1] = encoded
-          else
-            parts[#parts + 1] = "?"
-          end
-        else
-          return nil, false
-        end
-      else
-        if character:byte() < 32 then return nil, false end
-        parts[#parts + 1] = character
-        position = position + 1
+  local ok, decoded = pcall(function() return json.decode(contents) end)
+  if not ok or type(decoded) ~= "table" then return nil end
+  local function bounded(value, depth)
+    if depth > 16 then return false end
+    if type(value) == "table" then
+      for _, child in pairs(value) do
+        if not bounded(child, depth + 1) then return false end
       end
     end
-    return nil, false
+    return true
   end
-  local function parseNumber()
-    local remaining = contents:sub(position)
-    local token = remaining:match("^-?%d+%.?%d*[eE]?[+-]?%d*")
-    if not token or token == "" then return nil, false end
-    local value = tonumber(token)
-    if not value then return nil, false end
-    position = position + #token
-    return value, true
-  end
-  local function parseArray(depth)
-    position = position + 1
-    local result = {}
-    skipSpace()
-    if contents:sub(position, position) == "]" then
-      position = position + 1
-      return result, true
-    end
-    while position <= length do
-      local value, ok = parseValue(depth + 1)
-      if not ok then return nil, false end
-      result[#result + 1] = value
-      skipSpace()
-      local separator = contents:sub(position, position)
-      if separator == "]" then
-        position = position + 1
-        return result, true
-      end
-      if separator ~= "," then return nil, false end
-      position = position + 1
-      skipSpace()
-    end
-    return nil, false
-  end
-  local function parseObject(depth)
-    position = position + 1
-    local result = {}
-    skipSpace()
-    if contents:sub(position, position) == "}" then
-      position = position + 1
-      return result, true
-    end
-    while position <= length do
-      local key, keyOk = parseString()
-      if not keyOk then return nil, false end
-      skipSpace()
-      if contents:sub(position, position) ~= ":" then return nil, false end
-      position = position + 1
-      local value, valueOk = parseValue(depth + 1)
-      if not valueOk then return nil, false end
-      result[key] = value
-      skipSpace()
-      local separator = contents:sub(position, position)
-      if separator == "}" then
-        position = position + 1
-        return result, true
-      end
-      if separator ~= "," then return nil, false end
-      position = position + 1
-      skipSpace()
-    end
-    return nil, false
-  end
-  parseValue = function(depth)
-    if depth > 16 then return nil, false end
-    skipSpace()
-    local character = contents:sub(position, position)
-    if character == '"' then return parseString() end
-    if character == "{" then return parseObject(depth) end
-    if character == "[" then return parseArray(depth) end
-    if contents:sub(position, position + 3) == "true" then
-      position = position + 4
-      return true, true
-    end
-    if contents:sub(position, position + 4) == "false" then
-      position = position + 5
-      return false, true
-    end
-    if contents:sub(position, position + 3) == "null" then
-      position = position + 4
-      return false, true
-    end
-    return parseNumber()
-  end
-  local result, ok = parseValue(0)
-  skipSpace()
-  if not ok or position <= length then return nil end
-  return result
+  return bounded(decoded, 0) and decoded or nil
 end
 
 local function readAcuJsonPreset(file, path, metadataOnly)
@@ -200,6 +65,8 @@ local function readAcuJsonPreset(file, path, metadataOnly)
 end
 
 function readPresetFile(path, metadataOnly)
+  local native = helpers.readNativePreset(path, metadataOnly)
+  if native then return native end
   local file = io.open(path, "r")
   if not file then return nil end
   local sizeOk, size = pcall(file.seek, file, "end")
@@ -385,7 +252,7 @@ state.hydratePreset = function(preset, path)
   for key in pairs(preset) do preset[key] = nil end
   for key, value in pairs(loaded) do preset[key] = value end
   preset.storage = storage
-  preset.fingerprint = fileFingerprint(path, MAX_PRESET_BYTES)
+  preset.fingerprint = loaded.nativeSourceFingerprint or fileFingerprint(path, MAX_PRESET_BYTES)
   preset.lazy = false
   return preset
 end

@@ -242,6 +242,17 @@ Choose a preset, open **Advanced Preset Options**, and select
 choices, missing options, repeated or unclear matches, invalid entries, and
 old choices that loading will clear.
 
+The DLL parses library presets in the background and stores a compact read cache
+under `Data/Catalog/Parsed Presets` inside the mod folder. It adds parsed entry
+counts to the native file index, while CET still handles the menus and loading.
+A cache is used only when its fingerprint matches the current source file;
+if it is missing or stale, CET reads the original immediately.
+
+Original presets are not rewritten or upgraded by this cache. Older CPM formats
+and compatible ACU JSON files remain supported, with the built-in CET JSON
+reader available for fallback reads. Save, load, recovery, and sharing controls
+keep their existing behavior; generated caches do not need to be shared.
+
 The DLL handles ACU file import and library file watching. Choice matching
 currently runs directly in CET; the native option catalog was withdrawn after
 startup failures during plugin registration. Unused Lua action copies and

@@ -73,7 +73,7 @@ readNativeFileCatalog = function()
         end
         directoryNames[lowered] = true
         directories[#directories + 1] = relative
-      elseif row[1] == "file" and #row == 5 then
+      elseif row[1] == "file" and (#row == 5 or #row == 7) then
         local relative = decodeNativeField(row[2])
         local size = tonumber(row[3])
         local modified = tonumber(row[4])
@@ -89,11 +89,21 @@ readNativeFileCatalog = function()
           return nil, "contains an invalid file entry"
         end
         fileNames[lowered] = true
+        local parsedCount, parsedFormat
+        if #row == 7 then
+          parsedCount, parsedFormat = tonumber(row[6]), tonumber(row[7])
+          if not parsedCount or parsedCount < 0 or parsedCount > MAX_PRESET_ENTRIES
+              or parsedCount ~= math.floor(parsedCount) or not parsedFormat
+              or parsedFormat < 0 or parsedFormat ~= math.floor(parsedFormat) then
+            return nil, "contains an invalid parsed-preset count"
+          end
+          if parsedCount == 0 then parsedCount, parsedFormat = nil, nil end
+        end
         files[#files + 1] = {
           relative = relative,
           size = size,
           modified = modified,
-          fingerprint = fingerprint,
+          fingerprint = fingerprint, parsedEntryCount = parsedCount, parsedFormat = parsedFormat,
         }
       else
         return nil, "contains an unsupported entry"

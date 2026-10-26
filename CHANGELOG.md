@@ -9,6 +9,13 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Adds background CPM and ACU preset parsing to the existing DLL file service.
+  Writes a compact read cache and parsed entry counts without registering game types or changing the loader.
+- Checks the current source fingerprint before using a parsed cache.
+  Keeps direct reads as a fallback and leaves original preset files unchanged.
+- Replaces the custom Lua JSON parser with CET's built-in decoder for fallback reads.
+  Format 8 and older CPM and compatible ACU files remain supported.
+
 - Withdraws the native option catalog after startup failures during plugin registration.
   Restores the file-service DLL path and uses CET for choice matching, keeping the camera, cleanup, and voice changes.
 

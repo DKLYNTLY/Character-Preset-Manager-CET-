@@ -22,6 +22,8 @@
 #include <thread>
 #include <vector>
 
+#include "PresetData.hpp"
+
 namespace
 {
 namespace fs = std::filesystem;
@@ -64,6 +66,8 @@ struct NativeRecord
     std::uintmax_t size = 0;
     std::int64_t modified = 0;
     std::string fingerprint;
+    std::size_t entryCount = 0;
+    int format = 0;
 };
 
 void LogInfo(const std::string& message)
@@ -254,7 +258,7 @@ std::map<std::string, NativeRecord> ReadNativeRecords(const fs::path& path)
         std::string fingerprint;
         if (!std::getline(fields, kind, '\t') || kind != "file" ||
             !std::getline(fields, relative, '\t') || !std::getline(fields, size, '\t') ||
-            !std::getline(fields, modified, '\t') || !std::getline(fields, fingerprint))
+            !std::getline(fields, modified, '\t') || !std::getline(fields, fingerprint, '\t'))
             continue;
         try
         {
@@ -318,6 +322,62 @@ bool AtomicWrite(const fs::path& destination, const std::string& contents)
     }
     return MoveFileExW(temporary.c_str(), destination.c_str(),
                        MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != FALSE;
+}
+
+std::pair<std::size_t, int> BuildParsedPreset(const Paths& paths, const fs::path& source,
+                                             std::string& fingerprint)
+{
+    try
+    {
+        std::error_code error;
+        const auto size = fs::file_size(source, error);
+        if (error || size == 0 || size > kMaximumPresetBytes) return {};
+        std::ifstream input(source, std::ios::binary);
+        std::string contents(static_cast<std::size_t>(size), '\0');
+        if (!input.read(contents.data(), static_cast<std::streamsize>(size)) || input.peek() != EOF) return {};
+        fingerprint = PresetData::Fingerprint(contents);
+        const auto cacheDirectory = paths.catalog.parent_path() / L"Parsed Presets";
+        if (IsReparsePoint(cacheDirectory)) return {};
+        const auto cachePath = cacheDirectory / PresetData::CacheName(fingerprint);
+        if (!IsReparsePoint(cachePath))
+        {
+            std::ifstream cached(cachePath, std::ios::binary);
+            std::string header;
+            if (std::getline(cached, header))
+            {
+                std::istringstream fields(header);
+                std::string kind, protocol, storedFingerprint, format, count;
+                if (std::getline(fields, kind, '\t') && std::getline(fields, protocol, '\t') &&
+                    std::getline(fields, storedFingerprint, '\t') && std::getline(fields, format, '\t') &&
+                    std::getline(fields, count) && kind == "CPMParsed" && protocol == "1" && storedFingerprint == fingerprint)
+                {
+                    const auto entries = PresetData::Number(count);
+                    const auto parsedFormat = PresetData::Number(format);
+                    const auto ending = "end\t" + count + "\n";
+                    cached.seekg(0, std::ios::end);
+                    const auto bytes = cached.tellg();
+                    if (entries && *entries > 0 && *entries <= 4096 && parsedFormat && *parsedFormat <= 2147483647 &&
+                        bytes >= static_cast<std::streamoff>(ending.size()) && bytes <= 4 * 1048576 + 65536)
+                    {
+                        cached.seekg(-static_cast<std::streamoff>(ending.size()), std::ios::end);
+                        std::string tail(ending.size(), '\0');
+                        cached.read(tail.data(), static_cast<std::streamsize>(tail.size()));
+                        if (tail == ending) return {*entries, static_cast<int>(*parsedFormat)};
+                    }
+                }
+            }
+        }
+        const auto preset = PresetData::Parse(contents, UnescapeField);
+        if (!preset) return {};
+        if (IsReparsePoint(cachePath) || !AtomicWrite(cachePath, PresetData::Serialize(*preset, fingerprint, EscapeField)))
+            return {};
+        return {preset->entries.size(), preset->format};
+    }
+    catch (const std::exception&)
+    {
+        LogWarning("Character Preset Manager: a parsed preset cache could not be prepared; CET will read the original file.");
+        return {};
+    }
 }
 
 bool CopyPreset(const fs::path& source, const fs::path& destination,
@@ -461,7 +521,9 @@ void WriteNativeCatalog(const Paths& paths)
             }
             fingerprint = *value;
         }
-        files[relativeKey] = NativeRecord{size, modified, fingerprint};
+        const auto parsed = HasPresetSuffix(entry.path()) ? BuildParsedPreset(paths, entry.path(), fingerprint)
+                                                         : std::pair<std::size_t, int>{};
+        files[relativeKey] = NativeRecord{size, modified, fingerprint, parsed.first, parsed.second};
     }
     if (error)
         ++skipped;
@@ -476,7 +538,7 @@ void WriteNativeCatalog(const Paths& paths)
         output << "directory\t" << EscapeField(directory) << '\n';
     for (const auto& [relative, record] : files)
         output << "file\t" << EscapeField(relative) << '\t' << record.size << '\t'
-               << record.modified << '\t' << record.fingerprint << '\n';
+               << record.modified << '\t' << record.fingerprint << '\t' << record.entryCount << '\t' << record.format << '\n';
     if (!AtomicWrite(paths.catalog, output.str()))
         LogWarning("Character Preset Manager: could not save the native file list.");
 }
