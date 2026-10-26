@@ -242,20 +242,14 @@ Choose a preset, open **Advanced Preset Options**, and select
 choices, missing options, repeated or unclear matches, invalid entries, and
 old choices that loading will clear.
 
-The bundled DLL owns the option catalog and choice matching. It warms active
-choice lookups while the editor is idle, with small records for inactive options.
-Full inactive choice lists are built only when needed; unused action copies
-are no longer stored in Lua. Game-provided links still guide the loading order.
+The DLL handles ACU file import and library file watching. Choice matching
+currently runs directly in CET; the native option catalog was withdrawn after
+startup failures during plugin registration. Unused Lua action copies and
+large cached choice tables remain removed.
 
-The catalog holds up to 65,536 choice identities and clears when the editor
-closes. It can discard older lists when full and rebuild them as needed.
-Installing this update requires replacing the bundled DLL and restarting the
-game; CET and Codeware are still required.
-
-Editor update events clear affected cached choices, and loading checks each
-selected choice against its current selector before applying it. Closing the
-editor clears the catalog; changed mod setups are read when you open it again.
-The catalog does not predict changes made by arbitrary mod scripts.
+Loading checks choices against the current editor and uses game-provided links
+to guide the order. CET and Codeware remain required, and the catalog does not
+predict changes made by arbitrary mod scripts.
 
 Use **Refresh options** in **Load & Restore Appearance** to clear this cache
 and read the current editor list again. This is separate from **Refresh**, which

@@ -22,8 +22,6 @@
 #include <thread>
 #include <vector>
 
-#include "OptionCatalog.hpp"
-
 namespace
 {
 namespace fs = std::filesystem;
@@ -908,9 +906,6 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
 {
     if (reason == RED4ext::v1::EMainReason::Load)
     {
-        auto rtti = RED4ext::CRTTISystem::Get();
-        rtti->AddRegisterCallback(CPMOptions::Register);
-        rtti->AddPostRegisterCallback(CPMOptions::PostRegister);
         g_handle = handle;
         g_sdk = sdk;
         g_stopEvent = CreateEventW(nullptr, TRUE, FALSE, nullptr);

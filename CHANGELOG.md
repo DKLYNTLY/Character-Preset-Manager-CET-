@@ -9,21 +9,22 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Withdraws the native option catalog after startup failures during plugin registration.
+  Restores the file-service DLL path and uses CET for choice matching, keeping the camera, cleanup, and voice changes.
+
 - Defers native option-class creation until the game's registration callback.
   This removes game-memory access during DLL loading, which could stop startup before scripts ran.
 
-- Moves the option catalog, choice matching, and Off-choice lookup into the bundled DLL.
-  Removes Lua's large choice tables and the unused action copies; CET and Codeware are still required.
-- Warms active choice lists while the editor is idle and reads inactive lists when needed.
-  Limits the native cache to 65,536 choice identities and clears it when the editor closes.
+- Removes unused Lua action copies and the large cached choice tables.
+  The native catalog experiment was withdrawn after startup failures; CET and Codeware are still required.
 - Removes simulated gameplay tests, old benchmark scripts, and the standalone test executable.
   Keeps a Lua code checker, with DLL and game-script compilation for build checks.
 
 - Pauses automatic camera focus while presets and recovery appearances load.
   The editor can focus options again once loading finishes or is cancelled.
 
-- Builds an option catalog in the background while the character editor is open.
-  Keeps native choice lookups and uses game-provided links, then clears affected choices when the editor reports updates.
+- Uses game-provided links to guide the loading order.
+  Choice matching currently runs directly in CET while the native registration issue is unresolved.
 - Resets every editable active option to Off or its first choice before loading a preset.
   The first choice is shown as 1 in the editor; this reset does not load the stock Streetkid appearance.
 - Checks a saved choice at its recorded position before searching other positions.

@@ -85,14 +85,7 @@ helpers.optionChoiceKey = function(option, index)
 end
 
 helpers.nativeOptionCatalogReady = function()
-  if state.app.nativeOptionCatalogReady ~= nil then return state.app.nativeOptionCatalogReady end
-  local ok, version = pcall(function() return CPMOptionCatalog.Ready() end)
-  state.app.nativeOptionCatalogReady = ok and version == 1
-  log(state.app.nativeOptionCatalogReady
-    and "[OPTIONS] The native option catalog is connected."
-    or "[FALLBACK] The native option catalog is unavailable. CET will match choices directly; restart after installing the matching DLL.",
-    state.app.nativeOptionCatalogReady and "info" or "warn")
-  return state.app.nativeOptionCatalogReady
+  return false
 end
 
 helpers.clearOptionCatalog = function()
