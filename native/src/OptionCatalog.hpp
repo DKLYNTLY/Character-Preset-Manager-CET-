@@ -136,8 +136,8 @@ struct Catalog : RED4ext::IScriptable
 {
     RED4ext::CClass* GetNativeType() override;
 };
-inline RED4ext::TTypedClass<Catalog> catalogClass("CPMOptionCatalog");
-inline RED4ext::CClass* Catalog::GetNativeType() { return &catalogClass; }
+inline RED4ext::TTypedClass<Catalog>* catalogClass = nullptr;
+inline RED4ext::CClass* Catalog::GetNativeType() { return catalogClass; }
 
 inline void Ready(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, void* output, std::int64_t)
 {
@@ -316,18 +316,19 @@ inline void Statistics(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, void*
 inline void Register()
 {
     RED4ext::CNamePool::Add("CPMOptionCatalog");
-    catalogClass.flags = {.isNative = true};
-    RED4ext::CRTTISystem::Get()->RegisterType(&catalogClass);
+    catalogClass = new RED4ext::TTypedClass<Catalog>("CPMOptionCatalog");
+    catalogClass->flags = {.isNative = true};
+    RED4ext::CRTTISystem::Get()->RegisterType(catalogClass);
 }
 
 inline void PostRegister()
 {
-    catalogClass.parent = RED4ext::CRTTISystem::Get()->GetClass("IScriptable");
+    catalogClass->parent = RED4ext::CRTTISystem::Get()->GetClass("IScriptable");
     const auto add = [](const char* name, RED4ext::ScriptingFunction_t<void*> callback, const char* result) {
-        auto function = RED4ext::CClassStaticFunction::Create(&catalogClass, name, name, callback);
+        auto function = RED4ext::CClassStaticFunction::Create(catalogClass, name, name, callback);
         function->flags = {.isNative = true, .isStatic = true};
         if (result) function->SetReturnType(result);
-        catalogClass.RegisterFunction(function);
+        catalogClass->RegisterFunction(function);
         return function;
     };
     add("Ready", Ready, "Int32");

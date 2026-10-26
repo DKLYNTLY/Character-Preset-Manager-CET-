@@ -29,3 +29,8 @@ objects from its worker thread.
 I am leaving camera behavior, loading speed, voice playback, save/reload
 persistence, and actual memory use for the next in-game check.
 The test ZIP must contain the matching DLL and scripts together.
+
+The failed startup logs stopped at CPM DLL loading, before script compilation.
+The native option class is now created inside its registration callback; DLL
+initialization no longer constructs that game-backed class. I rebuilt the DLL,
+while a successful game launch still needs confirmation.

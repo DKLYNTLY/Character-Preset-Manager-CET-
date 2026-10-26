@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Defers native option-class creation until the game's registration callback.
+  This removes game-memory access during DLL loading, which could stop startup before scripts ran.
+
 - Moves the option catalog, choice matching, and Off-choice lookup into the bundled DLL.
   Removes Lua's large choice tables and the unused action copies; CET and Codeware are still required.
 - Warms active choice lists while the editor is idle and reads inactive lists when needed.
