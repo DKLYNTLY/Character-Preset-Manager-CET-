@@ -25,8 +25,8 @@ and in-game Help for current steps.
 
 - Uses game-provided links to guide the loading order.
   Choice matching currently runs directly in CET while the native registration issue is unresolved.
-- Resets every editable active option to Off or its first choice before loading a preset.
-  The first choice is shown as 1 in the editor; this reset does not load the stock Streetkid appearance.
+- Restores cleanup of old choices the selected preset does not use.
+  Removes the reset-everything step and the Off-or-first-choice lookup, while keeping staged loading and the camera guard.
 - Checks a saved choice at its recorded position before searching other positions.
   Adds cache counts to load measurements so the next game log shows whether cached lists were used.
 

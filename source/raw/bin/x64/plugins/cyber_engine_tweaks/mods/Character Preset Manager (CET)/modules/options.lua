@@ -98,11 +98,6 @@ helpers.bindOptionCatalog = function(options)
   state.app.optionCatalog = { options = options }
 end
 
-helpers.isOffChoice = function(value)
-  value = tostring(value or ""):lower()
-  return value == "off" or value == "common-off" or value == "none" or value == "common-none"
-end
-
 helpers.optionLinkedRole = function(option)
   if helpers.nativeOptionCatalogReady() then return CPMOptionCatalog.Role(option) end
   local ok, link, controller = pcall(function()
@@ -110,19 +105,6 @@ helpers.optionLinkedRole = function(option)
   end)
   if ok and link and link ~= "" and link ~= "None" then return controller and 0 or 1 end
   return -1
-end
-
-helpers.cleanupOptionTarget = function(option)
-  if helpers.nativeOptionCatalogReady() then return CPMOptionCatalog.Cleanup(option) end
-  local ok, size = pcall(function() return #(option.info.options or {}) end)
-  if ok and size <= OPTION_CHOICE_CACHE_LIMIT then
-    for index = 0, size - 1 do
-      if helpers.isOffChoice(choiceCollectionValue(option.info, "options", index, "localizedName")) then
-        return index
-      end
-    end
-  end
-  return 0
 end
 
 helpers.invalidateOptionCatalogEntry = function(option)

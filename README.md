@@ -128,7 +128,7 @@ Both mods change the same character screens and **cannot work together**.
 <details>
 <summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
-Loading first resets editable options to **Off**, or to the first choice shown as **1** when no Off choice exists. It then applies main choices, followed by colors and linked details. Each stage uses small groups across updates and a shared check; review your appearance before confirming the editor.
+Loading clears old choices the selected preset does not use, then applies main choices followed by colors and linked details. It leaves options used by the preset for the apply stages instead of resetting every option first. Each stage uses small groups across updates and a shared check; review your appearance before confirming the editor.
 
 ## Choose a menu
 

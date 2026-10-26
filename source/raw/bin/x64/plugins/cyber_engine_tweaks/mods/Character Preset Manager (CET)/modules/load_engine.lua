@@ -842,13 +842,12 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       local extraByLabel = occurrence > (savedCounts[label] or 0)
       local clearSlotReplacement = savedSlotEntry
         and tonumber(savedSlotEntry.index) == 0
-      local clearCandidate = isPrecleanup or (extraByLabel
-        and (not savedSlotEntry or clearSlotReplacement) and not keepRemap)
-      local cleanupTarget = clearCandidate and helpers.cleanupOptionTarget(exposedOption.option) or current
-      if cleanupKey and clearCandidate and current ~= cleanupTarget
+      local clearCandidate = extraByLabel
+        and (not savedSlotEntry or clearSlotReplacement) and not keepRemap
+      if cleanupKey and clearCandidate and current ~= 0
           and not state.load.cleanupSkipped[cleanupKey]
           and not state.load.stageApplied[cleanupKey] then
-        prepared[#prepared + 1] = { candidate = exposedOption, target = cleanupTarget,
+        prepared[#prepared + 1] = { candidate = exposedOption, target = 0,
           kind = isPrecleanup and "precleanup" or "cleanup" }
       end
     end
