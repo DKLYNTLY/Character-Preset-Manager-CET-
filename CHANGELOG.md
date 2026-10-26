@@ -9,6 +9,13 @@ and in-game Help for current steps.
 
 ## 4.0.0
 
+- Builds an option catalog in the background while the character editor is open.
+  Keeps choice lookups and available link/action data, then clears affected choices when the editor reports updates.
+- Resets every editable active option to Off or its first choice before loading a preset.
+  The first choice is shown as 1 in the editor; this reset does not load the stock Streetkid appearance.
+- Checks a saved choice at its recorded position before searching other positions.
+  Adds cache counts to load measurements so the next game log shows whether cached lists were used.
+
 - Clears old choices first, applies main choices next, then applies colors and linked details.
   Shares confirmation across each stage instead of waiting for every choice in turn.
 - Gives delayed game values time to update before reporting an unconfirmed choice.

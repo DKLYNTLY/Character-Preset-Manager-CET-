@@ -1,5 +1,20 @@
 # Loading and voice checks
 
+## Option catalog and cleanup update
+
+The next build fills choice lookups in the background, including inactive
+options exposed by installed character mods. It keeps engine link data and
+available choice actions as metadata, without trying to run those actions.
+Editor update events invalidate affected choices, while applying a preset
+still checks that a saved choice matches its current selector.
+
+Cleanup now targets Off or the first editor choice for every editable active
+option. The displayed first choice is 1, stored by the game as index 0.
+This does not use the stock Streetkid preset, which contains non-first choices.
+
+I checked code compilation and package contents for this update.
+Behavior and loading speed still need the next in-game check.
+
 ## Follow-up after the in-game report
 
 The saved Activity Log shows CORPO - Female taking about 18 seconds and 225

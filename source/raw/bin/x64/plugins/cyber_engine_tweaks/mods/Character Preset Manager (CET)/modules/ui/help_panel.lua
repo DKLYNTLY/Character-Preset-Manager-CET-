@@ -335,7 +335,7 @@ if state.ui.helpOpen then
       ImGui.TextWrapped("After a preset or button action, Q and E can rotate your character again. Search and Preset Name keep the keyboard while you type.")
       ImGui.TextWrapped("If you change preset files outside CET, select Refresh under Load & Restore Appearance before using them.")
       coloredWrapped(1.0, 0.8, 0.2, 1.0,
-        "Loading clears old choices first, applies main choices next, then applies colors and linked details. Each stage uses small groups across updates, followed by a shared check.")
+        "Loading first resets editable options to Off, or to the first choice shown as 1 when Off is unavailable. It then applies main choices, followed by colors and linked details, with a shared check after each stage.")
       ImGui.TextWrapped("Open the Activity Log if loading stops or ends with a yellow warning. Check for missing or changed character mods.")
       ImGui.TextWrapped("Both menus use the same loader. Choices share a check at the end of each stage, with time for the editor to finish linked updates. Check the visible result before leaving the editor.")
       ImGui.TextWrapped("Open Advanced Preset Options and select Check Compatibility to compare a preset with the current editor. Read the result in the Load status card. Choosing a preset alone does not start a check.")

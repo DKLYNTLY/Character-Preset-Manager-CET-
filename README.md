@@ -128,7 +128,7 @@ Both mods change the same character screens and **cannot work together**.
 <details>
 <summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
-Loading clears old choices first, applies main choices next, then applies colors and linked details. Each stage uses small groups across updates, followed by a shared check. Check your appearance before confirming the editor.
+Loading first resets editable options to **Off**, or to the first choice shown as **1** when no Off choice exists. It then applies main choices, followed by colors and linked details. Each stage uses small groups across updates and a shared check; review your appearance before confirming the editor.
 
 ## Choose a menu
 
@@ -239,10 +239,15 @@ Choose a preset, open **Advanced Preset Options**, and select
 choices, missing options, repeated or unclear matches, invalid entries, and
 old choices that loading will clear.
 
-The mod keeps an option cache in memory while the character editor is open.
-It checks current lists as they are used, so added, removed, renamed, or reordered
-choices replace stale entries. Linked choices are checked again after their style
-changes. Game objects are always read from the current editor.
+The mod builds an option catalog in the background while the editor is open.
+It includes inactive options, choice lookups, and links and actions supplied by
+the game and installed character mods. Presets can use the cached lookups as
+soon as they are ready, without waiting for the whole catalog to finish.
+
+Editor update events clear affected cached choices, and loading checks each
+selected choice against its current selector before applying it. Closing the
+editor clears the catalog; changed mod setups are read when you open it again.
+The catalog does not predict changes made by arbitrary mod scripts.
 
 Use **Refresh options** in **Load & Restore Appearance** to clear this cache
 and read the current editor list again. This is separate from **Refresh**, which
