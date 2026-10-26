@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="https://ko-fi.com/A3G129JCLF"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"></a>
-  · <a href="https://www.paypal.com/ncp/payment/98KCFK9VXGXH6"><strong>Support me through PayPal</strong></a>
+  <a href="https://www.paypal.com/ncp/payment/7ZKG8YG6GCERC"><img src="https://img.shields.io/badge/Support%20via-PayPal-0070BA?style=for-the-badge&amp;logo=paypal&amp;logoColor=white" alt="Support via PayPal" height="30"></a>
 </p>
 
 <p align="center"><strong>Current version: 4.0.1</strong> · <a href="CHANGELOG.md">Changelog</a></p>
