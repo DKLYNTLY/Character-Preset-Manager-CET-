@@ -3,155 +3,17 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local names = require("modules/domain/names")
+local jsonCodec = require("modules/domain/json")
+local presetCodec = require("modules/domain/preset_codec")
+local configCodec = require("modules/domain/config_codec")
+
+local function encodeJsonCodepoint(codepoint)
+  if utf8 and utf8.char then return pcall(utf8.char, codepoint) end
+  return false, nil
+end
 
 local function decodeJsonPreset(contents)
-  local position, length = 1, #contents
-  local function skipSpace()
-    while position <= length and contents:sub(position, position):match("%s") do
-      position = position + 1
-    end
-  end
-  local parseValue
-  local function parseString()
-    if contents:sub(position, position) ~= '"' then return nil, false end
-    position = position + 1
-    local parts = {}
-    while position <= length do
-      local character = contents:sub(position, position)
-      if character == '"' then
-        position = position + 1
-        return table.concat(parts), true
-      end
-      if character == "\\" then
-        local escaped = contents:sub(position + 1, position + 1)
-        local replacements = {
-          ['"'] = '"', ["\\"] = "\\", ["/"] = "/", b = "\b",
-          f = "\f", n = "\n", r = "\r", t = "\t",
-        }
-        if replacements[escaped] then
-          parts[#parts + 1] = replacements[escaped]
-          position = position + 2
-        elseif escaped == "u" then
-          local hexadecimal = contents:sub(position + 2, position + 5)
-          local codepoint = #hexadecimal == 4 and tonumber(hexadecimal, 16) or nil
-          if not codepoint then return nil, false end
-          position = position + 6
-          if codepoint >= 0xD800 and codepoint <= 0xDBFF
-              and contents:sub(position, position + 1) == "\\u" then
-            local trailing = tonumber(contents:sub(position + 2, position + 5), 16)
-            if trailing and trailing >= 0xDC00 and trailing <= 0xDFFF then
-              codepoint = 0x10000 + (codepoint - 0xD800) * 0x400
-                + trailing - 0xDC00
-              position = position + 6
-            end
-          end
-          local encodedOk, encoded = false, nil
-          if utf8 and utf8.char then
-            encodedOk, encoded = pcall(utf8.char, codepoint)
-          end
-          if encodedOk then
-            parts[#parts + 1] = encoded
-          else
-            parts[#parts + 1] = "?"
-          end
-        else
-          return nil, false
-        end
-      else
-        if character:byte() < 32 then return nil, false end
-        parts[#parts + 1] = character
-        position = position + 1
-      end
-    end
-    return nil, false
-  end
-  local function parseNumber()
-    local remaining = contents:sub(position)
-    local token = remaining:match("^-?%d+%.?%d*[eE]?[+-]?%d*")
-    if not token or token == "" then return nil, false end
-    local value = tonumber(token)
-    if not value then return nil, false end
-    position = position + #token
-    return value, true
-  end
-  local function parseArray(depth)
-    position = position + 1
-    local result = {}
-    skipSpace()
-    if contents:sub(position, position) == "]" then
-      position = position + 1
-      return result, true
-    end
-    while position <= length do
-      local value, ok = parseValue(depth + 1)
-      if not ok then return nil, false end
-      result[#result + 1] = value
-      skipSpace()
-      local separator = contents:sub(position, position)
-      if separator == "]" then
-        position = position + 1
-        return result, true
-      end
-      if separator ~= "," then return nil, false end
-      position = position + 1
-      skipSpace()
-    end
-    return nil, false
-  end
-  local function parseObject(depth)
-    position = position + 1
-    local result = {}
-    skipSpace()
-    if contents:sub(position, position) == "}" then
-      position = position + 1
-      return result, true
-    end
-    while position <= length do
-      local key, keyOk = parseString()
-      if not keyOk then return nil, false end
-      skipSpace()
-      if contents:sub(position, position) ~= ":" then return nil, false end
-      position = position + 1
-      local value, valueOk = parseValue(depth + 1)
-      if not valueOk then return nil, false end
-      result[key] = value
-      skipSpace()
-      local separator = contents:sub(position, position)
-      if separator == "}" then
-        position = position + 1
-        return result, true
-      end
-      if separator ~= "," then return nil, false end
-      position = position + 1
-      skipSpace()
-    end
-    return nil, false
-  end
-  parseValue = function(depth)
-    if depth > 16 then return nil, false end
-    skipSpace()
-    local character = contents:sub(position, position)
-    if character == '"' then return parseString() end
-    if character == "{" then return parseObject(depth) end
-    if character == "[" then return parseArray(depth) end
-    if contents:sub(position, position + 3) == "true" then
-      position = position + 4
-      return true, true
-    end
-    if contents:sub(position, position + 4) == "false" then
-      position = position + 5
-      return false, true
-    end
-    if contents:sub(position, position + 3) == "null" then
-      position = position + 4
-      return false, true
-    end
-    return parseNumber()
-  end
-  local result, ok = parseValue(0)
-  skipSpace()
-  if not ok or position <= length then return nil end
-  return result
+  return jsonCodec.decode(contents, encodeJsonCodepoint)
 end
 
 local function readAcuJsonPreset(file, path, metadataOnly)
@@ -163,41 +25,7 @@ local function readAcuJsonPreset(file, path, metadataOnly)
       :format(path), "warn")
     return nil
   end
-  local options = decoded.options or decoded.values
-  if type(options) ~= "table" and #decoded > 0 then options = decoded end
-  if type(options) ~= "table" then return nil end
-  local entries = {}
-  for _, option in ipairs(options) do
-    if type(option) == "table" then
-      local key = option.name or option.optionName or option.key
-      local index = option.value
-      if index == nil then index = option.index end
-      local active = option.is_active
-      if active == nil then active = option.isActive end
-      local numericIndex = tonumber(index)
-      if active ~= false and type(key) == "string" and key ~= ""
-          and #key <= MAX_PRESET_KEY_BYTES
-          and not optionIndexValidationError(numericIndex) then
-        if #entries >= MAX_PRESET_ENTRIES then return nil end
-        entries[#entries + 1] = { key = key, index = numericIndex }
-      end
-    end
-  end
-  if #entries == 0 then return nil end
-  local style = decoded.isMaleVO ~= nil and "3.0.0" or "3.0.1 or newer"
-  return {
-    format = 4,
-    source = "ACU " .. style .. " JSON preset",
-    notes = "",
-    tags = "ACU",
-    favorite = false,
-    managedByCpm = false,
-    entries = not metadataOnly and entries or nil,
-    entryCount = #entries,
-    entryCountKnown = true,
-    metadataLoaded = true,
-    lazy = metadataOnly == true,
-  }
+  return presetCodec.decodeAcuJson(decoded, metadataOnly)
 end
 
 function readPresetFile(path, metadataOnly)
@@ -225,150 +53,11 @@ function readPresetFile(path, metadataOnly)
     file:close()
     return preset
   end
-  local entries = {}
-  local entryCount = 0
-  local metadata = { format = 4, source = "Legacy or ACU-compatible" }
-  local lineNumber, malformed, pendingSlot, pendingChoice = 0, 0, nil, nil
-  local readableFormatConfirmed = false
-  local lastEntry = nil
-  for line in file:lines() do
-    lineNumber = lineNumber + 1
-    if lineNumber > MAX_PRESET_LINES then
-      file:close()
-      log(("[FILES] Preset rejected because it exceeds %d lines: file='%s'.")
-        :format(MAX_PRESET_LINES, path), "warn")
-      return nil
-    end
-    if line == "# CPM Preset"
-        or line == "# Character Preset Manager (CET) preset" then
-      metadata.managedByCpm = true
-    end
-    local metadataKey, metadataValue = line:match("^# CPM\t([%a]+)\t(.*)$")
-    if metadataKey then metadata.managedByCpm = true end
-    if metadataKey == "format" then
-      metadata.format = tonumber(metadataValue) or 4
-    elseif metadataKey == "source" then
-      metadata.source = catalogDecode(metadataValue)
-    elseif metadataKey == "created" then
-      metadata.created = catalogDecode(metadataValue)
-    elseif metadataKey == "modified" then
-      metadata.modified = catalogDecode(metadataValue)
-    elseif metadataKey == "notes" then
-      metadata.notes = sanitizeMetadata(catalogDecode(metadataValue), 512)
-    elseif metadataKey == "tags" then
-      metadata.tags = sanitizeMetadata(catalogDecode(metadataValue), 128)
-    elseif metadataKey == "favorite" then
-      metadata.favorite = metadataValue == "true" or metadataValue == "1"
-    elseif not metadataOnly and metadataKey == "slot" then
-      local slot = catalogDecode(metadataValue)
-      pendingSlot = #slot <= MAX_PRESET_KEY_BYTES and not slot:find("%c")
-        and slot or nil
-    elseif not metadataOnly and metadataKey == "choice" then
-      local choice = catalogDecode(metadataValue)
-      pendingChoice = #choice <= MAX_PRESET_KEY_BYTES * 4 and not choice:find("%c")
-        and stableChoiceIdentity(choice) or nil
-    end
-    local readableKey, readableValue = line:match("^# ([%a ]+):%s?(.*)$")
-    if readableKey == "Format" and entryCount == 0 then
-      local readableFormat = tonumber(readableValue)
-      if readableFormat and readableFormat >= CURRENT_PRESET_FORMAT then
-        metadata.format = readableFormat
-        readableFormatConfirmed = true
-      end
-    elseif readableFormatConfirmed and readableKey == "Source" then
-      metadata.source = sanitizeMetadata(readableValue, 128)
-    elseif readableFormatConfirmed and readableKey == "Created" then
-      metadata.created = sanitizeMetadata(readableValue, 64)
-    elseif readableFormatConfirmed and readableKey == "Modified" then
-      metadata.modified = sanitizeMetadata(readableValue, 64)
-    elseif readableFormatConfirmed and readableKey == "Notes" then
-      metadata.notes = sanitizeMetadata(readableValue, 512)
-    elseif readableFormatConfirmed and readableKey == "Tags" then
-      metadata.tags = sanitizeMetadata(readableValue, 128)
-    elseif readableFormatConfirmed and readableKey == "Favorite" then
-      local favorite = tostring(readableValue):lower()
-      metadata.favorite = favorite == "yes" or favorite == "true" or favorite == "on"
-    elseif readableFormatConfirmed and readableKey == "Name"
-        and metadata.managedByCpm then
-      local name = sanitizeMetadata(readableValue, 64)
-      local validated = validatedPresetName(name)
-      if validated == name then metadata.presetName = name end
-    elseif readableFormatConfirmed and readableKey == "Library folder"
-        and metadata.managedByCpm then
-      local folder = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES * 4)
-      if folder == "/" then folder = "" end
-      if folder == "" or validRelativePath(folder) then
-        metadata.libraryFolder = folder
-      end
-    elseif not metadataOnly and readableFormatConfirmed
-        and readableKey == "Editor slot" and lastEntry then
-      local slot = sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES)
-      lastEntry.slot = slot ~= "" and slot or nil
-    elseif not metadataOnly and readableFormatConfirmed
-        and readableKey == "Saved choice" and lastEntry then
-      lastEntry.choice = stableChoiceIdentity(
-        sanitizeMetadata(readableValue, MAX_PRESET_KEY_BYTES * 4))
-    end
-    local key, index = nil, nil
-    if not line:match("^#") then
-      key, index = line:match("^%s*(.-):(-?%d+)%s*$")
-    end
-    local numericIndex = tonumber(index)
-    if key and key ~= "" then
-      local indexError = optionIndexValidationError(numericIndex)
-      if #key > MAX_PRESET_KEY_BYTES
-          or indexError
-          or entryCount >= MAX_PRESET_ENTRIES then
-        file:close()
-        log(("[FILES] Preset rejected at line %d: file='%s' keyBytes=%d index='%s' indexError='%s' entriesBefore=%d.")
-          :format(lineNumber, path, #key, tostring(index),
-            tostring(indexError or "none"), entryCount), "warn")
-        return nil
-      end
-      entryCount = entryCount + 1
-      if not metadataOnly then
-        lastEntry = {
-          key = key,
-          index = numericIndex,
-          slot = pendingSlot,
-          choice = pendingChoice,
-        }
-        table.insert(entries, lastEntry)
-      else
-        lastEntry = nil
-      end
-      pendingSlot, pendingChoice = nil, nil
-    elseif not metadataKey and line:match("%S") and not line:match("^#") then
-      malformed = malformed + 1
-      if malformed <= 20 then
-        log(("[FILES] Malformed preset line skipped: file='%s' line=%d content='%s'.")
-          :format(path, lineNumber, line), "warn")
-      end
-    end
-  end
+  local contents = file:read("*a")
   file:close()
-  if malformed > 0 then
-    log(("[FILES] Preset '%s' contains %d malformed nonblank line%s; valid entries remain loadable.")
-      :format(path, malformed, malformed == 1 and "" or "s"), "warn")
-  end
-  if entryCount == 0 then return nil end
-  return {
-    format = metadata.format,
-    source = metadata.source,
-    created = metadata.created,
-    modified = metadata.modified,
-    notes = metadata.notes or "",
-    tags = metadata.tags or "",
-    favorite = metadata.favorite == true,
-    managedByCpm = metadata.managedByCpm == true,
-    presetName = metadata.presetName,
-    libraryFolder = metadata.libraryFolder,
-    entries = not metadataOnly and entries or nil,
-    entryCount = entryCount,
-    entryCountKnown = true,
-    metadataLoaded = true,
-    lazy = metadataOnly == true,
-  }
+  local preset, diagnostics = presetCodec.decodeText(contents, path, metadataOnly)
+  for _, diagnostic in ipairs(diagnostics) do log(diagnostic.message, diagnostic.level) end
+  return preset
 end
 
 state.presetEntryCount = function(preset)
@@ -470,43 +159,9 @@ end
 
 function writePresetContents(path, preset)
   return writeFileSafely(path, "w", function(file)
-    local format = tonumber(preset.format) or CURRENT_PRESET_FORMAT
-    local libraryFolder = tostring(preset.libraryFolder or "")
-    if libraryFolder ~= "" and not validRelativePath(libraryFolder) then
-      libraryFolder = ""
-    end
-    local header = {
-      "# CPM Preset",
-      "# Format: " .. tostring(format),
-      "# Name: " .. sanitizeMetadata(preset.presetName, 64),
-      "# Source: " .. sanitizeMetadata(preset.source or MOD_NAME, 128),
-      "# Created: " .. sanitizeMetadata(preset.created or "", 64),
-      "# Modified: " .. sanitizeMetadata(preset.modified or "", 64),
-      "# Notes: " .. sanitizeMetadata(preset.notes, 512),
-      "# Tags: " .. sanitizeMetadata(preset.tags, 128),
-      "# Favorite: " .. (preset.favorite == true and "Yes" or "No"),
-      "# Library folder: " .. (libraryFolder ~= "" and libraryFolder or "/"),
-      "#",
-      "# Appearance options",
-      "# Each main line gives an option key and its saved number.",
-      "# Editor slot and Saved choice describe the line above them.",
-      "",
-    }
-    for _, line in ipairs(header) do
-      if not file:write(line .. "\n") then return false end
-    end
-    for _, entry in ipairs(preset.entries or {}) do
-      if not file:write(("%s:%d\n"):format(
-          tostring(entry.key), tonumber(entry.index) or 0)) then return false end
-      if entry.slot and entry.slot ~= "" then
-        if not file:write("# Editor slot: " ..
-            sanitizeMetadata(entry.slot, MAX_PRESET_KEY_BYTES) .. "\n") then return false end
-      end
-      if entry.choice and entry.choice ~= "" then
-        if not file:write("# Saved choice: " ..
-            sanitizeMetadata(entry.choice, MAX_PRESET_KEY_BYTES * 4) .. "\n") then return false end
-      end
-      if not file:write("\n") then return false end
+    local _, chunks = presetCodec.encode(preset, MOD_NAME)
+    for _, chunk in ipairs(chunks) do
+      if not file:write(chunk) then return false end
     end
     return file:flush() ~= nil
   end)
@@ -530,7 +185,7 @@ writeConfig = function()
   local result = atomicReplace(CONFIG_FILE, function(temporary)
     return writeFileSafely(temporary, "wb", function(file)
       return file:write(
-        "presetSort=" .. tostring(preferences.presetSort) .. "\n"
+        configCodec.encode(preferences)
       ) ~= nil and file:flush() ~= nil
     end)
   end, "config")
@@ -538,40 +193,22 @@ writeConfig = function()
 end
 
 readConfig = function()
-  local config = {
-    presetSort = "name",
-  }
-  local retiredSettings = {
-    discoveryReminder = true,
-    clothingWarning = true,
-    activityLogDetail = true,
-    nativePanel = true,
-    historySize = true,
-    saveBeforeHistoryRestore = true,
-    comparisonDetails = true,
-    missingWarnings = true,
-    cetFallback = true,
-  }
+  local config = configCodec.defaultConfig()
   local file = io.open(CONFIG_FILE, "rb")
   if not file then return config, false end
   local sizeOk, size = pcall(file.seek, file, "end")
   local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
-  if not sizeOk or not size or size > 16384
+  if not sizeOk or not size or size > configCodec.MAX_CONFIG_BYTES
       or not rewindOk or rewindResult == nil then
     file:close()
     log("[CONFIG] Config is unreadable or exceeds 16 KB; defaults were used.", "warn")
     return config, false
   end
-  for line in file:lines() do
-    local key, value = line:match("^%s*([%a%d]+)%s*=%s*([%a%d]+)%s*$")
-    if key == "presetSort" and (value == "name" or value == "modified") then
-      config.presetSort = value
-    elseif retiredSettings[key] then
-    elseif line:match("%S") and not line:match("^%s*#") then
-      log("[CONFIG] Ignored unsupported config line: " .. tostring(line), "warn")
-    end
-  end
+  local contents = file:read("*a")
   file:close()
+  local diagnostics
+  config, diagnostics = configCodec.decode(contents)
+  for _, diagnostic in ipairs(diagnostics) do log(diagnostic.message, diagnostic.level) end
   return config, true
 end
 
