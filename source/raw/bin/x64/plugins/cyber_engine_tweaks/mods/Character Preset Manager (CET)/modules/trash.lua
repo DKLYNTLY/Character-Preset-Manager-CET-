@@ -3,6 +3,16 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local paths = require("modules/domain/paths")
+local trashCodec = require("modules/domain/trash_codec")
+local journalCodec = require("modules/domain/journal_codec")
+local recovery = require("modules/application/recovery")
+local fileAdapter = require("modules/adapters/files")
+local recoveryPorts = {
+  exists = function(path) return fileExists(path) end,
+  rename = function(source, destination) return renameFile(source, destination) end,
+  delete = function(path) return deleteFile(path) end,
+  writeTransaction = function(phase, operation, plans) return writeTransaction(phase, operation, plans) end,
+}
 
 do
 
@@ -11,32 +21,7 @@ local function validTrashFilename(filename)
 end
 
 local function trashCatalogLines(trash, groups)
-  local lines = {}
-  for filename, item in pairs(trash or {}) do
-    if not validTrashFilename(filename)
-        or not validRelativePath(item.original or "") then return nil end
-    table.insert(lines, "P\t" .. catalogEncode(filename) .. "\t" ..
-      catalogEncode(item.original) .. "\t" .. catalogEncode(item.group or ""))
-  end
-  for groupId, group in pairs(groups or {}) do
-    if type(groupId) ~= "string" or groupId == "" or #groupId > 256
-        or not validRelativePath(group.root or "") then return nil end
-    table.insert(lines, "G\t" .. catalogEncode(groupId) .. "\t" ..
-      catalogEncode(group.root))
-    for folder in pairs(group.folders or {}) do
-      if not validRelativePath(folder) then return nil end
-      table.insert(lines, "F\t" .. catalogEncode(groupId) .. "\t" ..
-        catalogEncode(folder))
-    end
-    for folder in pairs(group.manualFolders or {}) do
-      if not validRelativePath(folder) then return nil end
-      table.insert(lines, "M\t" .. catalogEncode(groupId) .. "\t" ..
-        catalogEncode(folder))
-    end
-  end
-  table.sort(lines, function(a, b) return a:lower() < b:lower() end)
-  if #lines > MAX_CATALOG_LINES then return nil end
-  return lines
+  return trashCodec.encode(trash, groups, MAX_CATALOG_LINES)
 end
 
 local function writeTrashCatalog(trash, groups)
@@ -55,81 +40,14 @@ local function writeTrashCatalog(trash, groups)
 end
 
 local function readTrashCatalog()
-  local originals, groups = {}, {}
   local contents, readError = readBoundedFile(TRASH_CATALOG_FILE, MAX_CATALOG_BYTES)
-  if not contents then
-    return originals, groups, readError == "missing"
-  end
-  local lineCount = 0
-  for line in (contents .. "\n"):gmatch("(.-)\n") do
-    if line ~= "" then
-      lineCount = lineCount + 1
-      if lineCount > MAX_CATALOG_LINES then return nil, nil, false end
-      local kind, first, second, third = line:match("^([PGFM])\t([^\t]+)\t([^\t]+)\t?(.*)$")
-      if kind == "P" then
-        local filename = catalogDecode(first)
-        local original = catalogDecode(second)
-        local group = third ~= "" and catalogDecode(third) or nil
-        if not validTrashFilename(filename) or not validRelativePath(original)
-            or (group and #group > 256) then return nil, nil, false end
-        originals[filename] = { original = original, group = group }
-      elseif kind == "G" then
-        local groupId, root = catalogDecode(first), catalogDecode(second)
-        if groupId == "" or #groupId > 256 or not validRelativePath(root) then
-          return nil, nil, false
-        end
-        groups[groupId] = groups[groupId] or { root = root, folders = {}, manualFolders = {} }
-        groups[groupId].root = root
-      elseif kind == "F" or kind == "M" then
-        local groupId, folder = catalogDecode(first), catalogDecode(second)
-        if groupId == "" or #groupId > 256 or not validRelativePath(folder) then
-          return nil, nil, false
-        end
-        groups[groupId] = groups[groupId] or {
-          root = folder, folders = {}, manualFolders = {},
-        }
-        groups[groupId].manualFolders = groups[groupId].manualFolders or {}
-        if kind == "M" then
-          groups[groupId].manualFolders[folder] = true
-        else
-          groups[groupId].folders[folder] = true
-        end
-      else return nil, nil, false end
-    end
-  end
-  for groupId, group in pairs(groups) do
-    if not group.root or group.root == "" then groups[groupId] = nil end
-  end
-  for _, item in pairs(originals) do
-    if item.group and not groups[item.group] then return nil, nil, false end
-  end
-  return originals, groups, true
+  if not contents then return {}, {}, readError == "missing" end
+  return trashCodec.decode(contents, MAX_CATALOG_LINES)
 end
 
 writeTransaction = function(phase, operation, plans)
-  local lines = { "V\t1", "H\t" .. phase .. "\t" .. operation }
-  for _, plan in ipairs(plans or {}) do
-    if operation == "rename" then
-      if not validRelativePath(plan.storage or "")
-          or not validRelativePath(plan.destinationStorage or "")
-          or not validRelativePath(plan.name or "") then return false end
-      table.insert(lines, "R\t" .. catalogEncode(plan.storage) .. "\t" ..
-        catalogEncode(plan.destinationStorage) .. "\t" .. catalogEncode(plan.name))
-    else
-      if not validRelativePath(plan.storage or "")
-          or not validTrashFilename(plan.trashFilename)
-          or not validRelativePath(plan.recoveryName or plan.name or "") then return false end
-      table.insert(lines, "P\t" .. catalogEncode(plan.storage) .. "\t" ..
-        catalogEncode(plan.trashFilename) .. "\t" ..
-        catalogEncode(plan.recoveryName or plan.name))
-    end
-  end
-  for folder in pairs((plans or {}).recoveryFolders or {}) do
-    if not validRelativePath(folder) then return false end
-    table.insert(lines, "D\t" .. catalogEncode(folder) .. "\t" ..
-      ((plans.recoveryManualFolders or {})[folder] and "1" or "0"))
-  end
-  if #lines > MAX_TRANSACTION_LINES then return false end
+  local lines = journalCodec.encode(phase, operation, plans, MAX_TRANSACTION_LINES)
+  if not lines then return false end
   local result = writeLinesIfChanged(
     TRANSACTION_FILE, lines, "transaction journal", MAX_TRANSACTION_BYTES)
   return result == true
@@ -138,105 +56,19 @@ end
 local function readTransaction()
   local contents, readError = readBoundedFile(TRANSACTION_FILE, MAX_TRANSACTION_BYTES)
   if not contents then return nil, readError == "missing" and "missing" or "invalid" end
-  local transaction = { plans = {}, recoveryFolders = {}, recoveryManualFolders = {} }
-  local lineCount = 0
-  for line in (contents .. "\n"):gmatch("(.-)\n") do
-    if line ~= "" then
-      lineCount = lineCount + 1
-      if lineCount > MAX_TRANSACTION_LINES then return nil, "invalid" end
-      local phase, operation = line:match("^H\t([^\t]+)\t([^\t]+)$")
-      if phase then
-        transaction.phase, transaction.operation = phase, operation
-      else
-        local storage, filename, name = line:match("^P\t([^\t]+)\t([^\t]+)\t([^\t]+)$")
-        if storage then
-          storage, filename, name = catalogDecode(storage), catalogDecode(filename), catalogDecode(name)
-          if not validRelativePath(storage) or not validTrashFilename(filename)
-              or not validRelativePath(name) then return nil, "invalid" end
-          table.insert(transaction.plans, {
-            storage = storage, trashFilename = filename, name = name,
-          })
-        else
-          local oldStorage, newStorage, name = line:match("^R\t([^\t]+)\t([^\t]+)\t([^\t]+)$")
-          if oldStorage then
-            oldStorage, newStorage, name = catalogDecode(oldStorage),
-              catalogDecode(newStorage), catalogDecode(name)
-            if not validRelativePath(oldStorage) or not validRelativePath(newStorage)
-                or not validRelativePath(name) then return nil, "invalid" end
-            table.insert(transaction.plans, {
-              storage = oldStorage, destinationStorage = newStorage, name = name,
-            })
-          else
-            local folder, manual = line:match("^D\t([^\t]+)\t([01])$")
-            if folder then
-              folder = catalogDecode(folder)
-              if not validRelativePath(folder) then return nil, "invalid" end
-              transaction.recoveryFolders[folder] = true
-              if manual == "1" then transaction.recoveryManualFolders[folder] = true end
-            elseif line ~= "V\t1" then
-              return nil, "invalid"
-            end
-          end
-        end
-      end
-    end
-  end
-  if (transaction.phase ~= "prepared" and transaction.phase ~= "committed")
-      or (transaction.operation ~= "trash" and transaction.operation ~= "restore"
-        and transaction.operation ~= "rename")
-      or #transaction.plans == 0 then return nil, "invalid" end
-  return transaction
+  return journalCodec.decodeLegacy(contents, MAX_TRANSACTION_LINES)
 end
 
 completeTransaction = function(operation, plans)
-  if not writeTransaction("committed", operation, plans) then return false end
-  return os.remove(TRANSACTION_FILE) ~= nil or not fileExists(TRANSACTION_FILE)
+  return recovery.completeTransaction(recoveryPorts, operation, plans, TRANSACTION_FILE)
 end
 
 recoverTransaction = function()
   local transaction, transactionError = readTransaction()
-  if not transaction then
-    if transactionError ~= "missing" then
-      log("[RECOVERY] The saved action record is invalid. Preset scanning has stopped.", "error")
-      return false, {}, {}, {}, {}
-    end
-    return true, {}, {}, {}, {}
-  end
-  if transaction.phase == "committed" then
-    local removed = os.remove(TRANSACTION_FILE) ~= nil or not fileExists(TRANSACTION_FILE)
-    log(removed and "[RECOVERY] Completed transaction journal cleanup."
-      or "[RECOVERY] The action finished safely, but its saved record could not be removed. Cleanup will try again at the next startup.",
-      removed and "info" or "warn")
-    return true, {}, {}, {}, {}
-  end
-  local recoveredOriginals, recoveredAssignments, recovered = {}, {}, true
-  for _, plan in ipairs(transaction.plans) do
-    local mainPath = PRESET_DIR .. "/" .. plan.storage .. ".preset"
-    local trashPath = plan.trashFilename and (TRASH_DIR .. "/" .. plan.trashFilename) or nil
-    local renamedPath = plan.destinationStorage
-      and (PRESET_DIR .. "/" .. plan.destinationStorage .. ".preset") or nil
-    local rollbackSource = transaction.operation == "trash" and trashPath
-      or transaction.operation == "restore" and mainPath or renamedPath
-    local rollbackDestination = transaction.operation == "trash" and mainPath
-      or transaction.operation == "restore" and trashPath or mainPath
-    if fileExists(rollbackSource) and not fileExists(rollbackDestination) then
-      if not os.rename(rollbackSource, rollbackDestination) then recovered = false end
-    elseif not fileExists(rollbackSource) and not fileExists(rollbackDestination) then
-      recovered = false
-    end
-    if trashPath and fileExists(trashPath) then
-      recoveredOriginals[plan.trashFilename] = { original = plan.name }
-    end
-    if transaction.operation == "trash" or transaction.operation == "rename" then
-      recoveredAssignments[plan.storage] = plan.name
-    end
-  end
-  if recovered then os.remove(TRANSACTION_FILE) end
-  log("[RECOVERY] Unfinished " .. transaction.operation .. " transaction " ..
-    (recovered and "was rolled back." or "could not be fully rolled back; it will be retried."),
-    recovered and "warn" or "error")
-  return recovered, recoveredOriginals, recoveredAssignments,
-    transaction.recoveryFolders, transaction.recoveryManualFolders
+  return fileAdapter.run(recovery.recoverTransaction, log, recoveryPorts,
+    transaction, transactionError, {
+      presetDirectory = PRESET_DIR, trashDirectory = TRASH_DIR, transactionFile = TRANSACTION_FILE,
+    })
 end
 
 refreshTrash = function(recoveredOriginals)
@@ -354,14 +186,14 @@ restoreTrashBundle = function(filename)
     return
   end
   local destinationPath = PRESET_DIR .. "/" .. restoredFilename
-  local moved, moveError = os.rename(sourcePath, destinationPath)
+  local moved, moveError = renameFile(sourcePath, destinationPath)
   if not moved then
     setStatus("delete", "The shared-folder file could not be restored: " ..
       tostring(moveError), true)
     return
   end
   if fileFingerprint(destinationPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
-    local rolledBack = os.rename(destinationPath, sourcePath) ~= nil
+    local rolledBack = renameFile(destinationPath, sourcePath) ~= nil
     setStatus("delete", rolledBack
       and "The restored shared-folder file could not be checked, so it was returned to Trash."
       or "The restored shared-folder file could not be checked or returned to Trash.", true)
@@ -442,9 +274,9 @@ trashPreset = function(source)
     setStatus("delete", "The recovery record for this Trash action could not be created.", true)
     return
   end
-  local moved, moveError = os.rename(oldPath, trashPath)
+  local moved, moveError = renameFile(oldPath, trashPath)
   if not moved then
-    os.remove(TRANSACTION_FILE)
+    deleteFile(TRANSACTION_FILE)
     setStatus("delete", ("Could not move \"%s\" to Trash: %s")
       :format(old, tostring(moveError)), true)
     return
@@ -457,11 +289,11 @@ trashPreset = function(source)
   if not transactionCompleted then
     state.library.presets[old] = preset
     state.trash.items[trashFilename] = nil
-    local restored = os.rename(trashPath, oldPath) ~= nil
+    local restored = renameFile(trashPath, oldPath) ~= nil
     writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
       state.library.ignoredPhysicalFolders)
     writeTrashCatalog(state.trash.items)
-    if restored then os.remove(TRANSACTION_FILE) end
+    if restored then deleteFile(TRANSACTION_FILE) end
     setStatus("delete", restored
       and "The preset was returned because the Trash records could not be saved."
       or "Moving the preset to Trash failed, and its file could not be put back.", true)
@@ -505,15 +337,15 @@ restoreTrashPreset = function(filename)
   if not writeTransaction("prepared", "restore", { plan }) then
     setStatus("delete", "The recovery record for this restore action could not be created.", true); return
   end
-  local moved, moveError = os.rename(sourcePath, destinationPath)
+  local moved, moveError = renameFile(sourcePath, destinationPath)
   if not moved then
-    os.remove(TRANSACTION_FILE)
+    deleteFile(TRANSACTION_FILE)
     setStatus("delete", "The preset could not be restored: " .. tostring(moveError), true); return
   end
   local preset = readPresetFile(destinationPath)
   if not preset then
-    os.rename(destinationPath, sourcePath)
-    os.remove(TRANSACTION_FILE)
+    renameFile(destinationPath, sourcePath)
+    deleteFile(TRANSACTION_FILE)
     setStatus("delete", "The restored preset could not be verified.", true); return
   end
   preset.fingerprint = fileFingerprint(destinationPath, MAX_PRESET_BYTES)
@@ -529,11 +361,11 @@ restoreTrashPreset = function(filename)
     state.library.presets[logicalName] = nil
     state.library.folders = previousFolders
     state.trash.items[filename] = item
-    local restored = os.rename(destinationPath, sourcePath) ~= nil
+    local restored = renameFile(destinationPath, sourcePath) ~= nil
     writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
       state.library.ignoredPhysicalFolders)
     writeTrashCatalog(state.trash.items)
-    if restored then os.remove(TRANSACTION_FILE) end
+    if restored then deleteFile(TRANSACTION_FILE) end
     setStatus("delete", restored
       and "The preset was returned to Trash because the restore records could not be saved."
       or "The restore could not finish or return the file to Trash. Recovery will try again when you next start the game.", true)
@@ -607,13 +439,13 @@ restoreTrashGroup = function(groupId)
   end
   local moved = {}
   for _, plan in ipairs(plans) do
-    if not os.rename(plan.source, plan.destination) then
+    if not renameFile(plan.source, plan.destination) then
       local rollbackFailed = false
       for index = #moved, 1, -1 do
         local item = moved[index]
-        if not os.rename(item.destination, item.source) then rollbackFailed = true end
+        if not renameFile(item.destination, item.source) then rollbackFailed = true end
       end
-      if not rollbackFailed then os.remove(TRANSACTION_FILE) end
+      if not rollbackFailed then deleteFile(TRANSACTION_FILE) end
       setStatus("delete", rollbackFailed
         and "The folder restore stopped, and some files could not be returned to Trash. The mod will try to recover them at the next startup."
         or "Folder restore stopped before all preset files could be moved.", true)
@@ -626,9 +458,9 @@ restoreTrashGroup = function(groupId)
       local rollbackFailed = false
       for index = #moved, 1, -1 do
         local item = moved[index]
-        if not os.rename(item.destination, item.source) then rollbackFailed = true end
+        if not renameFile(item.destination, item.source) then rollbackFailed = true end
       end
-      if not rollbackFailed then os.remove(TRANSACTION_FILE) end
+      if not rollbackFailed then deleteFile(TRANSACTION_FILE) end
       setStatus("delete", rollbackFailed
         and "A restored preset could not be checked, and some files could not be returned to Trash. The mod will try to recover them at the next startup."
         or "The restored folder failed its check. Its moved files were returned to Trash.", true)
@@ -665,12 +497,12 @@ restoreTrashGroup = function(groupId)
     local rollbackFailed = false
     for index = #moved, 1, -1 do
       local plan = moved[index]
-      if not os.rename(plan.destination, plan.source) then rollbackFailed = true end
+      if not renameFile(plan.destination, plan.source) then rollbackFailed = true end
     end
     writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
       state.library.ignoredPhysicalFolders)
     writeTrashCatalog(state.trash.items, state.trash.groups)
-    if not rollbackFailed then os.remove(TRANSACTION_FILE) end
+    if not rollbackFailed then deleteFile(TRANSACTION_FILE) end
     setStatus("delete", rollbackFailed
       and "The folder restore could not finish, and some files could not be returned to Trash. The mod will try to recover them at the next startup."
       or "The presets were returned to Trash because the folder or Trash lists could not be saved.", true)
@@ -716,7 +548,7 @@ emptyTrash = function()
   state.trash.pendingEmpty = false
   local failed, presetFailed = 0, 0
   for filename in pairs(state.trash.items) do
-    if os.remove(TRASH_DIR .. "/" .. filename) then
+    if deleteFile(TRASH_DIR .. "/" .. filename) then
       state.trash.items[filename] = nil
     else
       failed = failed + 1
@@ -724,7 +556,7 @@ emptyTrash = function()
     end
   end
   for filename in pairs(state.trash.bundles) do
-    if os.remove(TRASH_DIR .. "/" .. filename) then
+    if deleteFile(TRASH_DIR .. "/" .. filename) then
       state.trash.bundles[filename] = nil
     else
       failed = failed + 1
@@ -835,18 +667,18 @@ local function moveBulkPresetsToTrash(names, folder, statusSection)
 
   local moved = {}
   for _, plan in ipairs(plans) do
-    local movedFile, moveError = os.rename(plan.source, plan.destination)
+    local movedFile, moveError = renameFile(plan.source, plan.destination)
     if not movedFile then
       local rollbackFailed = false
       for index = #moved, 1, -1 do
         local item = moved[index]
-        if not os.rename(item.destination, item.source) then rollbackFailed = true end
+        if not renameFile(item.destination, item.source) then rollbackFailed = true end
       end
       if rollbackFailed then
         refreshPresets("bulk-recovery")
         refreshTrash()
       else
-        os.remove(TRANSACTION_FILE)
+        deleteFile(TRANSACTION_FILE)
       end
       setStatus(statusSection, rollbackFailed
         and "Bulk Trash failed, and at least one moved preset could not be restored. Refresh completed; review Trash."
@@ -903,7 +735,7 @@ local function moveBulkPresetsToTrash(names, folder, statusSection)
     local rollbackFailed = false
     for index = #moved, 1, -1 do
       local plan = moved[index]
-      if not os.rename(plan.destination, plan.source) then rollbackFailed = true end
+      if not renameFile(plan.destination, plan.source) then rollbackFailed = true end
     end
     if rollbackFailed then
       refreshPresets("bulk-recovery")
@@ -912,7 +744,7 @@ local function moveBulkPresetsToTrash(names, folder, statusSection)
       writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
         state.library.ignoredPhysicalFolders)
       writeTrashCatalog(state.trash.items, state.trash.groups)
-      os.remove(TRANSACTION_FILE)
+      deleteFile(TRANSACTION_FILE)
     end
     setStatus(statusSection, rollbackFailed
       and "The Trash lists could not be saved, and at least one preset could not be returned. Refresh is complete; check Trash."

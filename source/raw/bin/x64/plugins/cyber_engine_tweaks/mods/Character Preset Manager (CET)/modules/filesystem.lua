@@ -5,12 +5,21 @@ local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local names = require("modules/domain/names")
 local paths = require("modules/domain/paths")
+local fileAdapter = require("modules/adapters/files")
+local storage = require("modules/application/storage")
+
+local filePorts = {}
+filePorts.exists = function(path) return fileExists(path) end
+filePorts.rename = function(source, destination) return fileAdapter.rename(os, source, destination) end
+filePorts.delete = function(path) return fileAdapter.delete(os, path) end
+filePorts.entries = function(path, depth) return safeDirectoryEntries(path, depth) end
+filePorts.read = function(path, maximumBytes) return readBoundedFile(path, maximumBytes) end
+filePorts.atomicReplace = function(path, writer, description) return atomicReplace(path, writer, description) end
+filePorts.writeBytes = function(path, contents) return fileAdapter.writeBytes(io, path, contents) end
+
 
 function fileExists(path)
-  local file = io.open(path, "rb")
-  if not file then return false end
-  file:close()
-  return true
+  return fileAdapter.fileExists(io, path)
 end
 
 function isFolderBundleFilename(filename)
@@ -18,33 +27,7 @@ function isFolderBundleFilename(filename)
 end
 
 function fileFingerprint(path, maximumBytes)
-  local file = io.open(path, "rb")
-  if not file then return nil end
-  local sizeOk, fileSize = pcall(file.seek, file, "end")
-  local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
-  if not sizeOk or not fileSize or fileSize > (maximumBytes or MAX_PRESET_BYTES)
-      or not rewindOk or rewindResult == nil then
-    file:close()
-    return nil
-  end
-  local hash, secondHash, bytesRead = 0, 0, 0
-  local ok = pcall(function()
-    while true do
-      local chunk = file:read(FILE_COPY_CHUNK_SIZE)
-      if not chunk then break end
-      bytesRead = bytesRead + #chunk
-      for index = 1, #chunk do
-        local byte = chunk:byte(index)
-        hash = (hash * 131 + byte) % 2147483647
-        secondHash = (secondHash * 137 + byte) % 2147483629
-      end
-    end
-  end)
-  local closeOk, closeResult = pcall(file.close, file)
-  if not ok or bytesRead ~= fileSize
-      or not closeOk or closeResult == nil then return nil end
-  local legacy = tostring(bytesRead) .. ":" .. tostring(hash)
-  return "2:" .. legacy .. ":" .. tostring(secondHash), legacy
+  return fileAdapter.fileFingerprint(io, path, maximumBytes, MAX_PRESET_BYTES, FILE_COPY_CHUNK_SIZE)
 end
 
 function cancelConfirmations()
@@ -74,56 +57,15 @@ function cloneMap(source)
 end
 
 function safeDirectoryEntries(path, depth)
-  if (tonumber(depth) or 0) > MAX_TREE_DEPTH then
-    return nil, "folder nesting exceeds the safety limit"
-  end
-  local ok, entries = pcall(dir, path)
-  if not ok or type(entries) ~= "table" then
-    return nil, "folder could not be listed safely"
-  end
-  local validated = {}
-  for _, entry in pairs(entries) do
-    if type(entry) ~= "table"
-        or type(entry.name) ~= "string"
-        or (entry.type ~= "file" and entry.type ~= "directory")
-        or entry.name == ""
-        or entry.name == "."
-        or entry.name == ".."
-        or entry.name:find("/", 1, true)
-        or entry.name:find("\\", 1, true)
-        or entry.name:find("%c") then
-      return nil, "folder contains an invalid directory entry"
-    end
-    table.insert(validated, entry)
-  end
-  table.sort(validated, function(a, b) return a.name:lower() < b.name:lower() end)
-  return validated
+  return fileAdapter.safeDirectoryEntries(dir, path, depth, MAX_TREE_DEPTH)
 end
 
 function directoryTreeContainsFiles(path, depth)
-  local entries = safeDirectoryEntries(path, depth)
-  if not entries then return nil end
-  for _, entry in ipairs(entries) do
-    if entry.type == "directory" then
-      local containsFiles = directoryTreeContainsFiles(path .. "/" .. entry.name, depth + 1)
-      if containsFiles == nil or containsFiles then return containsFiles end
-    else
-      return true
-    end
-  end
-  return false
+  return fileAdapter.directoryTreeContainsFiles(filePorts, path, depth)
 end
 
 function removeEmptyDirectoryTree(path, depth)
-  local entries = safeDirectoryEntries(path, depth)
-  if not entries then return false end
-  for _, entry in ipairs(entries) do
-    if entry.type ~= "directory"
-        or not removeEmptyDirectoryTree(path .. "/" .. entry.name, depth + 1) then
-      return false
-    end
-  end
-  return os.remove(path) ~= nil
+  return fileAdapter.removeEmptyDirectoryTree(filePorts, path, depth)
 end
 
 function logTimestamp()
@@ -195,7 +137,7 @@ helpers.pruneLogArchives = function()
   local deleted = 0
   while #archives > LOG_ARCHIVE_LIMIT do
     local oldest = table.remove(archives, 1)
-    local removed, removeError = os.remove(LOG_ARCHIVE_DIR .. "/" .. oldest)
+    local removed, removeError = deleteFile(LOG_ARCHIVE_DIR .. "/" .. oldest)
     if not removed then
       return deleted, ("oldest activity-log archive could not be deleted: %s")
         :format(tostring(removeError))
@@ -331,121 +273,33 @@ function validatedPresetName(value)
 end
 
 writeFileSafely = function(path, mode, writerFn)
-  local file = io.open(path, mode)
-  if not file then return false, "open" end
-  local wrote, writeResult = pcall(writerFn, file)
-  local closed, closeResult = pcall(file.close, file)
-  if not wrote or writeResult ~= true or not closed or closeResult == nil then
-    return false, "write"
-  end
-  return true
+  return fileAdapter.writeFileSafely(io, path, mode, writerFn)
 end
 
 function atomicReplace(path, writeTemporary, description)
-  local temporary = path .. ".tmp"
-  local backup = path .. ".bak"
-
-  if not fileExists(path) and fileExists(backup) then
-    local recovered, recoverError = os.rename(backup, path)
-    log(("[FILES] Recovery attempted: backup='%s' target='%s' success=%s error=%s")
-      :format(backup, path, tostring(recovered ~= nil), tostring(recoverError)),
-      recovered and "info" or "error")
-    if not recovered then return false end
-  end
-  os.remove(temporary)
-  if not writeTemporary(temporary) then
-    os.remove(temporary)
-    log(("[FILES] Could not write temporary %s '%s'."):format(description, temporary), "error")
-    return false
-  end
-  if os.rename(temporary, path) then
-    os.remove(backup)
-    return true
-  end
-
-  os.remove(backup)
-  local movedOriginal = os.rename(path, backup)
-  if not movedOriginal then
-    os.remove(temporary)
-    return false
-  end
-  if not os.rename(temporary, path) then
-    local restored, restoreError = os.rename(backup, path)
-    if restored then
-      os.remove(temporary)
-    else
-      log(("[FILES] Could not restore backup after replacing %s: backup='%s' target='%s' temporary='%s' error=%s")
-        :format(description, backup, path, temporary, tostring(restoreError)), "error")
-    end
-    return false
-  end
-  os.remove(backup)
-  return true
+  return fileAdapter.run(storage.atomicReplace, log, filePorts, path, writeTemporary, description)
 end
 
 function readBoundedFile(path, maximumBytes)
-  local file = io.open(path, "rb")
-  if not file then return nil, "missing" end
-  local sizeOk, size = pcall(file.seek, file, "end")
-  local rewindOk, rewindResult = pcall(file.seek, file, "set", 0)
-  if not sizeOk or not size or size > maximumBytes
-      or not rewindOk or rewindResult == nil then
-    file:close()
-    return nil, "size"
-  end
-  local readOk, contents = pcall(file.read, file, "*a")
-  local closeOk, closeResult = pcall(file.close, file)
-  if not readOk or type(contents) ~= "string" or not closeOk or closeResult == nil then
-    return nil, "read"
-  end
-  return contents
+  return fileAdapter.readBoundedFile(io, path, maximumBytes)
 end
 
 function copyFile(source, destination)
-  local input = io.open(source, "rb")
-  if not input then
-    log(("[FILES] Copy failed: could not open source='%s'."):format(source), "error")
-    return false
-  end
-  local sizeOk, sourceSize = pcall(input.seek, input, "end")
-  local rewindOk, rewindResult = pcall(input.seek, input, "set", 0)
-  if not sizeOk or not sourceSize or not rewindOk or rewindResult == nil then
-    input:close()
-    log(("[FILES] Copy failed: could not measure source='%s'."):format(source), "error")
-    return false
-  end
-  local output = io.open(destination, "wb")
-  if not output then
-    input:close()
-    log(("[FILES] Copy failed: could not open destination='%s'."):format(destination), "error")
-    return false
-  end
-  local copiedBytes = 0
-  local writeOk, writeResult = pcall(function()
-    while true do
-      local chunk = input:read(FILE_COPY_CHUNK_SIZE)
-      if not chunk then break end
-      if not output:write(chunk) then return false end
-      copiedBytes = copiedBytes + #chunk
-    end
-    return copiedBytes == sourceSize and output:flush() ~= nil
-  end)
-  local inputCloseOk, inputCloseResult = pcall(input.close, input)
-  local closeOk, closeResult = pcall(output.close, output)
-  local copied = writeOk and writeResult == true
-    and inputCloseOk and inputCloseResult ~= nil
-    and closeOk and closeResult ~= nil
-  log(("[FILES] Copy source='%s' destination='%s' bytes=%d success=%s.")
-    :format(source, destination, copiedBytes, tostring(copied)), copied and "info" or "error")
-  return copied
+  local result, diagnostic = fileAdapter.copyFile(io, source, destination, FILE_COPY_CHUNK_SIZE)
+  log(diagnostic.message, diagnostic.level)
+  return result
 end
 
 function removeFileList(paths)
-  local success = true
-  for _, path in ipairs(paths or {}) do
-    if fileExists(path) and not os.remove(path) then success = false end
-  end
-  return success
+  return fileAdapter.removeFileList(filePorts, paths)
+end
+
+function renameFile(source, destination)
+  return fileAdapter.rename(os, source, destination)
+end
+
+function deleteFile(path)
+  return fileAdapter.delete(os, path)
 end
 
 return _ENV

@@ -84,7 +84,7 @@ trimAppearanceHistory = function()
   local limit = APPEARANCE_HISTORY_LIMIT
   for index = limit + 1, 10 do
     local path = historyPath(index)
-    if fileExists(path) then os.remove(path) end
+    if fileExists(path) then deleteFile(path) end
   end
   refreshAppearanceHistory()
 end
@@ -112,7 +112,7 @@ saveAppearanceHistorySnapshot = function(options, action)
     log("[APPEARANCE HISTORY] The new recovery copy could not be saved.", "warn")
     return false
   end
-  for index = limit + 1, 10 do os.remove(historyPath(index)) end
+  for index = limit + 1, 10 do deleteFile(historyPath(index)) end
   writePresetPath(LAST_APPEARANCE_FILE, preset)
   refreshAppearanceHistory()
   log(("[APPEARANCE HISTORY] Saved '%s' with %d options.")
@@ -147,9 +147,9 @@ clearAppearanceHistory = function(confirm)
   local removed = true
   for index = 1, 10 do
     local path = historyPath(index)
-    if fileExists(path) and not os.remove(path) then removed = false end
+    if fileExists(path) and not deleteFile(path) then removed = false end
   end
-  if fileExists(LAST_APPEARANCE_FILE) and not os.remove(LAST_APPEARANCE_FILE) then
+  if fileExists(LAST_APPEARANCE_FILE) and not deleteFile(LAST_APPEARANCE_FILE) then
     removed = false
   end
   state.history.pendingClear = false

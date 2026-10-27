@@ -323,15 +323,15 @@ function removeVirtualFolder()
     local sourcePath = PRESET_DIR .. "/" .. plan.storage .. ".preset"
     local destinationPath = PRESET_DIR .. "/" .. plan.destinationStorage .. ".preset"
     if not fileExists(sourcePath) or fileExists(destinationPath)
-        or not os.rename(sourcePath, destinationPath) then
+        or not renameFile(sourcePath, destinationPath) then
       local rolledBack = true
       for index = #movedPlans, 1, -1 do
         local moved = movedPlans[index]
         local movedPath = PRESET_DIR .. "/" .. moved.destinationStorage .. ".preset"
         local originalPath = PRESET_DIR .. "/" .. moved.storage .. ".preset"
-        if not os.rename(movedPath, originalPath) then rolledBack = false end
+        if not renameFile(movedPath, originalPath) then rolledBack = false end
       end
-      if rolledBack then os.remove(TRANSACTION_FILE) end
+      if rolledBack then deleteFile(TRANSACTION_FILE) end
       setStatus("folder", rolledBack
         and "A preset file could not be moved, so the imported folder was left unchanged."
         or "A preset could not be moved, and some earlier moves could not be undone. The mod will try to recover them at the next startup.", true)
@@ -352,13 +352,13 @@ function removeVirtualFolder()
       local plan = relocationPlans[index]
       local destinationPath = PRESET_DIR .. "/" .. plan.destinationStorage .. ".preset"
       local sourcePath = PRESET_DIR .. "/" .. plan.storage .. ".preset"
-      if fileExists(destinationPath) and not os.rename(destinationPath, sourcePath) then
+      if fileExists(destinationPath) and not renameFile(destinationPath, sourcePath) then
         rolledBack = false
       end
     end
     persistVirtualState(state.library.presets, state.library.folders, state.library.manualFolders,
       state.library.ignoredPhysicalFolders)
-    if rolledBack then os.remove(TRANSACTION_FILE) end
+    if rolledBack then deleteFile(TRANSACTION_FILE) end
     setStatus("folder", rolledBack
         and "The folder list or recovery record could not be saved, so the folder was put back."
         or "The folder removal could not finish or be undone. The mod will try to recover it at the next startup.", true)

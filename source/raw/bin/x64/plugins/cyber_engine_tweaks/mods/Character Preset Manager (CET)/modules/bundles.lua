@@ -110,14 +110,14 @@ trashSelectedFolderBundle = function()
     return
   end
   local trashPath = TRASH_DIR .. "/" .. trashFilename
-  local moved, moveError = os.rename(selectedPath, trashPath)
+  local moved, moveError = renameFile(selectedPath, trashPath)
   if not moved then
     setStatus("folder",
       ("The shared-folder file could not be moved to Trash: %s"):format(tostring(moveError)), true)
     return
   end
   if fileFingerprint(trashPath, MAX_FOLDER_BUNDLE_BYTES) ~= fingerprint then
-    local rolledBack = os.rename(trashPath, selectedPath) ~= nil
+    local rolledBack = renameFile(trashPath, selectedPath) ~= nil
     setStatus("folder", rolledBack
       and "The shared-folder file failed its check and was returned to Character Presets."
       or "The shared-folder file failed its check and could not be returned from Trash.", true)

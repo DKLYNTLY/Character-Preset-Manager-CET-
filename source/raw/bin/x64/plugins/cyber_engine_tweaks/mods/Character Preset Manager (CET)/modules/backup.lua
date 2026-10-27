@@ -208,7 +208,7 @@ exportLibraryBackup = function()
   end
   local verified, verificationError = verifyBackupContents(filename, names, folders)
   if not verified then
-    local removed = os.remove(filename) ~= nil or not fileExists(filename)
+    local removed = deleteFile(filename) ~= nil or not fileExists(filename)
     local verificationMessage = verificationError
       or "The finished library backup did not pass verification."
     if not removed then
@@ -264,7 +264,7 @@ deleteSelectedLibraryBackup = function()
   end
   state.backup.pendingDeleteFile = nil
   state.backup.pendingDeleteFingerprint = nil
-  local removed, removeError = os.remove(selectedPath)
+  local removed, removeError = deleteFile(selectedPath)
   if not removed or fileExists(selectedPath) then
     setBackupStatus(("The selected library backup could not be deleted: %s")
       :format(tostring(removeError or "the file is still present")), true)

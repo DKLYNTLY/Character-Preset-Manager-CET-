@@ -110,6 +110,9 @@ CET remembers where you leave it.
 5. Restore your saved `Character Presets` and `Data` folders.
 6. Fully restart the game.
 
+Install the complete `modules` folder, including its `domain`, `application`,
+and `adapters` subfolders. These contain required mod code.
+
 Keep a separate copy of older presets if you still need them in an earlier
 mod version. Loading alone does not upgrade their file format.
 

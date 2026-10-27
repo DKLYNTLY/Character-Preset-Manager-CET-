@@ -2,6 +2,8 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local storage = require("modules/application/storage")
+local fileAdapter = require("modules/adapters/files")
 local stateModel = require("modules/domain/state")
 local names = require("modules/domain/names")
 local jsonCodec = require("modules/domain/json")
@@ -167,16 +169,11 @@ function writePresetContents(path, preset)
 end
 
 function writeLinesIfChanged(path, lines, description, maximumBytes)
-  local contents = #lines > 0 and (table.concat(lines, "\n") .. "\n") or ""
-  if #contents > maximumBytes then return false, false end
-  local existing = readBoundedFile(path, maximumBytes)
-  if existing == contents then return true, false end
-  local result = atomicReplace(path, function(temporary)
-    return writeFileSafely(temporary, "wb", function(file)
-      return file:write(contents) ~= nil and file:flush() ~= nil
-    end)
-  end, description)
-  return result, result
+  return storage.writeLinesIfChanged({
+    read = readBoundedFile,
+    atomicReplace = atomicReplace,
+    writeBytes = function(temporary, contents) return fileAdapter.writeBytes(io, temporary, contents) end,
+  }, path, lines, description, maximumBytes)
 end
 
 writeConfig = function()
@@ -547,9 +544,9 @@ function renamePreset()
     setStatus("rename", "The recovery record for this rename could not be created.", true)
       return
     end
-    local renamed, renameError = os.rename(oldPath, newPath)
+    local renamed, renameError = renameFile(oldPath, newPath)
     if not renamed then
-      os.remove(TRANSACTION_FILE)
+      deleteFile(TRANSACTION_FILE)
       setStatus("rename", "The shareable preset file could not be renamed: " ..
         tostring(renameError), true)
       return
@@ -566,7 +563,7 @@ function renamePreset()
     state.library.presets[newName] = nil
     state.library.presets[old] = preset
     if physicalRenameNeeded then
-      local rolledBack = os.rename(newPath, oldPath) ~= nil
+      local rolledBack = renameFile(newPath, oldPath) ~= nil
       preset.storage = rolledBack and oldStorage or newStorage
       if not rolledBack then
         local repaired = writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
@@ -576,7 +573,7 @@ function renamePreset()
           or "The library name could not be changed. The file could not be moved back, and its folder list could not be repaired.", true)
         return
       end
-      os.remove(TRANSACTION_FILE)
+      deleteFile(TRANSACTION_FILE)
     end
     if persisted then
       writeCatalog(state.library.presets, state.library.folders, state.library.manualFolders,
