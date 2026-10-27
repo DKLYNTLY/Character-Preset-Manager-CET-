@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Adds direct PayPal support beside Ko-fi on my project pages and profiles.
+  Keeps support links separate from Discord help.
+
 - Groups the CurseForge guide by task and labels the community link as Discord.
   Keeps optional Ko-fi support separate from help and bug reports.
 
