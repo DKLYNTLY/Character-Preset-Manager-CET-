@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local stateModel = require("modules/domain/state")
 local names = require("modules/domain/names")
 local paths = require("modules/domain/paths")
 
@@ -63,62 +64,7 @@ function cancelConfirmations()
 end
 
 function resetLoadState()
-  state.load.presetName = nil
-  state.load.overridePreset = nil
-  state.load.overrideName = nil
-  state.load.pass = 0
-  state.load.remaining = 0
-  state.load.needsContinue = false
-  state.load.stalled = false
-  state.load.previousUnresolvedSignature = nil
-  state.load.unresolvedRepeatCount = 0
-  state.load.satisfied = {}
-  state.load.values = nil
-  state.load.savedCounts = nil
-  state.load.orderedEntries = nil
-  state.load.savedEntryByKey = nil
-  state.load.savedSlotCounts = nil
-  state.load.valueCount = 0
-  state.load.forcedKeys = {}
-  state.load.resolvedChoiceIndexes = {}
-  state.load.applyAttempts = {}
-  state.load.unconfirmed = {}
-  state.load.cleanupAttempts = {}
-  state.load.cleanupSkipped = {}
-  state.load.loggedWarnings = {}
-  state.load.optionIdentityCache = {}
-  state.load.targetPolls = 0
-  state.load.targetPollSeconds = 0
-  state.load.targetFallbacks = 0
-  state.load.batch = nil
-  state.load.stageApplied = nil
-  state.load.stagePending = nil
-  state.load.choiceStage = nil
-  state.load.pendingChange = nil
-  state.load.pendingElapsed = 0
-  state.load.phase = "apply"
-  state.load.elapsed = 0
-  state.load.optionsSeconds = 0
-  state.load.scanCalls = 0
-  state.load.longestUpdate = 0
-  state.load.scanSeconds = 0
-  state.load.choiceSeconds = 0
-  state.load.applySeconds = 0
-  state.load.waitSeconds = 0
-  state.load.optionCalls = 0
-  state.load.structureChanges = 0
-  state.load.lastStructureSignature = nil
-  state.load.lastOptionCount = nil
-  state.load.forceStructureScan = true
-  state.load.targetPollingDisabled = false
-  state.load.returnToCleanup = false
-  state.load.dependencyKeys = {}
-  state.load.dependencyRemaps = {}
-  state.load.nextInterval = AUTO_LOAD_TIMING.passInterval
-  state.load.auto = false
-  state.load.autoTimer = 0
-  state.load.autoPasses = 0
-  state.load.resetBefore = false
+  stateModel.resetLoad(state.load, AUTO_LOAD_TIMING.passInterval)
 end
 
 function cloneMap(source)

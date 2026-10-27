@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local stateModel = require("modules/domain/state")
 
 state.logLoadOnce = function(key, message, level)
   key = tostring(key or message)
@@ -52,7 +53,7 @@ helpers.loadChoiceShape = function(option)
 end
 
 helpers.clearLoadScanTable = function(target)
-  for key in pairs(target) do target[key] = nil end
+  stateModel.clearScanCollection(target)
 end
 
 helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
@@ -158,9 +159,7 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
   if rebuildSignature and previousSignature and previousSignature ~= result.signature then
     result.structureChanged = true
     state.load.structureChanges = state.load.structureChanges + 1
-    state.load.resolvedChoiceIndexes = {}
-    state.load.optionIdentityCache = {}
-    state.load.dependencyRemaps = {}
+    stateModel.resetChoiceCaches(state.load)
     local pending = state.load.pendingChange
     if pending then
       pending.longSettle = true
@@ -235,9 +234,7 @@ helpers.pollPendingOption = function(options)
   if not valid then
     state.load.targetFallbacks = state.load.targetFallbacks + 1
     state.load.targetPollingDisabled = true
-    state.load.resolvedChoiceIndexes = {}
-    state.load.optionIdentityCache = {}
-    state.load.dependencyRemaps = {}
+    stateModel.resetChoiceCaches(state.load)
     log(("[FALLBACK] A dependency no longer matches its saved position; normal full checks will be used for the rest of this load: %s")
       :format(pending.identity), "warn")
     return "fallback"
@@ -305,9 +302,7 @@ helpers.clearVisibleLoadSatisfaction = function(scan)
   for key in pairs(scan.activeKeySet) do
     if not state.load.unconfirmed[key] then state.load.satisfied[key] = nil end
   end
-  state.load.applyAttempts = {}
-  state.load.previousUnresolvedSignature = nil
-  state.load.unresolvedRepeatCount = 0
+  stateModel.clearVisibleTracking(state.load)
 end
 
 helpers.checkPendingChange = function(system, scan)
@@ -319,17 +314,13 @@ helpers.checkPendingChange = function(system, scan)
       or candidate.slot ~= pending.slot) then
     candidate = nil
     state.load.targetPollingDisabled = true
-    state.load.resolvedChoiceIndexes = {}
-    state.load.optionIdentityCache = {}
-    state.load.dependencyRemaps = {}
+    stateModel.resetChoiceCaches(state.load)
     log(("[FALLBACK] Live option identity changed while waiting for %s; normal full checks will be used for the rest of this load: %s")
       :format(pending.kind, pending.identity), "warn")
   elseif candidate and candidate.choiceShape ~= pending.choiceShape then
     if not pending.choiceStructureChanged then
       state.load.targetPollingDisabled = true
-      state.load.resolvedChoiceIndexes = {}
-      state.load.optionIdentityCache = {}
-      state.load.dependencyRemaps = {}
+      stateModel.resetChoiceCaches(state.load)
       pending.longSettle = true
       pending.choiceStructureChanged = true
       log(("[FALLBACK] Choice structure changed while waiting for %s; the result will require manual confirmation: %s")
@@ -433,35 +424,7 @@ helpers.logLoadMeasurements = function(result)
 end
 
 helpers.releaseFinishedLoadWorkingData = function()
-  state.app.optionsMemo = nil
-  state.load.batch = nil
-  state.load.stageApplied = nil
-  state.load.stagePending = nil
-  state.load.choiceStage = nil
-  state.load.overridePreset = nil
-  state.load.values = nil
-  state.load.savedCounts = nil
-  state.load.orderedEntries = nil
-  state.load.savedEntryByKey = nil
-  state.load.savedSlotCounts = nil
-  state.load.satisfied = {}
-  state.load.forcedKeys = {}
-  state.load.resolvedChoiceIndexes = {}
-  state.load.applyAttempts = {}
-  state.load.unconfirmed = {}
-  state.load.cleanupAttempts = {}
-  state.load.cleanupSkipped = {}
-  state.load.loggedWarnings = {}
-  state.load.optionIdentityCache = {}
-  state.load.pendingChange = nil
-  state.load.lastStructureSignature = nil
-  state.load.lastOptionCount = nil
-  state.load.scanResult = nil
-  state.load.dependencyKeys = {}
-  state.load.dependencyRemaps = {}
-  state.load.auto = false
-  state.load.autoTimer = 0
-  state.load.autoPasses = 0
+  stateModel.releaseLoadWorkingData(state.load, state.app)
 end
 
 helpers.forceFullLoadWarning = function(preset)
@@ -667,8 +630,7 @@ helpers.writeLoadGroup = function(system, options, prepared)
     local ok, reason = helpers.beginPendingChange(system, candidate, change.target,
       change.kind, candidate.key, tonumber(option.currIndex) or 0)
     if not ok then
-      state.load.needsContinue = false
-      state.load.stalled = true
+      stateModel.markStalled(state.load)
       log("FAILED | A prepared choice could not be applied: " .. tostring(reason), "error")
       setStatus("load", "Loading stopped because a choice could not be changed safely. Close the editor without confirming, then reopen it and try again.", true)
       return true
@@ -710,31 +672,10 @@ end
 beginLoadPass = function(preset, loadName)
   helpers.auditSection("LOAD PRESET")
   log(("[PRESET] Load requested: name='%s'"):format(tostring(loadName)), "load")
-  state.load.presetName = loadName
-  state.load.pass = 1
-  state.load.previousUnresolvedSignature = nil
-  state.load.unresolvedRepeatCount = 0
-  state.load.satisfied = {}
-  state.load.forcedKeys = {}
-  state.load.resolvedChoiceIndexes = {}
-  state.load.applyAttempts = {}
-  state.load.unconfirmed = {}
-  state.load.cleanupAttempts = {}
-  state.load.cleanupSkipped = {}
-  state.load.phase = state.load.resetBefore and "precleanup" or "apply"
-  state.load.choiceStage = "main"
-  state.load.stageApplied = {}
-  state.load.stagePending = {}
-  state.load.needsContinue = true
-  state.load.returnToCleanup = false
+  stateModel.beginLoad(state.load, loadName)
   local values, savedCounts, orderedEntries, savedSlotCounts,
     valueCount, savedEntryByKey = helpers.preparePresetEntries(preset)
-  state.load.values = values
-  state.load.savedCounts = savedCounts
-  state.load.orderedEntries = orderedEntries
-  state.load.savedEntryByKey = savedEntryByKey
-  state.load.savedSlotCounts = savedSlotCounts
-  state.load.valueCount = valueCount
+  stateModel.setLoadEntries(state.load, values, savedCounts, orderedEntries, savedEntryByKey, savedSlotCounts, valueCount)
   return values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
 end
 
@@ -849,21 +790,12 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     end
     if helpers.writeLoadGroup(system, options, prepared) then return end
     if isPrecleanup then
-      state.load.phase = "apply"
-      state.load.stageApplied = {}
-      state.load.remaining = valueCount
-      state.load.needsContinue = true
-      state.load.previousUnresolvedSignature = nil
-      state.load.unresolvedRepeatCount = 0
+      stateModel.beginApplyAfterCleanup(state.load, valueCount)
       log("PRECLEANUP | Cleared old linked options before loading the preset.", "info")
       setStatus("load", "Old linked options cleared. Now loading your saved preset choices.")
       return
     end
-    state.load.phase = "verify"
-    state.load.returnToCleanup = false
-    state.load.resetBefore = false
-    state.load.remaining = valueCount
-    state.load.needsContinue = true
+    stateModel.beginVerification(state.load, valueCount)
     helpers.clearVisibleLoadSatisfaction(scan)
     log("CLEANUP | No more visible old choices need clearing. Checking the saved preset values.", "info")
     setStatus("load", "Old choices cleared. Checking the preset again.")
@@ -987,8 +919,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
               state.load.remaining == 1 and "option" or "options",
               state.load.remaining == 1 and "s" or ""))
         else
-          state.load.needsContinue = false
-          state.load.stalled = true
+          stateModel.markStalled(state.load)
           log(("FAILED | pass=%d | %s | target index %s | %s")
             :format(state.load.pass,
               state.loadOptionIdentity(option, label, exposedOption.occurrence),
@@ -1068,8 +999,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
               setStatus("load",
                 "A linked hair option changed. Its saved choice was matched; waiting for the editor to update.")
             else
-              state.load.needsContinue = false
-              state.load.stalled = true
+              stateModel.markStalled(state.load)
               log(("DEPENDENCY REMAP FAILED | pass=%d | saved LocKey='%s' | uiSlot='%s' target index %s | %s")
                 :format(state.load.pass, entry.label, entry.slot, tostring(target),
                   tostring(applyError)), "error")
@@ -1160,8 +1090,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
                 log(("FORCE FAILED | pass=%d | saved LocKey='%s' | %s fallback target index %s | %s")
                   :format(state.load.pass, entry.label, method, tostring(target),
                     tostring(applyError)), "error")
-                state.load.needsContinue = false
-                state.load.stalled = true
+                stateModel.markStalled(state.load)
                 helpers.logLoadMeasurements("force-failed")
                 setStatus("load",
                   "Loading stopped because Force Full Load could not apply an option safely. Close the editor without confirming, reopen it, and retry.",
@@ -1215,8 +1144,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       state.load.unresolvedRepeatCount = 1
     end
     if state.load.unresolvedRepeatCount >= STALL_CONFIRMATION_PASSES then
-      state.load.needsContinue = false
-      state.load.stalled = true
+      stateModel.markStalled(state.load)
       refreshCustomizationUi()
       log(("SUMMARY | preset='%s' | applied=%d | unresolved=%d | passes=%d | result=stopped")
         :format(state.load.presetName or state.library.selected,
@@ -1237,24 +1165,13 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     end
   else
     if state.load.phase == "apply" and state.load.resetBefore then
-      state.load.phase = "cleanup"
-      state.load.stageApplied = {}
-      state.load.remaining = valueCount
-      state.load.needsContinue = true
-      state.load.previousUnresolvedSignature = nil
-      state.load.unresolvedRepeatCount = 0
+      stateModel.beginCleanup(state.load, valueCount)
       log("APPLY | Saved choices were processed. Checking for old choices the preset does not use.", "info")
       setStatus("load", "Saved choices applied. Checking for old choices that remain.")
       return
     end
     if state.load.phase == "verify" and state.load.returnToCleanup then
-      state.load.phase = "cleanup"
-      state.load.stageApplied = {}
-      state.load.returnToCleanup = false
-      state.load.remaining = valueCount
-      state.load.needsContinue = true
-      state.load.previousUnresolvedSignature = nil
-      state.load.unresolvedRepeatCount = 0
+      stateModel.returnToCleanup(state.load, valueCount)
       log("VERIFY | Checked saved choices after cleanup. Looking for another old choice to clear.", "info")
       setStatus("load", "Saved choices checked. Looking for another old choice.")
       return
@@ -1266,10 +1183,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     for key in pairs(state.load.unconfirmed) do
       if values[key] ~= nil then unconfirmed = unconfirmed + 1 end
     end
-    state.load.needsContinue = false
-    state.load.stalled = false
-    state.load.previousUnresolvedSignature = nil
-    state.load.unresolvedRepeatCount = 0
+    stateModel.completeLoad(state.load)
     refreshCustomizationUi()
     log(("SUMMARY | preset='%s' | processed=%d | confirmed=%d | unconfirmed=%d | forced=%d | cleanupUnconfirmed=%d | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=%s")
       :format(state.load.presetName or state.library.selected,
@@ -1340,11 +1254,7 @@ local function performPresetLoad()
   state.load.optionCalls = state.load.optionCalls + 1
   if not options then
     if state.load.needsContinue then
-      state.load.batch = nil
-      state.load.pendingChange = nil
-      state.load.needsContinue = false
-      state.load.auto = false
-      state.load.stalled = true
+      stateModel.stopForUnavailableOptions(state.load)
     end
     setStatus("load", "Open a customization screen before loading a preset.", true)
     log("[load] " .. tostring(optionsError), "warn")
@@ -1402,11 +1312,7 @@ function restoreLastAppearance()
     return false
   end
   resetLoadState()
-  state.load.overridePreset = preset
-  state.load.overrideName = "Appearance Before Last Load"
-  state.load.autoTimer = 0
-  state.load.autoPasses = 0
-  state.load.resetBefore = true
+  stateModel.prepareRecoveryLoad(state.load, preset, "Appearance Before Last Load")
   loadPreset()
   if state.load.needsContinue then state.load.auto = true end
   return state.load.presetName == state.load.overrideName
@@ -1419,9 +1325,7 @@ refreshPreflight = function()
   end
   local preflightStarted = helpers.loadClock()
   helpers.syncForceFullLoadSelection()
-  state.load.preflight = nil
-  state.load.preflightDirty = false
-  state.load.preflightPresetName = state.library.selected
+  stateModel.clearPreflightForSelection(state.load, state.library.selected)
   local preset = state.library.selected and state.library.presets[state.library.selected]
   if not preset then return end
   local wasLazy = not preset.entries

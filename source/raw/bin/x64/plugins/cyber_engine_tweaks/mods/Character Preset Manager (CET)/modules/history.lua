@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local stateModel = require("modules/domain/state")
 local paths = require("modules/domain/paths")
 
 local function historyPath(index)
@@ -132,11 +133,7 @@ restoreAppearanceHistory = function(index)
     saveAppearanceHistorySnapshot(options, "Before restoring appearance history")
   end
   resetLoadState()
-  state.load.overridePreset = preset
-  state.load.overrideName = "Appearance History " .. tostring(index)
-  state.load.autoTimer = 0
-  state.load.autoPasses = 0
-  state.load.resetBefore = true
+  stateModel.prepareRecoveryLoad(state.load, preset, "Appearance History " .. tostring(index))
   loadPreset()
   if state.load.needsContinue then state.load.auto = true end
   return true

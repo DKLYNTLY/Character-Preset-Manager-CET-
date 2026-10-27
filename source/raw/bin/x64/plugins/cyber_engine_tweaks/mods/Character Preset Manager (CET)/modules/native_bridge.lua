@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local stateModel = require("modules/domain/state")
 local codecs = require("modules/domain/codecs")
 local nativeQuery = ""
 local nativeViewRevision = 0
@@ -238,9 +239,7 @@ local function startSelectedLoad()
   state.app.nativeLoadSummary = nil
   state.app.nativePanelShowDetails = false
   resetLoadState()
-  state.load.autoTimer = 0
-  state.load.autoPasses = 0
-  state.load.resetBefore = true
+  stateModel.prepareAutomaticLoad(state.load)
   loadPreset()
   if state.load.needsContinue then state.load.auto = true end
   return true, state.status.sections.load.message

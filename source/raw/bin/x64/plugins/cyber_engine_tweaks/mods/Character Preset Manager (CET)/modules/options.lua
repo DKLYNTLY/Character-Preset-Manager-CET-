@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local stateModel = require("modules/domain/state")
 local identities = require("modules/domain/identities")
 
 function optionKey(option)
@@ -78,9 +79,7 @@ helpers.optionChoiceKey = function(option, index)
 end
 
 helpers.clearOptionCatalog = function()
-  state.app.optionCatalog = nil
-  state.app.optionChoiceBindings = nil
-  state.app.optionsMemo = nil
+  stateModel.clearOptionCatalog(state.app)
 end
 
 helpers.bindOptionCatalog = function(options)

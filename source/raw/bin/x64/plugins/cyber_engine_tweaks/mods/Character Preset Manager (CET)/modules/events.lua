@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local stateModel = require("modules/domain/state")
 
 events = {}
 
@@ -327,9 +328,7 @@ events.onUpdate = function(delta)
   end
 
   if not state.load.needsContinue then
-    state.load.auto = false
-    state.load.autoTimer = 0
-    state.load.autoPasses = 0
+    stateModel.stopAutomatic(state.load)
     return
   end
 
@@ -338,9 +337,7 @@ events.onUpdate = function(delta)
   state.load.autoTimer = 0
 
   if not state.library.selected and not state.load.overridePreset then
-    state.load.auto = false
-    state.load.autoTimer = 0
-    state.load.autoPasses = 0
+    stateModel.stopAutomatic(state.load)
     return
   end
 
@@ -349,7 +346,7 @@ events.onUpdate = function(delta)
     AUTO_LOAD_LIMITS.minimumSeconds,
     (tonumber(state.load.valueCount) or 0) * AUTO_LOAD_LIMITS.secondsPerOption + 10)
   if state.load.elapsed > maximumSeconds then
-    state.load.auto = false
+    stateModel.stopAutomaticAtTimeout(state.load)
     helpers.logLoadMeasurements("safety-limit")
     setStatus("load",
       "Loading took longer than the safety limit allows. " ..
@@ -362,8 +359,7 @@ events.onUpdate = function(delta)
   loadPreset()
 
   if not state.load.needsContinue then
-    state.load.auto = false
-    state.load.autoPasses = 0
+    stateModel.finishAutomaticPass(state.load)
     if not state.app.overlayOpen or not state.app.windowOpen then
       helpers.releaseIdleMemory()
     end

@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local stateModel = require("modules/domain/state")
 local names = require("modules/domain/names")
 local jsonCodec = require("modules/domain/json")
 local presetCodec = require("modules/domain/preset_codec")
@@ -152,9 +153,7 @@ function hydrateNamedPresetMetadata(name)
 end
 
 state.invalidatePreflight = function()
-  state.load.preflight = nil
-  state.load.preflightDirty = true
-  state.load.preflightPresetName = nil
+  stateModel.invalidatePreflight(state.load)
 end
 
 function writePresetContents(path, preset)
