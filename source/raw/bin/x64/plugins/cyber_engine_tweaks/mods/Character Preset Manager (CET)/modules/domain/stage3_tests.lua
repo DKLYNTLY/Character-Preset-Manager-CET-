@@ -16,7 +16,6 @@ require("modules/load_engine")
 local realEvents = require("modules/events")
 local realReset = runtime.resetLoadState
 local realRelease = runtime.helpers.releaseFinishedLoadWorkingData
-local realCancel = runtime.cancelLoading
 local realBegin = runtime.beginLoadPass
 local realLoad = runtime.loadPreset
 local realInvalidate = runtime.state.invalidatePreflight
@@ -129,9 +128,6 @@ integration.beginForward=function(load,app,parameters)
   realBegin(parameters.preset,parameters.loadName)
   return log
 end
-integration.cancel=function(load,app,parameters)
-  local log=context(load,app,parameters);load.presetName="Fixture";realCancel();return log
-end
 integration.noSelection=function(load,app,parameters)
   local log=context(load,app,parameters)
   runtime.state.library.selected=nil;load.overridePreset=nil;load.overrideName=nil
@@ -190,7 +186,7 @@ integration.idleRelease=function(load,app,parameters)
   return log
 end
 for _,name in ipairs({"resetForward","releaseForward","invalidateForward","clearOptionsForward",
-  "beginForward","cancel","noSelection","unreadable","unavailableOptions","completedBoundary",
+  "beginForward","noSelection","unreadable","unavailableOptions","completedBoundary",
   "update_idle","update_noContinue","update_noSelection","update_timeout","update_finished","idleRelease"}) do
   cases[#cases+1]={name=name,dirty=true,resetBefore=true,integration=true}
 end
@@ -271,6 +267,7 @@ assert(select("#",realReset())==0)
 assert(select("#",realRelease())==0)
 assert(select("#",realInvalidate())==0)
 assert(select("#",realClearOptions())==0)
+assert(runtime.cancelLoading == nil, "removed load-cancel entry point is still exported")
 print("Stage 3 state fixtures passed: "..#cases)
 print("Independent constructors, retained references, legacy return values, and operation results passed.")
 print("Timeout fixture preserves auto=false with active continuation, pending choice, and batch.")

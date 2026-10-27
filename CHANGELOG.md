@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Removes Cancel Loading from CET and Cancel Load from the character-screen menu.
+  Other load and recovery controls keep their current behavior.
+
 - Adds direct PayPal support beside Ko-fi on my project pages and profiles.
   Keeps support links separate from Discord help.
 

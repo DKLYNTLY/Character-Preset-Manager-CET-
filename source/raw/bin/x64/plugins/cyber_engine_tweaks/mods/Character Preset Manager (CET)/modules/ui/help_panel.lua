@@ -322,7 +322,7 @@ if state.ui.helpOpen then
       end
 
       if showHelpTopic("Load & Restore Appearance",
-          "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue cancel button") then
+          "load apply loading bug issue problem stopped stuck wrong mismatch missing unavailable unconfirmed yellow green option check refresh clear search favorite favorites details restore previous force full continue button") then
       helpHeading("Load & Restore Appearance")
       ImGui.TextWrapped("Select a preset once to load it automatically. Hair, cyberware, and linked choices may need a brief wait between changes. Check any unconfirmed-value warning before confirming the editor.")
       ImGui.TextWrapped("1. Open a supported character editor.")
@@ -357,7 +357,6 @@ if state.ui.helpOpen then
       helpButton("Force Full Load: On / Off", "Allows matching by saved position when an older preset lacks exact details. Find it under Advanced Preset Options, then check the appearance when loading finishes.")
       helpButton("Load Selected Preset", "Starts applying the selected preset to the open character editor.")
       helpButton("Continue Loading Preset", "Continues an unfinished load. This normally happens on its own.")
-      helpButton("Cancel Loading", "Stops loading further choices. Changes already made remain visible.")
       end
 
       if showHelpTopic("Save & Replace Presets",

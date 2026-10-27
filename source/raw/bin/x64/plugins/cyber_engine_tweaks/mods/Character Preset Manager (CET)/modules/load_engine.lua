@@ -1428,12 +1428,5 @@ refreshPreflight = function()
   end
 end
 
-function cancelLoading()
-  local name = state.load.presetName or state.library.selected
-  if state.load.presetName then helpers.logLoadMeasurements("canceled") end
-  resetLoadState()
-  setStatus("load", name and ("Loading canceled for \"" .. name .. "\".")
-    or "Loading canceled.")
-end
 
 return _ENV

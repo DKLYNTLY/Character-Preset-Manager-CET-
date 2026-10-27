@@ -141,7 +141,7 @@ Both mods change the same character screens and **cannot work together**.
 <details>
 <summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
-Loading clears unused old choices, applies main choices, then applies linked colors and details. Changes run in small groups, with a shared check after each stage. Automatic camera focus pauses until loading finishes or is cancelled. Check your appearance before confirming the editor.
+Loading clears unused old choices, applies main choices, then applies linked colors and details. Changes run in small groups, with a shared check after each stage. Automatic camera focus pauses during preset loading. Check your appearance before confirming the editor.
 
 ## Choose a menu
 
@@ -210,9 +210,6 @@ press **Confirm Overwrite** only when you want to replace that preset.
 
 **Move Preset to Trash** becomes **Confirm Move to Trash** before moving the
 selected file. Restore it or delete it permanently through CET.
-
-**Cancel Load** stops further changes. Choices already applied remain visible,
-so check the result before confirming your appearance.
 
 ---
 

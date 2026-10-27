@@ -252,11 +252,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       if state.load.needsContinue then state.load.auto = true end
     end
     if loadButtonDisabled then ImGui.EndDisabled() end
-    if state.load.auto or state.load.needsContinue then
-      if dangerButton("Cancel Loading##cancelLoad", ImGui.GetContentRegionAvail(), actionButtonHeight) then
-        cancelLoading()
-      end
-    end
     local restoreFileAvailable = state.load.recoverySnapshotAvailable == true
     local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
       or state.load.auto or state.load.needsContinue

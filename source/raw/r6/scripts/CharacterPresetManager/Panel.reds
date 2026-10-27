@@ -146,7 +146,6 @@ public class PresetPanel extends inkCustomController {
   private let refreshAction: ref<PanelButton>;
   private let locationButton: ref<PanelButton>;
   private let saveAction: ref<PanelButton>;
-  private let cancelLoadAction: ref<PanelButton>;
   private let trashAction: ref<PanelButton>;
   private let undoAction: ref<PanelButton>;
   private let historyAction: ref<PanelButton>;
@@ -166,7 +165,6 @@ public class PresetPanel extends inkCustomController {
   private let presetNameValue: String;
   private let scrollOffset: Int32;
   private let busy: Bool;
-  private let cancelRequested: Bool;
   private let mode: Int32;
   private let recoveryAvailable: Bool;
   private let showLoadDetails: Bool;
@@ -234,13 +232,6 @@ public class PresetPanel extends inkCustomController {
     this.selectedInfo.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.selectedInfo.Reparent(root);
     this.AddDivider(root, 884.0);
-    this.cancelLoadAction = PanelButton.Create("CANCEL LOAD");
-    this.cancelLoadAction.SetPosition(34.0, 898.0);
-    this.cancelLoadAction.SetWidth(654.0);
-    this.cancelLoadAction.SetStyle(2);
-    this.cancelLoadAction.SetDisabled(true);
-    this.cancelLoadAction.RegisterToCallback(n"OnBtnClick", this, n"OnCancelLoad");
-    this.cancelLoadAction.Reparent(root, this.GetGameController());
     this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 956.0, n"OnRestorePrevious");
     this.undoAction.SetWidth(323.0);
     this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 956.0, n"OnHistory");
@@ -482,17 +473,6 @@ public class PresetPanel extends inkCustomController {
   }
   protected cb func OnMoveToTrash(widget: wref<inkWidget>) -> Bool { this.bridge.Request("delete", ""); this.ReleaseButtonFocus(); return true; }
 
-  protected cb func OnCancelLoad(widget: wref<inkWidget>) -> Bool {
-    if !this.busy || this.cancelRequested { return true; };
-    this.cancelRequested = true;
-    this.cancelLoadAction.SetText("CANCELING LOAD...");
-    this.cancelLoadAction.SetDisabled(true);
-    this.SetStatus("Canceling load...", false);
-    this.bridge.Request("cancel_load", "");
-    this.ReleaseButtonFocus();
-    return true;
-  }
-
   protected cb func OnRestorePrevious(widget: wref<inkWidget>) -> Bool {
     this.bridge.Request("restore_previous", "");
     this.ReleaseButtonFocus();
@@ -523,7 +503,6 @@ public class PresetPanel extends inkCustomController {
     this.historyAction.SetDisabled(this.busy);
     this.refreshAction.SetDisabled(this.busy);
     this.locationButton.SetDisabled(this.busy);
-    this.cancelLoadAction.SetDisabled(!this.busy || this.cancelRequested);
     this.search.GetRootWidget().SetInteractive(!this.busy && this.mode == 0);
     this.presetName.GetRootWidget().SetInteractive(!this.busy && this.mode == 0);
   }
@@ -578,10 +557,6 @@ public class PresetPanel extends inkCustomController {
 
   public func OnBusyChanged(isBusy: Bool, message: String, isError: Bool) -> Void {
     this.busy = isBusy;
-    if !isBusy {
-      this.cancelRequested = false;
-      this.cancelLoadAction.SetText("CANCEL LOAD");
-    };
     let index: Int32 = 0;
     while index < ArraySize(this.actionButtons) {
       this.actionButtons[index].SetDisabled(isBusy);
