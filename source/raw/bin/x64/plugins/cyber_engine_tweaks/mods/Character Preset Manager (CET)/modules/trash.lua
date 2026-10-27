@@ -2,13 +2,12 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local paths = require("modules/domain/paths")
 
 do
 
 local function validTrashFilename(filename)
-  return type(filename) == "string" and #filename > 7 and #filename <= 71
-    and filename:find("/", 1, true) == nil and filename:find("\\", 1, true) == nil
-    and filename:lower():sub(-7) == ".preset"
+  return paths.validTrashFilename(filename)
 end
 
 local function trashCatalogLines(trash, groups)

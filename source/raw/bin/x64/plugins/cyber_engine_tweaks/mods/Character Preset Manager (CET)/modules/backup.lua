@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local codecs = require("modules/domain/codecs")
 
 local function setBackupStatus(message, isError, kind)
   setStatus("backup", message, isError, kind)
@@ -10,17 +11,11 @@ end
 do
 
 local function encode(value)
-  return (tostring(value or ""):gsub(".", function(character)
-    return ("%02X"):format(character:byte())
-  end))
+  return codecs.backupEncode(value)
 end
 
 local function decode(value)
-  if type(value) ~= "string" or #value % 2 ~= 0
-      or (value ~= "" and not value:match("^%x+$")) then return nil end
-  return (value:gsub("(%x%x)", function(pair)
-    return string.char(tonumber(pair, 16))
-  end))
+  return codecs.backupDecode(value)
 end
 
 local function writeEncodedFile(output, path)

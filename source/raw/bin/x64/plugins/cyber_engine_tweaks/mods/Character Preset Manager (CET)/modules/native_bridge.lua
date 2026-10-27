@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local codecs = require("modules/domain/codecs")
 local nativeQuery = ""
 local nativeViewRevision = 0
 local nativeRowsCacheKey = nil
@@ -48,7 +49,7 @@ helpers.updateOverlayRequest = function(delta)
 end
 
 local function cleanField(value)
-  return tostring(value or ""):gsub("[%c]", " ")
+  return codecs.cleanField(value)
 end
 
 bridgeCall = function(method, ...)

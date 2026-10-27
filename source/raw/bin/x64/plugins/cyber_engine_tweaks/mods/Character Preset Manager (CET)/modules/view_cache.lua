@@ -2,6 +2,8 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local names = require("modules/domain/names")
+local paths = require("modules/domain/paths")
 
 function unresolvedSignature(unresolved)
   local keys = {}
@@ -11,7 +13,7 @@ function unresolvedSignature(unresolved)
 end
 
 function baseName(name)
-  return name:match("([^/]+)$") or name
+  return paths.baseName(name)
 end
 
 helpers.breadcrumb = function(name)
@@ -193,42 +195,23 @@ helpers.filteredPresetNames = function()
 end
 
 function joinFolder(folder, name)
-  if not folder or folder == "" then return name end
-  return folder .. "/" .. name
+  return paths.joinFolder(folder, name)
 end
 
 function isInFolderTree(path, folder)
-  return path == folder or path:sub(1, #folder + 1) == folder .. "/"
+  return paths.isInFolderTree(path, folder)
 end
 
 function addFolderAncestors(folders, folder)
-  local current = folder
-  while current and current ~= "" do
-    folders[current] = true
-    current = parentFolder(current)
-  end
+  return paths.addFolderAncestors(folders, folder)
 end
 
 function findPresetCollision(name, excludeName)
-  local lowered = name:lower()
-  for existing in pairs(state.library.presets) do
-    if existing:lower() == lowered and existing ~= excludeName then
-      return existing
-    end
-  end
-  return nil
+  return names.findPresetCollision(name, excludeName, state.library.presets)
 end
 
 function validRelativePath(value)
-  if type(value) ~= "string" or value == ""
-      or value:sub(1, 1) == "/" or value:sub(-1) == "/"
-      or value:find("//", 1, true) or value:find("\\", 1, true) then
-    return false
-  end
-  for part in value:gmatch("[^/]+") do
-    if part == "." or part == ".." or part == "" then return false end
-  end
-  return true
+  return paths.validRelativePath(value)
 end
 
 function storageFilenamesInUse()
@@ -240,29 +223,11 @@ function storageFilenamesInUse()
 end
 
 function uniqueStorageName(leafName, used)
-  used = used or storageFilenamesInUse()
-  if not used then return nil end
-  for index = 1, 9999 do
-    local suffix = index == 1 and "" or (" %d"):format(index)
-    local candidate = leafName:sub(1, 64 - #suffix) .. suffix
-    local filename = (candidate .. ".preset"):lower()
-    if not used[filename] then
-      used[filename] = true
-      return candidate
-    end
-  end
-  return nil
+  return names.uniqueStorageName(leafName, used or storageFilenamesInUse())
 end
 
 function validatedFolderName(value)
-  local name, nameError = validatedPresetName(value)
-  if not name then
-    nameError = nameError:gsub("Preset names", "Folder names")
-      :gsub("preset name", "folder name")
-      :gsub("filename", "folder name")
-    return nil, nameError
-  end
-  return name
+  return names.validatedFolderName(value)
 end
 
 return _ENV

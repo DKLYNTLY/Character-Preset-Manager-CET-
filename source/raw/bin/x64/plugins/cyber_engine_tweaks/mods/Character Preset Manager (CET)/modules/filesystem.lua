@@ -2,6 +2,8 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local names = require("modules/domain/names")
+local paths = require("modules/domain/paths")
 
 function fileExists(path)
   local file = io.open(path, "rb")
@@ -11,10 +13,7 @@ function fileExists(path)
 end
 
 function isFolderBundleFilename(filename)
-  return type(filename) == "string" and filename ~= ""
-    and #filename <= 255 and not filename:find("/", 1, true)
-    and not filename:find("\\", 1, true) and not filename:find("%c")
-    and filename:lower():sub(-#FOLDER_BUNDLE_EXTENSION) == FOLDER_BUNDLE_EXTENSION
+  return paths.isFolderBundleFilename(filename)
 end
 
 function fileFingerprint(path, maximumBytes)
@@ -374,35 +373,15 @@ helpers.clearSectionStatuses = function()
 end
 
 function sanitizeName(value)
-  value = tostring(value or "")
-  value = value:gsub("^%s+", ""):gsub("%s+$", "")
-  value = value:gsub("[<>:\"/\\|%?%*%c]", "_")
-  return value:sub(1, 64)
+  return names.sanitizeName(value)
 end
 
 function sanitizeMetadata(value, maximum)
-  value = tostring(value or ""):gsub("[%c]", " ")
-  value = value:gsub("^%s+", ""):gsub("%s+$", "")
-  return value:sub(1, maximum)
+  return names.sanitizeMetadata(value, maximum)
 end
 
 function validatedPresetName(value)
-  local raw = tostring(value or "")
-  local name = sanitizeName(raw)
-  if name == "" then return nil, "Enter a name." end
-  if name:match("[%. ]$") then
-    return nil, "Preset names cannot end with a period or space."
-  end
-
-  local deviceName = (name:match("^([^%.]+)") or name):upper()
-  if deviceName == "CON" or deviceName == "PRN"
-      or deviceName == "AUX" or deviceName == "NUL"
-      or deviceName:match("^COM[1-9]$")
-      or deviceName:match("^LPT[1-9]$") then
-    return nil, ("\"%s\" is a reserved Windows name. Enter another name.")
-      :format(name)
-  end
-  return name
+  return names.validatedPresetName(value)
 end
 
 writeFileSafely = function(path, mode, writerFn)

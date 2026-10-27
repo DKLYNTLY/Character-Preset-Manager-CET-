@@ -2,29 +2,21 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local codecs = require("modules/domain/codecs")
+local paths = require("modules/domain/paths")
 
 do
 
 local function validBundlePath(value)
-  if not validRelativePath(value) then return false end
-  for part in value:gmatch("[^/]+") do
-    local validated = validatedPresetName(part)
-    if validated ~= part then return false end
-  end
-  return true
+  return paths.validBundlePath(value, validatedPresetName)
 end
 
 local function hexEncode(value)
-  return (value:gsub(".", function(character)
-    return ("%02X"):format(character:byte())
-  end))
+  return codecs.hexEncode(value)
 end
 
 local function hexDecode(value)
-  if #value % 2 ~= 0 or not value:match("^%x+$") then return nil end
-  return (value:gsub("(%x%x)", function(pair)
-    return string.char(tonumber(pair, 16))
-  end))
+  return codecs.hexDecode(value)
 end
 
 local function writeHexFile(output, path)

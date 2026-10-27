@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local names = require("modules/domain/names")
 
 local function decodeJsonPreset(contents)
   local position, length = 1, #contents
@@ -635,37 +636,19 @@ function cleanupFailureMessage(paths, cleanedMessage, leftoverMessage)
 end
 
 function uniquePresetCopyName(sourceName)
-  local folder = parentFolder(sourceName)
-  local leaf = baseName(sourceName)
-  for index = 1, 999 do
-    local suffix = index == 1 and " Copy" or (" Copy %d"):format(index)
-    local candidate = joinFolder(folder, leaf .. suffix)
-    if not findPresetCollision(candidate) then return candidate end
-  end
-  return nil
+  return names.uniquePresetCopyName(sourceName, state.library.presets)
 end
 
 function findExistingFolderName(name, excludeName)
-  local lowered = name:lower()
-  for existing in pairs(state.library.folders) do
-    if existing:lower() == lowered and existing ~= excludeName then return existing end
-  end
-  return nil
+  return names.findExistingFolderName(name, excludeName, state.library.folders)
 end
 
 function folderNameExists(name)
-  return findExistingFolderName(name) ~= nil
+  return names.folderNameExists(name, state.library.folders)
 end
 
 function uniqueFolderCopyName(sourceName)
-  local folder = parentFolder(sourceName)
-  local leaf = baseName(sourceName)
-  for index = 1, 999 do
-    local suffix = index == 1 and " Copy" or (" Copy %d"):format(index)
-    local candidate = joinFolder(folder, leaf .. suffix)
-    if not folderNameExists(candidate) then return candidate end
-  end
-  return nil
+  return names.uniqueFolderCopyName(sourceName, state.library.folders)
 end
 
 function savePreset(confirmOverwrite)

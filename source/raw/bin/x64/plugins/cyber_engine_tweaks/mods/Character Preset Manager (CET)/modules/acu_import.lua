@@ -2,11 +2,10 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local codecs = require("modules/domain/codecs")
 
 local function decodeImportField(value)
-  return (tostring(value or ""):gsub("%%(%x%x)", function(hexadecimal)
-    return string.char(tonumber(hexadecimal, 16))
-  end))
+  return codecs.catalogDecode(value)
 end
 
 local function readImportResults()

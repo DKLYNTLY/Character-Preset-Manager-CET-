@@ -2,11 +2,11 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local codecs = require("modules/domain/codecs")
+local paths = require("modules/domain/paths")
 
 local function decodeNativeField(value)
-  return (tostring(value or ""):gsub("%%(%x%x)", function(hex)
-    return string.char(tonumber(hex, 16))
-  end))
+  return codecs.catalogDecode(value)
 end
 
 local function fields(line)
@@ -18,21 +18,11 @@ local function fields(line)
 end
 
 local function supportedFile(path)
-  local lowered = path:lower()
-  return lowered:sub(-7) == ".preset"
-    or lowered:sub(-10) == ".cpmfolder"
-    or lowered:sub(-10) == ".cpmbackup"
+  return paths.supportedFile(path)
 end
 
 local function validNativeRelativePath(value)
-  if not validRelativePath(value) then return false end
-  local depth = 0
-  for part in value:gmatch("[^/]+") do
-    depth = depth + 1
-    if depth > MAX_TREE_DEPTH or #part > 255 or part:find("[<>:\"\\|%?%*%c]")
-        or part:match("[%. ]$") then return false end
-  end
-  return depth > 0
+  return paths.validNativeRelativePath(value, MAX_TREE_DEPTH)
 end
 
 local function addChild(children, parent, name, entryType)

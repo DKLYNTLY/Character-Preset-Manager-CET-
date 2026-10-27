@@ -2,13 +2,10 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local paths = require("modules/domain/paths")
 
 function remapFolderTreePath(path, source, destination)
-  if path == source then return destination end
-  if path:sub(1, #source + 1) == source .. "/" then
-    return destination .. path:sub(#source + 1)
-  end
-  return path
+  return paths.remapFolderTreePath(path, source, destination)
 end
 
 local function restoreLibraryFolderChanges(changes)

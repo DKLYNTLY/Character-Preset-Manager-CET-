@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local identities = require("modules/domain/identities")
 
 function optionKey(option)
   if not option or not option.info then return nil end
@@ -24,11 +25,7 @@ function optionSlot(option)
 end
 
 function isRuntimePointerText(value)
-  value = tostring(value or "")
-  return value:match("^userdata: 0x%x+$") ~= nil
-    or value:match("^table: 0x%x+$") ~= nil
-    or value:match("^function: 0x%x+$") ~= nil
-    or value:match("^thread: 0x%x+$") ~= nil
+  return identities.isRuntimePointerText(value)
 end
 
 function stableRuntimeValue(value)
@@ -52,11 +49,7 @@ function stableRuntimeValue(value)
 end
 
 function stableChoiceIdentity(choice)
-  local field, value = tostring(choice or ""):match("^([%a]+):(.*)$")
-  if value == "" or (field ~= "definitions" and field ~= "options"
-      and field ~= "morphNames") then return nil end
-  if isRuntimePointerText(value) then return nil end
-  return field .. ":" .. value
+  return identities.stableChoiceIdentity(choice)
 end
 
 function choiceCollectionValue(info, field, index, member)
@@ -240,15 +233,11 @@ function optionAuditIdentity(option, key, occurrence)
 end
 
 function optionIndexValidationError(index)
-  if type(index) ~= "number" then return "not numeric" end
-  if index ~= math.floor(index) then return "not an integer" end
-  if index < 0 then return "below zero" end
-  if index > MAX_OPTION_INDEX then return "above the native Uint32 maximum" end
-  return nil
+  return identities.optionIndexValidationError(index)
 end
 
 function optionIndexIsValid(index)
-  return optionIndexValidationError(index) == nil
+  return identities.optionIndexIsValid(index)
 end
 
 assert(optionIndexIsValid(0)
@@ -260,9 +249,7 @@ assert(optionIndexIsValid(0)
   MOD_NAME .. " option-index validation contract failed")
 
 function occurrenceKeyParts(value)
-  local raw = tostring(value or "")
-  local key, occurrence = raw:match("^(.-)\31(%d+)$")
-  return key or raw, tonumber(occurrence) or 1
+  return identities.occurrenceKeyParts(value)
 end
 
 function refreshCustomizationUi()

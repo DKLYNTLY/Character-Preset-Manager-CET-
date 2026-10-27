@@ -2,9 +2,10 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local paths = require("modules/domain/paths")
 
 local function historyPath(index)
-  return HISTORY_FILE_PREFIX .. tostring(index) .. ".preset"
+  return paths.historyPath(index, HISTORY_FILE_PREFIX)
 end
 
 local function snapshotFromOptions(options, action)

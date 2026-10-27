@@ -2,6 +2,8 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local codecs = require("modules/domain/codecs")
+local paths = require("modules/domain/paths")
 
 function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
     recoveryManualFolders)
@@ -291,44 +293,31 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
 end
 
 function parentFolder(name)
-  return name:match("^(.*)/[^/]+$") or ""
+  return paths.parentFolder(name)
 end
 
 function folderDepth(name)
-  local depth = 0
-  for _ in tostring(name or ""):gmatch("/") do depth = depth + 1 end
-  return depth
+  return paths.folderDepth(name)
 end
 
 function folderAncestorsExpanded(name, expandedFolders)
-  local current = parentFolder(tostring(name or ""))
-  while current ~= "" do
-    if not (expandedFolders or {})[current] then return false end
-    current = parentFolder(current)
-  end
-  return true
+  return paths.folderAncestorsExpanded(name, expandedFolders)
 end
 
 function presetPath(name)
-  local preset = state.library.presets[name]
-  local storage = preset and preset.storage or name
-  return PRESET_DIR .. "/" .. storage .. ".preset"
+  return paths.presetPath(name, state.library.presets, PRESET_DIR)
 end
 
 function folderPath(name)
-  return name == "" and PRESET_DIR or (PRESET_DIR .. "/" .. name)
+  return paths.folderPath(name, PRESET_DIR)
 end
 
 function catalogEncode(value)
-  return (tostring(value or ""):gsub("([^%w%-%._/])", function(character)
-    return ("%%%02X"):format(character:byte())
-  end))
+  return codecs.catalogEncode(value)
 end
 
 function catalogDecode(value)
-  return (tostring(value or ""):gsub("%%(%x%x)", function(hex)
-    return string.char(tonumber(hex, 16))
-  end))
+  return codecs.catalogDecode(value)
 end
 
 helpers.readCatalog = function()
