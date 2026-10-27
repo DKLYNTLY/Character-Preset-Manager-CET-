@@ -1,41 +1,44 @@
-# Part B test build: remove load cancellation
+# Part C test build: release timed-out loads
 
-I removed the load-cancel controls from CET and the character-screen panel, plus the Lua handler, mailbox action, and current Help and README instructions. Editor close, shutdown, recovery, full reset, and every other bridge action keep their existing behavior.
+I fixed the automatic-load timeout leaving the menu busy and automatic camera focus suppressed. Part B's cancel removal remains in place, and this commit changes only the timeout terminal path.
 
-This change does not repair the automatic-load timeout or the reported visible hair and cyberware leftovers. Those are separate tasks.
+## Timeout behavior
 
-## Bridge compatibility
+The safety threshold is unchanged: `max(60, savedOptionCount * 2 + 10)` seconds. The existing strict `elapsed > maximumSeconds` comparison also stays unchanged. A 59-option load reaches the limit at 128 seconds and times out only after exceeding it.
 
-The request and response format, public method signatures, class identities, and protocol number remain unchanged. Protocol 1 is still used by the updated Lua and redscript pair.
+The timeout branch now performs these steps in order:
 
-The command set loses exactly one action: `cancel_load`. The busy-request filter changes from allowing `list` and `cancel_load` to allowing only `list`, and the guard that gave a queued cancellation priority is removed. All other action names and request arguments are unchanged.
+1. Record `[MEASURE] Load safety-limit` before clearing the original preset name, elapsed time, and counters.
+2. Call the existing `resetLoadState` and finished-load working-data cleanup, then invalidate preflight results.
+3. Clear the active timing marker and explicit camera hold. Pending choices, batch, staged work, and temporary option data are released.
+4. Keep the original safety-limit warning and publish it as an error status.
+5. Use a timeout-specific native adapter to call the existing protected `SetBusy(false, message, true)` method. It also clears the old summary and updates the Lua busy/status cache.
 
-There is no dedicated bridge `CancelLoad` method. The panel's `OnCancelLoad` widget callback and its two private runtime fields are removed, while the public mailbox methods retain their signatures.
+The immediate bridge notification is needed because ordinary bridge synchronization runs earlier in the update. Clearing its cached busy flag without notifying the panel could prevent the next update from releasing the panel.
 
-An older panel can still show its old cancel button. Its cancellation request is unsupported by the new pair; protocol 1 does not negotiate that removed capability. Install the Lua files, `Bridge.reds`, and `Panel.reds` together, then restart the game. The updated panel uses no command that the old Lua pair lacked.
+The private `bridgeCall` stays in `native_bridge.lua`; no game-boundary call moves into a domain module. If the bridge is missing or its call fails, the existing protected adapter handles it while local load and camera state still reset. Reconnection continues to use the existing code.
 
-Unrelated cancellation remains: save confirmation, the location picker, editor confirmation, the native overlay-opening request, and Windows directory-watch I/O. Historical changelog entries and the stage 3 audit still describe the controls present in their original builds.
+Queued CPM work is discarded. The fix does not undo appearance choices already applied or retract a game write already submitted. The visible hair/cyberware report and wardrobe retry gap remain separate stage 8 work.
 
-## Changed tests and validation
+## Compatibility and scope
 
-- `stage3_tests.lua`: removes the `realCancel` alias and cancellation integration case. It adds an assertion that the removed Lua entry point is no longer exported.
-- `stage3_fixtures.lua`: removes only original snapshot 52, which recorded the cancellation result. The other 63 snapshot strings are unchanged.
-- Stage 1 and stage 2 tests and fixtures are unchanged. Retired ignored tests are historical and are not part of these active suites.
-- The timeout fixture deliberately retains the old bug for Part B. The state and update-loop files have not changed.
+Protocol 1, all redscript method signatures and action strings, the safety constants, and preset formats are unchanged from Part B. The redscript files and DLL are unchanged as well. Both menus continue to use the same state locations.
 
-Validation results:
+The old domain `stopAutomaticAtTimeout` footprint remains for compatibility and its original state-constructor tests. The production timeout path no longer calls it; that path now uses the existing full reset. Other terminal paths and matching/write logic are unchanged.
 
-- Stage 1: all 833 fixtures and its additional compatibility checks pass.
+## Validation
+
+- Stage 1: all 833 fixtures and additional compatibility checks pass.
 - Stage 2: all 183 cases, 62 baseline writer comparisons, and seven canonical format-8 byte comparisons pass.
-- Stage 3: all 63 remaining snapshots and the constructor, reference, result, and removed-entry-point checks pass.
+- Stage 3: all 63 snapshots pass. Only the real `update_timeout` snapshot, at file line 60, changes its expected state and bridge notification; the other 62 expected snapshots remain unchanged.
+- Additional checks cover the exact 60-second and 128-second boundaries, crossing each boundary, ready/missing/failing bridges, measurements before cleanup, idle behavior on the next update, and starting another load immediately afterward.
+- The ready-bridge check uses the actual protected native adapter and verifies `SetBusy(false)` reaches a panel stub. A following real bridge update keeps the timeout status and does not reassert busy.
 - Lua 5.1 parsing passes for all 47 Lua files.
-- The installed redscript compiler successfully compiles the four CPM scripts with the installed Codeware scripts against the current game bundle. The compile runs in a temporary copy and leaves the installed scripts and game cache untouched.
-- Source comparison confirms that only `cancel_load` is removed from the Lua action set and panel requests. All public bridge signatures and protocol 1 stay unchanged.
-- Editor, shutdown, full-reset, timeout, and constant definitions are unchanged from the stage 3 source.
+- The installed redscript compiler successfully compiles the four CPM scripts and installed Codeware scripts against the current game bundle in a temporary copy. Installed scripts and game caches are not changed.
 
-The older `.tools/redscript-cli.exe` cannot read the current game cache. The successful check uses copies of the installed `engine/tools/scc.exe` and `scc_lib.dll`, the installed `r6/cache/final.redscripts`, and Codeware's current scripts in an isolated temporary game layout. Its output contains `Compilation complete` and `Output successfully saved`.
+The timeout test now checks `auto=false`, `needsContinue=false`, no pending choice or batch, released temporary data, no camera hold, and an idle bridge cache. It also confirms no further load pass runs after timeout.
 
-Run the Lua suites from the repository root with Lua 5.1, then run the existing Node syntax checker:
+Run the existing suites from the repository root:
 
 ```text
 lua "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/modules/domain/stage1_tests.lua"
@@ -46,32 +49,27 @@ node native/verification/check_code.js
 
 ## Files to install
 
-Replace these files under the existing CET mod directory:
+For an installation already running Part B, replace these files under the CET mod directory:
 
-- `modules/load_engine.lua`
+- `modules/events.lua`
 - `modules/native_bridge.lua`
-- `modules/ui/sections_load.lua`
-- `modules/ui/help_panel.lua`
 - `modules/domain/stage3_tests.lua`
 - `modules/domain/stage3_fixtures.lua`
 
-Also replace:
+The first two files are required at runtime; the test files preserve local validation. The full ZIP includes all three shipped roots and the complete current build, including Part B's matching Lua/redscript pair. Install that ZIP through Vortex or extract into the game folder and allow overwrites, then restart the game. No DLL replacement beyond the unchanged bundled file is required.
 
-- `r6/scripts/CharacterPresetManager/Bridge.reds`
-- `r6/scripts/CharacterPresetManager/Panel.reds`
-
-The first four Lua files and both redscript files are needed for the changed controls. The test files keep local validation aligned with this build. Keep all other stage 3 files, including the unchanged DLL.
-
-The full test ZIP includes the three shipped roots and every tracked file inside them. Its contents come from the committed snapshot. README, CHANGELOG, and this verification guide are repository documentation rather than extra ZIP-root files.
+README, CHANGELOG, this guide, and the stage 3 audit note are repository documentation. They do not add settings or saved fields.
 
 ## In-game checklist
 
-1. **Check both menus.** Cancel Loading must be absent from CET, and Cancel Load must be absent from the character-screen panel. Undo, recovery, saving, loading, and the other controls should still work. The other panel controls keep their existing positions.
-2. **Complete a load.** Use an available preset and look for `[PRESET] Load requested`, its `SUMMARY` with `result=complete` or the existing warning result, and the final loaded-options message. Confirm that busy controls become available and ordinary camera behavior resumes.
-3. **Close mid-load and reopen.** Look for `[MEASURE] Load editor-closed` when an active load is interrupted, followed by the usual editor-open message on return. Start another load and confirm it gets its own request and summary. Idle closes have no dedicated success line.
-4. **Check recovery and switching menus.** Use Undo or recovery, then open and close CET. Expect the normal CET opened/closed messages and consistent controls. There should be no live cancellation status or request.
-5. **Timeout coverage.** The threshold is still `max(60, savedOptionCount * 2 + 10)` seconds: 128 seconds for 59 saved options. A natural timeout requires the load to stay active beyond that threshold. Missing choices normally stop sooner, so they are not a reliable way to force it. The automated update-loop fixture exercises timeout directly without changing the shipped threshold.
+1. **Normal completion:** Start an available preset and let it finish. Look for `[PRESET] Load requested`, its `SUMMARY` with `result=complete` or the existing warning result, and the final status. Verify that busy controls become usable and automatic camera focus works again.
+2. **Close mid-load:** Close the character screen during loading. If the load was active, expect `[MEASURE] Load editor-closed`. Reopen it, confirm the normal editor-open message, and start a new load. There should be no old load activity after the reset.
+3. **Timeout:** A natural load must remain active beyond the unchanged threshold. For 59 options that means more than 128 seconds; missing choices usually stall sooner, so they are not a reliable trigger. The automated suite forces this state through the real update path, but the normal menus have no dedicated timeout test control.
+4. **After timeout:** Look for `[MEASURE] Load safety-limit` with the original preset name and elapsed time, followed by `Loading took longer than the safety limit allows.` The menu should leave its busy state immediately, camera suppression should end, and starting a second load should not require closing the editor.
+5. **Both menus:** Repeat completion and close/reopen checks in CET and the character-screen panel. Switch between them and check that the timeout message, if reached, is consistent. Cancel remains absent.
 
-Part B still has the known timeout stuck-busy bug. If a natural timeout occurs, expect `[MEASURE] Load safety-limit` and the safety-limit warning; the pending state may remain active. Closing and reopening the character screen invokes the existing full reset. The corrected timeout and its in-game verification belong to Part C, so I cannot claim that every terminal path is fixed in this build.
+There is no new cleanup-success log. The existing measurement and warning identify the timeout; usable controls, camera behavior, and the next load establish the in-game outcome.
 
-**UNVERIFIED:** in-game behavior of this Part B build. Compilation and state fixtures do not replace the checklist above. No release or version change is made, and work stops before Part C.
+**UNVERIFIED:** a natural timeout and the rest of this Part C build's in-game checklist still need game testing. Automated and compile checks establish the covered state transitions, not rendered appearance behavior.
+
+No release or version change is made. Stop after Part C; stage 4 needs the user's confirmation.

@@ -66,6 +66,17 @@ bridgeCall = function(method, ...)
   return ok, result
 end
 
+helpers.finishTimedOutNativeLoad = function(message)
+  state.app.nativeLoadSummary = nil
+  state.app.nativePanelStatus = message
+  state.app.nativePanelStatusError = true
+  state.app.nativePanelShowDetails = true
+  bridgeCall("SetBusy", false, message, true)
+  state.app.nativeBusy = false
+  state.app.nativeStatus = message
+  state.app.nativeStatusError = true
+end
+
 local function findNativeBridge()
   local ok, container = pcall(Game.GetScriptableSystemsContainer)
   if not ok or not container then return nil end

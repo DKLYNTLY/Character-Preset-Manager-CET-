@@ -186,7 +186,13 @@ The current native warning comes from `native/src/Main.cpp:840`, in `Worker`, af
 
 This is expected when the optional source folder is absent. I left the warning, fallback, and directory layout unchanged for a separate native-service review.
 
-### Automatic-load timeout retains active state
+### Automatic-load timeout: fixed in Part C
+
+Part C corrects the runtime timeout path with the existing full reset and working-data cleanup. It also releases the explicit camera hold and immediately publishes an idle/error status through the native bridge adapter. The original safety threshold and warning remain unchanged.
+
+The real-update timeout fixture now requires released continuation, pending work, camera hold, and bridge busy state. The older domain helper remains available for compatibility but has no production timeout caller.
+
+The following paragraphs record the original stage 3 behavior and code locations before this fix.
 
 The old path is `events.onUpdate`, `events.lua:352` in the original inventory: after the safety limit is exceeded, it assigns only `state.load.auto=false`. The current path is `events.onUpdate` calling `stateModel.stopAutomaticAtTimeout`; the domain function also assigns only `auto=false`.
 

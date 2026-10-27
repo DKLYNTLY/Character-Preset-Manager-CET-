@@ -656,6 +656,12 @@ and save a new format-8 preset after changing your setup.
 
 ---
 
+### A load reaches the safety limit
+
+If loading exceeds the safety limit, CPM stops further changes and releases the menu and camera controls. Changes already applied stay visible, so check the appearance and include the Activity Log when reporting the timeout.
+
+---
+
 ### Old cyberware or another old choice stays visible
 
 Wait for the final status before confirming your appearance. The loader reads

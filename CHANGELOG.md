@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Releases menu controls and automatic camera focus when a load times out.
+  The safety limit stays the same, and queued load work is cleared.
+
 - Removes Cancel Loading from CET and Cancel Load from the character-screen menu.
   Other load and recovery controls keep their current behavior.
 

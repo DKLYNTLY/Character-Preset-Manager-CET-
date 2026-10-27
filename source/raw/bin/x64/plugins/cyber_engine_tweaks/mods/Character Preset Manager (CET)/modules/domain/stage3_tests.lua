@@ -13,6 +13,9 @@ require("modules/options")
 require("modules/view_cache")
 require("modules/presets")
 require("modules/load_engine")
+require("modules/native_bridge")
+local realNativeTimeout = runtime.helpers.finishTimedOutNativeLoad
+local realNativeUpdate = runtime.updateNativeBridge
 local realEvents = require("modules/events")
 local realReset = runtime.resetLoadState
 local realRelease = runtime.helpers.releaseFinishedLoadWorkingData
@@ -114,6 +117,14 @@ local function context(load,app,parameters)
   runtime.helpers.updateOverlayRequest=function() end
   runtime.updateAcuImport=function() end
   runtime.updateNativeBridge=function() end
+  runtime.helpers.finishTimedOutNativeLoad=function(message)
+    local previousBridge=app.nativeBridge
+    app.nativeBridge={SetBusy=function(_,busy,status,isError)
+      log[#log+1]={bridge="SetBusy",busy=busy,message=status,error=isError}
+    end}
+    realNativeTimeout(message)
+    app.nativeBridge=previousBridge
+  end
   runtime.helpers.releaseViewCaches=function() end
   runtime.ui={closeDebugPanel=function() end}
   return log
@@ -247,8 +258,78 @@ assert(load.values==parameters.values and load.orderedEntries==parameters.ordere
 stateModel.prepareRecoveryLoad(load,parameters.preset,"Recovery")
 assert(load.overridePreset==parameters.preset)
 local timeout=run({name="update_timeout",dirty=true,resetBefore=true,integration=true})
-assert(timeout.load.auto==false and timeout.load.needsContinue==true)
-assert(timeout.load.pendingChange and timeout.load.batch, "timeout behavior was changed")
+assert(timeout.load.auto==false and timeout.load.needsContinue==false)
+assert(timeout.load.pendingChange==nil and timeout.load.batch==nil and timeout.load.stagePending==nil)
+assert(timeout.load.choiceStage==nil and timeout.load.phase=="apply" and timeout.load.pendingElapsed==0)
+assert(timeout.load.values==nil and timeout.load.scanResult==nil and timeout.load.updateStarted==nil)
+assert(timeout.load.preflight==nil and timeout.load.preflightDirty==true)
+assert(timeout.app.presetCameraHold==false and timeout.app.nativeBusy==false)
+assert(timeout.app.nativeLoadSummary==nil and timeout.app.nativePanelStatusError==true)
+assert(timeout.app.nativeStatus==timeout.app.nativePanelStatus and timeout.app.nativeStatusError==true)
+assert(timeout.log[1].measurement=="safety-limit" and timeout.log[2].error==true)
+assert(timeout.log[3].bridge=="SetBusy" and timeout.log[3].busy==false and timeout.log[3].error==true)
+local function checkTimeoutBoundary(optionCount,elapsed,shouldTimeout,bridgeMode)
+  local parameters=inputs()
+  local load=stateModel.newLoad(parameters.passInterval)
+  local app=stateModel.newApp(parameters.readyStatus)
+  local log=context(load,app,parameters)
+  load.presetName="Fixture";load.valueCount=optionCount;load.elapsed=elapsed
+  load.auto=true;load.needsContinue=true;load.autoTimer=1
+  load.pendingChange={startedAt=0};load.batch={pending=true};load.stagePending={{pending=true}}
+  load.values={Fixture=9};load.scanResult={pending=true}
+  app.ready=true;app.inCustomization=true;app.overlayOpen=true;app.windowOpen=true
+  app.presetCameraHold=true;app.nativeBusy=true;app.nativeLoadSummary="Old load summary"
+  local panel={busy=true,calls=0}
+  if bridgeMode~="missing" then
+    app.nativeBridge={SetBusy=function(_,busy,message,isError)
+      if bridgeMode=="failed" then error("bridge unavailable",0) end
+      panel.busy=busy;panel.message=message;panel.error=isError;panel.calls=panel.calls+1
+    end}
+  end
+  runtime.helpers.finishTimedOutNativeLoad=realNativeTimeout
+  local measured,loadCalls=nil,0
+  runtime.helpers.logLoadMeasurements=function(result)
+    measured={result=result,presetName=load.presetName,valueCount=load.valueCount,elapsed=load.elapsed}
+  end
+  runtime.loadPreset=function() loadCalls=loadCalls+1 end
+  realEvents.onUpdate(0.5)
+  if not shouldTimeout then
+    assert(measured==nil and loadCalls==1 and load.auto and load.needsContinue)
+    assert(panel.busy and panel.calls==0)
+    return
+  end
+  assert(measured.result=="safety-limit" and measured.presetName=="Fixture")
+  assert(measured.valueCount==optionCount and measured.elapsed==elapsed+0.5)
+  assert(loadCalls==0 and load.pendingChange==nil and load.batch==nil and load.stagePending==nil)
+  assert(load.values==nil and load.scanResult==nil and load.updateStarted==nil)
+  assert(load.auto==false and load.needsContinue==false and app.presetCameraHold==false)
+  assert(not (app.presetCameraHold or load.auto or load.needsContinue),"camera guard remains active")
+  assert(app.nativeBusy==false and app.nativeLoadSummary==nil and app.nativePanelStatusError)
+  if bridgeMode=="ready" then
+    assert(panel.busy==false and panel.calls==1 and panel.error==true)
+    assert(panel.message==app.nativePanelStatus)
+    runtime.state.cache={revision=0};runtime.state.trash={}
+    runtime.state.library.selectedFolder=""
+    app.nativeListRevision=0
+    app.nativeListSelection=table.concat({"Fixture","","","true","false"},"\31")
+    realNativeUpdate(0)
+    assert(panel.busy==false and panel.calls==1 and app.nativeBusy==false)
+    assert(app.nativePanelStatusError and app.nativeStatusError)
+  end
+  realEvents.onUpdate(0.5)
+  assert(loadCalls==0,"timed-out work resumed on the next update")
+  stateModel.prepareAutomaticLoad(load)
+  realBegin(parameters.preset,parameters.loadName)
+  assert(load.presetName=="Fixture" and load.pass==1 and load.needsContinue)
+  assert(load.phase=="precleanup" and load.choiceStage=="main")
+  assert(load.pendingChange==nil and load.batch==nil)
+end
+checkTimeoutBoundary(0,59.5,false,"ready")
+checkTimeoutBoundary(0,60,true,"ready")
+checkTimeoutBoundary(59,127.5,false,"ready")
+checkTimeoutBoundary(59,128,true,"ready")
+checkTimeoutBoundary(59,128,true,"missing")
+checkTimeoutBoundary(59,128,true,"failed")
 local warnings={{message="Check the appearance.",details={slot="hair"}}}
 local success=operationResult.success("Saved.",warnings)
 local secondSuccess=operationResult.success("Saved.",warnings)
@@ -270,5 +351,6 @@ assert(select("#",realClearOptions())==0)
 assert(runtime.cancelLoading == nil, "removed load-cancel entry point is still exported")
 print("Stage 3 state fixtures passed: "..#cases)
 print("Independent constructors, retained references, legacy return values, and operation results passed.")
-print("Timeout fixture preserves auto=false with active continuation, pending choice, and batch.")
+print("Timeout regression clears active state, pending work, camera hold, bridge busy state, and temporary data.")
+print("Timeout threshold boundaries, bridge availability, preserved measurements, and immediate restart checks passed.")
 return {cases=cases,run=run,literal=literal}

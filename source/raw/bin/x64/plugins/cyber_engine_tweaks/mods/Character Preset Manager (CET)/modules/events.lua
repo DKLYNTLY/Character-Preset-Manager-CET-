@@ -346,13 +346,16 @@ events.onUpdate = function(delta)
     AUTO_LOAD_LIMITS.minimumSeconds,
     (tonumber(state.load.valueCount) or 0) * AUTO_LOAD_LIMITS.secondsPerOption + 10)
   if state.load.elapsed > maximumSeconds then
-    stateModel.stopAutomaticAtTimeout(state.load)
     helpers.logLoadMeasurements("safety-limit")
-    setStatus("load",
-      "Loading took longer than the safety limit allows. " ..
-      "Please report this and include the Activity Log so I can check what happened.",
-      true
-    )
+    resetLoadState()
+    helpers.releaseFinishedLoadWorkingData()
+    state.invalidatePreflight()
+    state.load.updateStarted = nil
+    state.app.presetCameraHold = false
+    local message = "Loading took longer than the safety limit allows. " ..
+      "Please report this and include the Activity Log so I can check what happened."
+    setStatus("load", message, true)
+    helpers.finishTimedOutNativeLoad(message)
     return
   end
 
