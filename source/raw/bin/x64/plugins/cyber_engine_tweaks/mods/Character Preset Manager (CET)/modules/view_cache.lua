@@ -4,6 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local names = require("modules/domain/names")
 local paths = require("modules/domain/paths")
+local libraryView = require("modules/domain/library_view")
 
 function unresolvedSignature(unresolved)
   local keys = {}
@@ -17,26 +18,19 @@ function baseName(name)
 end
 
 helpers.breadcrumb = function(name)
-  if not name or name == "" then return "All Presets" end
-  return (name:gsub("/", " > "))
+  return libraryView.breadcrumb(name)
 end
 
 function normalizeSearch(query)
-  return tostring(query or ""):lower():gsub("^%s+", ""):gsub("%s+$", "")
+  return libraryView.normalizeSearch(query)
 end
 
 function textMatches(value, query)
-  return query == "" or tostring(value or ""):lower():find(query, 1, true) ~= nil
+  return libraryView.textMatches(value, query)
 end
 
 function validModifiedTimestamp(value)
-  local year, month, day, hour, minute, second = tostring(value or "")
-    :match("^(%d%d%d%d)%-(%d%d)%-(%d%d) (%d%d):(%d%d):(%d%d)$")
-  year, month, day = tonumber(year), tonumber(month), tonumber(day)
-  hour, minute, second = tonumber(hour), tonumber(minute), tonumber(second)
-  return year ~= nil and year >= 2000 and month >= 1 and month <= 12
-    and day >= 1 and day <= 31 and hour >= 0 and hour <= 23
-    and minute >= 0 and minute <= 59 and second >= 0 and second <= 59
+  return libraryView.validModifiedTimestamp(value)
 end
 
 function invalidateFilteredViewCache()
@@ -90,37 +84,8 @@ helpers.releaseViewCaches = function()
 end
 
 helpers.rebuildViewCache = function()
-  local presetNames = {}
-  local folderNames = {}
-  local presetsByFolder = {}
-  local folderPresetCounts = {}
-  for name in pairs(state.library.presets) do
-    table.insert(presetNames, name)
-    local folder = parentFolder(name)
-    presetsByFolder[folder] = presetsByFolder[folder] or {}
-    table.insert(presetsByFolder[folder], name)
-    local current = folder
-    while current ~= "" do
-      folderPresetCounts[current] = (folderPresetCounts[current] or 0) + 1
-      current = parentFolder(current)
-    end
-  end
-  for name in pairs(state.library.folders) do table.insert(folderNames, name) end
-  local function presetLess(a, b)
-    if state.library.sortMode == "modified" then
-      local aValue = tostring((state.library.presets[a] or {}).modified or "")
-      local bValue = tostring((state.library.presets[b] or {}).modified or "")
-      local aModified = validModifiedTimestamp(aValue) and aValue or ""
-      local bModified = validModifiedTimestamp(bValue) and bValue or ""
-      if aModified ~= bModified then return aModified > bModified end
-    end
-    return baseName(a):lower() < baseName(b):lower()
-  end
-  table.sort(presetNames, presetLess)
-  table.sort(folderNames, function(a, b) return a:lower() < b:lower() end)
-  for _, names in pairs(presetsByFolder) do
-    table.sort(names, presetLess)
-  end
+  local presetNames, folderNames, presetsByFolder, folderPresetCounts = libraryView.buildView(
+    state.library.presets, state.library.folders, state.library.sortMode)
   state.cache.presetNames = presetNames
   state.cache.folderNames = folderNames
   state.cache.presetsByFolder = presetsByFolder
@@ -151,30 +116,10 @@ end
 
 helpers.rebuildFilteredViewCache = function()
   ensureViewCache()
-  local query = normalizeSearch(state.library.searchText)
-  local visibleNames = {}
-  local matchedFolders = {}
-  local folderMatches = {}
-  local matchingByFolder = {}
-  for _, name in ipairs(state.cache.presetNames) do
-    local preset = state.library.presets[name]
-    if textMatches(name, query) or textMatches(preset and preset.tags, query) then
-      table.insert(visibleNames, name)
-      local directFolder = parentFolder(name)
-      matchingByFolder[directFolder] = matchingByFolder[directFolder] or {}
-      table.insert(matchingByFolder[directFolder], name)
-      local current = directFolder
-      while current ~= "" do
-        matchedFolders[current] = true
-        current = parentFolder(current)
-      end
-    end
-  end
-  for _, folder in ipairs(state.cache.folderNames) do
-    if textMatches(folder, query) then folderMatches[folder] = true end
-  end
+  local query, queryActive, visibleNames, matchedFolders, folderMatches, matchingByFolder = libraryView.buildFiltered(
+    state.library.presets, state.cache.presetNames, state.cache.folderNames, state.library.searchText)
   state.cache.searchText = query
-  state.cache.queryActive = query ~= ""
+  state.cache.queryActive = queryActive
   state.cache.filteredPresetNames = visibleNames
   state.cache.matchedFolders = matchedFolders
   state.cache.folderMatches = folderMatches

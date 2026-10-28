@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local libraryView = require("modules/domain/library_view")
 local stateModel = require("modules/domain/state")
 local codecs = require("modules/domain/codecs")
 local nativeQuery = ""
@@ -418,7 +419,7 @@ local function handleNativeRequest(action, payload)
 end
 
 setPresetSortPreference = function(value)
-  local sort = value == "modified" and "modified" or "name"
+  local sort = libraryView.normalizeSort(value)
   state.preferences.presetSort = sort
   state.library.sortMode = sort
   invalidateViewCache()

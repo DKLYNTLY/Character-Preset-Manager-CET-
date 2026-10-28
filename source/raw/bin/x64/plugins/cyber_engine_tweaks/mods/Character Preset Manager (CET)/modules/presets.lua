@@ -5,6 +5,7 @@ local _ENV = runtime
 local storage = require("modules/application/storage")
 local fileAdapter = require("modules/adapters/files")
 local stateModel = require("modules/domain/state")
+local libraryModel = require("modules/domain/library")
 local names = require("modules/domain/names")
 local jsonCodec = require("modules/domain/json")
 local presetCodec = require("modules/domain/preset_codec")
@@ -64,9 +65,7 @@ function readPresetFile(path, metadataOnly)
 end
 
 state.presetEntryCount = function(preset)
-  if not preset then return 0 end
-  if preset.entries then return #preset.entries end
-  return tonumber(preset.entryCount) or 0
+  return libraryModel.presetEntryCount(preset)
 end
 
 state.hydratePreset = function(preset, path)
@@ -74,22 +73,14 @@ state.hydratePreset = function(preset, path)
   if preset.entries then return preset end
   local loaded = readPresetFile(path)
   if not loaded then return nil end
-  local storage = preset.storage
-  for key in pairs(preset) do preset[key] = nil end
-  for key, value in pairs(loaded) do preset[key] = value end
-  preset.storage = storage
+  libraryModel.mergeHydrated(preset, loaded)
   preset.fingerprint = fileFingerprint(path, MAX_PRESET_BYTES)
   preset.lazy = false
   return preset
 end
 
 state.dehydratePreset = function(preset)
-  if not preset or not preset.entries then return false end
-  preset.entryCount = #preset.entries
-  preset.entryCountKnown = true
-  preset.entries = nil
-  preset.lazy = true
-  return true
+  return libraryModel.dehydratePreset(preset)
 end
 
 state.updatePresetLibraryFolder = function(preset, logicalName)
@@ -100,34 +91,19 @@ state.updatePresetLibraryFolder = function(preset, logicalName)
     preset = state.hydratePreset(preset, PRESET_DIR .. "/" .. storage .. ".preset")
     if not preset then return false, nil end
   end
-  if not preset.managedByCpm
-      or (tonumber(preset.format) or 4) < CURRENT_PRESET_FORMAT then
-    return true, nil
-  end
-  local desiredFolder = parentFolder(logicalName)
-  local desiredName = baseName(logicalName)
-  if preset.libraryFolder == desiredFolder
-      and preset.presetName == desiredName then return true, nil end
-  local change = {
-    preset = preset,
-    presetName = preset.presetName,
-    libraryFolder = preset.libraryFolder,
-    storage = preset.storage,
-  }
-  preset.presetName = desiredName
-  preset.libraryFolder = desiredFolder
+  local change = libraryModel.headerChange(preset, logicalName, CURRENT_PRESET_FORMAT)
+  if not change then return true, nil end
+  libraryModel.applyHeader(preset, logicalName)
   if writePresetPath(PRESET_DIR .. "/" .. preset.storage .. ".preset", preset) then
     return true, change
   end
-  preset.presetName = change.presetName
-  preset.libraryFolder = change.libraryFolder
+  libraryModel.restoreHeader(change)
   return false, nil
 end
 
 state.restorePresetLibraryFolder = function(change)
   if not change or not change.preset or not change.storage then return true end
-  change.preset.presetName = change.presetName
-  change.preset.libraryFolder = change.libraryFolder
+  libraryModel.restoreHeader(change)
   return writePresetPath(PRESET_DIR .. "/" .. change.storage .. ".preset", change.preset)
 end
 
@@ -143,14 +119,7 @@ function hydrateNamedPresetMetadata(name)
   if preset.entries or preset.metadataLoaded == true then return preset end
   local loaded = readPresetFile(presetPath(name), true)
   if not loaded then return nil end
-  for _, key in ipairs({
-    "format", "source", "created", "modified", "notes", "tags", "favorite",
-    "managedByCpm", "presetName", "libraryFolder", "entryCount",
-    "entryCountKnown", "metadataLoaded",
-  }) do
-    preset[key] = loaded[key]
-  end
-  preset.lazy = true
+  libraryModel.mergeMetadata(preset, loaded)
   return preset
 end
 
@@ -403,21 +372,10 @@ function savePreset(confirmOverwrite)
     setStatus("create", "The mod could not create a safe file name for this preset.", true)
     return
   end
-  local newPreset = {
-    format = CURRENT_PRESET_FORMAT,
-    source = MOD_NAME,
-    created = previousPreset and previousPreset.created or logTimestamp(),
-    modified = logTimestamp(),
-    notes = previousPreset and previousPreset.notes or "",
-    tags = previousPreset and previousPreset.tags or "",
-    favorite = previousPreset and previousPreset.favorite == true,
-    managedByCpm = true,
-    presetName = baseName(name),
-    libraryFolder = parentFolder(name),
-    entries = entries,
-    entryCount = #entries,
-    storage = storage,
-  }
+  local created = previousPreset and previousPreset.created or logTimestamp()
+  local modified = logTimestamp()
+  local newPreset = libraryModel.newSavedPreset(previousPreset, entries, name, storage,
+    created, modified, CURRENT_PRESET_FORMAT, MOD_NAME)
   local storagePath = PRESET_DIR .. "/" .. storage .. ".preset"
   if not writePresetPath(storagePath, newPreset) then
     setStatus("create", "Could not write " .. storagePath .. ".", true)
@@ -513,7 +471,7 @@ function renamePreset()
   local newLeafName, nameError = validatedPresetName(state.library.renameName)
   if not newLeafName then setStatus("rename", nameError, true); return end
   local old = state.library.selected
-  local newName = joinFolder(parentFolder(old), newLeafName)
+  local newName = libraryModel.renameTarget(old, newLeafName)
   if newName == old then setStatus("rename", "The preset already has this name."); return end
   if newName:lower() == old:lower() then
     setStatus("rename", "Preset names cannot differ only by capitalization.", true)
@@ -526,7 +484,7 @@ function renamePreset()
   end
   local preset = state.library.presets[old]
   local oldStorage = preset.storage
-  local newStorage = joinFolder(parentFolder(oldStorage), newLeafName)
+  local newStorage = libraryModel.renameStorageTarget(oldStorage, newLeafName)
   local oldPath = PRESET_DIR .. "/" .. oldStorage .. ".preset"
   local newPath = PRESET_DIR .. "/" .. newStorage .. ".preset"
   local physicalRenameNeeded = newStorage ~= oldStorage
@@ -601,7 +559,7 @@ function movePresetToSelectedFolder()
     setStatus("folder", "Select a preset before moving it.", true); return false
   end
   local old = state.library.selected
-  local newName = joinFolder(state.library.selectedFolder, baseName(old))
+  local newName = libraryModel.moveTarget(old, state.library.selectedFolder)
   if newName == old then
     setStatus("folder", "The preset is already in the selected folder."); return false
   end
@@ -656,7 +614,7 @@ function moveSelectedBulkPresetsToFolder()
   end
   local destinations = {}
   for _, name in ipairs(names) do
-    local destination = joinFolder(target, baseName(name))
+    local destination = libraryModel.moveTarget(name, target)
     local lowered = destination:lower()
     local collision = findPresetCollision(destination, name)
     if destination == name then
@@ -707,26 +665,10 @@ function savePresetMetadata()
     setStatus("rename", "The selected preset could not be read safely.", true)
     return
   end
-  local previousNotes, previousTags = preset.notes, preset.tags
-  local previousModified, previousFormat = preset.modified, preset.format
-  local previousSource = preset.source
-  local previousManagedByCpm, previousPresetName, previousLibraryFolder =
-    preset.managedByCpm, preset.presetName, preset.libraryFolder
-  preset.notes = sanitizeMetadata(state.library.presetNotes, 512)
-  preset.tags = sanitizeMetadata(state.library.presetTags, 128)
-  preset.modified = logTimestamp()
-  preset.created = preset.created or preset.modified
-  preset.source = MOD_NAME
-  preset.format = math.max(CURRENT_PRESET_FORMAT, tonumber(preset.format) or 4)
-  preset.managedByCpm = true
-  preset.presetName = baseName(state.library.selected)
-  preset.libraryFolder = parentFolder(state.library.selected)
+  local previous = libraryModel.beginMetadata(preset, state.library.presetNotes, state.library.presetTags)
+  libraryModel.finishMetadata(preset, state.library.selected, logTimestamp(), MOD_NAME, CURRENT_PRESET_FORMAT)
   if not writePresetPath(presetPath(state.library.selected), preset) then
-    preset.notes, preset.tags = previousNotes, previousTags
-    preset.modified, preset.format = previousModified, previousFormat
-    preset.source = previousSource
-    preset.managedByCpm, preset.presetName, preset.libraryFolder =
-      previousManagedByCpm, previousPresetName, previousLibraryFolder
+    libraryModel.restoreMetadata(preset, previous)
     setStatus("rename", "Preset details could not be saved safely.", true)
     return
   end
@@ -746,20 +688,10 @@ function toggleSelectedPresetFavorite()
     setStatus("load", "Select a preset before changing its favorite status.", true)
     return false
   end
-  local previousFavorite = preset.favorite == true
-  local previousModified = preset.modified
-  local previousManagedByCpm, previousPresetName, previousLibraryFolder =
-    preset.managedByCpm, preset.presetName, preset.libraryFolder
-  preset.favorite = not previousFavorite
-  preset.modified = logTimestamp()
-  preset.managedByCpm = true
-  preset.presetName = baseName(name)
-  preset.libraryFolder = parentFolder(name)
+  local previous = libraryModel.beginFavorite(preset)
+  libraryModel.finishFavorite(preset, name, logTimestamp())
   if not writePresetPath(presetPath(name), preset) then
-    preset.favorite = previousFavorite
-    preset.modified = previousModified
-    preset.managedByCpm, preset.presetName, preset.libraryFolder =
-      previousManagedByCpm, previousPresetName, previousLibraryFolder
+    libraryModel.restoreFavorite(preset, previous)
     setStatus("load", "The favorite setting could not be saved safely.", true)
     return false
   end

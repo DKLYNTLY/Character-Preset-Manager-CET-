@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Separates library and folder decisions from file and menu handling. Saved
+  files, controls, and recovery rules keep their current behavior.
+
 - Fixes the stage 4 startup error that left the preset list empty and menu
   controls unavailable in CET.
 

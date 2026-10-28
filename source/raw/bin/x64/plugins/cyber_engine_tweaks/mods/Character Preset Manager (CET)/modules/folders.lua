@@ -3,6 +3,7 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local paths = require("modules/domain/paths")
+local folderModel = require("modules/domain/folders")
 
 function remapFolderTreePath(path, source, destination)
   return paths.remapFolderTreePath(path, source, destination)
@@ -20,19 +21,11 @@ local function restoreLibraryFolderChanges(changes)
 end
 
 local function syncLibraryFolders(presets)
-  local currentNames = {}
-  for name, preset in pairs(state.library.presets) do currentNames[preset] = name end
+  local currentNames = folderModel.currentNames(state.library.presets)
   local changes = {}
   for name, preset in pairs(presets or {}) do
     local previousName = currentNames[preset]
-    local desiredFolder = parentFolder(name)
-    local folderChanged = previousName
-      and parentFolder(previousName) ~= desiredFolder
-    local savedFolderChanged = preset.libraryFolder ~= nil
-      and preset.libraryFolder ~= desiredFolder
-    local savedNameChanged = preset.presetName ~= nil
-      and preset.presetName ~= baseName(name)
-    if not previousName or folderChanged or savedFolderChanged or savedNameChanged then
+    if folderModel.needsHeaderSync(previousName, preset, name) then
       local updated, change = state.updatePresetLibraryFolder(preset, name)
       if not updated then
         restoreLibraryFolderChanges(changes)
@@ -101,32 +94,11 @@ function renameFolder()
     setStatus("folder", ("A folder named \"%s\" already exists."):format(existing), true); return
   end
 
-  local newPresets, newFolders = {}, {}
-  local newManualFolders = {}
-  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
-  local usedPresetNames = {}
-  for name, preset in pairs(state.library.presets) do
-    local mapped = isInFolderTree(parentFolder(name), old)
-      and remapFolderTreePath(name, old, destination) or name
-    if usedPresetNames[mapped:lower()] then
-      setStatus("folder", "The rename would create duplicate preset names.", true); return
-    end
-    usedPresetNames[mapped:lower()] = true
-    newPresets[mapped] = preset
-  end
-  local usedFolders = {}
-  for folder in pairs(state.library.folders) do
-    local mapped = remapFolderTreePath(folder, old, destination)
-    if usedFolders[mapped:lower()] then
-      setStatus("folder", "The rename would create duplicate folders.", true); return
-    end
-    usedFolders[mapped:lower()] = true
-    newFolders[mapped] = true
-    if mapped == folder and state.library.manualFolders[folder] then
-      newManualFolders[mapped] = true
-    elseif mapped ~= folder and state.library.manualFolders[folder] then
-      newIgnored[folder] = true
-    end
+  local newPresets, newFolders, newManualFolders, newIgnored, collision = folderModel.renameContents(state.library, old, destination)
+  if collision then
+    setStatus("folder", collision == "presets"
+      and "The rename would create duplicate preset names."
+      or "The rename would create duplicate folders.", true); return
   end
   if not persistVirtualState(newPresets, newFolders, newManualFolders, newIgnored) then
     setStatus("folder",
@@ -162,22 +134,13 @@ function duplicateFolder()
   if not destination then
     setStatus("folder", "No unused name could be found for the copied folder.", true); return
   end
-  local newPresets = cloneMap(state.library.presets)
-  local newFolders = cloneMap(state.library.folders)
-  local newManualFolders = cloneMap(state.library.manualFolders)
+  local newPresets, newFolders, newManualFolders = folderModel.copyFolderMaps(state.library)
   local reservedStorage = storageFilenamesInUse()
   if not reservedStorage then
     setStatus("folder", "Storage filenames could not be checked safely.", true); return
   end
   local createdFiles = {}
-  for folder in pairs(state.library.folders) do
-    if isInFolderTree(folder, source) then
-      local mapped = remapFolderTreePath(folder, source, destination)
-      newFolders[mapped] = true
-      newManualFolders[mapped] = nil
-    end
-  end
-  newFolders[destination] = true
+  folderModel.addCopiedFolders(state.library.folders, newFolders, newManualFolders, source, destination)
   for name, preset in pairs(state.library.presets) do
     if isInFolderTree(parentFolder(name), source) then
       preset = hydrateNamedPreset(name)
@@ -252,40 +215,11 @@ function removeVirtualFolder()
     return
   end
   state.library.pendingRemoveFolder = nil
-  local newPresets, newFolders = {}, {}
-  local newManualFolders = {}
-  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
-  local usedPresets, usedFolders = {}, {}
-  for name, preset in pairs(state.library.presets) do
-    local mapped = name
-    if isInFolderTree(parentFolder(name), folder) then
-      mapped = joinFolder(destinationParent, name:sub(#folder + 2))
-    end
-    if usedPresets[mapped:lower()] then
-      setStatus("folder", "This folder cannot be removed because some preset names would be duplicated.", true); return
-    end
-    usedPresets[mapped:lower()] = true
-    newPresets[mapped] = preset
-  end
-  for candidate in pairs(state.library.folders) do
-    if candidate ~= folder then
-      local mapped = candidate
-      if isInFolderTree(candidate, folder) then
-        mapped = joinFolder(destinationParent, candidate:sub(#folder + 2))
-      end
-      if usedFolders[mapped:lower()] then
-        setStatus("folder", "This folder cannot be removed because some folder names would be duplicated.", true); return
-      end
-      usedFolders[mapped:lower()] = true
-      newFolders[mapped] = true
-      if mapped == candidate and state.library.manualFolders[candidate] then
-        newManualFolders[mapped] = true
-      elseif mapped ~= candidate and state.library.manualFolders[candidate] then
-        newIgnored[candidate] = true
-      end
-    elseif state.library.manualFolders[candidate] then
-      newIgnored[candidate] = true
-    end
+  local newPresets, newFolders, newManualFolders, newIgnored, collision = folderModel.removeContents(state.library, folder, destinationParent)
+  if collision then
+    setStatus("folder", collision == "presets"
+      and "This folder cannot be removed because some preset names would be duplicated."
+      or "This folder cannot be removed because some folder names would be duplicated.", true); return
   end
   local relocationPlans = {}
   if wasManualFolder then
@@ -293,26 +227,12 @@ function removeVirtualFolder()
     if not reservedStorage then
       setStatus("folder", "The imported folder could not be inspected safely.", true); return
     end
-    for logicalName, preset in pairs(state.library.presets) do
-      local storageFolder = parentFolder(preset.storage or "")
-      if storageFolder ~= "" and isInFolderTree(storageFolder, folder) then
-        local destinationStorage = uniqueStorageName(baseName(preset.storage), reservedStorage)
-        if not destinationStorage then
-          setStatus("folder",
-            "The mod could not create a safe destination file name for an imported preset.", true); return
-        end
-        table.insert(relocationPlans, {
-          storage = preset.storage,
-          destinationStorage = destinationStorage,
-          name = logicalName,
-          preset = preset,
-        })
-      end
+    relocationPlans = folderModel.relocationPlans(state.library.presets, folder, reservedStorage)
+    if not relocationPlans then
+      setStatus("folder",
+        "The mod could not create a safe destination file name for an imported preset.", true); return
     end
   end
-  table.sort(relocationPlans, function(a, b)
-    return a.storage:lower() < b.storage:lower()
-  end)
   if #relocationPlans > 0
       and not writeTransaction("prepared", "rename", relocationPlans) then
     setStatus("folder",
