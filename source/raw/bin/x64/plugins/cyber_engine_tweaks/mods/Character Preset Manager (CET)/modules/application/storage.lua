@@ -1,17 +1,17 @@
 local TEMPORARY_SUFFIX = ".tmp"
 local BACKUP_SUFFIX = ".bak"
 
-local function diagnostic(message, level)
-  return coroutine.yield({message = message, level = level})
+local function diagnostic(report, message, level)
+  return report({message = message, level = level})
 end
 
-local function atomicReplace(files, path, writeTemporary, description)
+local function atomicReplace(report, files, path, writeTemporary, description)
   local temporary = path .. TEMPORARY_SUFFIX
   local backup = path .. BACKUP_SUFFIX
 
   if not files.exists(path) and files.exists(backup) then
     local recovered, recoverError = files.rename(backup, path)
-    diagnostic(("[FILES] Recovery attempted: backup='%s' target='%s' success=%s error=%s")
+    diagnostic(report, ("[FILES] Recovery attempted: backup='%s' target='%s' success=%s error=%s")
       :format(backup, path, tostring(recovered ~= nil), tostring(recoverError)),
       recovered and "info" or "error")
     if not recovered then return false end
@@ -19,7 +19,7 @@ local function atomicReplace(files, path, writeTemporary, description)
   files.delete(temporary)
   if not writeTemporary(temporary) then
     files.delete(temporary)
-    diagnostic(("[FILES] Could not write temporary %s '%s'."):format(description, temporary), "error")
+    diagnostic(report, ("[FILES] Could not write temporary %s '%s'."):format(description, temporary), "error")
     return false
   end
   if files.rename(temporary, path) then
@@ -38,7 +38,7 @@ local function atomicReplace(files, path, writeTemporary, description)
     if restored then
       files.delete(temporary)
     else
-      diagnostic(("[FILES] Could not restore backup after replacing %s: backup='%s' target='%s' temporary='%s' error=%s")
+      diagnostic(report, ("[FILES] Could not restore backup after replacing %s: backup='%s' target='%s' temporary='%s' error=%s")
         :format(description, backup, path, temporary, tostring(restoreError)), "error")
     end
     return false

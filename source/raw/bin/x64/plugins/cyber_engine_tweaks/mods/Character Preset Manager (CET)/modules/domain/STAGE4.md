@@ -64,14 +64,14 @@ Actual crash timing, file-system durability, permission behavior under CET, and 
 | Destination | Responsibility moved |
 |---|---|
 | `adapters/files.lua` | File existence, bounded reads, protected writer/close checks, fingerprinting, chunked copy, directory access, rename/delete, and the diagnostic checkpoint driver. Inputs explicitly include io, os, directory listing, limits, or file ports. |
-| `application/storage.lua` | The original `.tmp`/`.bak` replacement sequence and unchanged-lines check. It calls explicit file ports and yields diagnostic result tables at the original log positions. |
+| `application/storage.lua` | The original `.tmp`/`.bak` replacement sequence and unchanged-lines check. It calls explicit file ports and reports diagnostic result tables at the original log positions. |
 | `domain/journal_codec.lua` | Original journal-line serialization, the legacy version-1 parser, and rollback path decisions. It performs no I/O and keeps prepared/committed interpretation unchanged. |
-| `application/recovery.lua` | Transaction completion and startup rollback orchestration with explicit file ports, parsed journal, and paths. It yields diagnostics instead of calling a logger. |
+| `application/recovery.lua` | Transaction completion and startup rollback orchestration with explicit file ports, parsed journal, and paths. It reports diagnostics through an explicit adapter callback instead of owning a logger. |
 | `domain/trash_codec.lua` | Trash-line encoding and decoding, original limits and validations, and the 256-byte group-ID limit. No file access or shared runtime. |
 
 All five new production modules return explicit function tables. None requires the shared runtime or reads state, widgets, game objects, or a logger. Only the file adapter owns handles and protected I/O calls. Existing modules remain compatibility adapters; `filesystem.lua` keeps confirmation clearing, load reset, and logging in place, without mixing them into the extracted storage code.
 
-The diagnostic driver runs synchronously. When replacement or recovery reaches an old log position, the application returns that diagnostic checkpoint to the adapter, which logs it before continuing. No worker, deferred mutation, persistent operation field, or format is added. Normal results retain every return slot, including nil values.
+The diagnostic driver runs synchronously without coroutines. When replacement or recovery reaches an old log position, the application passes that diagnostic result to an explicit adapter callback, which logs it before continuing. No worker, deferred mutation, persistent operation field, or format is added. Normal results retain every return slot, including nil values.
 
 The preset, folder, Trash, history, backup, and sharing operation bodies retain their existing rollback blocks. Physical rename/delete calls now forward to the file adapter; they keep the original arguments, results, and error handling. Loader matching/write logic, UI layout, CET event ordering, redscript, native code, constants, formats, and release version are unchanged.
 
@@ -195,3 +195,99 @@ An ordinary successful action should leave no new `.tmp` or `.bak` for the files
 **UNVERIFIED:** real forced-close timing and the complete in-game checklist. The automated tests prove the covered disk-state transitions against the baseline; they do not simulate operating-system buffering, concurrent external writers, or game rendering.
 
 Stage 4 ends here. Stage 5 requires the user's confirmation.
+
+
+## Stage 4 startup regression: fixed separately
+
+### Evidence from the failed session
+
+The installed source matches stage 4 commit `736466b` for all five new production modules. The screenshot's Connecting to the preset library status agrees with initialization stopping before the bridge is marked ready.
+
+The first error is line 1 of the installed `Character Preset Manager (CET).log`:
+
+```text
+[2026-10-27 21:18:25 UTC-04:00] [11652] ...haracter Preset Manager (CET)\modules\adapters\files.lua:179: attempt to index global 'coroutine' (a nil value)
+stack traceback:
+    ...haracter Preset Manager (CET)\modules\adapters\files.lua:179: in function 'atomicReplace'
+    ...\mods\Character Preset Manager (CET)\modules\presets.lua:181: in function 'writeConfig'
+    ...s\mods\Character Preset Manager (CET)\modules\events.lua:76: in function <...s\mods\Character Preset Manager (CET)\modules\events.lua:57>
+```
+
+A second error at 21:19:14 has the same cause when the load section requests ACU import. It is line 6 of that CPM error log. The errors are in the per-mod log, not scripting.log; no separate console transcript was supplied.
+
+Activity.log line 4 is the last ordinary startup message before failure:
+
+```text
+[2026-10-27 21:18:25] [#0004] [INFO] Deleted 1 oldest activity-log archive to keep the newest 10.
+```
+
+The next expected `[CONFIG] Loaded ...` line never appears. Neither the normal startup preset count nor bridge-ready message follows. This is a runtime error during writeConfig, not an empty scan or a failed require. The later native catalog comparison reports 28 files and four folders at 21:19:02, so it does not establish that startup scanning ran.
+
+scripting.log line 2519 reports `Mod Character Preset Manager (CET) loaded!` at 21:18:13 with the complete mod path, including spaces. The current redscript log reports `Compilation complete` at line 22 and successful output at line 23. The inspected CET engine log has no CPM-specific error establishing another startup cause.
+
+### Require paths
+
+| Required name | Existing call sites | Verification |
+|---|---|---|
+| `modules/adapters/files` | filesystem.lua:8, presets.lua:6, trash.lua:9 | Installed file exists and matches the stage 4 source. |
+| `modules/application/storage` | filesystem.lua:9, presets.lua:5 | Installed file exists and matches the stage 4 source. |
+| `modules/application/recovery` | trash.lua:8 | Installed file exists and matches the stage 4 source. |
+| `modules/domain/journal_codec` | trash.lua:7, application/recovery.lua:1 | Installed file exists and matches the stage 4 source. |
+| `modules/domain/trash_codec` | trash.lua:6 | Installed file exists and matches the stage 4 source. |
+
+These use the same `modules/...` slash-separated names as the existing domain and UI modules. init.lua requires filesystem, presets, and trash before registering events. Reaching onInit/writeConfig therefore proves that those requires, including the five new modules, completed in the installed CET session. The subfolders and spaces are not the failing path. A separate standard Lua search-path smoke test also loads all five files from the actual source folder name with spaces; that test does not replace the CET log evidence or inspect CET's internal module resolver implementation.
+
+### Boundary comparison against f776ec1
+
+The comparison stripped only the function signature and substituted the explicit input names and named hash constants back to their original names/values. All four bodies then matched the baseline byte for byte. No condition, protected call, close, order, or return check changed.
+
+| Helper | Baseline filesystem.lua | Current forward | Extracted adapter | Preserved behavior |
+|---|---:|---:|---:|---|
+| fileExists | 9 | filesystem.lua:21 | adapters/files.lua:6 | `io.open(path, "rb")`; absent handle returns false; unprotected `file:close()`; successful open returns true regardless of the close return value. |
+| fileFingerprint | 20 | filesystem.lua:29 | adapters/files.lua:24 | Protected seek(end), then seek(set,0); same maximum-byte fallback; unprotected early close; protected chunk reads and final close; exact size check; the same two hash values and return strings. |
+| safeDirectoryEntries | 76 | filesystem.lua:59 | adapters/files.lua:54 | Same depth check; `pcall(dir, path)` has one argument; table entries require string name and file/directory type; same invalid-name checks, retained entry tables, and lowercase sorting. |
+| readBoundedFile | 386 | filesystem.lua:283 | adapters/files.lua:107 | Same rb open, protected seeks, unprotected size-error close, protected read(*a) and final close, plus the same missing/size/read error strings. |
+
+Nil and false remain distinct exactly where the baseline distinguished them. For example, final protected close checks reject nil but accept a returned false; rewind also tests nil specifically. The extraction does not strengthen those checks. fileFingerprint checks bytes read against the measured size; readBoundedFile retains its original different checks.
+
+Other adapter boundaries retain their original contracts:
+
+- writeFileSafely opens `(path, mode)`, protects the writer, then protects close. The writer must return exactly true; flush remains the writer's responsibility.
+- copyFile opens source rb and destination wb, seeks end then set/0, reads the unchanged chunk size, flushes, and closes input before output. Its diagnostic returns to the compatibility adapter after those actions.
+- Rename forwards `(source, destination)` to os.rename and retains every returned value. Delete forwards `(path)` to os.remove without converting nil, false, or error strings.
+- Directory listing receives the same path string; it does not receive the recursion depth as an extra argument. Recursive paths keep the original forward slashes, with no new normalization or separator conversion.
+
+The new behavior that differed from baseline was `adapters/files.lua:179` in commit `736466b`: its driver called `coroutine.create`. Storage and recovery used `coroutine.yield` for diagnostic checkpoints. Baseline atomicReplace called the writer and logging directly in the current call stack. The installed CET module environment did not expose coroutine, so stage 4 stopped before any Config.txt replacement was attempted.
+
+### Small fix and missed test coverage
+
+I replaced the coroutine driver with a direct call carrying an explicit diagnostic-result callback. The application modules pass their diagnostic tables to that callback at the same positions as before. The adapter still owns logging, and existing atomicReplace/recoverTransaction forwarder signatures stay unchanged. No file primitive, rollback, phase, journal codec, directory filter, loader, UI, redscript, or native code changes in this fix.
+
+The original fake file system did not cause this error; the unrestricted test interpreter supplied the coroutine library that the installed CET module environment lacked. Deterministic map traversal only stabilizes workflow traces and cannot test available CET globals, the real sandbox, directory enumeration, or OS buffering. It did not establish those boundaries as verified.
+
+The regression now removes the coroutine global before loading and running the entire stage 4 suite, then restores it afterward. That test rejects the original stage 4 implementation with the same nil-coroutine error. The fixed implementation passes all 2,981 existing comparisons, including 396 interruption states and exact diagnostic ordering. No golden fixture was regenerated for this fix. Stages 1, 2, and 3 also pass with their original 833, 183, and 63 cases. All 54 Lua files pass the Lua 5.1 syntax check; the unchanged redscript compiles successfully against the same game and Codeware references.
+
+A separate real Windows Lua 5.1 smoke test runs with coroutine unavailable and paths containing spaces. It exercises actual io.open/write/flush/close, seek/end and set/0, bounded read, chunked fingerprint/copy, atomic replacement over an existing file, .tmp/.bak cleanup, and missing-journal recovery. It passes. This uses real OS file handles in a temporary directory, not CET's restricted io implementation.
+
+**UNVERIFIED:** a raw directory-list capture from the installed CET session. The fake uses `{name=string, type="file"|"directory"}`, matching the unchanged baseline's accepted shape. The 28-file/four-folder native comparison shows that the actual listing passed those checks in the failed session, but no raw return table or its extra fields were recorded. The fake should not be described as a verified exact copy of CET's directory results. Corrected in-game startup and controls also need the user's test.
+
+### Install this fix and verify it
+
+For an installed stage 4 build, replace these three runtime files under the CET mod's modules folder:
+
+- `adapters/files.lua`
+- `application/storage.lua`
+- `application/recovery.lua`
+
+The separate fix commit also changes `domain/stage4_tests.lua`, this audit, and the repository CHANGELOG. Tests and this audit are included in the full test ZIP; CHANGELOG is repository documentation. The fixture file, require names, original forwarding modules, presets, Config.txt format, journal format, and release number stay unchanged. Install the full corrected ZIP through Vortex or extract into the game folder with overwrites, then fully restart the game.
+
+| In-game check | Expected observation and evidence |
+|---|---|
+| Open the character screen and CET manager | The preset list contains the existing presets, and the panel leaves Connecting to the preset library. Activity.log has `[CONFIG] Loaded ...`, `Preset files loaded: presets=...`, and the existing `[UI] The character editor opened; the simple preset menu is ready.` message when the bridge is available. |
+| Press Randomize | Appearance changes and controls return to their normal ready state. The panel status reports `The game is randomizing your appearance.` after the existing Lua command succeeds. There is no dedicated randomize-success log; inspect the rendered result and check for `[NATIVE PANEL] Request failed:` errors. |
+| Load an available preset | The existing `[PRESET] Load requested` record, SUMMARY result, and final status appear. Controls and automatic camera focus recover afterward. |
+| Save a disposable preset | `[create] Saved "..." with ... options.` appears; its preset file is readable. Successful catalog/inventory messages follow their existing paths. |
+| Rename that preset | `[rename] Renamed "..." to "...".` and `[PRESET] Display and physical rename completed:` appear. Old physical filename is absent and the renamed preset still loads. |
+| Check both logs | No `attempt to index global 'coroutine'` error appears in the per-mod CPM error log or CET logs. Check for any different first error instead of assuming that absence alone means success. |
+
+There is no new per-module load log. Startup reaching the config, preset count, and bridge-ready stages is the relevant evidence. Stage 5 has not started.

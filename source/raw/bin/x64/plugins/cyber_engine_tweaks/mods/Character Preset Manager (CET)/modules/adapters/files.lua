@@ -171,22 +171,10 @@ local function removeFileList(files, paths)
   return success
 end
 
-local function pack(...)
-  return {n = select("#", ...), ...}
-end
-
 local function run(operation, report, ...)
-  local thread = coroutine.create(operation)
-  local arguments = {n = select("#", ...), ...}
-  while true do
-    local result = pack(coroutine.resume(thread, unpack(arguments, 1, arguments.n)))
-    if not result[1] then error(result[2], 0) end
-    if coroutine.status(thread) == "dead" then
-      return unpack(result, 2, result.n)
-    end
-    report(result[2].message, result[2].level)
-    arguments = {n = 0}
-  end
+  return operation(function(result)
+    return report(result.message, result.level)
+  end, ...)
 end
 
 local function rename(osApi, source, destination)

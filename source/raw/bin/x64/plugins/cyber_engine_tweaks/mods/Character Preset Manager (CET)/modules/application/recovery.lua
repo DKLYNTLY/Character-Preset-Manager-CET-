@@ -1,7 +1,7 @@
 local journalCodec = require("modules/domain/journal_codec")
 
-local function diagnostic(message, level)
-  return coroutine.yield({message = message, level = level})
+local function diagnostic(report, message, level)
+  return report({message = message, level = level})
 end
 
 local function completeTransaction(files, operation, plans, transactionFile)
@@ -9,17 +9,17 @@ local function completeTransaction(files, operation, plans, transactionFile)
   return files.delete(transactionFile) ~= nil or not files.exists(transactionFile)
 end
 
-local function recoverTransaction(files, transaction, transactionError, settings)
+local function recoverTransaction(report, files, transaction, transactionError, settings)
   if not transaction then
     if transactionError ~= "missing" then
-      diagnostic("[RECOVERY] The saved action record is invalid. Preset scanning has stopped.", "error")
+      diagnostic(report, "[RECOVERY] The saved action record is invalid. Preset scanning has stopped.", "error")
       return false, {}, {}, {}, {}
     end
     return true, {}, {}, {}, {}
   end
   if transaction.phase == "committed" then
     local removed = files.delete(settings.transactionFile) ~= nil or not files.exists(settings.transactionFile)
-    diagnostic(removed and "[RECOVERY] Completed transaction journal cleanup."
+    diagnostic(report, removed and "[RECOVERY] Completed transaction journal cleanup."
       or "[RECOVERY] The action finished safely, but its saved record could not be removed. Cleanup will try again at the next startup.",
       removed and "info" or "warn")
     return true, {}, {}, {}, {}
@@ -41,7 +41,7 @@ local function recoverTransaction(files, transaction, transactionError, settings
     end
   end
   if recovered then files.delete(settings.transactionFile) end
-  diagnostic("[RECOVERY] Unfinished " .. transaction.operation .. " transaction " ..
+  diagnostic(report, "[RECOVERY] Unfinished " .. transaction.operation .. " transaction " ..
     (recovered and "was rolled back." or "could not be fully rolled back; it will be retried."),
     recovered and "warn" or "error")
   return recovered, recoveredOriginals, recoveredAssignments,

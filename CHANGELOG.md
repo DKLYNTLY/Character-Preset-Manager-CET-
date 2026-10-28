@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Fixes the stage 4 startup error that left the preset list empty and menu
+  controls unavailable in CET.
+
 - Separates storage and recovery code while keeping existing preset files,
   journal records, and rollback rules unchanged.
 

@@ -1,5 +1,7 @@
 local moduleRoot = "source/raw/bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/"
 package.path = moduleRoot .. "?.lua;" .. package.path
+local originalCoroutine = coroutine
+coroutine = nil
 if not CPM_RECORD_STAGE4 then
   local originalRuntime = package.loaded["modules/runtime"]
   local originalGlobals = {}
@@ -448,10 +450,13 @@ print("Injected failures: " .. failureCount .. "; journaled workflow interruptio
 print("Paired atomic failure cases: " .. #atomicVariants .. "; legacy journal reads leave all bytes unchanged.")
 if not CPM_RECORD_STAGE4 then
   local fileAdapter = require("modules/adapters/files")
-  local result = pack(fileAdapter.run(function()
-    coroutine.yield({message="checkpoint",level="warn"})
+  local result = pack(fileAdapter.run(function(report)
+    report({message="checkpoint",level="warn"})
     return nil, false, nil
   end, function(message, level) assert(message=="checkpoint" and level=="warn") end))
   assert(result.n==3 and result[1]==nil and result[2]==false and result[3]==nil)
   print("Explicit module boundaries and diagnostic checkpoint return values passed.")
 end
+assert(coroutine == nil, "test requires CET-style missing coroutine library")
+coroutine = originalCoroutine
+print("CET-style missing coroutine library regression passed.")
