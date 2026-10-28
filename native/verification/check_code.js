@@ -9,6 +9,8 @@ let count = 0;
 const stage5Modules = [
   "domain/library", "domain/library_view", "domain/folders",
   "domain/catalog_codec", "application/library",
+  "domain/bundle_codec", "domain/backup_codec", "domain/trash",
+  "domain/appearance_history", "application/recovery_items",
 ];
 const stage5Globals = new Set(["require", "pairs", "ipairs", "tonumber", "tostring", "type", "math", "table"]);
 const stage5Members = { math: new Set(["max"]), table: new Set(["insert", "sort", "concat"]) };

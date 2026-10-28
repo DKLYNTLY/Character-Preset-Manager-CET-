@@ -4,6 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local paths = require("modules/domain/paths")
+local appearanceHistory = require("modules/domain/appearance_history")
 
 local function historyPath(index)
   return paths.historyPath(index, HISTORY_FILE_PREFIX)
@@ -27,35 +28,11 @@ local function snapshotFromOptions(options, action)
   end
   if #entries == 0 then return nil end
   local timestamp = logTimestamp()
-  return {
-    format = CURRENT_PRESET_FORMAT,
-    source = MOD_NAME .. " appearance history",
-    created = timestamp,
-    modified = timestamp,
-    notes = sanitizeMetadata(action or "Automatic recovery snapshot", 512),
-    tags = "appearance history",
-    favorite = false,
-    managedByCpm = true,
-    presetName = "Appearance History",
-    libraryFolder = "",
-    entries = entries,
-    entryCount = #entries,
-  }
+  return appearanceHistory.snapshot(entries,action,timestamp,CURRENT_PRESET_FORMAT,MOD_NAME)
 end
 
-local function sameAppearance(first, second)
-  if not first or not second or not first.entries or not second.entries
-      or #first.entries ~= #second.entries then return false end
-  for index, entry in ipairs(first.entries) do
-    local other = second.entries[index]
-    if not other or tostring(entry.key) ~= tostring(other.key)
-        or tonumber(entry.index) ~= tonumber(other.index)
-        or tostring(entry.slot or "") ~= tostring(other.slot or "")
-        or tostring(entry.choice or "") ~= tostring(other.choice or "") then
-      return false
-    end
-  end
-  return true
+local function sameAppearance(first,second)
+  return appearanceHistory.sameAppearance(first,second)
 end
 
 refreshAppearanceHistory = function()
@@ -65,14 +42,7 @@ refreshAppearanceHistory = function()
     local path = historyPath(index)
     local preset = readPresetFile(path)
     if preset then
-      state.history.entries[#state.history.entries + 1] = {
-        index = index,
-        path = path,
-        preset = preset,
-        date = preset.modified or preset.created or "Date unavailable",
-        action = preset.notes or "Automatic recovery snapshot",
-        count = state.presetEntryCount(preset),
-      }
+      state.history.entries[#state.history.entries + 1] = appearanceHistory.entry(index,path,preset,state.presetEntryCount(preset))
     end
   end
   state.load.recoverySnapshotAvailable = #state.history.entries > 0
@@ -82,7 +52,7 @@ end
 
 trimAppearanceHistory = function()
   local limit = APPEARANCE_HISTORY_LIMIT
-  for index = limit + 1, 10 do
+  for _, index in ipairs(appearanceHistory.trimIndices(limit)) do
     local path = historyPath(index)
     if fileExists(path) then deleteFile(path) end
   end
@@ -101,8 +71,9 @@ saveAppearanceHistorySnapshot = function(options, action)
     return true
   end
   local limit = APPEARANCE_HISTORY_LIMIT
-  for index = limit, 2, -1 do
-    local older = readPresetFile(historyPath(index - 1))
+  for _, rotation in ipairs(appearanceHistory.rotation(limit)) do
+    local index = rotation.destination
+    local older = readPresetFile(historyPath(rotation.source))
     if older and not writePresetPath(historyPath(index), older) then
       log("[APPEARANCE HISTORY] Older entries could not be moved safely to make room for the new recovery copy.", "warn")
       return false
@@ -112,7 +83,7 @@ saveAppearanceHistorySnapshot = function(options, action)
     log("[APPEARANCE HISTORY] The new recovery copy could not be saved.", "warn")
     return false
   end
-  for index = limit + 1, 10 do deleteFile(historyPath(index)) end
+  for _, index in ipairs(appearanceHistory.trimIndices(limit)) do deleteFile(historyPath(index)) end
   writePresetPath(LAST_APPEARANCE_FILE, preset)
   refreshAppearanceHistory()
   log(("[APPEARANCE HISTORY] Saved '%s' with %d options.")

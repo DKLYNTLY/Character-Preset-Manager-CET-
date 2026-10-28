@@ -2,6 +2,8 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local recoveryItems = require("modules/application/recovery_items")
+local backupCodec = require("modules/domain/backup_codec")
 local codecs = require("modules/domain/codecs")
 
 local function setBackupStatus(message, isError, kind)
@@ -65,10 +67,8 @@ libraryBackupFiles = function(forceRefresh)
 end
 
 local function uniqueBackupFilename()
-  local stem = "Character Preset Manager Library Backup"
   for index = 1, 999 do
-    local suffix = index == 1 and "" or (" Copy %d"):format(index)
-    local path = PRESET_DIR .. "/" .. stem .. suffix .. LIBRARY_BACKUP_EXTENSION
+    local path = backupCodec.exportCandidate(index,PRESET_DIR,LIBRARY_BACKUP_EXTENSION)
     if not fileExists(path) and not fileExists(path .. ".tmp")
         and not fileExists(path .. ".bak") then return path end
   end
@@ -76,62 +76,26 @@ local function uniqueBackupFilename()
 end
 
 local function verifyBackupContents(path, expectedNames, expectedFolders)
-  local expectedPresetMap, expectedFolderMap = {}, {}
-  for _, name in ipairs(expectedNames) do expectedPresetMap[name:lower()] = true end
-  for _, folder in ipairs(expectedFolders) do expectedFolderMap[folder:lower()] = true end
+  local verifier = backupCodec.newVerifier(expectedNames, expectedFolders)
   local file = io.open(path, "rb")
   if not file then return false, "The finished library backup could not be reopened." end
-  local lineNumber, presetCount, folderCount = 0, 0, 0
-  local sawConfig, seenPresets, seenFolders = false, {}, {}
+local backupVerifyErrors = {
+  invalid_header = "The new backup has an invalid first line.",
+  invalid_config = "The finished library backup has invalid settings data.",
+  unexpected_folder = "The new backup contains an unexpected folder entry.",
+  unexpected_preset = "The new backup contains an unexpected preset entry.",
+}
   local function fail(message)
     pcall(file.close, file)
     return false, message
   end
   for line in file:lines() do
-    line = line:gsub("\r$", "")
-    lineNumber = lineNumber + 1
-    if lineNumber == 1 then
-      if line ~= "CPMBACKUP\t1" then
-        return fail("The new backup has an invalid first line.")
-      end
-    else
-      local configValue = line:match("^CONFIG\t(.*)$")
-      local folderValue = line:match("^F\t([^\t]+)$")
-      local nameValue, contentsStart = line:match("^P\t([^\t]+)\t()")
-      if configValue then
-        if sawConfig or decode(configValue) == nil then
-          return fail("The finished library backup has invalid settings data.")
-        end
-        sawConfig = true
-      elseif folderValue then
-        local folder = catalogDecode(folderValue)
-        local lowered = folder and folder:lower() or ""
-        if not expectedFolderMap[lowered] or seenFolders[lowered] then
-          return fail("The new backup contains an unexpected folder entry.")
-        end
-        seenFolders[lowered] = true
-        folderCount = folderCount + 1
-      elseif nameValue then
-        local name = catalogDecode(nameValue)
-        local lowered = name and name:lower() or ""
-        local contentsLength = #line - contentsStart + 1
-        if not expectedPresetMap[lowered] or seenPresets[lowered]
-            or contentsLength == 0 or contentsLength % 2 ~= 0
-            or contentsLength > MAX_PRESET_BYTES * 2
-            or line:find("[^%x]", contentsStart) then
-          return fail("The new backup contains an unexpected preset entry.")
-        end
-        seenPresets[lowered] = true
-        presetCount = presetCount + 1
-      elseif line ~= "" then
-        return fail(("Line %d in the new backup is invalid.")
-          :format(lineNumber))
-      end
-    end
+    local issue = backupCodec.verifyLine(verifier,line,MAX_PRESET_BYTES)
+    if issue then return fail(backupVerifyErrors[issue] or ("Line %d in the new backup is invalid."):format(verifier.lineNumber)) end
   end
   local closeOk, closeResult = pcall(file.close, file)
-  if not closeOk or closeResult == nil or not sawConfig
-      or presetCount ~= #expectedNames or folderCount ~= #expectedFolders then
+  if not closeOk or closeResult == nil or not verifier.sawConfig
+      or verifier.presetCount ~= #expectedNames or verifier.folderCount ~= #expectedFolders then
     return false, "The new backup is missing part of the library."
   end
   return true
@@ -163,12 +127,12 @@ exportLibraryBackup = function()
         totalBytes = totalBytes + #line + 1
         return totalBytes <= MAX_LIBRARY_BACKUP_BYTES and file:write(line .. "\n") ~= nil
       end
-      if not writeLine("CPMBACKUP\t1") or not writeLine("CONFIG\t" .. encode(config)) then
+      if not writeLine(backupCodec.header()) or not writeLine(backupCodec.configLine(config)) then
         exportError = "This backup would exceed the 256 MB limit."
         return false
       end
       for _, folder in ipairs(folders) do
-        if not validRelativePath(folder) or not writeLine("F\t" .. catalogEncode(folder)) then
+        if not validRelativePath(folder) or not writeLine(backupCodec.folderLine(folder)) then
           exportError = "A folder name is unsafe or the library backup is too large."
           return false
         end
@@ -187,7 +151,7 @@ exportLibraryBackup = function()
           exportError = "This preset could not be read and was not exported: " .. name
           return false
         end
-        local prefix = "P\t" .. catalogEncode(name) .. "\t"
+        local prefix = backupCodec.presetPrefix(name)
         totalBytes = totalBytes + #prefix + sourceBytes * 2 + 1
         if totalBytes > MAX_LIBRARY_BACKUP_BYTES or not file:write(prefix) then
           exportError = "This backup would exceed the 256 MB limit."
@@ -287,36 +251,19 @@ local function readBackup(path)
     file:close()
     return nil, "The selected library backup is unreadable or larger than 256 MB."
   end
-  local backup = { folders = {}, presets = {}, names = {} }
-  local lineNumber = 0
+local backupReadErrors = {
+  invalid_header = "The selected file is not a valid library backup.",
+  duplicate_config = "The library backup contains more than one settings file.",
+  unsafe_folder = "The library backup contains an unsafe folder name.",
+  invalid_preset = "The backup contains an invalid preset or a duplicate entry.",
+}
+  local context = backupCodec.newReader()
+  local backup = context.backup
   for line in file:lines() do
-    line = line:gsub("\r$", "")
-    lineNumber = lineNumber + 1
-    if lineNumber == 1 then
-      if line ~= "CPMBACKUP\t1" then file:close(); return nil, "The selected file is not a valid library backup." end
-    else
-      local configValue = line:match("^CONFIG\t(.*)$")
-      local folderValue = line:match("^F\t([^\t]+)$")
-      local nameValue, contentsValue = line:match("^P\t([^\t]+)\t([%x]+)$")
-      if configValue then
-        if backup.config ~= nil then file:close(); return nil, "The library backup contains more than one settings file." end
-        backup.config = decode(configValue)
-      elseif folderValue then
-        local folder = catalogDecode(folderValue)
-        if not validRelativePath(folder) then file:close(); return nil, "The library backup contains an unsafe folder name." end
-        backup.folders[folder] = true
-      elseif nameValue then
-        local name = catalogDecode(nameValue)
-        local contents = decode(contentsValue)
-        if not validRelativePath(name) or not contents or #contents > MAX_PRESET_BYTES
-            or backup.names[name:lower()] then
-          file:close(); return nil, "The backup contains an invalid preset or a duplicate entry."
-        end
-        backup.names[name:lower()] = true
-        table.insert(backup.presets, { name = name, contents = contents })
-      elseif line ~= "" then
-        file:close(); return nil, ("Line %d in the library backup is invalid."):format(lineNumber)
-      end
+    local issue = backupCodec.readLine(context, line, MAX_PRESET_BYTES)
+    if issue then
+      file:close()
+      return nil, backupReadErrors[issue] or ("Line %d in the library backup is invalid."):format(context.lineNumber)
     end
   end
   local closeOk, closeResult = pcall(file.close, file)
@@ -327,12 +274,7 @@ local function readBackup(path)
 end
 
 local function uniqueImportRoot()
-  local base = "Imported Library"
-  for index = 1, 999 do
-    local root = index == 1 and base or (base .. " Copy " .. index)
-    if not folderNameExists(root) and not findPresetCollision(root) then return root end
-  end
-  return nil
+  return backupCodec.chooseImportRoot(state.library.folders,state.library.presets)
 end
 
 importLibraryBackup = function()
@@ -344,26 +286,13 @@ importLibraryBackup = function()
   end
   local backup, readError = readBackup(path)
   if not backup then setBackupStatus(readError, true); return false end
-  local needsRoot = false
-  for folder in pairs(backup.folders) do
-    if folderNameExists(folder) then needsRoot = true; break end
-  end
-  if not needsRoot then
-    for _, item in ipairs(backup.presets) do
-      if findPresetCollision(item.name) then needsRoot = true; break end
-    end
-  end
+  local needsRoot = backupCodec.needsImportRoot(backup,state.library.folders,state.library.presets)
   local root = needsRoot and uniqueImportRoot() or ""
   if needsRoot and not root then
     setBackupStatus("A safe folder could not be created for backup items with names already in use.", true)
     return false
   end
-  local newPresets = cloneMap(state.library.presets)
-  local newFolders = cloneMap(state.library.folders)
-  local newManualFolders = cloneMap(state.library.manualFolders)
-  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
-  if root ~= "" then addFolderAncestors(newFolders, root) end
-  for folder in pairs(backup.folders) do addFolderAncestors(newFolders, joinFolder(root, folder)) end
+  local newPresets,newFolders,newManualFolders,newIgnored = recoveryItems.importMaps(state.library,root,backup.folders)
   local reservedStorage = storageFilenamesInUse()
   if not reservedStorage then
     setBackupStatus("Existing preset file names could not be checked safely.", true)

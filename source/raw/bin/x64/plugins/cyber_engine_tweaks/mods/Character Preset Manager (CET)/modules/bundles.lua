@@ -4,6 +4,9 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local codecs = require("modules/domain/codecs")
 local paths = require("modules/domain/paths")
+local trashModel = require("modules/domain/trash")
+local recoveryItems = require("modules/application/recovery_items")
+local bundleCodec = require("modules/domain/bundle_codec")
 
 do
 
@@ -69,9 +72,7 @@ end
 local function uniqueTrashedBundleFilename(filename)
   local stem = filename:sub(1, -#FOLDER_BUNDLE_EXTENSION - 1)
   for index = 1, 9999 do
-    local suffix = index == 1 and "" or (" %d"):format(index)
-    local candidate = stem:sub(1, 255 - #FOLDER_BUNDLE_EXTENSION - #suffix) ..
-      suffix .. FOLDER_BUNDLE_EXTENSION
+    local candidate = trashModel.bundleCandidate(filename,index,FOLDER_BUNDLE_EXTENSION,false)
     if not fileExists(TRASH_DIR .. "/" .. candidate) then return candidate end
   end
   return nil
@@ -136,64 +137,21 @@ trashSelectedFolderBundle = function()
 end
 
 local function readImportedBundles()
-  local imported = {}
   local contents, readError = readBoundedFile(IMPORTED_BUNDLES_FILE, MAX_CATALOG_BYTES)
-  if not contents then return imported, readError == "missing" end
-  local lineCount = 0
-  for line in (contents .. "\n"):gmatch("(.-)\n") do
-    if line ~= "" then
-      lineCount = lineCount + 1
-      if lineCount > MAX_CATALOG_LINES then return nil, false end
-      local encodedName, fingerprint, encodedRoot =
-        line:match("^B\t([^\t]+)\t(2:%d+:%d+:%d+)\t([^\t]+)$")
-      if not encodedName then
-        encodedName, fingerprint, encodedRoot =
-          line:match("^B\t([^\t]+)\t(%d+:%d+)\t([^\t]+)$")
-      end
-      if not encodedName then
-        encodedName, fingerprint = line:match("^B\t([^\t]+)\t(2:%d+:%d+:%d+)$")
-      end
-      if not encodedName then
-        encodedName, fingerprint = line:match("^B\t([^\t]+)\t(%d+:%d+)$")
-      end
-      local filename = encodedName and catalogDecode(encodedName) or nil
-      local root = encodedRoot and catalogDecode(encodedRoot) or nil
-      if not isFolderBundleFilename(filename)
-          or (root ~= nil and not validBundlePath(root)) then return nil, false end
-      imported[filename:lower()] = {
-        filename = filename,
-        fingerprint = fingerprint,
-        root = root,
-      }
-    end
-  end
-  return imported, true
+  if not contents then return {}, readError == "missing" end
+  return bundleCodec.decodeRegistry(contents, MAX_CATALOG_LINES)
 end
 
 local function writeImportedBundles(imported)
-  local lines = {}
-  for _, item in pairs(imported or {}) do
-    if not isFolderBundleFilename(item.filename)
-        or type(item.fingerprint) ~= "string"
-        or (not item.fingerprint:match("^%d+:%d+$")
-          and not item.fingerprint:match("^2:%d+:%d+:%d+$")) then return false end
-    local line = "B\t" .. catalogEncode(item.filename) .. "\t" .. item.fingerprint
-    if item.root ~= nil then
-      if not validBundlePath(item.root) then return false end
-      line = line .. "\t" .. catalogEncode(item.root)
-    end
-    table.insert(lines, line)
-  end
-  table.sort(lines, function(a, b) return a:lower() < b:lower() end)
+  local lines = bundleCodec.encodeRegistry(imported)
+  if not lines then return false end
   return writeLinesIfChanged(
     IMPORTED_BUNDLES_FILE, lines, "imported-bundle registry", MAX_CATALOG_BYTES) == true
 end
 
 local function uniqueFolderBundleFilename(label)
-  local stem = "Character Preset Manager Folder - " .. baseName(label)
   for index = 1, 999 do
-    local suffix = index == 1 and "" or (" Copy %d"):format(index)
-    local filename = PRESET_DIR .. "/" .. stem .. suffix .. FOLDER_BUNDLE_EXTENSION
+    local filename = bundleCodec.exportCandidate(label,index,PRESET_DIR,FOLDER_BUNDLE_EXTENSION)
     if not fileExists(filename) and not fileExists(filename .. ".tmp")
         and not fileExists(filename .. ".bak") then return filename end
   end
@@ -204,7 +162,7 @@ local function writePresetBundle(filename, root, folders, names, relativeName)
   local bundleError = nil
   local wrote = atomicReplace(filename, function(temporary)
     return writeFileSafely(temporary, "wb", function(file)
-      local header = "CPMFOLDER\t1\nROOT\t" .. catalogEncode(root) .. "\n"
+      local header = bundleCodec.header(root)
       local totalBytes = #header
       if not file:write(header) then return false end
       for _, relativeFolder in ipairs(folders) do
@@ -212,7 +170,7 @@ local function writePresetBundle(filename, root, folders, names, relativeName)
           bundleError = "This selection contains a folder or preset name that cannot be exported safely."
           return false
         end
-        local line = "F\t" .. catalogEncode(relativeFolder) .. "\n"
+        local line = bundleCodec.folderLine(relativeFolder)
         totalBytes = totalBytes + #line
         if totalBytes > MAX_FOLDER_BUNDLE_BYTES then
           bundleError = "This shared-folder file would exceed the 32 MB limit."
@@ -226,7 +184,7 @@ local function writePresetBundle(filename, root, folders, names, relativeName)
           bundleError = "This preset could not be read and was not exported: " .. name
           return false
         end
-        local prefix = "P\t" .. catalogEncode(exportedName) .. "\t"
+        local prefix = bundleCodec.presetPrefix(exportedName)
         local source = io.open(presetPath(name), "rb")
         if not source then
           bundleError = "This preset could not be read and was not exported: " .. name
@@ -263,11 +221,7 @@ exportSelectedFolderBundle = function()
   if folder == "" or not state.library.folders[folder] then
     setStatus("folder", "Select a folder to export.", true); return
   end
-  local names = {}
-  for name in pairs(state.library.presets) do
-    if isInFolderTree(parentFolder(name), folder) then table.insert(names, name) end
-  end
-  table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  local names = bundleCodec.folderPresetNames(state.library.presets,folder)
   if #names == 0 then
     setStatus("folder", "The selected folder contains no presets to share.", true); return
   end
@@ -275,13 +229,7 @@ exportSelectedFolderBundle = function()
     setStatus("folder",
       ("This folder exceeds the limit of %d presets per shared-folder file."):format(MAX_FOLDER_BUNDLE_PRESETS), true); return
   end
-  local folders = {}
-  for candidate in pairs(state.library.folders) do
-    if candidate ~= folder and isInFolderTree(candidate, folder) then
-      table.insert(folders, candidate:sub(#folder + 2))
-    end
-  end
-  table.sort(folders, function(a, b) return a:lower() < b:lower() end)
+  local folders = bundleCodec.nestedFolders(state.library.folders,folder)
   local filename = uniqueFolderBundleFilename(folder)
   if not filename then
     setStatus("folder", "The mod could not create an unused file name for the shared folder.", true); return
@@ -310,14 +258,7 @@ exportSelectedBulkPresetBundle = function()
     setStatus("bulk", ("This selection exceeds the limit of %d presets per shared-folder file.")
       :format(MAX_FOLDER_BUNDLE_PRESETS), true); return false
   end
-  local folderMap = {}
-  for _, name in ipairs(names) do
-    addFolderAncestors(folderMap, parentFolder(name))
-  end
-  folderMap[""] = nil
-  local folders = {}
-  for folder in pairs(folderMap) do table.insert(folders, folder) end
-  table.sort(folders, function(a, b) return a:lower() < b:lower() end)
+  local folders = bundleCodec.selectionFolders(names)
   local filename = uniqueFolderBundleFilename("Selected Presets")
   if not filename then
     setStatus("bulk", "The mod could not create an unused file name for the selected presets.", true)
@@ -351,61 +292,25 @@ local function inspectFolderBundle(filename)
     file:close()
     return nil, "The shared-folder file is unreadable or larger than the 32 MB limit."
   end
-  local bundle = { folders = {}, folderNames = {}, presets = {}, presetNames = {} }
-  local lineNumber = 0
+  local bundleLineErrors = {
+    invalid_header = "The shared-folder file has an invalid first line.",
+    invalid_root = "The shared folder has an invalid main folder name.",
+    invalid_folder = "The shared folder contains an invalid folder name.",
+    duplicate_folder = "The shared-folder file contains the same folder more than once.",
+    invalid_preset = "The shared-folder file contains an invalid preset.",
+    duplicate_preset = "The shared-folder file contains the same preset more than once.",
+  }
+  local context = bundleCodec.newInspector()
+  local bundle = context.bundle
   for line in file:lines() do
-    line = line:gsub("\r$", "")
-    if line ~= "" then
-      lineNumber = lineNumber + 1
-      if lineNumber == 1 then
-        if line ~= "CPMFOLDER\t1" then
-          return fail("The shared-folder file has an invalid first line.")
-        end
-      else
-        local root = line:match("^ROOT\t([^\t]+)$")
-        local folder = line:match("^F\t([^\t]+)$")
-        local name, encoded = line:match("^P\t([^\t]+)\t([%x]+)$")
-        if root then
-          root = catalogDecode(root)
-          if bundle.root or not validBundlePath(root) or parentFolder(root) ~= "" then
-            return fail("The shared folder has an invalid main folder name.")
-          end
-          bundle.root = root
-        elseif folder then
-          folder = catalogDecode(folder)
-          if not validBundlePath(folder) then
-            return fail("The shared folder contains an invalid folder name.")
-          end
-          if bundle.folderNames[folder:lower()] then
-            return fail("The shared-folder file contains the same folder more than once.")
-          end
-          bundle.folderNames[folder:lower()] = true
-          bundle.folders[folder] = true
-        elseif name then
-          name = catalogDecode(name)
-          if not validBundlePath(name) or #encoded % 2 ~= 0
-              or #encoded > MAX_PRESET_BYTES * 2
-              or #bundle.presets >= MAX_FOLDER_BUNDLE_PRESETS then
-            return fail("The shared-folder file contains an invalid preset.")
-          end
-          if bundle.presetNames[name:lower()] then
-            return fail("The shared-folder file contains the same preset more than once.")
-          end
-          bundle.presetNames[name:lower()] = true
-          table.insert(bundle.presets, { name = name })
-        else
-          return fail(("Line %d in the shared-folder file is invalid."):format(lineNumber))
-        end
-      end
-    end
+    local issue = bundleCodec.inspectLine(context, line, MAX_PRESET_BYTES, MAX_FOLDER_BUNDLE_PRESETS)
+    if issue then return fail(bundleLineErrors[issue] or ("Line %d in the shared-folder file is invalid."):format(context.lineNumber)) end
   end
   local closeOk, closeResult = pcall(file.close, file)
   if not closeOk or closeResult == nil then
     return nil, "The shared-folder file could not be closed safely."
   end
-  if not bundle.root or #bundle.presets == 0 then return nil, "The shared-folder file is empty or incomplete." end
-  bundle.folderNames = nil
-  bundle.presetNames = nil
+  if not bundleCodec.finishInspection(bundle) then return nil, "The shared-folder file is empty or incomplete." end
   return bundle
 end
 
@@ -471,32 +376,14 @@ local function importFolderBundle(filename, fingerprint, importedBundles)
   local root = bundle.root
   if folderNameExists(root) then root = uniqueFolderCopyName(root) end
   if not root then return nil, "The mod could not create an unused name for the imported folder." end
-  local newPresets = cloneMap(state.library.presets)
-  local newFolders = cloneMap(state.library.folders)
-  local newManualFolders = cloneMap(state.library.manualFolders)
-  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
-  addFolderAncestors(newFolders, root)
-  for folder in pairs(bundle.folders) do
-    addFolderAncestors(newFolders, joinFolder(root, folder))
-  end
+  local newPresets,newFolders,newManualFolders,newIgnored = recoveryItems.importMaps(state.library,root,bundle.folders)
   local reservedStorage = storageFilenamesInUse()
   if not reservedStorage then return nil, "The existing preset file names could not be checked safely." end
   local createdFiles = {}
-  for _, item in ipairs(bundle.presets) do
-    local logicalName = joinFolder(root, item.name)
-    if findPresetCollision(logicalName) then
-      return nil, "An imported preset has the same name as an existing preset."
-    end
-    local storage = uniqueStorageName(baseName(logicalName), reservedStorage)
-    if not storage then
-      return nil, "The mod could not create a safe file name for an imported preset."
-    end
-    item.logicalName = logicalName
-    item.storage = storage
-    item.path = PRESET_DIR .. "/" .. storage .. ".preset"
-  end
-  local plansByName = {}
-  for _, item in ipairs(bundle.presets) do plansByName[item.name:lower()] = item end
+  local planError = recoveryItems.planBundleItems(bundle.presets,root,state.library.presets,reservedStorage,PRESET_DIR)
+  if planError == "collision" then return nil, "An imported preset has the same name as an existing preset." end
+  if planError == "storage" then return nil, "The mod could not create a safe file name for an imported preset." end
+  local plansByName = recoveryItems.itemsByName(bundle.presets)
   local file = io.open(filename, "rb")
   if not file then return nil, "The shared-folder file could not be reopened for installation." end
   local importedCount = 0

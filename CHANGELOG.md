@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Separates sharing, backup, Trash, and appearance history decisions from file
+  handling. Existing formats and recovery behavior stay the same.
+
 - Separates library and folder decisions from file and menu handling. Saved
   files, controls, and recovery rules keep their current behavior.
 

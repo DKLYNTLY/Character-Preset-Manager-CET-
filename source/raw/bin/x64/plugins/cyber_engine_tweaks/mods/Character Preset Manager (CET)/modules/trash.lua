@@ -3,6 +3,8 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local paths = require("modules/domain/paths")
+local trashModel = require("modules/domain/trash")
+local recoveryItems = require("modules/application/recovery_items")
 local trashCodec = require("modules/domain/trash_codec")
 local journalCodec = require("modules/domain/journal_codec")
 local recovery = require("modules/application/recovery")
@@ -117,27 +119,8 @@ end
 
 state.ensureTrashViewCache = function()
   if not state.trash.viewDirty then return end
-  local trashNames, groupIds, bundleNames, groupStats = {}, {}, {}, {}
-  for filename, item in pairs(state.trash.items) do
-    table.insert(trashNames, filename)
-    if item.group then
-      local stats = groupStats[item.group] or { presets = 0, folders = 0 }
-      stats.presets = stats.presets + 1
-      groupStats[item.group] = stats
-    end
-  end
-  for groupId, group in pairs(state.trash.groups) do
-    table.insert(groupIds, groupId)
-    local stats = groupStats[groupId] or { presets = 0, folders = 0 }
-    for _ in pairs(group.folders or {}) do stats.folders = stats.folders + 1 end
-    groupStats[groupId] = stats
-  end
-  for filename in pairs(state.trash.bundles) do table.insert(bundleNames, filename) end
-  table.sort(trashNames, function(a, b) return a:lower() < b:lower() end)
-  table.sort(groupIds, function(a, b)
-    return state.trash.groups[a].root:lower() < state.trash.groups[b].root:lower()
-  end)
-  table.sort(bundleNames, function(a, b) return a:lower() < b:lower() end)
+  local trashNames, groupIds, bundleNames, groupStats = trashModel.buildView(
+    state.trash.items,state.trash.groups,state.trash.bundles)
   state.trash.cachedNames = trashNames
   state.trash.cachedGroupIds = groupIds
   state.trash.cachedBundleNames = bundleNames
@@ -148,8 +131,7 @@ end
 local function uniqueTrashFilename(name, reserved)
   local leaf = sanitizeName(baseName(name))
   for index = 1, 9999 do
-    local suffix = index == 1 and "" or (" %d"):format(index)
-    local candidate = leaf:sub(1, 64 - #suffix) .. suffix .. ".preset"
+    local candidate = trashModel.trashCandidate(leaf,index)
     if not state.trash.items[candidate] and not (reserved or {})[candidate]
         and not fileExists(TRASH_DIR .. "/" .. candidate) then
       return candidate
@@ -161,9 +143,7 @@ end
 local function uniqueRestoredBundleFilename(filename)
   local stem = filename:sub(1, -#FOLDER_BUNDLE_EXTENSION - 1)
   for index = 1, 9999 do
-    local suffix = index == 1 and "" or (" Copy %d"):format(index)
-    local candidate = stem:sub(1, 255 - #FOLDER_BUNDLE_EXTENSION - #suffix) ..
-      suffix .. FOLDER_BUNDLE_EXTENSION
+    local candidate = trashModel.bundleCandidate(filename,index,FOLDER_BUNDLE_EXTENSION,true)
     if not fileExists(PRESET_DIR .. "/" .. candidate) then return candidate end
   end
   return nil
@@ -382,21 +362,8 @@ restoreTrashPreset = function(filename)
     inventorySaved and "success" or "warning")
 end
 
-local function allocateRestoreLogicalName(original, reserved)
-  if not reserved[original:lower()] and not findPresetCollision(original) then
-    reserved[original:lower()] = true
-    return original
-  end
-  local folder, leaf = parentFolder(original), baseName(original)
-  for index = 1, 999 do
-    local suffix = index == 1 and " Copy" or (" Copy %d"):format(index)
-    local candidate = joinFolder(folder, leaf:sub(1, 64 - #suffix) .. suffix)
-    if not reserved[candidate:lower()] and not findPresetCollision(candidate) then
-      reserved[candidate:lower()] = true
-      return candidate
-    end
-  end
-  return nil
+local function allocateRestoreLogicalName(original,reserved)
+  return trashModel.allocateRestoreLogicalName(original,reserved,state.library.presets)
 end
 
 restoreTrashGroup = function(groupId)
@@ -404,11 +371,7 @@ restoreTrashGroup = function(groupId)
   if not group then
     setStatus("delete", "The trashed folder group is no longer available.", true); return
   end
-  local filenames = {}
-  for filename, item in pairs(state.trash.items) do
-    if item.group == groupId then table.insert(filenames, filename) end
-  end
-  table.sort(filenames, function(a, b) return a:lower() < b:lower() end)
+  local filenames = trashModel.groupFilenames(state.trash.items,groupId)
   local reservedLogical, reservedStorage = {}, storageFilenamesInUse()
   if not reservedStorage then
     setStatus("delete", "The existing preset file names could not be checked safely.", true); return
@@ -471,23 +434,8 @@ restoreTrashGroup = function(groupId)
     table.insert(moved, plan)
   end
 
-  local newPresets, newFolders = cloneMap(state.library.presets), cloneMap(state.library.folders)
-  local newTrash, newGroups = cloneMap(state.trash.items), cloneMap(state.trash.groups)
-  local newManualFolders = cloneMap(state.library.manualFolders)
-  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
-  for folder in pairs(group.folders or {}) do addFolderAncestors(newFolders, folder) end
-  for folder in pairs(group.manualFolders or {}) do
-    newManualFolders[folder] = true
-    newIgnored[folder] = nil
-  end
-  addFolderAncestors(newFolders, group.root)
-  for _, plan in ipairs(plans) do
-    plan.preset.storage = plan.storage
-    newPresets[plan.name] = plan.preset
-    newTrash[plan.filename] = nil
-    addFolderAncestors(newFolders, parentFolder(plan.name))
-  end
-  newGroups[groupId] = nil
+  local newPresets,newFolders,newTrash,newGroups,newManualFolders,newIgnored = recoveryItems.restoreGroupMaps(
+    state.library,state.trash,group,groupId,plans)
   local catalogsSaved = writeCatalog(newPresets, newFolders, newManualFolders,
       newIgnored) and writeTrashCatalog(newTrash, newGroups)
   local transactionCompleted = #plans == 0 or
@@ -528,12 +476,7 @@ restoreTrashGroup = function(groupId)
 end
 
 emptyTrash = function()
-  local count = 0
-  for _ in pairs(state.trash.items) do count = count + 1 end
-  local groupCount = 0
-  for _ in pairs(state.trash.groups) do groupCount = groupCount + 1 end
-  local bundleCount = 0
-  for _ in pairs(state.trash.bundles) do bundleCount = bundleCount + 1 end
+  local count,groupCount,bundleCount = trashModel.counts(state.trash.items,state.trash.groups,state.trash.bundles)
   if count == 0 and groupCount == 0 and bundleCount == 0 then
     setStatus("delete", "Trash is already empty."); return
   end
@@ -578,16 +521,7 @@ end
 bulkPresetNamesInFolder = function(folder)
   ensureViewCache()
   if state.trash.cachedBulkFolder == folder then return state.trash.cachedBulkFolderNames end
-  local names = {}
-  for _, name in ipairs(state.cache.presetNames) do
-    if isInFolderTree(parentFolder(name), folder) then table.insert(names, name) end
-  end
-  local nestedFolderCount = 0
-  for candidate in pairs(state.library.folders) do
-    if candidate ~= folder and isInFolderTree(candidate, folder) then
-      nestedFolderCount = nestedFolderCount + 1
-    end
-  end
+  local names,nestedFolderCount = trashModel.namesInFolder(state.cache.presetNames,state.library.folders,folder)
   state.trash.cachedBulkFolder = folder
   state.trash.cachedBulkFolderNames = names
   state.trash.cachedBulkNestedFolderCount = nestedFolderCount
@@ -596,11 +530,7 @@ end
 
 selectedBulkPresetNames = function()
   if not state.trash.bulkSelectionDirty then return state.trash.cachedBulkSelectedNames end
-  local names = {}
-  for name in pairs(state.trash.bulkSelected) do
-    if state.library.presets[name] then table.insert(names, name) end
-  end
-  table.sort(names, function(a, b) return a:lower() < b:lower() end)
+  local names = trashModel.selectedNames(state.trash.bulkSelected,state.library.presets)
   state.trash.cachedBulkSelectedNames = names
   state.trash.bulkSelectionDirty = false
   return names
@@ -688,46 +618,8 @@ local function moveBulkPresetsToTrash(names, folder, statusSection)
     table.insert(moved, plan)
   end
 
-  local newPresets = cloneMap(state.library.presets)
-  local newTrash = cloneMap(state.trash.items)
-  local newTrashGroups = cloneMap(state.trash.groups)
-  local newFolders = cloneMap(state.library.folders)
-  local newManualFolders = cloneMap(state.library.manualFolders)
-  local newIgnored = cloneMap(state.library.ignoredPhysicalFolders)
-  local nestedFolderCount = 0
-  local groupId = folder and plans[1].trashFilename or nil
-  if groupId then
-    newTrashGroups[groupId] = { root = folder, folders = {}, manualFolders = {} }
-  end
-  if folder then
-    for candidate in pairs(state.library.folders) do
-      if isInFolderTree(candidate, folder) then
-        newTrashGroups[groupId].folders[candidate] = true
-        if state.library.manualFolders[candidate] then
-          newTrashGroups[groupId].manualFolders[candidate] = true
-        end
-        if candidate ~= folder then nestedFolderCount = nestedFolderCount + 1 end
-      end
-    end
-  end
-  for _, plan in ipairs(plans) do
-    newPresets[plan.name] = nil
-    newTrash[plan.trashFilename] = {
-      original = plan.name, preset = plan.preset, group = groupId,
-    }
-  end
-  if folder then
-    newFolders, newManualFolders = {}, {}
-    for candidate in pairs(state.library.folders) do
-      if not isInFolderTree(candidate, folder) then
-        newFolders[candidate] = true
-        if state.library.manualFolders[candidate] then newManualFolders[candidate] = true end
-      elseif state.library.manualFolders[candidate] then
-        newIgnored[candidate] = true
-      end
-    end
-  end
-
+  local newPresets,newTrash,newTrashGroups,newFolders,newManualFolders,newIgnored,nestedFolderCount = recoveryItems.bulkTrashMaps(
+    state.library,state.trash,plans,folder)
   local catalogsSaved = writeCatalog(newPresets, newFolders, newManualFolders, newIgnored)
     and writeTrashCatalog(newTrash, newTrashGroups)
   local transactionCompleted = catalogsSaved and completeTransaction("trash", plans)
