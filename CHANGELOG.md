@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Separates editor lifecycle decisions from game calls and hooks. Launching,
+  mirror behavior, wardrobe handling, and cleanup keep their current behavior.
+
 - Separates loader transitions from game calls while keeping the current load
   steps, timing limits, status messages, and cleanup behavior.
 

@@ -737,6 +737,11 @@ public func CPMGetNativeBridge() -> ref<NativeBridge> {
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnInitialize() -> Bool {
   wrappedMethod();
+  this.CPMInitializePresetPanel();
+}
+
+@addMethod(characterCreationBodyMorphMenu)
+private func CPMInitializePresetPanel() -> Void {
   let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
   if IsDefined(bridge) {
     this.cpmPresetPanel = PresetPanel.Create(bridge);
@@ -764,11 +769,16 @@ protected cb func OnInitialize() -> Bool {
 
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnUninitialize() -> Bool {
+  this.CPMTeardownPresetPanel();
+  wrappedMethod();
+}
+
+@addMethod(characterCreationBodyMorphMenu)
+private func CPMTeardownPresetPanel() -> Void {
   if IsDefined(this.cpmPresetPanel) {
     this.cpmPresetPanel.Detach();
     this.cpmPresetPanel = null;
   };
-  wrappedMethod();
 }
 
 @addMethod(characterCreationBodyMorphMenu)

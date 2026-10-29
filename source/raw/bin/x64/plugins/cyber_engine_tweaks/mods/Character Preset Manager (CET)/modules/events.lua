@@ -3,6 +3,7 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
+require("modules/adapters/cet_hooks").install(runtime)
 
 events = {}
 
@@ -84,172 +85,7 @@ events.onInit = function()
     log(("[UI] Window position status '%s' found; CET's saved position will be preserved.")
       :format(WINDOW_POSITION_STATUS_FILE), "info")
   end
-  local observeInitOk, observeInitError = pcall(
-    Observe,
-    "characterCreationBodyMorphMenu",
-    "OnInitialize",
-    function(menu)
-      helpers.clearOptionCatalog()
-      temporarilyDisableWardrobe()
-      if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
-        helpers.logLoadMeasurements("editor-opened")
-      end
-      resetLoadState()
-      state.editor.activeBodyMorphMenu = menu
-      state.app.inCustomization = true
-      state.invalidatePreflight()
-      connectNativeBridgeForMenu(menu)
-      clearFallbackNotice()
-      log(state.app.nativeBridge
-        and "[UI] The character editor opened; the simple preset menu is ready."
-        or "[UI] The character editor opened; waiting for the simple menu and file service.",
-        state.app.nativeBridge and "info" or "warn")
-    end
-  )
-  local observeExitOk, observeExitError = pcall(
-    Observe,
-    "characterCreationBodyMorphMenu",
-    "OnUninitialize",
-    function()
-      helpers.clearOptionCatalog()
-      if state.load.presetName and (state.load.needsContinue or state.load.pendingChange) then
-        helpers.logLoadMeasurements("editor-closed")
-      end
-      resetLoadState()
-      state.editor.pendingRandomizeSettings = nil
-      state.editor.activeBodyMorphMenu = nil
-      state.app.inCustomization = false
-      state.invalidatePreflight()
-      clearFallbackNotice()
-      state.editor.openedByLauncher = false
-      restoreTemporarilyDisabledWardrobe()
-    end
-  )
-  if not observeInitOk or not observeExitOk then
-    log(("UI refresh observer registration unavailable: initialize=%s uninitialize=%s")
-      :format(tostring(observeInitError), tostring(observeExitError)), "warn")
-  end
-  if observeInitOk and observeExitOk then
-    log("[HOOK] Character customization UI observers registered.", "info")
-  end
-
-  local cameraHookOk, cameraHookError = pcall(
-    Override,
-    "BaseCharacterCreationController",
-    "RequestCameraChange",
-    function(_, slotName, delayed, wrappedMethod)
-      if state.app.inCustomization and (state.app.presetCameraHold
-          or state.load.auto or state.load.needsContinue) then return end
-      return wrappedMethod(slotName, delayed == true)
-    end
-  )
-  if not cameraHookOk then
-    log("Automatic camera focus could not be paused during preset loading: " ..
-      tostring(cameraHookError), "warn")
-  end
-
-  local newGameEnterOk, newGameEnterError = pcall(
-    Observe,
-    "MenuScenario_CharacterCustomization",
-    "OnEnterScenario",
-    function()
-      state.editor.newGameCharacterCreator = true
-    end
-  )
-  local newGameExitOk, newGameExitError = pcall(
-    Observe,
-    "MenuScenario_CharacterCustomization",
-    "OnLeaveScenario",
-    function()
-      state.editor.newGameCharacterCreator = false
-    end
-  )
-  if not newGameEnterOk or not newGameExitOk then
-    log(("New-game screen tracking unavailable: enter=%s leave=%s")
-      :format(tostring(newGameEnterError), tostring(newGameExitError)), "warn")
-  end
-
-  local menuObserverOk, menuObserverError = pcall(
-    Observe,
-    "gameuiInGameMenuGameController",
-    "RegisterGlobalBlackboards",
-    function(controller)
-      state.editor.inGameMenuController = controller
-      state.editor.controllerCaptureCount = state.editor.controllerCaptureCount + 1
-      log(("[editor diagnostic] in-game menu controller captured via blackboards (%d)")
-        :format(state.editor.controllerCaptureCount), "info")
-    end
-  )
-  local menuInitializeObserverOk, menuInitializeObserverError = pcall(
-    Observe,
-    "gameuiInGameMenuGameController",
-    "OnInitialize",
-    function(controller)
-      state.editor.inGameMenuController = controller
-      state.editor.controllerCaptureCount = state.editor.controllerCaptureCount + 1
-      log(("[editor diagnostic] in-game menu controller captured via initialize (%d)")
-        :format(state.editor.controllerCaptureCount), "info")
-    end
-  )
-
-  local pauseOverrideOk, pauseOverrideError = pcall(
-    Override,
-    "MenuScenario_PauseMenu",
-    "OnEnterScenario",
-    function(scenario, previousScenario, userData, wrappedMethod)
-      log(("[editor diagnostic] pause scenario entered: pending=%s")
-        :format(tostring(state.editor.openPending)), "info")
-      if not state.editor.openPending then
-        return wrappedMethod(previousScenario, userData)
-      end
-      state.editor.pauseRedirectCount = state.editor.pauseRedirectCount + 1
-      state.editor.openPending = false
-      state.editor.openTimer = 0
-      state.editor.openedByLauncher = true
-      setEditorOpenStatus("Preparing the full editor...", false)
-      return scenario:SwitchToScenario("MenuScenario_CharacterCustomizationMirror")
-    end
-  )
-
-  local editorOverrideOk, editorOverrideError = pcall(
-    Override,
-    "MenuScenario_CharacterCustomizationMirror",
-    "OnCCOPuppetReady",
-    function(scenario, wrappedMethod)
-      state.editor.puppetReadyCount = state.editor.puppetReadyCount + 1
-      log(("[editor diagnostic] customization puppet ready (%d)")
-        :format(state.editor.puppetReadyCount), "info")
-      local opened, editorError = pcall(function()
-        local userData = MorphMenuUserData.new()
-        userData.optionsListInitialized = false
-        userData.updatingFinalizedState = true
-        userData.editMode = gameuiCharacterCustomizationEditTag.NewGame
-        scenario.currMenuName = "character_customization"
-        local menus = scenario:GetMenusState()
-        menus:OpenMenu("player_puppet")
-        menus:OpenMenu("character_customization", userData)
-      end)
-      if not opened then
-        setEditorOpenStatus("Full editor setup failed: " ..
-          tostring(editorError), true)
-        state.editor.openedByLauncher = false
-        restoreTemporarilyDisabledWardrobe()
-        return wrappedMethod()
-      end
-      setEditorOpenStatus("Full editor opened.", false, "success")
-    end
-  )
-
-  state.editor.hooksAvailable = (menuObserverOk or menuInitializeObserverOk)
-    and pauseOverrideOk and editorOverrideOk
-  if not state.editor.hooksAvailable then
-    log(("Full-editor hooks unavailable: controller=%s initialize=%s pause=%s editor=%s")
-      :format(tostring(menuObserverError), tostring(menuInitializeObserverError),
-        tostring(pauseOverrideError), tostring(editorOverrideError)), "error")
-    setEditorOpenStatus("This game or CET version does not support the full editor.", true)
-  else
-    log("[HOOK] Full-editor launch and mirror-unlock hooks registered.", "info")
-  end
+  helpers.registerEditorHooks(clearFallbackNotice)
 
   local recovered, recoveredOriginals, recoveredAssignments,
     recoveredFolders, recoveredManualFolders = recoverTransaction()
@@ -276,27 +112,7 @@ events.onInit = function()
 end
 
 events.onShutdown = function()
-  helpers.finishOverlayRequest()
-  helpers.clearOptionCatalog()
-  helpers.auditSection("SESSION END")
-  log(("[SUMMARY] inputs=%d controllerCaptures=%d pauseRedirects=%d editorPuppets=%d")
-    :format(state.editor.inputCount, state.editor.controllerCaptureCount,
-      state.editor.pauseRedirectCount, state.editor.puppetReadyCount), "info")
-  restoreTemporarilyDisabledWardrobe()
-  state.app.ready = false
-  state.app.inCustomization = false
-  state.editor.newGameCharacterCreator = false
-  cancelConfirmations()
-  resetLoadState()
-  state.editor.pendingRandomizeSettings = nil
-  state.editor.activeBodyMorphMenu = nil
-  state.editor.inGameMenuController = nil
-  state.editor.openPending = false
-  state.editor.openTimer = 0
-  state.editor.openedByLauncher = false
-  state.editor.hooksAvailable = false
-  clearFallbackNotice()
-  closeActivityLog()
+  helpers.shutdownEditor(clearFallbackNotice)
 end
 
 events.onUpdate = function(delta)
@@ -310,15 +126,7 @@ events.onUpdate = function(delta)
   if not state.editor.openPending and not state.load.auto then
     return
   end
-  if state.editor.openPending then
-    state.editor.openTimer = state.editor.openTimer + elapsed
-    if state.editor.openTimer >= EDITOR_OPEN_TIMEOUT then
-      state.editor.openPending = false
-      state.editor.openTimer = 0
-      restoreTemporarilyDisabledWardrobe()
-      setEditorOpenStatus("The editor did not open. Return to normal gameplay and retry.", true)
-    end
-  end
+  if state.editor.openPending then helpers.updateEditorWatchdog(elapsed) end
   if not state.load.auto then return end
 
   helpers.updateAutomaticLoad(elapsed, loadInvocationBeforeBridge)
@@ -375,18 +183,7 @@ events.onDraw = function()
 end
 
 events.openEditor = function(keyDown)
-  if not keyDown then return end
-  state.editor.inputCount = state.editor.inputCount + 1
-  log(("[editor diagnostic] input binding pressed (%d)")
-    :format(state.editor.inputCount), "info")
-  local launchOk, launchError = pcall(openFullAppearanceEditor)
-  if not launchOk then
-    state.editor.openPending = false
-    state.editor.openTimer = 0
-    restoreTemporarilyDisabledWardrobe()
-    setEditorOpenStatus("Editor hotkey failed before the menu request: " ..
-      tostring(launchError), true)
-  end
+  return helpers.onEditorInput(keyDown)
 end
 
 return events
