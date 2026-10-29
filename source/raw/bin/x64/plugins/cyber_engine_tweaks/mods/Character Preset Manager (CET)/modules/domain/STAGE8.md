@@ -1,6 +1,6 @@
 # Stage 8 Part A loader extraction
 
-Baseline: `64b9c7414a61a7e72180fda38c4cb575cad6f5a4`. Part B is not authorized yet.
+Baseline: `64b9c7414a61a7e72180fda38c4cb575cad6f5a4`. Part B is skipped at the user's request. No leftover-hair/cyberware fix is included.
 
 ## Before extraction: boundaries and callers
 
@@ -171,6 +171,27 @@ No new option scans, game reads, writes, clock calls or production table constru
 
 The fake clock can cross the group budget and safety boundary without changing thresholds. Allocation instrumentation wraps source table constructors in both the original and extracted modules; expected whole-run and per-update counts live in stage8_fixtures.allocations. Trusted instrumentation and fixture/trace allocations are outside that count. The new reducer makes 398 internal checkpoint calls in the normal scenario; the old loader had no separate reducer call. Those internal counters are excluded from external-trace equality. The public OnUpdate/loadPreset counts remain 22/23 in both builds, and the projection/dispatch cost is not a measured zero.
 
+## Permanent supersede regression coverage
+
+Keep all eight phase/entry-path cases in stage8_tests.lua and their original outputs in stage8_fixtures.lua as permanent regression tests. They are part of the required 46-case comparison, so removing or changing one fails the fixture-name/count or output assertions. Do not regenerate their expected output from the extracted loader. The baseline is stage 7 commit 64b9c7414a61a7e72180fda38c4cb575cad6f5a4, including cancel removal and the timeout fix.
+
+The table records the original behavior. Pending/batch columns describe the sample immediately after starting the second load, which already executes its first synchronous pass; they are not observations taken between reset and that pass. All eight finish with indices Eyes=1, SkinColor=2 and unused Hair=0, busy=false and camera suppression=false. Each emits one terminal SUMMARY for Second, with processed=2, confirmed=2 and every warning/failure count zero. The first operation has no terminal SUMMARY in these cases.
+
+| Entry | Interrupted phase | Phase after new call | Pending | Batch | Second preset passes | Result |
+|---|---|---|---|---|---:|---|
+| cet | precleanup | precleanup | false | false | 24 | complete |
+| cet | apply | apply | false | false | 16 | complete |
+| cet | cleanup | apply | false | false | 16 | complete |
+| cet | settle | precleanup | false | true | 23 | complete |
+| native | precleanup | precleanup | false | false | 24 | complete |
+| native | apply | apply | false | false | 17 | complete |
+| native | cleanup | apply | false | false | 17 | complete |
+| native | settle | precleanup | false | false | 23 | complete |
+
+Full action/log order, per-update phase and pending/batch snapshots, counts and final state graphs remain in the immutable fixtures. Real visual equipment/rendering is not modeled. The CET disabled-button limitation still applies to direct-ingress stress cases.
+
+Baseline logging has no dedicated superseded-load message. No new runtime log line is added. Scripted start/superseded trace markers are test observations, not game logging. The lack of a first-load SUMMARY is preserved as recorded.
+
 ## Exit-release evidence
 
 Busy means both the load flags used by the bridge and its cached nativeBusy value. Camera guard means presetCameraHold; suppression is separately queried through the unchanged RequestCameraChange hook. A cleared Lua record does not cancel a write already accepted by the game. The fake queued writes make this distinction visible.
@@ -219,7 +240,8 @@ The reload scenario reinitializes Lua load/app state and runs the existing callb
 - Resetting logical work does not undo or cancel an accepted Game write. The fake delayed queue remains pending across close/shutdown/reload. Real Codeware completion and rendering behavior are UNVERIFIED.
 - The injected close-inside-observation case can recreate a waiting batch after the close reset, as in the baseline. Whether real Codeware can call the close observer at that exact boundary is UNVERIFIED. It is a callback stress case, not a diagnosis of the reported visual bug.
 - A preexisting camera guard is restored rather than forced false. Normal guards are false/nil on exit; the explicit timeout path still forces false. Shutdown does not separately clear the cached bridge busy flag.
-- Missing preset dependencies can explain the old eyelash/unavailable-choice stops. No matching or mod-installation fix is included. The rapid-load leftover hair/cyberware issue is not diagnosed or fixed in Part A; Part B still requires confirmation and a reproduction log.
+- Missing preset dependencies can explain the old eyelash/unavailable-choice stops. No matching or mod-installation fix is included.
+- Rapid-load leftover hair/cyberware: **could not be reproduced after the cancel removal and timeout fix (UNVERIFIED cause)**. Part B is skipped. Relevant paths remain `application/loading.lua:228` (new request), `application/loading.lua:262` and `domain/state.lua:190` (partial begin), `application/loading.lua:89` (pending settle/unconfirmed), `application/loading.lua:247` (cleanup progression), `adapters/game_options.lua:714` (cleanup eligibility), `adapters/game_options.lua:721` (cleanup writes), and `native_bridge.lua:248` (native reset before a new load). These paths identify where state and cleanup are handled; they do not establish the cause of the former visual issue.
 
 Real error payloads and stack-trace source locations are UNVERIFIED. Moving code changes traceback locations; application message formats and the supplied fake error payloads match the baseline. No new game API or guessed Codeware method was added.
 
@@ -384,4 +406,4 @@ Keep the Stage 7 Activity Log and use the same presets/mod setup. Check Data/Log
 7. Reload CET mods while the editor is open. Expect the existing session-end diagnostics and new startup/config/preset/bridge lines, then confirm a fresh load works. Actual framework teardown and panel re-registration are UNVERIFIED by the fake test. Keep the error and activity logs if the menu fails to reconnect.
 8. If the safety limit happens naturally, expect `[MEASURE] Load safety-limit ...` and `Loading took longer than the safety limit allows. Please report this and include the Activity Log so I can check what happened.` Both busy and automatic camera suppression should release as in the existing fix. Do not change the timeout constants to manufacture this test.
 
-Part A changes no recovery policy for the listed baseline gaps. Stop after this build. Part B will begin only after Part A confirmation and the requested rapid-load reproduction log.
+Part A changes no recovery policy for the listed baseline gaps. Part B is skipped. Stop after Part A; no further loader fix is authorized by this update.
