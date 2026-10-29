@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Separates option matching and comparison from game reads. Existing matching
+  rules, caches, load steps, and warnings keep their current behavior.
+
 - Separates sharing, backup, Trash, and appearance history decisions from file
   handling. Existing formats and recovery behavior stay the same.
 

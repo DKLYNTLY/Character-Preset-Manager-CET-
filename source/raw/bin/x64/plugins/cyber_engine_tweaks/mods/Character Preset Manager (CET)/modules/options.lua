@@ -4,6 +4,7 @@ if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local identities = require("modules/domain/identities")
+local matching = require("modules/domain/matching")
 
 function optionKey(option)
   if not option or not option.info then return nil end
@@ -21,8 +22,7 @@ function optionSlot(option)
     return tostring(value)
   end)
   slot = ok and tostring(slot or "") or ""
-  if slot == "" or #slot > MAX_PRESET_KEY_BYTES or slot:find("%c") then return nil end
-  return slot
+  return matching.validSlot(slot, MAX_PRESET_KEY_BYTES)
 end
 
 function isRuntimePointerText(value)
@@ -65,8 +65,7 @@ function choiceCollectionValue(info, field, index, member)
 end
 
 helpers.optionChoiceKey = function(option, index)
-  if not option or not option.info or type(index) ~= "number"
-      or index ~= math.floor(index) or index < 0 or index > MAX_OPTION_INDEX then return nil end
+  if not option or not option.info or not matching.choiceIndexValid(index, MAX_OPTION_INDEX) then return nil end
   for _, source in ipairs({
     { "definitions", nil },
     { "options", "localizedName" },
@@ -90,7 +89,7 @@ helpers.bindOptionCatalog = function(options)
     local label = optionKey(option)
     if label and option.isEditable and option.isActive then
       local slot = optionSlot(option) or ""
-      local group = tostring(#label) .. ":" .. label .. tostring(#slot) .. ":" .. slot
+      local group = matching.catalogGroup(label, slot)
       occurrences[group] = (occurrences[group] or 0) + 1
       local key = group .. ":" .. tostring(occurrences[group])
       local entry = previous.entries[key] or { label = label, slot = slot, fields = {} }
@@ -120,12 +119,7 @@ helpers.cachedOptionChoices = function(option, field, size)
     if not cached or cached.values[index + 1] ~= values[index + 1] then same = false end
   end
   if not same then
-    for position, value in ipairs(values) do
-      if value then
-        if indexes[value] ~= nil then indexes[value] = false
-        else indexes[value] = position - 1 end
-      end
-    end
+    matching.choiceIndexes(values, indexes)
     cached = { size = size, values = values, indexes = indexes }
     binding.entry.fields[field] = cached
     state.app.optionCatalog.builds = state.app.optionCatalog.builds + 1
@@ -154,9 +148,9 @@ end
 
 function optionChoiceIndex(option, choice)
   choice = stableChoiceIdentity(choice)
-  local field, wanted = tostring(choice or ""):match("^([%a]+):(.*)$")
+  local field, wanted = matching.choiceParts(choice)
   if not option or not option.info or wanted == ""
-      or (field ~= "definitions" and field ~= "options" and field ~= "morphNames") then
+      or not matching.choiceSource(field) then
     return nil
   end
   local member = field == "options" and "localizedName" or nil
@@ -171,13 +165,15 @@ function optionChoiceIndex(option, choice)
     binding.checked[field] = nil
     cached = helpers.cachedOptionChoices(option, field, size)
     index = cached.indexes[wanted]
-    return type(index) == "number" and index or nil
+    return matching.numericChoiceIndex(index)
   end
   local match = nil
   for index = 0, size - 1 do
-    if choiceCollectionValue(option.info, field, index, member) == wanted then
-      if match ~= nil then return nil end
-      match = index
+    local value = choiceCollectionValue(option.info, field, index, member)
+    if value == wanted then
+      local duplicate
+      match, duplicate = matching.matchChoice(match, index, value, wanted)
+      if duplicate then return nil end
     end
   end
   return match
@@ -185,7 +181,7 @@ end
 
 function optionChoiceMatchesIndex(option, choice, index)
   choice = stableChoiceIdentity(choice)
-  local field, wanted = tostring(choice or ""):match("^([%a]+):(.*)$")
+  local field, wanted = matching.choiceParts(choice)
   index = tonumber(index)
   if not option or not option.info or wanted == "" or not index
       or index ~= math.floor(index) or index < 0 or index > MAX_OPTION_INDEX then

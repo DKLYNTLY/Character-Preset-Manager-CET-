@@ -3,6 +3,8 @@ local runtime = assert(require("modules/runtime"),
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
+local matching = require("modules/domain/matching")
+local comparison = require("modules/domain/comparison")
 
 state.logLoadOnce = function(key, message, level)
   key = tostring(key or message)
@@ -109,7 +111,7 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
       occurrences[label] = (occurrences[label] or 0) + 1
       occurrence = occurrences[label]
       result.activeCounts[label] = occurrence
-      key = label .. "\31" .. tostring(occurrence)
+      key = matching.occurrenceKey(label, occurrence)
       if slot then
         activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
         slotOccurrence = activeSlotCounts[slot]
@@ -195,12 +197,8 @@ helpers.loadOptionNeedsLongSettle = function(exposedOption, trackingKey)
     tostring(exposedOption.label or ""),
     tostring(exposedOption.slot or ""),
     helpers.optionDisplayName(exposedOption.option, exposedOption.label),
-  }, " "):lower()
-  return text:find("hair", 1, true) ~= nil or text:find("beard", 1, true) ~= nil
-    or text:find("cyberware", 1, true) ~= nil
-    or text:find("_switcher", 1, true) ~= nil
-    or text:find("heterochromia", 1, true) ~= nil
-    or text:find("makeuplips_type", 1, true) ~= nil
+  }, " ")
+  return matching.longSettleText(text)
 end
 
 helpers.pollPendingOption = function(options)
@@ -309,9 +307,7 @@ helpers.checkPendingChange = function(system, scan)
   local pending = state.load.pendingChange
   if not pending then return "none" end
   local candidate = scan.activeByKey[pending.optionKey]
-  if candidate and (candidate.label ~= pending.label
-      or candidate.occurrence ~= pending.occurrence
-      or candidate.slot ~= pending.slot) then
+  if candidate and not matching.sameOptionIdentity(pending, candidate.label, candidate.occurrence, candidate.slot) then
     candidate = nil
     state.load.targetPollingDisabled = true
     stateModel.resetChoiceCaches(state.load)
@@ -479,7 +475,7 @@ helpers.finalVerifyUnconfirmed = function()
         activeSlotCounts[slot] = slotOccurrences[slot]
         slotOccurrence = slotOccurrences[slot]
       end
-      local key = label .. "\31" .. tostring(occurrences[label])
+      local key = matching.occurrenceKey(label, occurrences[label])
       candidates[key] = {
         option = option,
         position = position,
@@ -511,13 +507,8 @@ helpers.finalVerifyUnconfirmed = function()
     local savedKey = remap and remap.savedKey
     local candidate = candidates[liveKey]
     if savedKey and state.load.unconfirmed[savedKey] and candidate
-        and candidate.label == remap.label
-        and candidate.occurrence == remap.occurrence
-        and candidate.position == remap.position
-        and candidate.slot == remap.slot
-        and candidate.slotOccurrence == remap.slotOccurrence
-        and (not remap.slot
-          or (activeSlotCounts[remap.slot] or 0) == remap.slotCount)
+        and matching.sameRemapIdentity(remap, candidate.label, candidate.occurrence, candidate.position,
+          candidate.slot, candidate.slotOccurrence, activeSlotCounts)
         and (tonumber(candidate.option.currIndex) or 0) == remap.target then
       state.load.unconfirmed[savedKey] = nil
       cleared = cleared + 1
@@ -564,11 +555,8 @@ end
 helpers.isSecondaryLoadOption = function(candidate)
   local text = table.concat({ tostring(candidate.label or ""),
     tostring(candidate.slot or ""),
-    helpers.optionDisplayName(candidate.option, candidate.label) }, " "):lower()
-  for _, word in ipairs({ "color", "colour", "tint", "intensity", "opacity", "_part_", "_size" }) do
-    if text:find(word, 1, true) then return true end
-  end
-  return false
+    helpers.optionDisplayName(candidate.option, candidate.label) }, " ")
+  return matching.secondaryText(text)
 end
 
 helpers.applyLoadGroup = function(system, options, scan)
@@ -579,8 +567,8 @@ helpers.applyLoadGroup = function(system, options, scan)
     local entry = state.load.savedEntryByKey[key]
     if entry and not state.load.satisfied[key] and not state.load.stageApplied[key]
         and helpers.isSecondaryLoadOption(candidate) == (state.load.choiceStage == "secondary")
-        and scan.activeCounts[candidate.label] == state.load.savedCounts[candidate.label]
-        and (not entry.slot or entry.slot == candidate.slot) then
+        and matching.canApplyEntry(entry, candidate.slot,
+          scan.activeCounts[candidate.label], state.load.savedCounts[candidate.label]) then
       local target = state.load.values[key]
       if entry.choice then
         target = helpers.resolveLoadChoice(candidate.option, entry.choice,
@@ -755,15 +743,9 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       local cleanupKey = exposedOption.key
       local current = tonumber(exposedOption.option.currIndex) or 0
       local remap = cleanupKey and state.load.dependencyRemaps[cleanupKey] or nil
-      local keepRemap = remap and state.load.satisfied[remap.savedKey]
-        and exposedOption.label == remap.label
-        and exposedOption.occurrence == remap.occurrence
-        and exposedOption.position == remap.position
-        and exposedOption.slot == remap.slot
-        and exposedOption.slotOccurrence == remap.slotOccurrence
-        and current == remap.target
-        and (not remap.slot
-          or (activeSlotCounts[remap.slot] or 0) == remap.slotCount)
+      local keepRemap = matching.keepRemap(remap, remap and state.load.satisfied[remap.savedKey],
+        exposedOption.label, exposedOption.occurrence, exposedOption.position,
+        exposedOption.slot, exposedOption.slotOccurrence, current, activeSlotCounts)
         and (not remap.choice or optionChoiceMatchesIndex(
           exposedOption.option, remap.choice, remap.target))
       if remap and not keepRemap then
@@ -776,14 +758,9 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
         savedSlotEntry = savedEntryBySlot[exposedOption.slot .. "\31" ..
           tostring(exposedOption.slotOccurrence)]
       end
-      local extraByLabel = occurrence > (savedCounts[label] or 0)
-      local clearSlotReplacement = savedSlotEntry
-        and tonumber(savedSlotEntry.index) == 0
-      if cleanupKey and extraByLabel
-          and (not savedSlotEntry or clearSlotReplacement)
-          and current ~= 0 and not keepRemap
-          and not state.load.cleanupSkipped[cleanupKey]
-          and not state.load.stageApplied[cleanupKey] then
+      if matching.cleanupNeeded(cleanupKey, occurrence, savedCounts[label], savedSlotEntry,
+          current, keepRemap, state.load.cleanupSkipped[cleanupKey],
+          state.load.stageApplied[cleanupKey]) then
         prepared[#prepared + 1] = { candidate = exposedOption, target = 0,
           kind = isPrecleanup and "precleanup" or "cleanup" }
       end
@@ -821,7 +798,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       end
     end
     local countMatches = label
-      and (savedCounts[label] or 0) == (activeCounts[label] or 0)
+      and matching.countsMatch(savedCounts[label], activeCounts[label])
     if wanted ~= nil and countMatches and optionIndexIsValid(wanted)
         and ((tonumber(exposedOption.option.currIndex) or 0) == wanted
           or (state.load.satisfied[key] and state.load.unconfirmed[key])) then
@@ -855,18 +832,19 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
       end
     end
     local countMatches = label
-      and (savedCounts[label] or 0) == (activeCounts[label] or 0)
+      and matching.countsMatch(savedCounts[label], activeCounts[label])
     local indexIsValid = wanted == nil or optionIndexIsValid(wanted)
     if wanted ~= nil then
       seen[key] = true
-      if choiceUnavailable then
+      local unavailableReason = matching.unavailableReason(choiceUnavailable, countMatches, indexIsValid)
+      if unavailableReason == "choice" then
         missing = missing + 1
         unresolved["unavailable-choice:" .. tostring(key)] = true
         state.logLoadOnce("unavailable-choice:" .. tostring(key),
           ("[SKIPPED] Saved choice is no longer exposed for %s choice='%s'")
             :format(state.loadOptionIdentity(option, label, exposedOption.occurrence),
               tostring(savedEntry.choice)), "warn")
-      elseif not countMatches then
+      elseif unavailableReason == "ambiguous" then
         ambiguous = ambiguous + 1
         unresolved["ambiguous:" .. tostring(key)] = true
         state.logLoadOnce("ambiguous:" .. tostring(key),
@@ -876,7 +854,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
               savedCounts[label] or 0,
               activeCounts[label] or 0
             ), "warn")
-      elseif not indexIsValid then
+      elseif unavailableReason == "invalid" then
         invalid = invalid + 1
         unresolved["invalid-index:" .. tostring(key)] = true
         state.logLoadOnce("invalid-index:" .. tostring(key),
@@ -888,13 +866,14 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     if wanted ~= nil and not choiceUnavailable and countMatches and indexIsValid
         and option.isEditable and option.isActive then
       local current = tonumber(option.currIndex) or 0
-      if current == wanted then
+      local disposition = matching.disposition(current, wanted, state.load.satisfied[key], state.load.unconfirmed[key])
+      if disposition == "matching" then
         state.load.satisfied[key] = true
         state.load.unconfirmed[key] = nil
         applied = applied + 1
-      elseif state.load.satisfied[key] and state.load.unconfirmed[key] then
+      elseif disposition == "unconfirmed" then
         applied = applied + 1
-      elseif state.load.satisfied[key] then
+      elseif disposition == "reverted" then
         deferred[key] = true
         missing = missing + 1
         unresolved["reverted:" .. tostring(key)] = true
@@ -953,7 +932,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     local savedKey = entry.key
     if not seen[savedKey]
         and entry.slot and entry.choice
-        and (savedSlotCounts[entry.slot] or 0) == (activeSlotCounts[entry.slot] or 0) then
+        and matching.countsMatch(savedSlotCounts[entry.slot], activeSlotCounts[entry.slot]) then
       local slotKey = entry.slot .. "\31" .. tostring(entry.slotOccurrence or 1)
       local candidate = exposedBySlot[slotKey]
       if candidate and candidate.option.isEditable and candidate.option.isActive
@@ -976,13 +955,14 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
             target = target,
           }
           local current = tonumber(candidate.option.currIndex) or 0
-          if current == target then
+          local disposition = matching.disposition(current, target, state.load.satisfied[savedKey], state.load.unconfirmed[savedKey])
+          if disposition == "matching" then
             state.load.satisfied[savedKey] = true
             state.load.unconfirmed[savedKey] = nil
             applied = applied + 1
-          elseif state.load.satisfied[savedKey] and state.load.unconfirmed[savedKey] then
+          elseif disposition == "unconfirmed" then
             applied = applied + 1
-          elseif state.load.satisfied[savedKey] then
+          elseif disposition == "reverted" then
             deferred[savedKey] = true
             missing = missing + 1
             unresolved["reverted-remap:" .. tostring(savedKey)] = true
@@ -1022,7 +1002,7 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
         local candidate = nil
         local method = nil
         if entry.slot
-            and (savedSlotCounts[entry.slot] or 0) == (activeSlotCounts[entry.slot] or 0) then
+            and matching.countsMatch(savedSlotCounts[entry.slot], activeSlotCounts[entry.slot]) then
           local slotKey = entry.slot .. "\31" .. tostring(entry.slotOccurrence or 1)
           candidate = exposedBySlot[slotKey]
           method = "uiSlot"
@@ -1033,9 +1013,8 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
           local positioned = activeExposed[entry.position]
           if positioned and activeExposed[entry.position - 1]
               and activeExposed[entry.position + 1]
-              and activeExposed[entry.position - 1].key == previousEntry.key
-              and activeExposed[entry.position + 1].key == nextEntry.key
-              and values[positioned.key] == nil then
+              and matching.anchoredPosition(activeExposed[entry.position - 1].key, previousEntry.key,
+                activeExposed[entry.position + 1].key, nextEntry.key, values[positioned.key]) then
             candidate = positioned
             method = "anchored legacy position"
           end
@@ -1061,13 +1040,14 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
               target = target,
             }
             local current = tonumber(candidate.option.currIndex) or 0
-            if current == target then
+            local disposition = matching.disposition(current, target, state.load.satisfied[savedKey], state.load.unconfirmed[savedKey])
+            if disposition == "matching" then
               state.load.satisfied[savedKey] = true
               state.load.unconfirmed[savedKey] = nil
               state.load.forcedKeys[savedKey] = true
-            elseif state.load.satisfied[savedKey] and state.load.unconfirmed[savedKey] then
+            elseif disposition == "unconfirmed" then
               state.load.forcedKeys[savedKey] = true
-            elseif state.load.satisfied[savedKey] then
+            elseif disposition == "reverted" then
               state.load.forcedKeys[savedKey] = nil
               deferred[savedKey] = true
               missing = missing + 1
@@ -1185,12 +1165,13 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
     end
     stateModel.completeLoad(state.load)
     refreshCustomizationUi()
+    local completionResult, completionLevel = matching.completionResult(cleanupSkipped, unconfirmed)
     log(("SUMMARY | preset='%s' | processed=%d | confirmed=%d | unconfirmed=%d | forced=%d | cleanupUnconfirmed=%d | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=%s")
       :format(state.load.presetName or state.library.selected,
         applied, math.max(0, applied - unconfirmed), unconfirmed,
         forced, cleanupSkipped, state.load.pass,
-        (cleanupSkipped > 0 or unconfirmed > 0) and "complete-with-warning" or "complete"),
-      (cleanupSkipped > 0 or unconfirmed > 0) and "warn" or "complete")
+        completionResult),
+      completionLevel)
     helpers.logLoadMeasurements("complete")
     if cleanupSkipped > 0 or unconfirmed > 0 then
       state.app.nativeLoadSummary = ("Loaded %d options. %d could not be confirmed; check the appearance.")
@@ -1395,22 +1376,16 @@ refreshPreflight = function()
         candidate = slotCandidate
       end
     end
-    if not optionIndexIsValid(tonumber(entry.index)) then
-      invalid = invalid + 1
-    elseif candidate and not claimedOptions[candidate] then
-      if entry.choice and optionChoiceIndex(candidate, entry.choice) == nil then
-        unavailable = unavailable + 1
-      else
-        available = available + 1
-        claimedOptions[candidate] = true
-      end
-    elseif tonumber(entry.index) == 0 and (exposedCounts[key] or 0) == 0 then
-      available = available + 1
-    elseif (exposedCounts[key] or 0) == 0 then
-      unavailable = unavailable + 1
-    else
-      ambiguous = ambiguous + 1
-    end
+    local valid = optionIndexIsValid(tonumber(entry.index))
+    local missingChoice = valid and candidate and not claimedOptions[candidate]
+      and entry.choice and optionChoiceIndex(candidate, entry.choice) == nil
+    local classification, claim = comparison.preflightClass(valid, candidate ~= nil,
+      candidate and claimedOptions[candidate], missingChoice, entry.index, exposedCounts[key])
+    if classification == "invalid" then invalid = invalid + 1
+    elseif classification == "unavailable" then unavailable = unavailable + 1
+    elseif classification == "ambiguous" then ambiguous = ambiguous + 1
+    else available = available + 1 end
+    if claim then claimedOptions[candidate] = true end
   end
   state.load.preflight = {
     total = state.presetEntryCount(preset),
