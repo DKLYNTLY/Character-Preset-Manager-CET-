@@ -319,54 +319,9 @@ events.onUpdate = function(delta)
       setEditorOpenStatus("The editor did not open. Return to normal gameplay and retry.", true)
     end
   end
-  if not state.load.auto or state.app.loadInvocation ~= loadInvocationBeforeBridge then return end
+  if not state.load.auto then return end
 
-  state.load.elapsed = state.load.elapsed + elapsed
-  if state.load.pendingChange then
-    state.load.pendingElapsed = math.max(0,
-      state.load.elapsed - state.load.pendingChange.startedAt)
-  end
-
-  if not state.load.needsContinue then
-    stateModel.stopAutomatic(state.load)
-    return
-  end
-
-  state.load.autoTimer = state.load.autoTimer + elapsed
-  if state.load.autoTimer < state.load.nextInterval then return end
-  state.load.autoTimer = 0
-
-  if not state.library.selected and not state.load.overridePreset then
-    stateModel.stopAutomatic(state.load)
-    return
-  end
-
-  state.load.autoPasses = state.load.autoPasses + 1
-  local maximumSeconds = math.max(
-    AUTO_LOAD_LIMITS.minimumSeconds,
-    (tonumber(state.load.valueCount) or 0) * AUTO_LOAD_LIMITS.secondsPerOption + 10)
-  if state.load.elapsed > maximumSeconds then
-    helpers.logLoadMeasurements("safety-limit")
-    resetLoadState()
-    helpers.releaseFinishedLoadWorkingData()
-    state.invalidatePreflight()
-    state.load.updateStarted = nil
-    state.app.presetCameraHold = false
-    local message = "Loading took longer than the safety limit allows. " ..
-      "Please report this and include the Activity Log so I can check what happened."
-    setStatus("load", message, true)
-    helpers.finishTimedOutNativeLoad(message)
-    return
-  end
-
-  loadPreset()
-
-  if not state.load.needsContinue then
-    stateModel.finishAutomaticPass(state.load)
-    if not state.app.overlayOpen or not state.app.windowOpen then
-      helpers.releaseIdleMemory()
-    end
-  end
+  helpers.updateAutomaticLoad(elapsed, loadInvocationBeforeBridge)
 end
 
 events.onOverlayOpen = function()

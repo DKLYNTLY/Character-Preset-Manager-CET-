@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Separates loader transitions from game calls while keeping the current load
+  steps, timing limits, status messages, and cleanup behavior.
+
 - Separates option matching and comparison from game reads. Existing matching
   rules, caches, load steps, and warnings keep their current behavior.
 

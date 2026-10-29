@@ -11,10 +11,10 @@ const stage5Modules = [
   "domain/catalog_codec", "application/library",
   "domain/bundle_codec", "domain/backup_codec", "domain/trash",
   "domain/appearance_history", "application/recovery_items",
-  "domain/matching", "domain/comparison",
+  "domain/matching", "domain/comparison", "application/loading",
 ];
 const stage5Globals = new Set(["require", "pairs", "ipairs", "tonumber", "tostring", "type", "math", "table"]);
-const stage5Members = { math: new Set(["max", "floor"]), table: new Set(["insert", "sort", "concat"]) };
+const stage5Members = { math: new Set(["max", "floor", "min"]), table: new Set(["insert", "sort", "concat"]) };
 
 function checkStage5(node, filename) {
   if (!node || typeof node !== "object") return;
