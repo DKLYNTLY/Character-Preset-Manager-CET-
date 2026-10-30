@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 drawFoldersSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
@@ -22,10 +23,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     ImGui.BeginChild("##folderList", 0, ImGui.GetFontSize() * 4.5, true)
     if ImGui.Selectable("All Presets##rootFolder", state.library.selectedFolder == "")
         and state.library.selectedFolder ~= "" then
-      log(("[UI] Folder selection changed: old='%s' new='<root>'.")
-        :format(state.library.selectedFolder), "info")
-      state.library.selectedFolder = ""
-      cancelConfirmations()
+      commands.run(runtime, "folder_root")
     end
     local firstFolder, lastFolder = pagedRange("organizeFolders",
       #folderNames, UI_LIST_PAGE_SIZE)
@@ -35,11 +33,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         (state.library.manualFolders[folder] and " (imported)" or "")
       if ImGui.Selectable(label .. "##folder:" .. folder, state.library.selectedFolder == folder)
           and state.library.selectedFolder ~= folder then
-        log(("[UI] Folder selection changed: old='%s' new='%s'.")
-          :format(tostring(state.library.selectedFolder), folder), "info")
-        state.library.selectedFolder = folder
-        cancelConfirmations()
-        state.library.folderRenameName = ""
+        commands.run(runtime, "folder_select", {folder = folder})
       end
     end
     ImGui.EndChild()
@@ -48,7 +42,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     ImGui.PopItemWidth()
     local addFolderUnavailable = validatedFolderName(state.library.folderName) == nil
     if addFolderUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Add Folder", actionButtonHeight) then createFolder() end
+    if fullWidthButton("Add Folder", actionButtonHeight) then commands.run(runtime, "folder_create") end
     if addFolderUnavailable then ImGui.EndDisabled() end
     if state.library.selectedFolder ~= "" then
       if compactSubsectionButton("Rename / Copy / Move / Delete",
@@ -59,19 +53,19 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       ImGui.PopItemWidth()
       local folderRenameUnavailable = sanitizeName(state.library.folderRenameName) == ""
       if folderRenameUnavailable then ImGui.BeginDisabled() end
-      if fullWidthButton("Rename Folder", actionButtonHeight) then renameFolder() end
+      if fullWidthButton("Rename Folder", actionButtonHeight) then commands.run(runtime, "folder_rename") end
       if folderRenameUnavailable then ImGui.EndDisabled() end
-      if fullWidthButton("Duplicate Selected Folder", actionButtonHeight) then duplicateFolder() end
+      if fullWidthButton("Duplicate Selected Folder", actionButtonHeight) then commands.run(runtime, "folder_duplicate") end
       local moveUnavailable = not state.library.selected
         or parentFolder(state.library.selected) == state.library.selectedFolder
       if moveUnavailable then ImGui.BeginDisabled() end
-      if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then movePresetToSelectedFolder() end
+      if fullWidthButton("Move Selected Preset Here", actionButtonHeight) then commands.run(runtime, "move") end
       if moveUnavailable then ImGui.EndDisabled() end
       local removeFolderLabel = state.library.pendingRemoveFolder == state.library.selectedFolder
         and "Confirm Remove Folder, Keep Presets"
         or "Remove Folder, Keep Presets"
       if fullWidthButton(removeFolderLabel .. "##removeFolder", actionButtonHeight) then
-        removeVirtualFolder()
+        commands.run(runtime, "folder_remove")
       end
       local folderBulkNames = bulkPresetNamesInFolder(state.library.selectedFolder)
       local nestedFolderCount = state.trash.cachedBulkNestedFolderCount or 0
@@ -84,7 +78,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           :format(#folderBulkNames, #folderBulkNames == 1 and "" or "s")
       if dangerButton(folderTrashLabel .. "##folderTrash",
           ImGui.GetContentRegionAvail(), actionButtonHeight) then
-        requestBulkTrash(folderBulkNames, state.library.selectedFolder)
+        commands.run(runtime, "folder_trash", {folderBulkNames = folderBulkNames})
       end
       if folderTrashUnavailable then ImGui.EndDisabled() end
       coloredWrapped(1.0, 1.0, 1.0, 1.0,
@@ -95,7 +89,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     else
       local rootMoveUnavailable = not state.library.selected or parentFolder(state.library.selected) == ""
       if rootMoveUnavailable then ImGui.BeginDisabled() end
-      if fullWidthButton("Move Selected Preset to All Presets", actionButtonHeight) then movePresetToSelectedFolder() end
+      if fullWidthButton("Move Selected Preset to All Presets", actionButtonHeight) then commands.run(runtime, "move_root") end
       if rootMoveUnavailable then ImGui.EndDisabled() end
     end
     if compactSubsectionButton("Share & Import Folders",
@@ -106,11 +100,11 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
     local folderExportUnavailable = state.library.selectedFolder == ""
     if folderExportUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Export Selected Folder as a .cpmfolder File", actionButtonHeight) then
-      exportSelectedFolderBundle()
+      commands.run(runtime, "bundle_export")
     end
     if folderExportUnavailable then ImGui.EndDisabled() end
     if fullWidthButton("Install .cpmfolder Files from Character Presets", actionButtonHeight) then
-      importAvailableFolderBundles()
+      commands.run(runtime, "bundle_import")
     end
     finishCompactSubsection()
     end
@@ -145,9 +139,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           local leaf = path:match("([^/]+)$") or path
           if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
               state.library.selectedBundleFile == leaf) then
-            if state.library.selectedBundleFile ~= leaf then clearFolderBundlePreview() end
-            state.library.selectedBundleFile = leaf
-            cancelConfirmations()
+            commands.run(runtime, "bundle_select", {leaf = leaf})
             selectedStillExists = true
           end
         end
@@ -165,14 +157,11 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
           and "Hide Selected .cpmfolder Contents##viewFolderBundle"
           or "View Selected .cpmfolder Contents##viewFolderBundle"
         if fullWidthButton(previewLabel, actionButtonHeight) then
-          if previewVisible then
-            clearFolderBundlePreview()
-            clearStatus("folder")
-          else viewSelectedFolderBundleContents() end
+          commands.run(runtime, "bundle_preview", {previewVisible = previewVisible})
         end
         if dangerButton("Move Selected .cpmfolder File to Trash##trashFolderBundle",
             ImGui.GetContentRegionAvail(), actionButtonHeight) then
-          trashSelectedFolderBundle()
+          commands.run(runtime, "bundle_trash")
         end
         if bundleActionUnavailable then ImGui.EndDisabled() end
         preview = state.library.folderBundlePreview

@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 drawLoadSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 helpers.syncForceFullLoadSelection()
@@ -64,41 +65,25 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     state.library.searchText = ImGui.InputTextWithHint(
       "##presetSearch", "Search presets, folders, or tags", state.library.searchText, 65)
     if state.library.searchText ~= previousSearchText then
-      invalidateFilteredViewCache()
-      state.ui.listPages.loadPresets = 1
+      commands.run(runtime, "filter")
     end
     ImGui.PopItemWidth()
     if not narrowTopRow then ImGui.SameLine() end
     local clearSearchUnavailable = not tostring(state.library.searchText):match("%S")
     if clearSearchUnavailable then ImGui.BeginDisabled() end
     if ImGui.Button("Clear##presetSearchClear", searchButtonWidth, actionButtonHeight) then
-      state.library.searchText = ""
-      invalidateFilteredViewCache()
-      state.ui.listPages.loadPresets = 1
+      commands.run(runtime, "clear_filter")
     end
     if clearSearchUnavailable then ImGui.EndDisabled() end
     ImGui.SameLine()
     if ImGui.Button("Refresh##presetRefresh", searchButtonWidth, actionButtonHeight) then
-      requestAcuImport("CET Refresh")
-      local _, refreshed, changes = refreshPresets("external")
-      refreshTrash()
-      if state.library.selected and state.library.presets[state.library.selected] then
-        state.library.presetNotes = state.library.presets[state.library.selected].notes or ""
-        state.library.presetTags = state.library.presets[state.library.selected].tags or ""
-      end
-      local added = changes and changes.added or 0
-      local removed = changes and changes.removed or 0
-      local updated = changes and changes.modified or 0
-      setStatus("load", refreshed
-        and ("Refreshed: %d added, %d updated, %d removed; %d available. Checking ACU presets in the background.")
-          :format(added, updated, removed, #helpers.sortedPresetNames())
-        or "Refresh failed; the previous list was kept.", not refreshed)
+      commands.run(runtime, "refresh")
     end
     local refreshOptionsUnavailable = not state.app.inCustomization
       or state.load.auto or state.load.needsContinue or state.load.pendingChange
     if refreshOptionsUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Refresh options##refreshOptionCatalog", actionButtonHeight) then
-      helpers.refreshOptionCatalog()
+      commands.run(runtime, "refresh_options")
     end
     if refreshOptionsUnavailable then ImGui.EndDisabled() end
     ensureFilteredViewCache()
@@ -166,22 +151,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         if ImGui.Selectable(displayLabel .. "##preset:" .. name .. tostring(idSuffix or ""),
             state.library.selected == name)
             and state.library.selected ~= name then
-          log(("[UI] Preset selection changed: old='%s' new='%s'.")
-            :format(tostring(state.library.selected), name), "info")
-          state.library.selected = name
-          addFolderAncestors(state.library.expandedLoadFolders, parentFolder(name))
-          state.invalidatePreflight()
-          local selectedPreset = hydrateNamedPresetMetadata(name)
-            or state.library.presets[name]
-          state.library.presetNotes = selectedPreset and selectedPreset.notes or ""
-          state.library.presetTags = selectedPreset and selectedPreset.tags or ""
-          invalidateFilteredViewCache()
-          cancelConfirmations()
-          state.library.renameName = ""
-          resetLoadState()
-          clearStatus("load")
-          clearStatus("rename")
-          clearStatus("delete")
+          commands.run(runtime, "select", {name = name})
         end
       end
       local firstRow, lastRow = pagedRange("loadPresets",
@@ -242,14 +212,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     local loadButtonDisabled = loadUnavailable or state.load.auto
     if loadButtonDisabled then ImGui.BeginDisabled() end
     if fullWidthButton(loadLabel .. "##loadPreset", actionButtonHeight) then
-      if not state.load.needsContinue then
-        resetLoadState()
-      end
-      state.load.autoTimer = 0
-      state.load.autoPasses = 0
-      state.load.resetBefore = true
-      loadPreset()
-      if state.load.needsContinue then state.load.auto = true end
+      commands.run(runtime, "load")
     end
     if loadButtonDisabled then ImGui.EndDisabled() end
     local restoreFileAvailable = state.load.recoverySnapshotAvailable == true
@@ -258,7 +221,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     if restoreUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Restore Previous Appearance##restoreAppearance",
         actionButtonHeight) then
-      restoreLastAppearance()
+      commands.run(runtime, "restore_previous")
     end
     if restoreUnavailable then ImGui.EndDisabled() end
 
@@ -278,7 +241,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
             or state.load.auto or state.load.needsContinue
           if unavailable then ImGui.BeginDisabled() end
           if fullWidthButton(label, actionButtonHeight) then
-            restoreAppearanceHistory(visibleIndex)
+            commands.run(runtime, "restore_history", {visibleIndex = visibleIndex})
           end
           if unavailable then ImGui.EndDisabled() end
         end
@@ -286,8 +249,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           and "Confirm Clear Appearance History##clearAppearanceHistory"
           or "Clear Appearance History##clearAppearanceHistory"
         if dangerButton(clearLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
-          local cleared, message = clearAppearanceHistory(state.history.pendingClear == true)
-          setStatus("load", message, not cleared and not state.history.pendingClear)
+          commands.run(runtime, "clear_history")
         end
       end
       finishCompactSubsection()
@@ -304,11 +266,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         if compatibilityUnavailable then ImGui.BeginDisabled() end
         if fullWidthButton("Check Compatibility##checkCompatibility",
             actionButtonHeight) then
-          clearStatus("load")
-          state.invalidatePreflight()
-          log(("[UI] Compatibility check requested for '%s'.")
-            :format(state.library.selected), "info")
-          refreshPreflight()
+          commands.run(runtime, "compare")
         end
         if compatibilityUnavailable then ImGui.EndDisabled() end
         if state.load.auto then ImGui.BeginDisabled() end
@@ -316,19 +274,14 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           and "Force Full Load: On##forceFullLoad"
           or "Force Full Load: Off##forceFullLoad"
         if fullWidthButton(forceLoadLabel, actionButtonHeight) then
-          state.load.forceFull = not state.load.forceFull
-          resetLoadState()
-          state.invalidatePreflight()
-          clearStatus("load")
-          log(("[UI] Force Full Load toggled %s.")
-            :format(state.load.forceFull and "on" or "off"), "info")
+          commands.run(runtime, "force_full")
         end
         if state.load.auto then ImGui.EndDisabled() end
         local favoriteLabel = optionalPreset.favorite == true
           and "Remove Selected Preset from Favorites##favoritePreset"
           or "Add Selected Preset to Favorites##favoritePreset"
         if fullWidthButton(favoriteLabel, actionButtonHeight) then
-          toggleSelectedPresetFavorite()
+          commands.run(runtime, "favorite")
         end
       end
       finishCompactSubsection()

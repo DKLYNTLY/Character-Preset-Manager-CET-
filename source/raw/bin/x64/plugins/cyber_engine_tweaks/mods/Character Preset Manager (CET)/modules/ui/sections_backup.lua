@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight,
     narrowTopRow)
@@ -28,12 +29,11 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       ("Backup files: %d"):format(#backupFiles))
     if fullWidthButton("Export Complete Library Backup##exportLibraryBackup",
         actionButtonHeight) then
-      exportLibraryBackup()
+      commands.run(runtime, "backup_export")
     end
     if fullWidthButton("Refresh Backup File List##refreshLibraryBackups",
         actionButtonHeight) then
-      libraryBackupFiles(true)
-      clearStatus("backup")
+      commands.run(runtime, "backup_refresh")
     end
     local selectedBackupLabel = state.backup.selectedFile
       and state.backup.selectedFile:match("([^/]+)$") or "No library backup found"
@@ -46,9 +46,7 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
         local label = backupPath:match("([^/]+)$") or backupPath
         if ImGui.Selectable(label .. "##backup:" .. backupPath,
             state.backup.selectedFile == backupPath) then
-          state.backup.selectedFile = backupPath
-          cancelConfirmations()
-          clearStatus("backup")
+          commands.run(runtime, "backup_select", {backupPath = backupPath})
         end
       end
       ImGui.EndCombo()
@@ -56,7 +54,7 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
     if #backupFiles == 0 then ImGui.BeginDisabled() end
     if fullWidthButton("Import Selected Library Backup##importLibraryBackup",
         actionButtonHeight) then
-      importLibraryBackup()
+      commands.run(runtime, "backup_restore")
     end
     local deleteBackupLabel = state.backup.selectedFile
       and state.backup.pendingDeleteFile == state.backup.selectedFile
@@ -64,7 +62,7 @@ drawBackupSection = function(presetListHeight, statusHeight, actionButtonHeight,
       or "Delete Selected Backup Permanently##deleteLibraryBackup"
     if dangerButton(deleteBackupLabel, ImGui.GetContentRegionAvail(),
         actionButtonHeight) then
-      deleteSelectedLibraryBackup()
+      commands.run(runtime, "backup_delete")
     end
     if #backupFiles == 0 then ImGui.EndDisabled() end
   end

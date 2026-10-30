@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 drawSaveSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
@@ -23,9 +24,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
     state.library.newName = ImGui.InputTextWithHint("##newPreset", "Name", state.library.newName, 65)
     ImGui.PopItemWidth()
     if state.library.newName ~= previousNewName then
-      state.library.pendingOverwriteName = nil
-      state.library.pendingOverwriteFingerprint = nil
-      clearStatus("create")
+      commands.run(runtime, "name_changed")
     end
     local saveLabel = "Save New Preset"
     local pendingCreateName = joinFolder(state.library.selectedFolder, sanitizeName(state.library.newName))
@@ -37,7 +36,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
       or validatedPresetName(state.library.newName) == nil
     if saveUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton(saveLabel, actionButtonHeight) then
-      savePreset(state.library.pendingOverwriteName == pendingCreateName)
+      commands.run(runtime, "save", {pendingCreateName = pendingCreateName})
     end
     if saveUnavailable then ImGui.EndDisabled() end
     if compactSubsectionButton("Change Save Location", "Hide Save Location",
@@ -48,10 +47,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
       ImGui.BeginChild("##saveDestinationList", 0, ImGui.GetFontSize() * 4.5, true)
       if ImGui.Selectable("All Presets##saveDestinationRoot", state.library.selectedFolder == "")
           and state.library.selectedFolder ~= "" then
-        state.library.selectedFolder = ""
-        cancelConfirmations()
-        clearStatus("create")
-        log("[UI] Save destination changed to '<root>'.", "info")
+        commands.run(runtime, "save_location_root")
       end
       local firstFolder, lastFolder = pagedRange("saveFolders",
         #saveFolders, UI_LIST_PAGE_SIZE)
@@ -61,10 +57,7 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
           (state.library.manualFolders[folder] and " (imported)" or "")
         if ImGui.Selectable(label .. "##saveDestination:" .. folder,
             state.library.selectedFolder == folder) and state.library.selectedFolder ~= folder then
-          state.library.selectedFolder = folder
-          cancelConfirmations()
-          clearStatus("create")
-          log(("[UI] Save destination changed to '%s'."):format(folder), "info")
+          commands.run(runtime, "save_location", {folder = folder})
         end
       end
       ImGui.EndChild()

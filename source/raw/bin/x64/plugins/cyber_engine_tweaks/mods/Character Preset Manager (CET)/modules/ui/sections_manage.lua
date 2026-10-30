@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
@@ -27,25 +28,25 @@ if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
         local manageButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
         if renameUnavailable then ImGui.BeginDisabled() end
         if ImGui.Button("Rename Preset##renameSelected",
-            manageButtonWidth, actionButtonHeight) then renamePreset() end
+            manageButtonWidth, actionButtonHeight) then commands.run(runtime, "rename") end
         if renameUnavailable then ImGui.EndDisabled() end
         ImGui.SameLine()
         if ImGui.Button("Copy Preset##duplicateSelected",
-            manageButtonWidth, actionButtonHeight) then duplicatePreset() end
+            manageButtonWidth, actionButtonHeight) then commands.run(runtime, "duplicate") end
         if compactSubsectionButton("Tags, Notes & File",
             "Hide Tags, Notes & File",
             "presetDetails") then
           ImGui.Indent(8)
           ui.pathCallout("##selectedPresetPath", "Preset File", selectedPresetPath)
           if fullWidthButton("Copy File Path##copyPresetPath", actionButtonHeight) then
-            ImGui.SetClipboardText(selectedPresetPath)
+            commands.run(runtime, "copy_path", {selectedPresetPath = selectedPresetPath})
           end
           ImGui.PushItemWidth(-1)
           state.library.presetTags = ImGui.InputTextWithHint("##presetTags", "Tags", state.library.presetTags, 129)
           state.library.presetNotes = ImGui.InputTextWithHint("##presetNotes", "Notes", state.library.presetNotes, 513)
           ImGui.PopItemWidth()
           if fullWidthButton("Save Preset Details", actionButtonHeight) then
-            savePresetMetadata()
+            commands.run(runtime, "metadata")
           end
           finishCompactSubsection()
         end

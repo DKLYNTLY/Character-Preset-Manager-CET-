@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 drawEditorSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
@@ -25,12 +26,10 @@ if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
     local randomizerAvailable = canRunAppearanceRandomizer()
     if not randomizerAvailable then ImGui.BeginDisabled() end
     if fullWidthButton("Randomize##appearanceRandomize", actionButtonHeight) then
-      local kind, message = runAppearanceRandomizer(false)
-      setStatus("editor", message, kind == "error")
+      commands.run(runtime, "randomize", {available = randomizerAvailable})
     end
     if fullWidthButton("Randomize Settings##appearanceRandomizeSettings", actionButtonHeight) then
-      local kind, message = runAppearanceRandomizer(true)
-      setStatus("editor", message, kind == "error")
+      commands.run(runtime, "randomize_settings", {available = randomizerAvailable})
     end
     if not randomizerAvailable then ImGui.EndDisabled() end
     if state.editor.pendingRandomizeSettings then
@@ -39,7 +38,7 @@ if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
     ImGui.Spacing()
     if editorUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
-      openFullAppearanceEditor()
+      commands.run(runtime, "open_editor")
     end
     if editorUnavailable then ImGui.EndDisabled() end
     end

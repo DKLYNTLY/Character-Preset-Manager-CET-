@@ -2,8 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
-local libraryView = require("modules/domain/library_view")
-local stateModel = require("modules/domain/state")
+local commandAdapter = require("modules/ui/commands").forRuntime(runtime)
 local codecs = require("modules/domain/codecs")
 local nativeQuery = ""
 local nativeViewRevision = 0
@@ -93,11 +92,7 @@ local function findNativeBridge()
   return nil
 end
 
-local function nativeStatus(message, isError)
-  state.app.nativePanelStatus = tostring(message or "")
-  state.app.nativePanelStatusError = isError == true
-  return isError and "error" or "status", cleanField(message)
-end
+local nativeStatus = commandAdapter.nativeStatus
 
 local function listPayload(query, overrideMessage, overrideError)
   query = tostring(query or ""):lower()
@@ -245,162 +240,27 @@ local function historyPayload()
   return table.concat(lines, "\n")
 end
 
-local function startSelectedLoad()
-  if not state.library.selected then return false, "Select a preset first." end
-  if not state.app.inCustomization then return false, "Open a customization screen first." end
-  state.app.nativeLoadSummary = nil
-  state.app.nativePanelShowDetails = false
-  resetLoadState()
-  stateModel.prepareAutomaticLoad(state.load)
-  loadPreset()
-  if state.load.needsContinue then state.load.auto = true end
-  return true, state.status.sections.load.message
-end
+local startSelectedLoad = commandAdapter.startSelectedLoad
 
-canRunAppearanceRandomizer = function()
-  if not state.app.inCustomization or not state.editor.activeBodyMorphMenu
-      or state.load.auto or state.load.needsContinue or state.load.pendingChange then return false end
-  local ok, available = pcall(function() return state.editor.activeBodyMorphMenu:CPMCanRandomize() end)
-  return ok and available == true
-end
+canRunAppearanceRandomizer = commandAdapter.canRandomize
 
 runAppearanceRandomizer = function(settings)
-  if not canRunAppearanceRandomizer() then
-    return nativeStatus("Open a character editor and wait for the current action to finish before using Randomize.", true)
+  local result = commandAdapter.run("native", settings and "randomize_settings" or "randomize", {payload = ""})
+  if result.responseExtra ~= nil then
+    return result.responseKind, result.responsePayload, result.responseExtra
   end
-  if settings and state.app.overlayOpen then
-    state.editor.pendingRandomizeSettings = state.editor.activeBodyMorphMenu
-    return nativeStatus("Close CET to open the game's Randomize Settings.", false)
-  end
-  local ok, changed = pcall(function()
-    if settings then return state.editor.activeBodyMorphMenu:CPMRandomizeSettings() end
-    return state.editor.activeBodyMorphMenu:CPMRandomize()
-  end)
-  if not ok or not changed then
-    return nativeStatus("The game's randomizer is not ready. Wait for the editor and try again.", true)
-  end
-  state.app.optionsMemo = nil
-  state.invalidatePreflight()
-  return nativeStatus(settings and "Randomize Settings opened or closed." or "The game is randomizing your appearance.", false)
+  return result.responseKind, result.responsePayload
 end
 
-local function handleNativeRequest(action, payload)
-  if action == "randomize" then return runAppearanceRandomizer(false) end
-  if action == "randomize_settings" then return runAppearanceRandomizer(true) end
-  if action == "open" then
-    nativeQuery = ""
-    return "list", listPayload(nativeQuery, NATIVE_READY_STATUS, false)
-  end
-  if action == "list" then
-    nativeQuery = tostring(payload or "")
-    return "list", listPayload(nativeQuery)
-  end
-  if action == "select" then
-    if state.library.presets[payload] then
-      state.library.selected = payload
-      hydrateNamedPresetMetadata(payload)
-      state.invalidatePreflight()
-      cancelConfirmations()
-      resetLoadState()
-    end
-    return "list", listPayload(nativeQuery)
-  end
-  if action == "select_load" then
-    if not state.library.presets[payload] then
-      return nativeStatus("That preset is no longer available.", true)
-    end
-    state.library.selected = payload
-    state.invalidatePreflight()
-    cancelConfirmations()
-    resetLoadState()
-    local started, message = startSelectedLoad()
-    return nativeStatus(message, not started)
-  end
-  if action == "toggle_folder" then
-    if folderNameExists(payload) then
-      state.library.expandedLoadFolders[payload] =
-        state.library.expandedLoadFolders[payload] ~= true
-      nativeViewRevision = nativeViewRevision + 1
-      return "list", listPayload(nativeQuery)
-    end
-    return "list", listPayload(nativeQuery,
-      "That folder is no longer available. Open the CET manager to refresh its folder list.", true)
-  end
-  if action == "cancel_save_confirmation" then
-    state.library.pendingOverwriteName = nil
-    state.library.pendingOverwriteFingerprint = nil
-    return "confirm_state", "SAVE\t0"
-  end
-  if action == "save" then
-    state.library.newName = payload
-    savePreset(state.library.pendingOverwriteName ~= nil)
-    local status = state.status.sections.create
-    return "list", listPayload(nativeQuery, status.message, status.error)
-  end
-  if action == "replace" then
-    if not state.library.selected then return "status", "Select a preset first." end
-    state.library.newName = baseName(state.library.selected)
-    state.library.selectedFolder = parentFolder(state.library.selected)
-    savePreset(false)
-    savePreset(true)
-    return "list", listPayload("")
-  end
-  if action == "load" then
-    local started, message = startSelectedLoad()
-    return nativeStatus(message, not started)
-  end
-  if action == "compare" then return "comparison", comparisonPayload() end
-  if action == "favorite" then
-    toggleSelectedPresetFavorite()
-    return "list", listPayload("")
-  end
-  if action == "save_location" then
-    if payload == "" or folderNameExists(payload) then
-      state.library.selectedFolder = payload
-      cancelConfirmations()
-      return "list", listPayload(nativeQuery)
-    end
-    return nativeStatus("That save location is no longer available. Open CET to refresh folders.", true)
-  end
-  if action == "delete" then
-    if not state.library.selected then return nativeStatus("Select a preset first.", true) end
-    trashPreset("native")
-    local status = state.status.sections.delete
-    local message = tostring(status.message or "")
-    if status.error ~= true then
-      message = message .. (state.trash.nativePendingDeleteName ~= nil
-        and " After moving it, open CET to restore it or delete it permanently."
-        or " Open CET to restore it or delete it permanently.")
-    end
-    return "list", listPayload(nativeQuery, message, status.error)
-  end
-  if action == "refresh" then
-    requestAcuImport("native Refresh")
-    refreshPresets("external")
-    refreshTrash()
-    return "list", listPayload(nativeQuery)
-  end
-  if action == "history" then return "history", historyPayload() end
-  if action == "restore_history" then
-    state.app.nativeLoadSummary = nil
-    state.app.nativePanelShowDetails = false
-    restoreAppearanceHistory(tonumber(payload))
-    return nativeStatus(state.status.sections.load.message,
-      state.status.sections.load.error == true)
-  end
-  if action == "restore_previous" then
-    state.app.nativeLoadSummary = nil
-    state.app.nativePanelShowDetails = false
-    restoreLastAppearance()
-    return nativeStatus(state.status.sections.load.message,
-      state.status.sections.load.error == true)
-  end
-  if action == "clear_history" then
-    local cleared, message = clearAppearanceHistory(payload == "confirm")
-    return cleared and "history" or "confirm_clear", cleared and historyPayload() or message
-  end
-  if action == "open_advanced" then
-    state.app.windowOpen = true
+local nativeCommandPorts = {
+  query = function() return nativeQuery end,
+  setQuery = function(value) nativeQuery = value end,
+  invalidateRows = function() nativeViewRevision = nativeViewRevision + 1 end,
+  listPayload = listPayload,
+  comparisonPayload = comparisonPayload,
+  historyPayload = historyPayload,
+  openAdvanced = function()
+state.app.windowOpen = true
     state.ui.focusWindowRequested = true
     if state.app.overlayOpen then return "status", "Character Preset Manager is open in CET." end
     if overlayRequest then return "status", "Opening Character Preset Manager in CET..." end
@@ -409,24 +269,18 @@ local function handleNativeRequest(action, payload)
     if not writeOverlayRequest(id, "open") then return "error", overlayFallback end
     overlayRequest = { id = id, elapsed = 0 }
     return "status", "Opening Character Preset Manager in CET..."
+  end,
+}
+local function handleNativeRequest(action, payload)
+  local result = commandAdapter.run("native", action, {payload = payload}, nativeCommandPorts, startSelectedLoad)
+  if result.responseExtra ~= nil then
+    return result.responseKind, result.responsePayload, result.responseExtra
   end
-  if action == "open_load_details" then
-    state.app.windowOpen = true
-    state.ui.openSections.load = true
-    return "status", "Press your CET binding. Load details are open in Character Preset Manager."
-  end
-  return nativeStatus("The simple menu requested an action this version does not support.", true)
+  return result.responseKind, result.responsePayload
 end
 
 setPresetSortPreference = function(value)
-  local sort = libraryView.normalizeSort(value)
-  state.preferences.presetSort = sort
-  state.library.sortMode = sort
-  invalidateViewCache()
-  writeConfig()
-  state.status.settings = sort == "modified"
-    and "Presets are sorted by the date they were last changed."
-    or "Presets are sorted by name."
+  commandAdapter.run("cet", "sort", {value = value})
 end
 
 initializeNativeBridge = function(configLoaded, preferredBridge)

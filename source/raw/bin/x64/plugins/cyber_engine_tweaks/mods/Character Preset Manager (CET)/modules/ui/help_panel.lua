@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 function helpHeading(text)
   ImGui.Spacing()
@@ -191,11 +192,11 @@ if state.ui.settingsOpen then
       ImGui.TextWrapped("Preset Sort Order")
       if ImGui.Selectable("Name##settingsSortName",
           state.preferences.presetSort == "name") then
-        setPresetSortPreference("name")
+        commands.run(runtime, "sort_name")
       end
       if ImGui.Selectable("Last modified##settingsSortModified",
           state.preferences.presetSort == "modified") then
-        setPresetSortPreference("modified")
+        commands.run(runtime, "sort_modified")
       end
       ImGui.Spacing()
       ImGui.TextWrapped("This setting is available here in CET.")

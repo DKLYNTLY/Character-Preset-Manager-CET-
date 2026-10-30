@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
@@ -22,7 +23,7 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
           and "Confirm Move to Trash##danger"
           or "Move Selected Preset to Trash##danger"
         if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
-          trashPreset()
+          commands.run(runtime, "delete")
         end
       end
 
@@ -61,7 +62,7 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
             if fullWidthButton(("Restore Folder %s (%d presets, %d folders)")
                 :format(helpers.breadcrumb(group.root), stats.presets, stats.folders) ..
                 "##trashGroup:" .. groupId, actionButtonHeight) then
-              restoreTrashGroup(groupId)
+              commands.run(runtime, "trash_restore_group", {groupId = groupId})
               trashChanged = true
               break
             end
@@ -70,7 +71,7 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
             local item = state.trash.items[filename]
             if item and fullWidthButton("Restore " .. (item.original or filename) ..
                 "##trash:" .. filename, actionButtonHeight) then
-              restoreTrashPreset(filename)
+              commands.run(runtime, "trash_restore", {filename = filename})
               trashChanged = true
               break
             end
@@ -78,7 +79,7 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
             local filename = row.value
             if fullWidthButton("Restore File " .. filename ..
                 "##trashBundle:" .. filename, actionButtonHeight) then
-              restoreTrashBundle(filename)
+              commands.run(runtime, "trash_restore_bundle", {filename = filename})
               trashChanged = true
               break
             end
@@ -90,7 +91,7 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
             and "Confirm Empty Trash Permanently##emptyTrash"
             or "Empty Trash Permanently##emptyTrash"
           if dangerButton(emptyLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
-            emptyTrash()
+            commands.run(runtime, "trash_empty")
           end
         end
       end
