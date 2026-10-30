@@ -9,6 +9,9 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Applies and checks one preset option at a time while testing leftover preview items.
+  Loads may take longer; the in-game cause is still unverified.
+
 - Separates editor lifecycle decisions from game calls and hooks. Launching,
   mirror behavior, wardrobe handling, and cleanup keep their current behavior.
 

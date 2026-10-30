@@ -1,6 +1,6 @@
 # Stage 8 Part A loader extraction
 
-Baseline: `64b9c7414a61a7e72180fda38c4cb575cad6f5a4`. Part B is skipped at the user's request. No leftover-hair/cyberware fix is included.
+Baseline: `64b9c7414a61a7e72180fda38c4cb575cad6f5a4`. This is the historical Part A record. Part B was reopened after the stage 9 reproduction; see STAGE8B.md for the evidence and the hypothesis test build.
 
 ## Before extraction: boundaries and callers
 
@@ -241,7 +241,7 @@ The reload scenario reinitializes Lua load/app state and runs the existing callb
 - The injected close-inside-observation case can recreate a waiting batch after the close reset, as in the baseline. Whether real Codeware can call the close observer at that exact boundary is UNVERIFIED. It is a callback stress case, not a diagnosis of the reported visual bug.
 - A preexisting camera guard is restored rather than forced false. Normal guards are false/nil on exit; the explicit timeout path still forces false. Shutdown does not separately clear the cached bridge busy flag.
 - Missing preset dependencies can explain the old eyelash/unavailable-choice stops. No matching or mod-installation fix is included.
-- Rapid-load leftover hair/cyberware: **could not be reproduced after the cancel removal and timeout fix (UNVERIFIED cause)**. Part B is skipped. Relevant paths remain `application/loading.lua:228` (new request), `application/loading.lua:262` and `domain/state.lua:190` (partial begin), `application/loading.lua:89` (pending settle/unconfirmed), `application/loading.lua:247` (cleanup progression), `adapters/game_options.lua:714` (cleanup eligibility), `adapters/game_options.lua:721` (cleanup writes), and `native_bridge.lua:248` (native reset before a new load). These paths identify where state and cleanup are handled; they do not establish the cause of the former visual issue.
+- Rapid-load leftover hair/cyberware: **reported again after stage 9; data/preview mismatch confirmed by the user, trigger UNVERIFIED**. See STAGE8B.md. The earlier unreproduced status is historical. Relevant paths remain `application/loading.lua:228` (new request), `application/loading.lua:262` and `domain/state.lua:190` (partial begin), `application/loading.lua:89` (pending settle/unconfirmed), `application/loading.lua:247` (cleanup progression), `adapters/game_options.lua:714` (cleanup eligibility), `adapters/game_options.lua:721` (cleanup writes), and `native_bridge.lua:248` (native reset before a new load). These paths identify where state and cleanup are handled; they do not establish the cause of the former visual issue.
 
 Real error payloads and stack-trace source locations are UNVERIFIED. Moving code changes traceback locations; application message formats and the supplied fake error payloads match the baseline. No new game API or guessed Codeware method was added.
 
