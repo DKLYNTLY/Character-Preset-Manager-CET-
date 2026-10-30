@@ -297,7 +297,7 @@ settings. These actions are unavailable while a preset is loading or restoring.
 
 ### Simple menu
 
-![The updated simple menu in Cyberpunk's character editor](images/Simple%20Menu.png)
+![The updated simple menu in Cyberpunk's character editor](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Simple%20Menu.png)
 
 Find a preset on the left and select it to load. The same panel has save,
 recovery, Trash, and advanced-manager controls.
@@ -306,7 +306,7 @@ recovery, Trash, and advanced-manager controls.
 
 ### Complete CET manager
 
-![The complete CET preset manager](images/Advanced%20Menu.gif)
+![The complete CET preset manager](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Advanced%20Menu.gif)
 
 CET keeps all library tools in one window. Open a section heading to see its
 controls, or use Help to find a specific action.
@@ -315,7 +315,7 @@ controls, or use Help to find a specific action.
 
 ### Full apartment mirrors
 
-![Full character options in an apartment mirror](images/Mirror.gif)
+![Full character options in an apartment mirror](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Mirror.gif)
 
 Apartment mirrors show the full character-creation list. They use the same
 preset tools as the Full Appearance Editor.
@@ -745,6 +745,16 @@ my official mod page or repository. The license includes warranty and liability
 limits where the law allows them, while preserving mandatory protections.
 
 Read [the full All Rights Reserved license](LICENSE) for the terms and approved uses.
+
+---
+
+## Source and development archive
+
+I keep the stage reports and tests on the [**dev-archive branch**](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-/tree/dev-archive).
+Plans, fixtures, verification scripts, and scratch work belong there too.
+The main branch holds the files needed to build and run the mod, along with
+this README, the license, and the changelog. Release downloads contain only
+runtime files.
 
 ---
 
