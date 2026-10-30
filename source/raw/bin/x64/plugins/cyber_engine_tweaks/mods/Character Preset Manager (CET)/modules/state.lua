@@ -60,13 +60,6 @@ state = {
     cachedBulkFolderNames = {},
     cachedBulkNestedFolderCount = 0,
   },
-  backup = {
-    selectedFile = nil,
-    pendingDeleteFile = nil,
-    pendingDeleteFingerprint = nil,
-    filesDirty = true,
-    files = {},
-  },
   acuImport = {
     pollTimer = 0,
     generation = nil,
@@ -94,7 +87,6 @@ state = {
       create = false,
       folders = false,
       manage = false,
-      backup = false,
       bulk = false,
       trash = false,
     },
@@ -166,7 +158,6 @@ state = {
       rename = { message = "", error = false },
       delete = { message = "", error = false },
       bulk = { message = "", error = false },
-      backup = { message = "", error = false },
     },
     kinds = {},
     settings = "",
@@ -174,6 +165,6 @@ state = {
   },
 }
 
-STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete", "bulk", "backup" }
+STATUS_SECTIONS = { "editor", "load", "create", "folder", "rename", "delete", "bulk" }
 
 return state

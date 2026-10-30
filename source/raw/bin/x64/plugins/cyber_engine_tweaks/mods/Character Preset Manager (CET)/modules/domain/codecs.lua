@@ -31,16 +31,6 @@ local function hexDecode(value)
   return decodeHexadecimalBytes(value)
 end
 
-local function backupEncode(value)
-  return hexEncode(tostring(value or ""))
-end
-
-local function backupDecode(value)
-  if type(value) ~= "string" or #value % HEXADECIMAL_BYTE_WIDTH ~= 0
-      or (value ~= "" and not value:match("^%x+$")) then return nil end
-  return decodeHexadecimalBytes(value)
-end
-
 local function cleanField(value)
   return tostring(value or ""):gsub("[%c]", " ")
 end
@@ -51,6 +41,4 @@ return {
   catalogDecode = catalogDecode,
   hexEncode = hexEncode,
   hexDecode = hexDecode,
-  backupEncode = backupEncode,
-  backupDecode = backupDecode,
 }

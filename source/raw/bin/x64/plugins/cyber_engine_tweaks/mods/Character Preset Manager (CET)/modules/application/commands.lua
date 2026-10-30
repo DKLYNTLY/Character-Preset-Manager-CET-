@@ -3,11 +3,6 @@ local resultModel = require("modules/domain/operation_result")
 local cet = {
   sort_name = {operation = "sort", section = "settings"},
   sort_modified = {operation = "sort", section = "settings"},
-  backup_export = {operation = "backup_export", section = "backup"},
-  backup_refresh = {operation = "backup_refresh", section = "backup"},
-  backup_select = {operation = "backup_select", section = "backup"},
-  backup_restore = {operation = "backup_restore", section = "backup"},
-  backup_delete = {operation = "backup_delete", section = "backup"},
   bulk_filter = {operation = "filter", section = "bulk"},
   bulk_select_visible = {operation = "bulk_select_visible", section = "bulk"},
   bulk_clear = {operation = "bulk_clear", section = "bulk"},
@@ -121,8 +116,6 @@ local function blocked(name, context)
     return context.rootFolder or context.emptyFolder
   elseif name == "move" or name == "move_root" then
     return not context.selected or context.sameFolder
-  elseif name == "backup_restore" or name == "backup_delete" then
-    return not context.backupSelected
   elseif name == "bundle_preview" or name == "bundle_trash" then
     return not context.bundleSelected
   elseif name == "bulk_clear" or name == "bulk_move" or name == "bulk_export" or name == "bulk_trash" then

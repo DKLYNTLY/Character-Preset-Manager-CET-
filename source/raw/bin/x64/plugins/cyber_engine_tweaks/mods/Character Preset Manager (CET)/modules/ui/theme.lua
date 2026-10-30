@@ -174,7 +174,6 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
     or (section == "bulk" and state.trash.pendingBulkAction == "presets")
     or (section == "folder" and state.trash.pendingBulkAction ~= nil
       and state.trash.pendingBulkAction ~= "presets")
-    or (section == "backup" and state.backup.pendingDeleteFile ~= nil)
   local customColors = false
   ImGui.Spacing()
   if isError or destructiveWarning or criticalWarning then
@@ -390,7 +389,7 @@ if state.ui.settingsOpen then
       if compactSubsectionButton("Settings File",
           "Hide Settings File", "settingsFile") then
       ImGui.Indent(8)
-      ImGui.TextWrapped("This file mirrors the shared setting automatically. Complete-library backups include it.")
+      ImGui.TextWrapped("This file mirrors the shared setting automatically.")
       finishCompactSubsection()
       end
       if state.status.settings ~= "" then

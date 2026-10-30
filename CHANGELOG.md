@@ -9,6 +9,9 @@ for current steps.
 
 ## 4.0.1
 
+- Removes full-library backup export and import. Folder sharing, preset
+  sharing, Trash, and appearance history keep their current behavior.
+
 - Removes the Help panel. Preset sorting stays in Settings.
 
 - Rewrites the README with shorter instructions and answers to common problems.

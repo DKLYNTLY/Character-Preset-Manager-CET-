@@ -119,7 +119,6 @@ local function supportedFile(path)
 end
 
 return {
-  LIBRARY_BACKUP_EXTENSION = LIBRARY_BACKUP_EXTENSION,
   supportedFile = supportedFile,
   historyPath = historyPath,
   parentFolder = parentFolder,

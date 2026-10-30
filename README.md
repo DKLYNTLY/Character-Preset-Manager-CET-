@@ -127,7 +127,6 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Move, export, or delete several presets at once.
 - Import ACU presets and shared preset folders.
 - Share individual presets, folders, or selected groups.
-- Back up and restore your preset library.
 - Restore an earlier appearance from recovery history.
 - Move items to Trash, restore them, or delete them permanently.
 - Check preset compatibility and use Force Full Load.

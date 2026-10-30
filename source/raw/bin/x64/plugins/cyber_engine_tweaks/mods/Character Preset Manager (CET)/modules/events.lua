@@ -146,7 +146,6 @@ events.onOverlayOpen = function()
   state.app.windowOpen = true
   state.app.optionsMemo = nil
   refreshAppearanceHistory()
-  state.backup.filesDirty = true
   state.ui.windowPositionCached = false
   state.ui.cachedWindowX = nil
   state.ui.cachedDisplayWidth = nil

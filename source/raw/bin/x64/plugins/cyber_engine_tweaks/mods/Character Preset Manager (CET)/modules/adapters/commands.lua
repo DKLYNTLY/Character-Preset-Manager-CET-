@@ -101,28 +101,6 @@ setSort("name")
   cet.sort_modified = function(input, ports, decision)
 setSort("modified")
   end
-  cet.backup_export = function(input, ports, decision)
-exportLibraryBackup()
-  end
-  cet.backup_refresh = function(input, ports, decision)
-libraryBackupFiles(true)
-
-      clearStatus("backup")
-  end
-  cet.backup_select = function(input, ports, decision)
-    local backupPath = input.backupPath
-state.backup.selectedFile = backupPath
-
-          cancelConfirmations()
-
-          clearStatus("backup")
-  end
-  cet.backup_restore = function(input, ports, decision)
-importLibraryBackup()
-  end
-  cet.backup_delete = function(input, ports, decision)
-deleteSelectedLibraryBackup()
-  end
   cet.bulk_filter = function(input, ports, decision)
 invalidateFilteredViewCache()
 
@@ -701,7 +679,6 @@ state.app.windowOpen = true
       hooksAvailable = state.editor.hooksAvailable,
       available = input.available,
       rootFolder = state.library.selectedFolder == "",
-      backupSelected = state.backup.selectedFile ~= nil,
       bundleSelected = state.library.selectedBundleFile ~= nil,
       pendingOverwriteName = state.library.pendingOverwriteName,
       pendingClear = state.history.pendingClear,
