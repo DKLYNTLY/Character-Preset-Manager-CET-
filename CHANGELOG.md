@@ -12,9 +12,6 @@ and in-game Help for current steps.
 - Keeps stage reports and tests on the dev-archive branch. The README links
   to that archive, and future development files stay off main.
 
-- Routes both menus through shared commands. Existing controls, prompts,
-  library files, and bridge protocol 1 keep their current behavior.
-
 - Restores the stage 9 loader from 8898361. The slower Part B preview test
   has been withdrawn; the cyberware issue remains unresolved.
 
