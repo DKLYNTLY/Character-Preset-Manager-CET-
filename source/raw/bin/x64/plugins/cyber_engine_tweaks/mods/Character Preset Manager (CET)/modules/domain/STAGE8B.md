@@ -2,7 +2,45 @@
 
 Baseline: 889836120309aa9311474caa732536b03895eb74 (stage 9). Investigation first; a small hypothesis test patch follows. Stages 1–9 are not re-extracted. Stage 10 is not started.
 
-**Status: the user reproduced the visible issue after stage 9. Selected values and the preview disagree. The native trigger is UNVERIFIED. This patch is a hypothesis, not a confirmed native-renderer fix.**
+**Current status: the user reports that hair is fixed, but BBY - CYBERWARE 08 still leaves visible cyberware. Commit 367a340 did not fix that remaining case. The native trigger is UNVERIFIED. No second runtime patch has been added.**
+
+## Follow-up: BBY 08 remains visible
+
+The October 29 session starting at 22:46:53 used the serialized-write test build. Its installed constants.lua and application/loading.lua matched commit 367a340. These records confirm selected data, not the rendered mesh:
+
+| Time | Record | Observed data |
+| --- | --- | --- |
+| 22:47:40 | #0254 CHANGE | Cyberware, cyberware_switcher, BBY 08, target 24 |
+| 22:47:41 | #0258 SETTLED | Target 24 confirmed after 0.521 seconds |
+| 22:47:52 | #0368 SUMMARY | ss/ddd: 59 confirmed; unconfirmed, forced, cleanupUnconfirmed, failed, unavailable and ambiguous all zero; complete |
+| 22:48:06 | #0485 CHANGE | Cyberware, cyberware_switcher, Common-Off, target 0 |
+| 22:48:06 | #0489 SETTLED | Target 0 confirmed after 0.535 seconds |
+| 22:48:16 | #0585 SUMMARY | ss/ss: 59 confirmed; unconfirmed, forced, cleanupUnconfirmed, failed, unavailable and ambiguous all zero; complete |
+
+The next load did not interrupt ss/ddd. No supersede or unconfirmed cleanup is shown for this pair. The user reports that Off or another selection can show both appearances, and cycling until BBY 08 appears makes the leftover disappear. That answer does not establish a fresh, manual-only reproduction or the exact final selector value. I cannot treat it as proof that the BBY mod itself is broken.
+
+I inspected the installed ccxl-cyberware__bby_extra-face-cyberware.archive and its .xl file without changing them. Archive SHA-256: DB77B0AE6BEC989045E580A5D5D53DE68D430B4D24EF1B19C3DED7F19E09075E. The extracted female definitions show:
+
+- The primary BBY 08 switcher choice names bby_cyberware_08 and hairstyle. Its appearance occupies cyberware and links to skin color.
+- That appearance loads bby_extra_cyberware_app.app. Its pale and warm-ivory definitions contain a bby_cyberware_08 component using the vanilla lip-makeup morph target, plus an override for the vanilla cyberware_06 entity.
+- The .xl patches the vanilla freckle, eye-makeup and lip-makeup meshes. The BBY 08 mesh appearance is in the lip-makeup patch.
+- A second selector, cyberware_2_switcher, uses bby_cyberware_08_2 and a copied .app resource. The log shows no secondary-selector write in this sequence. Neither that absence nor the shared resources prove that the secondary selector caused the leftover.
+
+These are asset relationships, not evidence of a missing native removal call. Empty onDeactivateActions arrays alone do not establish a defect. Activity.log did not capture native component creation, removal or appearance callbacks.
+
+The loader considers an equal selected index satisfied: domain/matching.lua disposition returns matching, and adapters/game_options.lua counts it without calling beginPendingChange. The latter calls system.ApplyChangeToOption directly. The local decompiled creator script uses that same method, with surrounding camera, busy-state and callback handling. Whether those differences matter here remains UNVERIFIED.
+
+The game executable reports product version 2.5. The ArchiveXL session log starts with ArchiveXL 1.28.0. Its upstream [1.28.5 release](https://github.com/psiberx/cp2077-archive-xl/releases/tag/v1.28.5) reports a fix for rendering patched static materials. I compared the 1.28.0 and 1.28.5 source: mesh appearance/material handling changed, but this does not prove that the update fixes BBY 08. No dependency was updated during this investigation.
+
+The conditional preview test below is insufficient for this remaining case. It does not model BBY's linked appearances, component ownership, resource patches, or native appearance callbacks. Its passing result cannot establish a cyberware fix. A second automatic toggle or a BBY-specific ordering change would still be a hypothesis; neither is implemented here.
+
+### Defects found in the follow-up
+
+- BBY 08 can remain visible after a confirmed Off write and a complete load. Trace: application/loading.lua pending/finish_pass, adapters/game_options.lua beginPendingChange and cleanup, and domain/matching.lua disposition. The native component lifetime between those calls is UNVERIFIED.
+- Reloading an equal selected value does not rebuild a stale preview. This explains why another successful data check need not repair it; it does not establish the original trigger.
+- Hair is resolved according to the user's in-game report. I have left that behavior alone and have not started stage 10.
+
+The sections below preserve the original investigation and the first hypothesis patch for comparison. They must not be read as a successful fix for BBY 08.
 
 ## Evidence and scope
 
