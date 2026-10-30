@@ -3,8 +3,6 @@ package.path=root.."?.lua;"..package.path
 require("modules/domain/stage7_sandbox").install(root)
 local runtime=require("modules/runtime")
 for _,name in ipairs({"constants","state","filesystem","catalog","options","comparison","view_cache","load_engine"})do require("modules/"..name)end
-local RECORDED_GROUP_LIMIT=4
-runtime.AUTO_LOAD_TIMING.maximumGroupChanges=RECORDED_GROUP_LIMIT
 local stateModel=require("modules/domain/state")
 local presetCodec=require("modules/domain/preset_codec")
 local function literal(value)

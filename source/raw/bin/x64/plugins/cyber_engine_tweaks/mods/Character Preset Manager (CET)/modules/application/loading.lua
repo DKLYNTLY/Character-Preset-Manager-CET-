@@ -8,7 +8,6 @@ local CHOICE_STAGE_SECONDARY = "secondary"
 local CHOICE_STAGE_VERIFY = "verify"
 local CHANGE_APPLY = "apply"
 local CHANGE_PRECLEANUP = "precleanup"
-local SINGLE_CHANGE_GROUP_SIZE = 1
 local actions = {}
 local function action(name)
   local result = actions[name]
@@ -204,12 +203,6 @@ handlers.group_finish_write = function(state,event)
     state.nextInterval=event.timing.pollInterval;state.needsContinue=true;return actions.group_staged
   end
   for _,pending in ipairs(event.group)do state.stagePending[#state.stagePending+1]=pending end
-  if event.timing.maximumGroupChanges == SINGLE_CHANGE_GROUP_SIZE then
-    local pending=state.stagePending;state.stagePending={};pending.stage=true
-    pending.accountedAt=state.elapsed;pending.settleUntil=state.elapsed+event.timing.dependencyStableTime
-    pending.deadline=state.elapsed+event.timing.dependencyTimeout;state.batch=pending
-    state.nextInterval=event.timing.pollInterval;state.needsContinue=true;return actions.group_staged
-  end
   state.nextInterval=0;state.needsContinue=true;return actions.group_written
 end
 handlers.choice_stage = function(state)

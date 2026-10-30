@@ -4,6 +4,10 @@ Baseline: 889836120309aa9311474caa732536b03895eb74 (stage 9). Investigation firs
 
 **Current status: the user reports that hair is fixed, but BBY - CYBERWARE 08 still leaves visible cyberware. Commit 367a340 did not fix that remaining case. The native trigger is UNVERIFIED. No second runtime patch has been added.**
 
+## Test build withdrawn
+
+The user rejected the slower Part B test on October 30, 2026. Runtime loading.lua, constants.lua and the original stage7_tests.lua are restored byte-for-byte from 8898361. The three Part B test/fixture files are removed from the active tree; Git history keeps them for reference. Use the Stage 9 Test 8898361 ZIP. The investigation below is historical, and the remaining cyberware issue is unresolved. No new fix is included.
+
 ## Follow-up: BBY 08 remains visible
 
 The October 29 session starting at 22:46:53 used the serialized-write test build. Its installed constants.lua and application/loading.lua matched commit 367a340. These records confirm selected data, not the rendered mesh:

@@ -1,6 +1,6 @@
 # Stage 8 Part A loader extraction
 
-Baseline: `64b9c7414a61a7e72180fda38c4cb575cad6f5a4`. This is the historical Part A record. Part B was reopened after the stage 9 reproduction; see STAGE8B.md for the evidence and the hypothesis test build.
+Baseline: `64b9c7414a61a7e72180fda38c4cb575cad6f5a4`. This is the historical Part A record. Part B was reopened after the stage 9 reproduction. Its slower test build was withdrawn on October 30, 2026; runtime behavior is restored to 8898361. See STAGE8B.md for the historical investigation.
 
 ## Before extraction: boundaries and callers
 

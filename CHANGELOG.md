@@ -9,8 +9,8 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
-- Applies and checks one preset option at a time while testing leftover preview items.
-  Loads may take longer; the in-game cause is still unverified.
+- Restores the stage 9 loader from 8898361. The slower Part B preview test
+  has been withdrawn; the cyberware issue remains unresolved.
 
 - Separates editor lifecycle decisions from game calls and hooks. Launching,
   mirror behavior, wardrobe handling, and cleanup keep their current behavior.
