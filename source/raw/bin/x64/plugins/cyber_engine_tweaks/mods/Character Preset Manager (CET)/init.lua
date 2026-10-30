@@ -27,7 +27,6 @@ require("modules/ui/sections_manage")
 require("modules/ui/sections_backup")
 require("modules/ui/sections_bulk")
 require("modules/ui/sections_trash")
-require("modules/ui/help_panel")
 require("modules/ui/debug_panel")
 require("modules/ui/draw")
 local events = assert(require("modules/events"),

@@ -49,7 +49,6 @@ helpers.releaseIdleMemory = function()
   end
   helpers.releaseViewCaches()
   ui.closeDebugPanel()
-  state.ui.bindingCache = {}
   state.app.optionsMemo = nil
   state.invalidatePreflight()
   return true
@@ -148,7 +147,6 @@ events.onOverlayOpen = function()
   state.app.optionsMemo = nil
   refreshAppearanceHistory()
   state.backup.filesDirty = true
-  state.ui.bindingCache = {}
   state.ui.windowPositionCached = false
   state.ui.cachedWindowX = nil
   state.ui.cachedDisplayWidth = nil

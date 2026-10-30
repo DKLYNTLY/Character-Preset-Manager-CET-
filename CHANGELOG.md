@@ -2,12 +2,14 @@
 
 The latest release is at the top. Each older section describes the mod as it
 was then, including controls and paths that may have changed. Use the README
-and in-game Help for current steps.
+for current steps.
 
 <details open>
 <summary><strong>Latest release - 4.0.1</strong></summary>
 
 ## 4.0.1
+
+- Removes the Help panel. Preset sorting stays in Settings.
 
 - Rewrites the README with shorter instructions and answers to common problems.
 

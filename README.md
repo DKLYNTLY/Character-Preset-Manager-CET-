@@ -133,7 +133,7 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Check preset compatibility and use Force Full Load.
 - Open the full character customization menu.
 - Randomize your appearance and choose which categories can change.
-- Change settings and view the Activity Log.
+- Change preset sorting in **Settings** and view the Activity Log.
 
 ![Advanced Preset Manager](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Advanced%20Menu.gif)
 

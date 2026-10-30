@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local commands = require("modules/ui/commands")
 
 ui = {}
 
@@ -260,5 +261,144 @@ function drawPageControls(key, count, pageSize, label)
   if page >= pages then ImGui.EndDisabled() end
   ImGui.TextDisabled(("%s page %d of %d"):format(label or "List", page, pages))
 end
+
+ui.pathCallout = function(childId, label, path)
+  ImGui.Spacing()
+  ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
+  local pathLines = math.max(1, math.ceil(#tostring(path) / 48))
+  local calloutHeight = math.min(118, 38 + pathLines * 18)
+  ImGui.BeginChild(childId, 0, calloutHeight, true)
+  ImGui.TextColored(0.97, 0.72, 0.20, 1.0, label)
+  coloredWrapped(1.0, 1.0, 1.0, 1.0, path)
+  ImGui.EndChild()
+  ImGui.PopStyleColor(2)
+end
+
+ui.defaultWindowPosition = function()
+  local viewportOk, workX, workY, workWidth = pcall(function()
+    if not ImGui.GetMainViewport then return nil end
+    local viewport = ImGui.GetMainViewport()
+    if not viewport or not viewport.WorkPos or not viewport.WorkSize then return nil end
+    return tonumber(viewport.WorkPos.x or viewport.WorkPos.X or viewport.WorkPos[1]),
+      tonumber(viewport.WorkPos.y or viewport.WorkPos.Y or viewport.WorkPos[2]),
+      tonumber(viewport.WorkSize.x or viewport.WorkSize.X or viewport.WorkSize[1])
+  end)
+  if viewportOk and workWidth and workWidth > 460 then
+    workX, workY = workX or 0, workY or 0
+    return math.max(workX + 20, workX + workWidth - 440), workY + 40, workWidth
+  end
+  local sizeOk, first, second = pcall(function()
+    if ImGui.GetDisplaySize then return ImGui.GetDisplaySize() end
+    if ImGui.GetIO then
+      local io = ImGui.GetIO()
+      return io and io.DisplaySize or nil
+    end
+    return nil
+  end)
+  local displayWidth = nil
+  if sizeOk then
+    displayWidth = tonumber(first)
+    if not displayWidth and first then
+      local widthOk, width = pcall(function()
+        return first.x or first.X or first[1]
+      end)
+      if widthOk then displayWidth = tonumber(width) end
+    end
+    if not displayWidth then displayWidth = tonumber(second) end
+  end
+  if not displayWidth then
+    local resolutionOk, resolutionWidth = pcall(function()
+      return GetDisplayResolution and GetDisplayResolution() or nil
+    end)
+    if resolutionOk then displayWidth = tonumber(resolutionWidth) end
+  end
+  if not displayWidth or displayWidth <= 460 then return nil, 40, displayWidth end
+  return math.max(20, displayWidth - 440), 40, displayWidth
+end
+
+drawFallbackHudNotice = function()
+  if not state.ui.fallbackNoticePending or state.app.overlayOpen then return end
+  local layout = state.ui.fallbackNoticeLayout
+  if not layout then
+    local _, viewportY, viewportWidth = ui.defaultWindowPosition()
+    viewportY = tonumber(viewportY) or 0
+    viewportWidth = tonumber(viewportWidth) or 1280
+    local titleWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_TITLE)
+    local messageWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_MESSAGE)
+    local cetWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_CET_MESSAGE)
+    local width = math.min(viewportWidth - 48,
+      math.max(380, math.max(titleWidth, messageWidth, cetWidth) + 32))
+    layout = {
+      width = width,
+      height = 82,
+      x = math.max(24, (viewportWidth - width) * 0.5),
+      y = viewportY + 72,
+      titleX = math.max(14, (width - titleWidth) * 0.5),
+      messageX = math.max(14, (width - messageWidth) * 0.5),
+      cetX = math.max(14, (width - cetWidth) * 0.5),
+      flags = bit32.bor(
+        ImGuiWindowFlags.NoTitleBar,
+        ImGuiWindowFlags.NoResize,
+        ImGuiWindowFlags.NoScrollbar,
+        ImGuiWindowFlags.NoScrollWithMouse,
+        ImGuiWindowFlags.NoCollapse,
+        ImGuiWindowFlags.NoSavedSettings,
+        ImGuiWindowFlags.NoMove,
+        ImGuiWindowFlags.NoInputs
+      ),
+    }
+    state.ui.fallbackNoticeLayout = layout
+  end
+  ImGui.SetNextWindowPos(layout.x, layout.y, ImGuiCond.Always)
+  ImGui.SetNextWindowSize(layout.width, layout.height, ImGuiCond.Always)
+  ImGui.PushStyleColor(ImGuiCol.WindowBg, 0.055, 0.059, 0.078, 0.94)
+  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.85)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
+  ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 7.0)
+  if ImGui.Begin("##CharacterPresetManagerFallback", true, layout.flags) then
+    ImGui.SetCursorPosX(layout.titleX)
+    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, FALLBACK_NOTICE_TITLE)
+    ImGui.SetCursorPosX(layout.messageX)
+    ImGui.TextColored(1.0, 1.0, 1.0, 1.0, FALLBACK_NOTICE_MESSAGE)
+    ImGui.SetCursorPosX(layout.cetX)
+    ImGui.TextColored(0.64, 0.67, 0.73, 1.0, FALLBACK_NOTICE_CET_MESSAGE)
+  end
+  ImGui.End()
+  ImGui.PopStyleVar(3)
+  ImGui.PopStyleColor(2)
+end
+
+drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
+if state.ui.settingsOpen then
+      ImGui.Spacing()
+      ImGui.BeginChild("##settings", 0, 240, true)
+      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
+      ImGui.TextWrapped("Preset Sort Order")
+      if ImGui.Selectable("Name##settingsSortName",
+          state.preferences.presetSort == "name") then
+        commands.run(runtime, "sort_name")
+      end
+      if ImGui.Selectable("Last modified##settingsSortModified",
+          state.preferences.presetSort == "modified") then
+        commands.run(runtime, "sort_modified")
+      end
+      ImGui.Spacing()
+      ImGui.TextWrapped("This setting is available here in CET.")
+      ImGui.TextDisabled(CONFIG_FILE)
+      if compactSubsectionButton("Settings File",
+          "Hide Settings File", "settingsFile") then
+      ImGui.Indent(8)
+      ImGui.TextWrapped("This file mirrors the shared setting automatically. Complete-library backups include it.")
+      finishCompactSubsection()
+      end
+      if state.status.settings ~= "" then
+        coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.settings)
+      end
+      ImGui.EndChild()
+    end
+end
+
 
 return _ENV

@@ -54,7 +54,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local topRowStartX = ImGui.GetCursorPosX()
     local topRowWidth = ImGui.GetContentRegionAvail()
     local topButtonWidth = 72
-    local topControlsWidth = topButtonWidth * 3 + 16
+    local topControlsWidth = topButtonWidth * 2 + 8
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
     if state.app.inCustomization then
@@ -69,17 +69,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     if ImGui.Button("Settings##settings", topButtonWidth, actionButtonHeight) then
       state.ui.settingsOpen = not state.ui.settingsOpen
       if state.ui.settingsOpen then
-        state.ui.helpOpen = false
         ui.closeDebugPanel()
-      end
-    end
-    ImGui.SameLine()
-    if ImGui.Button("Help##help", topButtonWidth, actionButtonHeight) then
-      state.ui.helpOpen = not state.ui.helpOpen
-      if state.ui.helpOpen then
-        state.ui.settingsOpen = false
-        ui.closeDebugPanel()
-        state.ui.bindingCache = {}
       end
     end
     ImGui.SameLine()
@@ -89,7 +79,6 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
       else
         state.ui.debugOpen = true
         state.ui.settingsOpen = false
-        state.ui.helpOpen = false
         ui.readDiagnosticLog()
       end
     end
@@ -97,7 +86,6 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     if state.ui.debugOpen then
       ui.drawDebugPanel(extraHeight)
     end
-    drawHelpPanel(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawEditorSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawLoadSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawSaveSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
