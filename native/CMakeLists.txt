@@ -13,7 +13,14 @@ set(RED4EXT_HEADER_ONLY OFF CACHE BOOL "" FORCE)
 set(RED4EXT_USE_PCH OFF CACHE BOOL "" FORCE)
 add_subdirectory("${RED4EXT_SDK_PATH}" RED4ext.SDK)
 
-add_library(CharacterPresetManagerNative SHARED src/Main.cpp)
+add_library(CharacterPresetManagerNative SHARED
+  src/Main.cpp
+  src/FileService.cpp
+  src/FileFormats.cpp
+  src/AcuImporter.cpp
+  src/DirectoryWatcher.cpp
+  src/OverlayOpener.cpp
+)
 target_link_libraries(CharacterPresetManagerNative PRIVATE RED4ext::SDK user32)
 target_compile_definitions(CharacterPresetManagerNative PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)
 target_compile_options(CharacterPresetManagerNative PRIVATE /W4 /permissive- /EHsc)

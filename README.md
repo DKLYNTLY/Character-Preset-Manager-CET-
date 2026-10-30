@@ -295,6 +295,8 @@ Move the original out of the ACU presets folder, then delete the imported copy.
 
 Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened and what you were doing. Include your latest `Activity.log` so I can check what went wrong.
 
+Include the **RED4ext log** when a report concerns ACU imports, folder watching, or opening CET. If it says the native file service stopped after an unexpected error, fully restart the game.
+
 Select **Log** at the top of the Advanced Preset Manager to read or copy it. You can also find the file inside your game folder:
 
 ```text
