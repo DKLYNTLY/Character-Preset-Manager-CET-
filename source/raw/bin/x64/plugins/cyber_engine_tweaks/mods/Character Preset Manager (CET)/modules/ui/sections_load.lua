@@ -258,6 +258,15 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     if compactSubsectionButton("Advanced Preset Options",
         "Hide Advanced Preset Options", "loadFavorites") then
       ImGui.Indent(8)
+      local randomizerAvailable = canRunAppearanceRandomizer()
+      if not randomizerAvailable then ImGui.BeginDisabled() end
+      if fullWidthButton("Randomize Settings##appearanceRandomizeSettings", actionButtonHeight) then
+        commands.run(runtime, "randomize_settings", {available = randomizerAvailable})
+      end
+      if not randomizerAvailable then ImGui.EndDisabled() end
+      if state.editor.pendingRandomizeSettings then
+        ImGui.TextWrapped("Close CET to open the game's Randomize Settings.")
+      end
       local optionalPreset = state.library.selected
         and state.library.presets[state.library.selected]
       if optionalPreset then
