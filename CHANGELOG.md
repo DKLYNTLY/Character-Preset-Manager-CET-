@@ -9,6 +9,9 @@ for current steps.
 
 ## 4.0.1
 
+- Removes the empty Voice.reds file left by the earlier voice-feature removal.
+  No active voice code or config keys remain to remove.
+
 - Removes full-library backup export and import. Folder sharing, preset
   sharing, Trash, and appearance history keep their current behavior.
 

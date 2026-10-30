@@ -80,6 +80,8 @@ Install these four frameworks:
    red4ext/plugins/CharacterPresetManager
    ```
 
+Do not rely on overwriting files alone. Old scripts can remain active.
+
 4. Install the new version using the installation steps above, and update the required frameworks if needed.
 5. Restore your backed-up `Character Presets` and `Data` folders to the mod folder.
 6. Start the game.
