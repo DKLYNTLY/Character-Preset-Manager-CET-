@@ -9,6 +9,8 @@ and in-game Help for current steps.
 
 ## 4.0.1
 
+- Rewrites the README with shorter instructions and answers to common problems.
+
 - Keeps stage reports and tests on the dev-archive branch. The README links
   to that archive, and future development files stay off main.
 
