@@ -5,6 +5,7 @@ local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local names = require("modules/domain/names")
 local paths = require("modules/domain/paths")
+local folderModel = require("modules/domain/folders")
 local fileAdapter = require("modules/adapters/files")
 local storage = require("modules/application/storage")
 
@@ -48,11 +49,7 @@ function resetLoadState()
   stateModel.resetLoad(state.load, AUTO_LOAD_TIMING.passInterval)
 end
 
-function cloneMap(source)
-  local copy = {}
-  for key, value in pairs(source or {}) do copy[key] = value end
-  return copy
-end
+cloneMap = folderModel.cloneMap
 
 function safeDirectoryEntries(path, depth)
   return fileAdapter.safeDirectoryEntries(dir, path, depth, MAX_TREE_DEPTH)

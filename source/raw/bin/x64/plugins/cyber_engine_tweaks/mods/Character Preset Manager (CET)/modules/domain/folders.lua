@@ -133,5 +133,5 @@ local function relocationPlans(presets, folder, reservedStorage)
   return relocationPlans
 end
 
-return {renameContents=renameContents, removeContents=removeContents, currentNames=currentNames,
+return {cloneMap=cloneMap,renameContents=renameContents, removeContents=removeContents, currentNames=currentNames,
   needsHeaderSync=needsHeaderSync, relocationPlans=relocationPlans, copyFolderMaps=copyFolderMaps, addCopiedFolders=addCopiedFolders}

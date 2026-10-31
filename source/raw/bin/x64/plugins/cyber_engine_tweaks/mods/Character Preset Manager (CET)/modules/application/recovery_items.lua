@@ -2,11 +2,7 @@ local paths = require("modules/domain/paths")
 local names = require("modules/domain/names")
 local parentFolder, baseName, joinFolder, isInFolderTree = paths.parentFolder, paths.baseName, paths.joinFolder, paths.isInFolderTree
 local folderModel = require("modules/domain/folders")
-local function cloneMap(source)
-  local copy = {}
-  for key,value in pairs(source or {})do copy[key]=value end
-  return copy
-end
+local cloneMap = folderModel.cloneMap
 local function importMaps(library,root,folders)
   local newPresets,newFolders,newManualFolders = folderModel.copyFolderMaps(library)
   local newIgnored = cloneMap(library.ignoredPhysicalFolders)
