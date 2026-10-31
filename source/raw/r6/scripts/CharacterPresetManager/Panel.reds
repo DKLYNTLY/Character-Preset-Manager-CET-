@@ -89,18 +89,10 @@ public class PanelButton extends CustomButton {
     if this.selected {
       this.fill.SetTintColor(HDRColor(0.012, 0.07, 0.08, 1.0));
     } else {
-      if this.style == 2 {
-        this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.26, 0.025, 0.035, 1.0) : HDRColor(0.045, 0.008, 0.012, 1.0));
+      if this.style == 3 {
+        this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.03, 0.16, 0.18, 1.0) : HDRColor(0.015, 0.045, 0.052, 1.0));
       } else {
-        if this.style == 1 {
-          this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.26, 0.025, 0.035, 1.0) : HDRColor(0.045, 0.008, 0.012, 1.0));
-        } else {
-          if this.style == 3 {
-            this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.03, 0.16, 0.18, 1.0) : HDRColor(0.015, 0.045, 0.052, 1.0));
-          } else {
-            this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.26, 0.025, 0.035, 1.0) : HDRColor(0.045, 0.008, 0.012, 1.0));
-          };
-        };
+        this.fill.SetTintColor(this.m_isPressed ? HDRColor(0.26, 0.025, 0.035, 1.0) : HDRColor(0.045, 0.008, 0.012, 1.0));
       };
     };
     this.fill.SetOpacity(this.m_isPressed ? 0.68 : 0.48);

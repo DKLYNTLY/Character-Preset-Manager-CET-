@@ -41,19 +41,15 @@ public class NativeBridge extends ScriptableSystem {
     this.requestAction = "";
     this.requestPayload = "";
     this.busy = isBusy;
-    let index: Int32 = ArraySize(this.panels) - 1;
-    while index >= 0 {
-      if IsDefined(this.panels[index]) {
-        this.panels[index].OnBridgeResponse(kind, payload, isBusy);
-      } else {
-        ArrayErase(this.panels, index);
-      };
-      index -= 1;
-    };
+    this.NotifyPanels(kind, payload, isBusy);
   }
 
   public func Sync(kind: String, payload: String, isBusy: Bool) -> Void {
     this.busy = isBusy;
+    this.NotifyPanels(kind, payload, isBusy);
+  }
+
+  private func NotifyPanels(kind: String, payload: String, isBusy: Bool) -> Void {
     let index: Int32 = ArraySize(this.panels) - 1;
     while index >= 0 {
       if IsDefined(this.panels[index]) {
