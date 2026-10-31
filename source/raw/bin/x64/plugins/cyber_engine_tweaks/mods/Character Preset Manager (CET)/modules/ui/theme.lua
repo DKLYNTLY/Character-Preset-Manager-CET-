@@ -316,59 +316,6 @@ ui.defaultWindowPosition = function()
   return math.max(20, displayWidth - 440), 40, displayWidth
 end
 
-drawFallbackHudNotice = function()
-  if not state.ui.fallbackNoticePending or state.app.overlayOpen then return end
-  local layout = state.ui.fallbackNoticeLayout
-  if not layout then
-    local _, viewportY, viewportWidth = ui.defaultWindowPosition()
-    viewportY = tonumber(viewportY) or 0
-    viewportWidth = tonumber(viewportWidth) or 1280
-    local titleWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_TITLE)
-    local messageWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_MESSAGE)
-    local cetWidth = ImGui.CalcTextSize(FALLBACK_NOTICE_CET_MESSAGE)
-    local width = math.min(viewportWidth - 48,
-      math.max(380, math.max(titleWidth, messageWidth, cetWidth) + 32))
-    layout = {
-      width = width,
-      height = 82,
-      x = math.max(24, (viewportWidth - width) * 0.5),
-      y = viewportY + 72,
-      titleX = math.max(14, (width - titleWidth) * 0.5),
-      messageX = math.max(14, (width - messageWidth) * 0.5),
-      cetX = math.max(14, (width - cetWidth) * 0.5),
-      flags = bit32.bor(
-        ImGuiWindowFlags.NoTitleBar,
-        ImGuiWindowFlags.NoResize,
-        ImGuiWindowFlags.NoScrollbar,
-        ImGuiWindowFlags.NoScrollWithMouse,
-        ImGuiWindowFlags.NoCollapse,
-        ImGuiWindowFlags.NoSavedSettings,
-        ImGuiWindowFlags.NoMove,
-        ImGuiWindowFlags.NoInputs
-      ),
-    }
-    state.ui.fallbackNoticeLayout = layout
-  end
-  ImGui.SetNextWindowPos(layout.x, layout.y, ImGuiCond.Always)
-  ImGui.SetNextWindowSize(layout.width, layout.height, ImGuiCond.Always)
-  ImGui.PushStyleColor(ImGuiCol.WindowBg, 0.055, 0.059, 0.078, 0.94)
-  ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.85)
-  ImGui.PushStyleVar(ImGuiStyleVar.WindowRounding, 6.0)
-  ImGui.PushStyleVar(ImGuiStyleVar.WindowBorderSize, 1.0)
-  ImGui.PushStyleVar(ImGuiStyleVar.WindowPadding, 14.0, 7.0)
-  if ImGui.Begin("##CharacterPresetManagerFallback", true, layout.flags) then
-    ImGui.SetCursorPosX(layout.titleX)
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, FALLBACK_NOTICE_TITLE)
-    ImGui.SetCursorPosX(layout.messageX)
-    ImGui.TextColored(1.0, 1.0, 1.0, 1.0, FALLBACK_NOTICE_MESSAGE)
-    ImGui.SetCursorPosX(layout.cetX)
-    ImGui.TextColored(0.64, 0.67, 0.73, 1.0, FALLBACK_NOTICE_CET_MESSAGE)
-  end
-  ImGui.End()
-  ImGui.PopStyleVar(3)
-  ImGui.PopStyleColor(2)
-end
-
 drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if state.ui.settingsOpen then
       ImGui.Spacing()

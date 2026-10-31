@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.1
 
+- Removes the on-screen notice about the character-screen panel being unavailable.
+
 - Moves Randomize below Load Selected Preset in the advanced CET menu.
 
 - Splits the native file service into file formats, imports, folder watching,

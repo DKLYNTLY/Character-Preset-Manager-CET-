@@ -75,9 +75,5 @@ NATIVE_REQUEST_POLL_SECONDS = 0.05
 ACU_IMPORT_FILES_PER_FRAME = 2
 ACU_IMPORT_POLL_SECONDS = 0.25
 NATIVE_READY_STATUS = "Ready. Choose a preset to load it, or save the current appearance below."
-FALLBACK_NOTICE_DELAY_SECONDS = 8
-FALLBACK_NOTICE_TITLE = "CHARACTER-SCREEN PANEL IS NOT AVAILABLE"
-FALLBACK_NOTICE_MESSAGE = "The simple menu and file service need an update."
-FALLBACK_NOTICE_CET_MESSAGE = "Open CET and choose Character Preset Manager to use your presets."
 
 return _ENV

@@ -110,12 +110,6 @@ state = {
     cachedWindowX = nil,
     cachedWindowY = nil,
     cachedDisplayWidth = nil,
-    fallbackNoticePending = false,
-    fallbackNoticeAcknowledged = false,
-    fallbackNoticeChecked = false,
-    fallbackNoticeLogged = false,
-    fallbackNoticeTimer = 0,
-    fallbackNoticeLayout = nil,
   },
   cache = {
     revision = 0,

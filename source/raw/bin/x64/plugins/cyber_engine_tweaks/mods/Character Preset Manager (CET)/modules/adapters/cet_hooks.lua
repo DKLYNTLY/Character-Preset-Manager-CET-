@@ -18,7 +18,6 @@ effects.enterCustomization = function() state.app.inCustomization = true end
 effects.leaveCustomization = function() state.app.inCustomization = false end
 effects.invalidatePreflight = function() state.invalidatePreflight() end
 effects.connectBridge = function(menu) connectNativeBridgeForMenu(menu) end
-effects.clearFallback = function(_, clearFallbackNotice) clearFallbackNotice() end
 effects.logOpened = function()
   log(state.app.nativeBridge
     and "[UI] The character editor opened; the simple preset menu is ready."
@@ -64,21 +63,21 @@ effects.puppetOpenedStatus = function() setEditorOpenStatus("Full editor opened.
 effects.hotkeyFailureStatus = function(launchError)
   setEditorOpenStatus("Editor hotkey failed before the menu request: " .. tostring(launchError), true)
 end
-local function execute(actions, context, clearFallbackNotice, wrappedMethod)
+local function execute(actions, context, wrappedMethod)
   for _, action in ipairs(actions) do
     if action == "originalPuppet" then return wrappedMethod() end
-    effects[action](context, clearFallbackNotice)
+    effects[action](context)
   end
 end
 local function setupPuppet(scenario, actions) execute(actions, scenario) end
 
-helpers.registerEditorHooks = function(clearFallbackNotice)
+helpers.registerEditorHooks = function()
   local observeInitOk, observeInitError = pcall(
     Observe,
     "characterCreationBodyMorphMenu",
     "OnInitialize",
     function(menu)
-      execute(editorModel.plan("opened"), menu, clearFallbackNotice)
+      execute(editorModel.plan("opened"), menu)
     end
   )
   local observeExitOk, observeExitError = pcall(
@@ -86,7 +85,7 @@ helpers.registerEditorHooks = function(clearFallbackNotice)
     "characterCreationBodyMorphMenu",
     "OnUninitialize",
     function()
-      execute(editorModel.plan("closed"), nil, clearFallbackNotice)
+      execute(editorModel.plan("closed"))
     end
   )
   if not observeInitOk or not observeExitOk then
@@ -186,7 +185,7 @@ helpers.registerEditorHooks = function(clearFallbackNotice)
         :format(state.editor.puppetReadyCount), "info")
       local _, actions = editorModel.puppetPlan(state.editor.newGameCharacterCreator)
       local opened, editorError = pcall(setupPuppet, scenario, actions)
-      return execute(editorModel.puppetResult(opened), editorError, nil, wrappedMethod)
+      return execute(editorModel.puppetResult(opened), editorError, wrappedMethod)
     end
   )
 
@@ -203,8 +202,8 @@ helpers.registerEditorHooks = function(clearFallbackNotice)
 
 end
 
-helpers.shutdownEditor = function(clearFallbackNotice)
-  execute(editorModel.plan("shutdown"), nil, clearFallbackNotice)
+helpers.shutdownEditor = function()
+  execute(editorModel.plan("shutdown"))
 end
 
 helpers.updateEditorWatchdog = function(elapsed)

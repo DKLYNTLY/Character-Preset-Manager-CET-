@@ -6,38 +6,6 @@ require("modules/adapters/cet_hooks").install(runtime)
 
 events = {}
 
-local function clearFallbackNotice()
-  state.ui.fallbackNoticePending = false
-  state.ui.fallbackNoticeAcknowledged = false
-  state.ui.fallbackNoticeChecked = false
-  state.ui.fallbackNoticeTimer = 0
-  state.ui.fallbackNoticeLayout = nil
-end
-
-local function updateFallbackNotice(elapsed)
-  if not state.app.inCustomization or state.app.overlayOpen
-      or state.ui.fallbackNoticeAcknowledged
-      or state.app.nativeBridge or state.nativeCatalog.available then
-    state.ui.fallbackNoticePending = false
-    state.ui.fallbackNoticeTimer = 0
-    state.ui.fallbackNoticeLayout = nil
-    return
-  end
-  state.ui.fallbackNoticeTimer = state.ui.fallbackNoticeTimer
-    + math.max(0, tonumber(elapsed) or 0)
-  if state.ui.fallbackNoticeTimer < FALLBACK_NOTICE_DELAY_SECONDS then return end
-  if not state.ui.fallbackNoticeChecked then
-    state.ui.fallbackNoticeChecked = true
-    verifiedNativeFileCatalog()
-  end
-  if state.app.nativeBridge or state.nativeCatalog.available then return end
-  state.ui.fallbackNoticePending = true
-  if not state.ui.fallbackNoticeLogged then
-    state.ui.fallbackNoticeLogged = true
-    log("[FALLBACK] The simple menu and file service are not available. Open the complete manager in CET.", "warn")
-  end
-end
-
 helpers.releaseIdleMemory = function()
   if state.load.auto or state.load.needsContinue or state.load.pendingChange then
     return false
@@ -83,7 +51,7 @@ events.onInit = function()
     log(("[UI] Window position status '%s' found; CET's saved position will be preserved.")
       :format(WINDOW_POSITION_STATUS_FILE), "info")
   end
-  helpers.registerEditorHooks(clearFallbackNotice)
+  helpers.registerEditorHooks()
 
   local recovered, recoveredOriginals, recoveredAssignments,
     recoveredFolders, recoveredManualFolders = recoverTransaction()
@@ -110,7 +78,7 @@ events.onInit = function()
 end
 
 events.onShutdown = function()
-  helpers.shutdownEditor(clearFallbackNotice)
+  helpers.shutdownEditor()
 end
 
 events.onUpdate = function(delta)
@@ -120,7 +88,6 @@ events.onUpdate = function(delta)
   updateAcuImport(elapsed)
   local loadInvocationBeforeBridge = state.app.loadInvocation
   updateNativeBridge(elapsed)
-  updateFallbackNotice(elapsed)
   if not state.editor.openPending and not state.load.auto then
     return
   end
@@ -133,14 +100,6 @@ end
 events.onOverlayOpen = function()
   helpers.finishOverlayRequest()
   log("[UI] CET opened; showing Character Preset Manager. Select Refresh after changing preset files outside CET.", "info")
-  if state.ui.fallbackNoticePending then
-    state.ui.fallbackNoticePending = false
-    state.ui.fallbackNoticeLayout = nil
-    log("[FALLBACK] The CET fallback reminder was acknowledged.", "info")
-  end
-  if state.app.inCustomization then
-    state.ui.fallbackNoticeAcknowledged = true
-  end
   state.app.overlayOpen = true
   state.app.windowOpen = true
   state.app.optionsMemo = nil
@@ -166,15 +125,6 @@ events.onOverlayClose = function()
 end
 
 events.onDraw = function()
-  if state.ui.fallbackNoticePending and not state.app.overlayOpen then
-    local noticeOk, noticeError = pcall(drawFallbackHudNotice)
-    if not noticeOk then
-      state.ui.fallbackNoticePending = false
-      state.ui.fallbackNoticeLayout = nil
-      log("[FALLBACK] The CET fallback reminder was hidden after a display error: " ..
-        tostring(noticeError), "error")
-    end
-  end
   if state.app.overlayOpen and state.app.windowOpen then draw() end
 end
 
