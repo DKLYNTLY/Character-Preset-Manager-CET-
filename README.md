@@ -16,7 +16,7 @@
   · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">Source Code</a>
 </p>
 
-<p align="center"><strong>Current version: 4.0.1</strong> · <a href="CHANGELOG.md">Changelog</a></p>
+<p align="center"><strong>Current version: 4.0.2</strong> · <a href="CHANGELOG.md">Changelog</a></p>
 
 > [!IMPORTANT]
 > Remove the **ACU mod**, but keep your **ACU presets**.
@@ -347,3 +347,5 @@ ChatGPT helped me with this mod. I wrote the code myself.
 Thanks to CD Projekt Red for Cyberpunk 2077, and to everyone who has tested the mod, reported problems, or shared feedback.
 
 </details>
+
+Development reports and tests are kept in the [private development archive](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-dev-archive). Access is restricted.

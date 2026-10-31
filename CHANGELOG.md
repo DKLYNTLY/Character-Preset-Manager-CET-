@@ -5,78 +5,27 @@ was then, including controls and paths that may have changed. Use the README
 for current steps.
 
 <details open>
-<summary><strong>Latest release - 4.0.1</strong></summary>
+<summary><strong>Latest release - 4.0.2</strong></summary>
+
+## 4.0.2
+
+- Moves Randomize below Load Selected Preset in the advanced CET menu. Randomize Settings is now in Advanced Preset Options.
+- Removes Help, full-library backup export/import, and Cancel Loading. Preset sorting stays in Settings; single-preset and folder sharing, Trash, and appearance history remain available.
+- Releases the menu and camera if a preset load times out.
+- Removes the on-screen notice about the character-screen panel being unavailable.
+- Tidies the mod's code and improves handling of unexpected file-service errors. Existing presets and settings stay compatible.
+
+Update: Back up your Character Presets and Data folders, remove the three old mod folders, then install this version and restore your saved folders. This removes old scripts that a ZIP overwrite would leave behind. Keep any .cpmbackup files you want to retain; this update does not delete them.
+
+Known issue: Some modded cyberware may remain visible after loading several presets. Leaving the appearance menu clears the preview.
+
+</details>
+
+<details>
+<summary><strong>4.0.1</strong></summary>
 
 ## 4.0.1
 
-- Removes the on-screen notice about the character-screen panel being unavailable.
-
-- Moves Randomize below Load Selected Preset in the advanced CET menu.
-
-- Splits the native file service into file formats, imports, folder watching,
-  overlay input, and lifecycle code. Existing formats and normal behavior stay
-  the same; unexpected native exceptions are now caught at the service boundary.
-
-- Moves Randomize Settings into Advanced Preset Options under Load & Restore
-  Appearance in CET.
-
-- Removes the empty Voice.reds file left by the earlier voice-feature removal.
-  No active voice code or config keys remain to remove.
-
-- Removes full-library backup export and import. Folder sharing, preset
-  sharing, Trash, and appearance history keep their current behavior.
-
-- Removes the Help panel. Preset sorting stays in Settings.
-
-- Rewrites the README with shorter instructions and answers to common problems.
-
-- Keeps stage reports and tests on the dev-archive branch. The README links
-  to that archive, and future development files stay off main.
-
-- Routes both menus through shared commands. Existing controls, prompts,
-  library files, and bridge protocol 1 keep their current behavior.
-
-- Restores the stage 9 loader from 8898361. The slower Part B preview test
-  has been withdrawn; the cyberware issue remains unresolved.
-
-- Separates editor lifecycle decisions from game calls and hooks. Launching,
-  mirror behavior, wardrobe handling, and cleanup keep their current behavior.
-
-- Separates loader transitions from game calls while keeping the current load
-  steps, timing limits, status messages, and cleanup behavior.
-
-- Separates option matching and comparison from game reads. Existing matching
-  rules, caches, load steps, and warnings keep their current behavior.
-
-- Separates sharing, backup, Trash, and appearance history decisions from file
-  handling. Existing formats and recovery behavior stay the same.
-
-- Separates library and folder decisions from file and menu handling. Saved
-  files, controls, and recovery rules keep their current behavior.
-
-- Fixes the stage 4 startup error that left the preset list empty and menu
-  controls unavailable in CET.
-
-- Separates storage and recovery code while keeping existing preset files,
-  journal records, and rollback rules unchanged.
-
-- Releases menu controls and automatic camera focus when a load times out.
-  The safety limit stays the same, and queued load work is cleared.
-
-- Removes Cancel Loading from CET and Cancel Load from the character-screen menu.
-  Other load and recovery controls keep their current behavior.
-
-- Adds direct PayPal support beside Ko-fi on my project pages and profiles.
-  Keeps support links separate from Discord help.
-
-- Groups the CurseForge guide by task and labels the community link as Discord.
-  Keeps optional Ko-fi support separate from help and bug reports.
-
-- Adds Ko-fi and PayPal buttons to the README and all four Nexus mod pages.
-  Uses the new PayPal link and removes the repeated Ko-fi text on Nexus.
-
-- Adds a visible showcase video to the README and Nexus description.
-  Expands the credits for the required framework authors and ChatGPT's help with UIs and issue diagnosis.
 - Applies presets in small groups through cleanup, main choices, and linked details.
   Shares confirmation across each stage while keeping the original file service and preset reader.
 - Pauses automatic camera focus during preset loading and recovery.
