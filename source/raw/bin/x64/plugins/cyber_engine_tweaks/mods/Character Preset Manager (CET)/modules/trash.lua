@@ -18,10 +18,6 @@ local recoveryPorts = {
 
 do
 
-local function validTrashFilename(filename)
-  return paths.validTrashFilename(filename)
-end
-
 local function trashCatalogLines(trash, groups)
   return trashCodec.encode(trash, groups, MAX_CATALOG_LINES)
 end

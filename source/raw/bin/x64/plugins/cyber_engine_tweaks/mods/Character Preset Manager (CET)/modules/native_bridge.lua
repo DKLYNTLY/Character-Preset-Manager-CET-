@@ -92,7 +92,6 @@ local function findNativeBridge()
   return nil
 end
 
-local nativeStatus = commandAdapter.nativeStatus
 
 local function listPayload(query, overrideMessage, overrideError)
   query = tostring(query or ""):lower()
@@ -277,10 +276,6 @@ local function handleNativeRequest(action, payload)
     return result.responseKind, result.responsePayload, result.responseExtra
   end
   return result.responseKind, result.responsePayload
-end
-
-setPresetSortPreference = function(value)
-  commandAdapter.run("cet", "sort", {value = value})
 end
 
 initializeNativeBridge = function(configLoaded, preferredBridge)
