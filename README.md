@@ -1,19 +1,19 @@
-<h1 align="center">Character Preset Manager (CET)</h1>
+<h1 align="center">CHARACTER PRESET MANAGER</h1>
 
-<p align="center"><strong>Save, load, organize, and share your Cyberpunk 2077 appearances.</strong><br>
-<em>A complete preset library in CET, with a Preset Manager menu in the character screen.</em></p>
-
-<p align="center">If you enjoy my mods, you can support my work through Ko-fi or PayPal.</p>
+<p align="center"><strong>Your character. Your presets.</strong><br>
+<em>Save, load, and share your looks. Supports ACU preset files.</em></p>
 
 <p align="center">
   <a href="https://ko-fi.com/A3G129JCLF"><img src="https://ko-fi.com/img/githubbutton_sm.svg" alt="Support me on Ko-fi"></a>
   <a href="https://www.paypal.com/ncp/payment/7ZKG8YG6GCERC"><img src="https://img.shields.io/badge/Support%20via-PayPal-0070BA?style=for-the-badge&amp;logo=paypal&amp;logoColor=white" alt="Support via PayPal" height="30"></a>
 </p>
 
+<p align="center">If you enjoy my mods, you can support my work through Ko-fi or PayPal.</p>
+
 <p align="center">
-  <a href="https://www.nexusmods.com/cyberpunk2077/mods/31886">Download</a>
-  · <a href="https://discord.com/invite/mUGHmQxHG8">Discord</a>
-  · <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-">Source Code</a>
+  <a href="https://www.nexusmods.com/cyberpunk2077/mods/31886"><strong>DOWNLOAD</strong></a>
+  • <a href="https://discord.com/invite/mUGHmQxHG8"><strong>DISCORD</strong></a>
+  • <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-"><strong>SOURCE CODE</strong></a>
 </p>
 
 <p align="center"><strong>Current version: 4.0.2</strong> · <a href="CHANGELOG.md">Changelog</a></p>
@@ -348,4 +348,3 @@ Thanks to CD Projekt Red for Cyberpunk 2077, and to everyone who has tested the 
 
 </details>
 
-Development reports and tests are kept in the [private development archive](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-dev-archive). Access is restricted.
