@@ -215,6 +215,13 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       commands.run(runtime, "load")
     end
     if loadButtonDisabled then ImGui.EndDisabled() end
+    local randomizerAvailable = canRunAppearanceRandomizer()
+    if not randomizerAvailable then ImGui.BeginDisabled() end
+    if fullWidthButton("Randomize##appearanceRandomize", actionButtonHeight) then
+      commands.run(runtime, "randomize", {available = randomizerAvailable})
+    end
+    if not randomizerAvailable then ImGui.EndDisabled() end
+    ImGui.Spacing()
     local restoreFileAvailable = state.load.recoverySnapshotAvailable == true
     local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
       or state.load.auto or state.load.needsContinue

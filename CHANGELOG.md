@@ -9,12 +9,14 @@ for current steps.
 
 ## 4.0.1
 
+- Moves Randomize below Load Selected Preset in the advanced CET menu.
+
 - Splits the native file service into file formats, imports, folder watching,
   overlay input, and lifecycle code. Existing formats and normal behavior stay
   the same; unexpected native exceptions are now caught at the service boundary.
 
 - Moves Randomize Settings into Advanced Preset Options under Load & Restore
-  Appearance in CET. Randomize stays in Open & Edit Appearance.
+  Appearance in CET.
 
 - Removes the empty Voice.reds file left by the earlier voice-feature removal.
   No active voice code or config keys remain to remove.

@@ -23,13 +23,6 @@ if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
         or (state.app.inCustomization and "Open"
           or (state.editor.hooksAvailable and "Available" or "Unavailable"))))
     ImGui.Spacing()
-    local randomizerAvailable = canRunAppearanceRandomizer()
-    if not randomizerAvailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Randomize##appearanceRandomize", actionButtonHeight) then
-      commands.run(runtime, "randomize", {available = randomizerAvailable})
-    end
-    if not randomizerAvailable then ImGui.EndDisabled() end
-    ImGui.Spacing()
     if editorUnavailable then ImGui.BeginDisabled() end
     if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
       commands.run(runtime, "open_editor")
