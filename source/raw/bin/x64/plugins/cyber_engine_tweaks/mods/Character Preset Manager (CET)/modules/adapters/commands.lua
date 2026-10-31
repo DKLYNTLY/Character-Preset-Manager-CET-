@@ -403,7 +403,6 @@ state.library.pendingOverwriteName = nil
       clearStatus("create")
   end
   cet.save = function(input, ports, decision)
-    local pendingCreateName = input.pendingCreateName
 savePreset(decision.overwrite)
   end
   cet.save_location_root = function(input, ports, decision)

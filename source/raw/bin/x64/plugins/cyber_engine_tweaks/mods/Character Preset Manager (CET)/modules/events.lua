@@ -2,7 +2,6 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
-local stateModel = require("modules/domain/state")
 require("modules/adapters/cet_hooks").install(runtime)
 
 events = {}

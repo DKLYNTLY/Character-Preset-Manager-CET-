@@ -1,4 +1,4 @@
-local runtime = assert(require("modules/runtime"),
+assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 require("modules/constants")
 require("modules/state")

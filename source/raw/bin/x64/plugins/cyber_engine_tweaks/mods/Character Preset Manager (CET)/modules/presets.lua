@@ -415,53 +415,6 @@ function savePreset(confirmOverwrite)
   end
 end
 
-function saveLastAppearanceSnapshot(options)
-  local entries = {}
-  for _, option in ipairs(options or {}) do
-    local key = optionKey(option)
-    if key and option.isEditable and option.isActive then
-      local currentIndex = tonumber(option.currIndex)
-      if #key > MAX_PRESET_KEY_BYTES or #entries >= MAX_PRESET_ENTRIES
-          or optionIndexValidationError(currentIndex) then
-        log(("[RECOVERY SNAPSHOT] The current appearance was not saved because option '%s' exceeds the preset safety limits.")
-          :format(tostring(key)), "warn")
-        return false
-      end
-      table.insert(entries, {
-        key = key,
-        index = currentIndex,
-        slot = optionSlot(option),
-        choice = helpers.optionChoiceKey(option, currentIndex),
-      })
-    end
-  end
-  if #entries == 0 then
-    log("[RECOVERY SNAPSHOT] No editable options were found, so the current appearance was not saved.", "warn")
-    return false
-  end
-  local timestamp = logTimestamp()
-  local preset = {
-    format = CURRENT_PRESET_FORMAT,
-    source = MOD_NAME .. " automatic recovery",
-    created = timestamp,
-    modified = timestamp,
-    notes = "Appearance saved before the last preset was loaded.",
-    tags = "recovery",
-    favorite = false,
-    managedByCpm = true,
-    presetName = "Last Appearance",
-    libraryFolder = "",
-    entries = entries,
-    entryCount = #entries,
-  }
-  local wrote = writePresetPath(LAST_APPEARANCE_FILE, preset)
-  state.load.recoverySnapshotAvailable = wrote == true
-    or state.load.recoverySnapshotAvailable == true
-  log(("[RECOVERY SNAPSHOT] Saved current appearance options=%d file='%s' success=%s.")
-    :format(#entries, LAST_APPEARANCE_FILE, tostring(wrote)), wrote and "info" or "warn")
-  return wrote
-end
-
 function renamePreset()
   helpers.auditSection("RENAME PRESET")
   if not state.library.selected or not state.library.presets[state.library.selected] then

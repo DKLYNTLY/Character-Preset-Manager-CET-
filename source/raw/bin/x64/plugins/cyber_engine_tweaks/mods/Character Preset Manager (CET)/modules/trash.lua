@@ -2,7 +2,6 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
-local paths = require("modules/domain/paths")
 local trashModel = require("modules/domain/trash")
 local recoveryItems = require("modules/application/recovery_items")
 local trashCodec = require("modules/domain/trash_codec")
@@ -137,7 +136,6 @@ local function uniqueTrashFilename(name, reserved)
 end
 
 local function uniqueRestoredBundleFilename(filename)
-  local stem = filename:sub(1, -#FOLDER_BUNDLE_EXTENSION - 1)
   for index = 1, 9999 do
     local candidate = trashModel.bundleCandidate(filename,index,FOLDER_BUNDLE_EXTENSION,true)
     if not fileExists(PRESET_DIR .. "/" .. candidate) then return candidate end

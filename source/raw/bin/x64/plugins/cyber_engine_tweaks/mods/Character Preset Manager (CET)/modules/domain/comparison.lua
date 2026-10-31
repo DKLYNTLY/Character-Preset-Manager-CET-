@@ -41,14 +41,4 @@ local function classify(valid, hasCandidate, claimed, target, current, savedInde
   if (liveCount or 0) == 0 then return "Missing", "missing", false end
   return "Repeated or uncertain", "ambiguous", false
 end
-local function preflightClass(valid, hasCandidate, claimed, missingChoice, savedIndex, liveCount)
-  if not valid then return "invalid", false end
-  if hasCandidate and not claimed then
-    if missingChoice then return "unavailable", false end
-    return "available", true
-  end
-  if tonumber(savedIndex) == 0 and (liveCount or 0) == 0 then return "available", false end
-  if (liveCount or 0) == 0 then return "unavailable", false end
-  return "ambiguous", false
-end
-return {preparePresetEntries=preparePresetEntries,classify=classify,preflightClass=preflightClass}
+return {preparePresetEntries=preparePresetEntries,classify=classify}

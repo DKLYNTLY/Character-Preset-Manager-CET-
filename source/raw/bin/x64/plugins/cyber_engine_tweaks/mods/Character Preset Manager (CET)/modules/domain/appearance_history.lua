@@ -1,5 +1,4 @@
 local names = require("modules/domain/names")
-local MAX_HISTORY_SCAN_INDEX = 10
 local MAX_ACTION_BYTES = 512
 
 local function sameAppearance(first, second)
@@ -39,13 +38,8 @@ local function rotation(limit)
   for index=limit,2,-1 do steps[#steps+1]={destination=index,source=index-1}end
   return steps
 end
-local function trimIndices(limit)
-  local indices = {}
-  for index=limit+1,MAX_HISTORY_SCAN_INDEX do indices[#indices+1]=index end
-  return indices
-end
 local function entry(index,path,preset,count)
   return {index=index,path=path,preset=preset,date=preset.modified or preset.created or "Date unavailable",
     action=preset.notes or "Automatic recovery snapshot",count=count}
 end
-return {sameAppearance=sameAppearance,snapshot=snapshot,rotation=rotation,trimIndices=trimIndices,entry=entry}
+return {sameAppearance=sameAppearance,snapshot=snapshot,rotation=rotation,entry=entry}

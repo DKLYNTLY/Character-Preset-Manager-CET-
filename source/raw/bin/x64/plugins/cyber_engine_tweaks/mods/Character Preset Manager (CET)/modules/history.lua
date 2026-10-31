@@ -50,15 +50,6 @@ refreshAppearanceHistory = function()
   return state.history.entries
 end
 
-trimAppearanceHistory = function()
-  local limit = APPEARANCE_HISTORY_LIMIT
-  for _, index in ipairs(appearanceHistory.trimIndices(limit)) do
-    local path = historyPath(index)
-    if fileExists(path) then deleteFile(path) end
-  end
-  refreshAppearanceHistory()
-end
-
 saveAppearanceHistorySnapshot = function(options, action)
   local preset = snapshotFromOptions(options, action)
   if not preset then

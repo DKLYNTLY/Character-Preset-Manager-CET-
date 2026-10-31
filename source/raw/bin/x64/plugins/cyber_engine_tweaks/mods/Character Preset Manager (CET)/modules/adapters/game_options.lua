@@ -5,7 +5,6 @@ if setfenv then setfenv(1,runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local matching = require("modules/domain/matching")
-local comparison = require("modules/domain/comparison")
 local AUTO_LOAD_SAFETY_MARGIN = 10
 local control = {}
 local eventBuffers = {}
@@ -164,7 +163,6 @@ helpers.scanLoadOptions = function(options, relevantLabels, relevantSlots)
   local occurrences = result.occurrences
   local activeSlotCounts = result.activeSlotCounts
   local signatureParts = result.signatureParts
-  local pendingChange = state.load.pendingChange
   local optionCount = #options
   eventBuffers.scan_begin.optionCount = optionCount
   transition("scan_begin")
@@ -1244,110 +1242,8 @@ function restoreLastAppearance()
 end
 
 refreshPreflight = function()
-  if compareSelectedPreset then
-    compareSelectedPreset()
-    return
-  end
-  local preflightStarted = helpers.loadClock()
-  helpers.syncForceFullLoadSelection()
-  stateModel.clearPreflightForSelection(state.load, state.library.selected)
-  local preset = state.library.selected and state.library.presets[state.library.selected]
-  if not preset then return end
-  local wasLazy = not preset.entries
-  preset = hydrateNamedPreset(state.library.selected)
-  if not preset then return end
-  if wasLazy then
-    state.library.presetNotes = preset.notes or ""
-    state.library.presetTags = preset.tags or ""
-    writeInventory(state.library.presets, state.library.folders)
-  end
-  local optionsStarted = helpers.loadClock()
-  local _, options = getOptions()
-  local optionsSeconds = math.max(0, helpers.loadClock() - optionsStarted)
-  state.app.inCustomization = options ~= nil
-  if not options then
-    if optionsSeconds >= SLOW_PREFLIGHT_SECONDS then
-      log(("[PERFORMANCE] Appearance option retrieval took %.3f seconds while checking '%s'.")
-        :format(optionsSeconds, tostring(state.library.selected)), "warn")
-    end
-    return
-  end
-  if logAcuDangerousOptions then
-    logAcuDangerousOptions(preset, options, state.library.selected)
-  end
-  local matchingStarted = helpers.loadClock()
-  local savedCounts, savedSlotCounts = {}, {}
-  for _, entry in ipairs(preset.entries or {}) do
-    savedCounts[entry.key] = (savedCounts[entry.key] or 0) + 1
-    local slot = tostring(entry.slot or "")
-    if slot ~= "" then savedSlotCounts[slot] = (savedSlotCounts[slot] or 0) + 1 end
-  end
-  local exposedCounts, exposedByLabel, exposedBySlot = {}, {}, {}
-  local activeSlotCounts = {}
-  for _, option in ipairs(options) do
-    local key = optionKey(option)
-    if key and option.isEditable and option.isActive then
-      exposedCounts[key] = (exposedCounts[key] or 0) + 1
-      exposedByLabel[key] = exposedByLabel[key] or {}
-      table.insert(exposedByLabel[key], option)
-      local slot = optionSlot(option)
-      if slot then
-        activeSlotCounts[slot] = (activeSlotCounts[slot] or 0) + 1
-        exposedBySlot[slot] = exposedBySlot[slot] or {}
-        table.insert(exposedBySlot[slot], option)
-      end
-    end
-  end
-  local available, unavailable, ambiguous, invalid = 0, 0, 0, 0
-  local savedOccurrences, savedSlotOccurrences, claimedOptions = {}, {}, {}
-  for _, entry in ipairs(preset.entries or {}) do
-    local key = entry.key
-    savedOccurrences[key] = (savedOccurrences[key] or 0) + 1
-    local candidate = nil
-    if (exposedCounts[key] or 0) == (savedCounts[key] or 0) then
-      candidate = (exposedByLabel[key] or {})[savedOccurrences[key]]
-    end
-    local slot = tostring(entry.slot or "")
-    if slot ~= "" then
-      savedSlotOccurrences[slot] = (savedSlotOccurrences[slot] or 0) + 1
-    end
-    if not candidate and slot ~= ""
-        and (savedSlotCounts[slot] or 0) == (activeSlotCounts[slot] or 0) then
-      local slotCandidate = (exposedBySlot[slot] or {})[savedSlotOccurrences[slot]]
-      if slotCandidate and not claimedOptions[slotCandidate]
-          and (state.load.forceFull
-            or (entry.choice and optionChoiceIndex(slotCandidate, entry.choice) ~= nil)) then
-        candidate = slotCandidate
-      end
-    end
-    local valid = optionIndexIsValid(tonumber(entry.index))
-    local missingChoice = valid and candidate and not claimedOptions[candidate]
-      and entry.choice and optionChoiceIndex(candidate, entry.choice) == nil
-    local classification, claim = comparison.preflightClass(valid, candidate ~= nil,
-      candidate and claimedOptions[candidate], missingChoice, entry.index, exposedCounts[key])
-    if classification == "invalid" then invalid = invalid + 1
-    elseif classification == "unavailable" then unavailable = unavailable + 1
-    elseif classification == "ambiguous" then ambiguous = ambiguous + 1
-    else available = available + 1 end
-    if claim then claimedOptions[candidate] = true end
-  end
-  state.load.preflight = {
-    total = state.presetEntryCount(preset),
-    available = available,
-    unavailable = unavailable,
-    ambiguous = ambiguous,
-    invalid = invalid,
-  }
-  local totalSeconds = math.max(0, helpers.loadClock() - preflightStarted)
-  if totalSeconds >= SLOW_PREFLIGHT_SECONDS then
-    local matchingSeconds = math.max(0, helpers.loadClock() - matchingStarted)
-    log(("[PERFORMANCE] Preset option check took %.3f seconds: appearance options=%.3f matching=%.3f preset='%s' liveOptions=%d savedOptions=%d.")
-      :format(totalSeconds, optionsSeconds, matchingSeconds,
-        tostring(state.library.selected), #options, #(preset.entries or {})), "warn")
-  end
+  compareSelectedPreset()
 end
-
-
 
 helpers.updateAutomaticLoad = function(elapsed, invocationBefore)
   local event = eventBuffers.update

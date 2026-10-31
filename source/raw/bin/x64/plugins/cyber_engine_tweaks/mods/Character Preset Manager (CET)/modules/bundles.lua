@@ -70,7 +70,6 @@ clearFolderBundlePreview = function()
 end
 
 local function uniqueTrashedBundleFilename(filename)
-  local stem = filename:sub(1, -#FOLDER_BUNDLE_EXTENSION - 1)
   for index = 1, 9999 do
     local candidate = trashModel.bundleCandidate(filename,index,FOLDER_BUNDLE_EXTENSION,false)
     if not fileExists(TRASH_DIR .. "/" .. candidate) then return candidate end
