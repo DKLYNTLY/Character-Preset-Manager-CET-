@@ -378,6 +378,10 @@ function savePreset(confirmOverwrite)
     setStatus("create", "The existing preset could not be read safely before replacement.", true)
     return
   end
+  if previousPreset and previousPreset.importKind == "acu-v2" then
+    setStatus("create", "Keep the imported ACU file unchanged. Save the checked appearance under a new name.", true)
+    return
+  end
   local storage = previousPreset and previousPreset.storage
     or uniqueStorageName(leafName)
   if not storage then
@@ -630,6 +634,10 @@ function savePresetMetadata()
     setStatus("rename", "The selected preset could not be read safely.", true)
     return
   end
+  if preset.importKind == "acu-v2" then
+    setStatus("rename", "This ACU file keeps extra choice details. Load it, check the appearance, then save a new preset before editing notes or tags.", true)
+    return
+  end
   local previous = libraryModel.beginMetadata(preset, state.library.presetNotes, state.library.presetTags)
   libraryModel.finishMetadata(preset, state.library.selected, logTimestamp(), MOD_NAME, CURRENT_PRESET_FORMAT)
   if not writePresetPath(presetPath(state.library.selected), preset) then
@@ -651,6 +659,10 @@ function toggleSelectedPresetFavorite()
   local preset = name and hydrateNamedPreset(name)
   if not preset then
     setStatus("load", "Select a preset before changing its favorite status.", true)
+    return false
+  end
+  if preset.importKind == "acu-v2" then
+    setStatus("load", "Favorites would rewrite this ACU file. Save the checked appearance as a new preset first.", true)
     return false
   end
   local previous = libraryModel.beginFavorite(preset)

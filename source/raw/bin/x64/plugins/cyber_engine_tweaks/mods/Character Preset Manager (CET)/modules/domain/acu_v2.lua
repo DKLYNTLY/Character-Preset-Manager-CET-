@@ -59,10 +59,50 @@ local function envelope(contents)
   return finish and contents:sub(finish + 1) or "", header
 end
 
+local function strictBody(body)
+  local chunks, position, start = {}, 1, 1
+  while position <= #body do
+    local character = body:sub(position, position)
+    if character == '"' then
+      position = position + 1
+      while position <= #body do
+        local value = body:sub(position, position)
+        if value == "\\" then position = position + 2
+        elseif value == '"' then position = position + 1; break
+        else position = position + 1 end
+      end
+    elseif body:sub(position, position + 3) == "null" then
+      chunks[#chunks + 1] = body:sub(start, position - 1)
+      chunks[#chunks + 1] = '{"__acu_null__":true}'
+      position = position + 4
+      start = position
+    elseif character:match("[%d%-]") then
+      local token = body:sub(position):match("^[^%s,%]%}]+")
+      local mantissa, exponent = token:match("^(.-)[eE](.*)$")
+      mantissa = mantissa or token
+      if exponent and not exponent:match("^[%+%-]?%d+$") then return nil end
+      if not mantissa:match("^%-?%d+$") and not mantissa:match("^%-?%d+%.%d+$") then return nil end
+      if mantissa:match("^%-?0%d") then return nil end
+      position = position + #token
+    else
+      if character:match("%s") and not character:match("[ \t\r\n]") then return nil end
+      position = position + 1
+    end
+  end
+  chunks[#chunks + 1] = body:sub(start)
+  return table.concat(chunks)
+end
+
 local function decode(body, header, metadataOnly, encodeCodepoint)
   if not body:match("^%s*{") then return nil, "The ACU preset body is not a JSON object." end
+  body = strictBody(body)
+  if not body then return nil, "The ACU preset JSON contains an invalid value." end
   local lossy = false
   local decoded = json.decode(body, function(codepoint)
+    if codepoint >= 0xD800 and codepoint <= 0xDFFF or codepoint > 0x10FFFF then
+      lossy = true
+      return false, nil
+    end
     local ok, encoded = encodeCodepoint(codepoint)
     if not ok then lossy = true end
     return ok, encoded

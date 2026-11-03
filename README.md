@@ -26,7 +26,7 @@
 Character Preset Manager is a successor to Appearance Change Unlocker (ACU).
 It saves and loads your character's appearance, so you can switch between presets without recreating each look.
 
-It supports all ACU presets and older Character Preset Manager files. You can:
+It reads older Character Preset Manager files and compatible ACU presets. ACU version-2 imports use the safety limits described below. You can:
 
 - Save and load vanilla, CC, and CCXL appearance choices.
 - Open the character customization menu anywhere with a hotkey.
@@ -157,6 +157,23 @@ Apartment mirrors give you access to the full character customization menu.
 <summary><strong>Manage presets: imports, folders, and sharing</strong></summary>
 
 ## Import ACU presets
+
+**ACU 4.1.1 version-2 files** with a `// ACU-PRESET` header can be imported.
+The reader keeps their choice identities and leaves the original files unchanged.
+
+These imports load only choices that CPM can verify by an exact option name and a unique appearance or morph identity.
+Switcher choices, duplicate catalogs, and other identities that cannot be verified remain unresolved.
+Check **Panel Status** and the **Activity Log**, then review the appearance before confirming the editor.
+**Force Full Load** does not enable numeric fallbacks for these files, and loading them does not clear unrelated choices.
+
+*Support for these imports is conservative. The file's game version, body flag, and voice flag do not prove compatibility or change your character's body or voice.*
+
+To keep the imported choice details, CPM blocks notes, tags, favorites, and overwriting these files with format 8.
+Load the preset, correct any unresolved choices, and **save the checked appearance under a new name** to use those features.
+New saves still use the readable format-8 layout.
+Future ACU version-3 files are rejected without loading their choices.
+
+---
 
 1. Remove the ACU mod, but keep its `.preset` files.
 2. Put those presets in this folder inside your game directory. Create the folder if it no longer exists:

@@ -9,6 +9,10 @@ for current steps.
 
 ## 4.0.2
 
+- Reads ACU 4.1.1 version-2 presets with a `// ACU-PRESET` header. The header no longer becomes a false appearance option.
+- Matches these imports by verified appearance and morph identities. Unresolved choices stay unchanged, and numeric fallbacks and cleanup are disabled for these files.
+- Keeps imported ACU choice details intact by blocking edits that would lose them. Save the checked appearance under a new name to use notes, tags, and favorites.
+
 - Moves Randomize below Load Selected Preset in the advanced CET menu. Randomize Settings is now in Advanced Preset Options.
 - Removes Help, full-library backup export/import, and Cancel Loading. Preset sorting stays in Settings; single-preset and folder sharing, Trash, and appearance history remain available.
 - Releases the menu and camera if a preset load times out.
