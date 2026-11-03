@@ -57,6 +57,7 @@ if not canRandomize() then
 
   end
 
+  if not settings and helpers.appearanceTrace then helpers.appearanceTrace("begin", "randomize") end
   local ok, changed = pcall(function()
 
     if settings then return state.editor.activeBodyMorphMenu:CPMRandomizeSettings() end
@@ -65,6 +66,9 @@ if not canRandomize() then
 
   end)
 
+  if not settings and helpers.appearanceTrace then
+    helpers.appearanceTrace("after", "randomize", ok and changed and "requested" or "rejected")
+  end
   if not ok or not changed then
 
     return nativeStatus("The game's randomizer is not ready. Wait for the editor and try again.", true)

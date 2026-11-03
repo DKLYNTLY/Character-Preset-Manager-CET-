@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Adds bounded appearance diagnostics to the Activity Log for preset loads, saves, Randomize, and editor sessions. These records compare selected choices and callbacks; they do not confirm that visible hair or cyberware was removed.
+
 - Reads ACU 4.1.1 version-2 presets with a `// ACU-PRESET` header. The header no longer becomes a false appearance option.
 - Matches these imports by verified appearance and morph identities. Unresolved choices stay unchanged, and numeric fallbacks and cleanup are disabled for these files.
 - Keeps imported ACU choice details intact by blocking edits that would lose them. Save the checked appearance under a new name to use notes, tags, and favorites.
@@ -21,7 +23,7 @@ for current steps.
 
 Update: Back up your Character Presets and Data folders, remove the three old mod folders, then install this version and restore your saved folders. This removes old scripts that a ZIP overwrite would leave behind. Keep any .cpmbackup files you want to retain; this update does not delete them.
 
-Known issue: Some modded cyberware may remain visible after loading several presets. Leaving the appearance menu clears the preview.
+Known issue: Some modded hair or cyberware may remain visible after loading several presets. Reopening the appearance menu may not clear the leftovers.
 
 </details>
 

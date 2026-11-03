@@ -72,12 +72,31 @@ end
 local function setupPuppet(scenario, actions) execute(actions, scenario) end
 
 helpers.registerEditorHooks = function()
+  if helpers.appearanceTrace then
+    for _, method in ipairs({ "OnAppearanceSwitched", "OnRandomizeComplete" }) do
+      local eventName = method
+      local ok = pcall(Observe, "characterCreationBodyMorphMenu", method, function()
+        helpers.appearanceTrace("event", eventName)
+      end)
+      if not ok then helpers.appearanceTrace("event", "observer-unavailable:" .. method) end
+    end
+    for _, scenario in ipairs({ "MenuScenario_CharacterCustomization", "MenuScenario_CharacterCustomizationMirror" }) do
+      for _, method in ipairs({ "OnEnterScenario", "OnLeaveScenario" }) do
+        local eventName = scenario .. ":" .. method
+        local ok = pcall(Observe, scenario, method, function()
+          helpers.appearanceTrace("lifecycle", eventName)
+        end)
+        if not ok then helpers.appearanceTrace("event", "observer-unavailable:" .. eventName) end
+      end
+    end
+  end
   local observeInitOk, observeInitError = pcall(
     Observe,
     "characterCreationBodyMorphMenu",
     "OnInitialize",
     function(menu)
       execute(editorModel.plan("opened"), menu)
+      if helpers.appearanceTrace then helpers.appearanceTrace("lifecycle", "creator-initialize") end
     end
   )
   local observeExitOk, observeExitError = pcall(
@@ -85,6 +104,7 @@ helpers.registerEditorHooks = function()
     "characterCreationBodyMorphMenu",
     "OnUninitialize",
     function()
+      if helpers.appearanceTrace then helpers.appearanceTrace("lifecycle", "creator-uninitialize") end
       execute(editorModel.plan("closed"))
     end
   )

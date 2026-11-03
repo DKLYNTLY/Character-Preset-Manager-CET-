@@ -72,6 +72,7 @@ local function transition(kind)
 end
 local oldReset = resetLoadState
 resetLoadState = function()
+  if helpers.appearanceTrace then helpers.appearanceTrace("after", "load", "reset") end
   if transition("reset") == "reset" then
     oldReset()
     releaseControl()
@@ -305,6 +306,11 @@ end
 helpers.beginPendingChange = function(system, exposedOption, target, kind, trackingKey, current)
   local attempts = kind == "apply" and state.load.applyAttempts or state.load.cleanupAttempts
   local started = helpers.loadClock()
+  if helpers.appearanceTrace then
+    helpers.appearanceTrace("compare", { slot = exposedOption.slot, label = exposedOption.label,
+      occurrence = exposedOption.occurrence, kind = kind, target = target, trackingKey = trackingKey },
+      exposedOption.option, "before-write")
+  end
   local ok, applyError = pcall(
     system.ApplyChangeToOption, system, exposedOption.option, target)
   state.load.applySeconds = state.load.applySeconds
@@ -363,6 +369,9 @@ helpers.checkPendingChange = function(system, scan)
   local event = eventBuffers.pending
   event.pending,event.present,event.current,event.signature = pending,not disappeared,current,scan.signature
   local nextAction = transition("pending")
+  if helpers.appearanceTrace then
+    helpers.appearanceTrace("compare", pending, candidate and candidate.option, nextAction)
+  end
   if nextAction == "wait_disappeared" or nextAction == "wait_reached" then
     setStatus("load", disappeared
       and "A linked option changed. Waiting for the editor to finish updating."
@@ -620,6 +629,7 @@ helpers.writeLoadGroup = function(system, options, prepared)
 end
 
 beginLoadPass = function(preset, loadName)
+  if helpers.appearanceTrace then helpers.appearanceTrace("begin", "load", loadName, preset.format) end
   helpers.auditSection("LOAD PRESET")
   log(("[PRESET] Load requested: name='%s'"):format(tostring(loadName)), "load")
   eventBuffers.begin.loadName = loadName
@@ -656,6 +666,11 @@ local function continueAcuLoad(system, options, preset)
   for position, item in ipairs(resolved) do
     local trackingKey = "acu:" .. tostring(position)
     local current = item.candidate and tonumber(item.candidate.option.currIndex)
+    if helpers.appearanceTrace then
+      helpers.appearanceTrace("compare", { slot = item.candidate and item.candidate.slot,
+        label = item.entry.key, kind = "acu-verify", target = item.target, savedChoice = item.choice },
+        item.candidate and item.candidate.option, item.status)
+    end
     if item.status == "resolved" and current == item.target then
       confirmed = confirmed + 1
     elseif item.status == "resolved" and not state.load.applyAttempts[trackingKey] then
@@ -892,6 +907,11 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
         and option.isEditable and option.isActive then
       local current = tonumber(option.currIndex) or 0
       local disposition = matching.disposition(current, wanted, state.load.satisfied[key], state.load.unconfirmed[key])
+      if helpers.appearanceTrace then
+        helpers.appearanceTrace("compare", { slot = exposedOption.slot, label = label,
+          occurrence = exposedOption.occurrence, kind = "verify", target = wanted, trackingKey = key },
+          option, disposition)
+      end
       if disposition == "matching" then
         state.load.satisfied[key] = true
         state.load.unconfirmed[key] = nil
@@ -981,6 +1001,11 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
           }
           local current = tonumber(candidate.option.currIndex) or 0
           local disposition = matching.disposition(current, target, state.load.satisfied[savedKey], state.load.unconfirmed[savedKey])
+          if helpers.appearanceTrace then
+            helpers.appearanceTrace("compare", { slot = candidate.slot, label = candidate.label,
+              occurrence = candidate.occurrence, kind = "remap-verify", target = target, trackingKey = savedKey },
+              candidate.option, disposition)
+          end
           if disposition == "matching" then
             state.load.satisfied[savedKey] = true
             state.load.unconfirmed[savedKey] = nil
@@ -1066,6 +1091,11 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
             }
             local current = tonumber(candidate.option.currIndex) or 0
             local disposition = matching.disposition(current, target, state.load.satisfied[savedKey], state.load.unconfirmed[savedKey])
+            if helpers.appearanceTrace then
+              helpers.appearanceTrace("compare", { slot = candidate.slot, label = candidate.label,
+                occurrence = candidate.occurrence, kind = "remap-verify", target = target, trackingKey = savedKey },
+                candidate.option, disposition)
+            end
             if disposition == "matching" then
               state.load.satisfied[savedKey] = true
               state.load.unconfirmed[savedKey] = nil
@@ -1293,6 +1323,9 @@ function loadPreset()
   state.load.longestUpdate = math.max(state.load.longestUpdate,
     math.max(0, helpers.loadClock() - started))
   state.load.updateStarted = nil
+  if helpers.appearanceTrace and (not ok or not state.load.needsContinue or state.load.stalled) then
+    helpers.appearanceTrace("after", "load", not ok and "error" or state.load.stalled and "stalled" or "returned")
+  end
   if not ok then error(result, 0) end
   return result
 end

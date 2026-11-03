@@ -5,6 +5,7 @@ local _ENV = runtime
 local stateModel = require("modules/domain/state")
 
 state = {
+  appearanceTrace = { sequence = 0, session = 0, items = {} },
   app = stateModel.newApp(NATIVE_READY_STATUS),
   preferences = {
     presetSort = "name",

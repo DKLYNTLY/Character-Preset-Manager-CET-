@@ -270,6 +270,7 @@ function savePreset(confirmOverwrite)
   log(("[PRESET] Create requested: enteredName='%s' overwriteConfirmed=%s")
     :format(tostring(state.library.newName), tostring(confirmOverwrite == true)), "info")
   local _, options, optionsError = getOptions()
+  if helpers.appearanceTrace then helpers.appearanceTrace("source", options) end
   if not options then
     setStatus("create", "Open new-game creation, the full editor, a mirror, or a supported ripperdoc.", true)
     log("[create] " .. tostring(optionsError), "warn")
@@ -731,6 +732,14 @@ function duplicatePreset()
     false, "success")
   log(("[PRESET] Duplicate completed: source='%s' destination='%s' storage='%s'.")
     :format(source, destination, storage), "complete")
+end
+
+local saveWithExistingBehavior = savePreset
+function savePreset(confirmOverwrite)
+  if helpers.appearanceTrace then helpers.appearanceTrace("begin", "save", state.library.newName, CURRENT_PRESET_FORMAT) end
+  local ok, result = pcall(saveWithExistingBehavior, confirmOverwrite)
+  if helpers.appearanceTrace then helpers.appearanceTrace("after", "save", ok and "returned" or "error") end
+  if not ok then error(result, 0) end
 end
 
 return _ENV

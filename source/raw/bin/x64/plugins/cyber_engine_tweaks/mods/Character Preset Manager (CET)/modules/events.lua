@@ -78,6 +78,7 @@ events.onInit = function()
 end
 
 events.onShutdown = function()
+  if helpers.appearanceTrace then helpers.appearanceTrace("lifecycle", "shutdown") end
   helpers.shutdownEditor()
 end
 
@@ -88,6 +89,7 @@ events.onUpdate = function(delta)
   updateAcuImport(elapsed)
   local loadInvocationBeforeBridge = state.app.loadInvocation
   updateNativeBridge(elapsed)
+  if helpers.appearanceTrace then helpers.appearanceTrace("update", elapsed) end
   if not state.editor.openPending and not state.load.auto then
     return
   end

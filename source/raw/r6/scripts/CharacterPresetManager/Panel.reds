@@ -839,3 +839,23 @@ protected cb func OnButtonRelease(evt: ref<inkPointerEvent>) -> Bool {
   };
   return wrappedMethod(evt);
 }
+
+@addMethod(characterCreationBodyMorphMenu)
+public func CPMRandomizerLocksForTrace() -> String {
+  if !IsDefined(this.m_randomizationSettingsController) { return "category=unknown locked=unknown"; };
+  let data: ref<gameuiCharacterRandomizationParametersData> = this.m_randomizationSettingsController.GetRandomizerData();
+  if !IsDefined(data) { return "category=unknown locked=unknown"; };
+  let categories: ref<CharacterRandomizationCategoriesList_Record> = TweakDBInterface.GetCharacterRandomizationCategoriesListRecord(t"CharacterRandomization.CharacterRandomizationCategories");
+  if !IsDefined(categories) { return "category=unknown locked=unknown"; };
+  let result: String = "";
+  let index: Int32 = 0;
+  let category: ref<CharacterRandomizationCategoryUI_Record>;
+  while index < categories.GetListCount() && index < 32 {
+    category = categories.GetListItem(index);
+    if IsDefined(category) && IsDefined(category.CategoryType()) {
+      result += "category=" + EnumValueToString("gamedataCharacterRandomizationCategory", Cast<Int64>(EnumInt(category.CategoryType().Type()))) + " locked=" + ToString(data.IsCategoryLocked(category.CategoryType().Type())) + "; ";
+    };
+    index += 1;
+  };
+  return result;
+}

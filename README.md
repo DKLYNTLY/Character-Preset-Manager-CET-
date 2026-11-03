@@ -312,6 +312,8 @@ Move the original out of the ACU presets folder, then delete the imported copy.
 
 Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened and what you were doing. Include your latest `Activity.log` so I can check what went wrong.
 
+The Activity Log also records selected choices before and after preset loads, saves, and Randomize. Editor session numbers help track leftovers that survive a return to the main menu. These records do not prove that a visible mesh was removed. Include screenshots and the preset names when reporting leftover hair or cyberware.
+
 Include the **RED4ext log** when a report concerns ACU imports, folder watching, or opening CET. If it says the native file service stopped after an unexpected error, fully restart the game.
 
 Select **Log** at the top of the Advanced Preset Manager to read or copy it. You can also find the file inside your game folder:
