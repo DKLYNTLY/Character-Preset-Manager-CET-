@@ -32,7 +32,7 @@ local function mergeMetadata(preset, loaded)
   for _, key in ipairs({
     "format", "source", "created", "modified", "notes", "tags", "favorite",
     "managedByCpm", "presetName", "libraryFolder", "entryCount",
-    "entryCountKnown", "metadataLoaded",
+    "entryCountKnown", "metadataLoaded", "importKind", "importMetadata",
   }) do
     preset[key] = loaded[key]
   end

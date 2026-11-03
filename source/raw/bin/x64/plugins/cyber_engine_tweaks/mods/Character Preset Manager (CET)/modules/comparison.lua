@@ -40,6 +40,10 @@ local function liveAppearanceIndex(options)
 end
 
 comparePresetWithCurrent = function(preset, options)
+  if preset and preset.importKind == "acu-v2" then
+    local count = #(preset.entries or {})
+    return {total=count,matching=0,changing=0,missing=count,ambiguous=0,invalid=0,clearing=0,details={}}
+  end
   local _, savedCounts, entries, savedSlotCounts = helpers.preparePresetEntries(preset)
   local liveCounts, liveSlotCounts, byKey, bySlot, liveEntries = liveAppearanceIndex(options)
   local result = {

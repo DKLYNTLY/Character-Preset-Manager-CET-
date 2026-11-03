@@ -1167,6 +1167,11 @@ local function performPresetLoad()
     setStatus("load", "The selected preset could not be read safely.", true)
     return
   end
+  if selectedPreset.importKind == "acu-v2" then
+    resetLoadState()
+    setStatus("load", "This ACU preset was read, but its choices cannot yet be verified safely.", true)
+    return
+  end
   local optionsStarted = helpers.loadClock()
   local refreshCleanup = state.load.pendingChange
     and state.load.pendingChange.kind ~= "apply"

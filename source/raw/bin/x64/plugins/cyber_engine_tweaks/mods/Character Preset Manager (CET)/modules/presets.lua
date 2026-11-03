@@ -8,6 +8,7 @@ local stateModel = require("modules/domain/state")
 local libraryModel = require("modules/domain/library")
 local names = require("modules/domain/names")
 local jsonCodec = require("modules/domain/json")
+local acuV2 = require("modules/domain/acu_v2")
 local presetCodec = require("modules/domain/preset_codec")
 local configCodec = require("modules/domain/config_codec")
 
@@ -59,6 +60,13 @@ function readPresetFile(path, metadataOnly)
   end
   local contents = file:read("*a")
   file:close()
+  local body, header
+  if type(contents) == "string" then body, header = acuV2.envelope(contents) end
+  if body ~= nil then
+    local preset, reason = acuV2.decode(body, header, metadataOnly, encodeJsonCodepoint)
+    if not preset then log("[FILES] " .. reason .. " File: " .. tostring(path), "warn") end
+    return preset
+  end
   local preset, diagnostics = presetCodec.decodeText(contents, path, metadataOnly)
   for _, diagnostic in ipairs(diagnostics) do log(diagnostic.message, diagnostic.level) end
   return preset
@@ -128,6 +136,10 @@ state.invalidatePreflight = function()
 end
 
 function writePresetContents(path, preset)
+  if preset and preset.importKind == "acu-v2" then
+    log("[FILES] This ACU preset keeps choice details that format 8 cannot store. Load it, check the appearance, then save a new preset.", "warn")
+    return false
+  end
   return writeFileSafely(path, "w", function(file)
     local _, chunks = presetCodec.encode(preset, MOD_NAME)
     for _, chunk in ipairs(chunks) do
