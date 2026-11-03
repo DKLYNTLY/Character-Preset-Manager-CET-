@@ -100,4 +100,35 @@ local function decode(body, header, metadataOnly, encodeCodepoint)
       gameHash=decoded.game_hash,isMale=decoded.is_male,isMaleVoice=decoded.is_male_vo}}
 end
 
-return {envelope=envelope,decode=decode}
+local function resolve(entries, live, choiceIndex)
+  local results, savedCounts, liveByName = {}, {}, {}
+  for _, entry in ipairs(entries or {}) do savedCounts[entry.key] = (savedCounts[entry.key] or 0) + 1 end
+  for _, candidate in ipairs(live) do
+    local group = liveByName[candidate.label] or {}
+    group[#group + 1] = candidate
+    liveByName[candidate.label] = group
+  end
+  for position, entry in ipairs(entries or {}) do
+    local result = {entry=entry,position=position,status="missing"}
+    local group = liveByName[entry.key] or {}
+    if savedCounts[entry.key] > 1 or #group > 1 then
+      result.status = "ambiguous"
+    elseif #group == 1 then
+      local saved = entry.selection or {}
+      local choice
+      if saved.kind == "appearance" then choice = "definitions:" .. saved.name
+      elseif saved.kind == "morph" then choice = "morphNames:" .. saved.morph_name end
+      if choice then
+        local target = choiceIndex(group[1].option, choice)
+        if target ~= nil then
+          result.candidate,result.target,result.choice = group[1],target,choice
+          result.status = "resolved"
+        end
+      end
+    end
+    results[#results + 1] = result
+  end
+  return results
+end
+
+return {envelope=envelope,decode=decode,resolve=resolve}

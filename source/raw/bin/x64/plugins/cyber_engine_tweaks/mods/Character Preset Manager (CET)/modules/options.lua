@@ -5,6 +5,7 @@ local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local identities = require("modules/domain/identities")
 local matching = require("modules/domain/matching")
+local acuV2 = require("modules/domain/acu_v2")
 
 function optionKey(option)
   if not option or not option.info then return nil end
@@ -296,6 +297,34 @@ function getOptions(forceRefresh)
   helpers.bindOptionCatalog(options)
   state.app.optionsMemo = { system = system, options = options }
   return system, options
+end
+
+
+
+helpers.resolveAcuPreset = function(preset, options)
+  local live, occurrences = {}, {}
+  for position, option in ipairs(options or {}) do
+    local label = optionKey(option)
+    if label and option.isEditable and option.isActive then
+      occurrences[label] = (occurrences[label] or 0) + 1
+      live[#live + 1] = {option=option,label=label,position=position,
+        occurrence=occurrences[label],key=matching.occurrenceKey(label, occurrences[label]),
+        slot=optionSlot(option)}
+    end
+  end
+  return acuV2.resolve(preset.entries, live, function(option, choice)
+    local field, wanted = matching.choiceParts(choice)
+    local ok, size = pcall(function() return #(option.info[field] or {}) end)
+    if not ok then return nil end
+    local found
+    for index = 0, size - 1 do
+      if choiceCollectionValue(option.info, field, index) == wanted then
+        if found ~= nil then return nil end
+        found = index
+      end
+    end
+    return found
+  end)
 end
 
 return _ENV

@@ -21,6 +21,7 @@ local function preparePresetEntries(preset)
         choice = entry.choice,
         position = #orderedEntries + 1,
       }
+      if preset.importKind == "acu-v2" then prepared.selection = entry.selection end
       values[savedKey] = prepared.index
       orderedEntries[#orderedEntries + 1] = prepared
       savedEntryByKey[savedKey] = prepared

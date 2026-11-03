@@ -41,8 +41,20 @@ end
 
 comparePresetWithCurrent = function(preset, options)
   if preset and preset.importKind == "acu-v2" then
-    local count = #(preset.entries or {})
-    return {total=count,matching=0,changing=0,missing=count,ambiguous=0,invalid=0,clearing=0,details={}}
+    local result = {total=#(preset.entries or {}),matching=0,changing=0,missing=0,
+      ambiguous=0,invalid=0,clearing=0,details={}}
+    for _, resolved in ipairs(helpers.resolveAcuPreset(preset, options)) do
+      local status, counter = "Missing", resolved.status
+      local current = resolved.candidate and tonumber(resolved.candidate.option.currIndex)
+      if resolved.status == "resolved" then
+        counter = current == resolved.target and "matching" or "changing"
+        status = current == resolved.target and "Already matching" or "Will change"
+      elseif resolved.status == "ambiguous" then status = "Repeated or uncertain" end
+      result[counter] = result[counter] + 1
+      result.details[#result.details + 1] = {label=resolved.entry.key,status=status,
+        current=current,target=resolved.target}
+    end
+    return result
   end
   local _, savedCounts, entries, savedSlotCounts = helpers.preparePresetEntries(preset)
   local liveCounts, liveSlotCounts, byKey, bySlot, liveEntries = liveAppearanceIndex(options)

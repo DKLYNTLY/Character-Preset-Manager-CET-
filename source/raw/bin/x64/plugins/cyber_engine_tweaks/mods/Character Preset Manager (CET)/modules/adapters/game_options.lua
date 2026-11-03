@@ -408,6 +408,9 @@ helpers.releaseFinishedLoadWorkingData = function()
 end
 
 helpers.forceFullLoadWarning = function(preset)
+  if preset and preset.importKind == "acu-v2" then
+    return "ACU version-2 imports use verified choices only. Numeric fallbacks and cleanup are disabled.", "warning"
+  end
   local format = tonumber(preset and preset.format) or 4
   if format >= FORCE_FULL_LOAD_FORMAT_THRESHOLD then
     return "Force Full Load will try saved editor positions. Check the appearance after loading.",
@@ -426,6 +429,7 @@ helpers.syncForceFullLoadSelection = function()
   local event = eventBuffers.force_selection
   event.hasPreset,event.format,event.threshold,event.selected = preset ~= nil,format,FORCE_FULL_LOAD_FORMAT_THRESHOLD,selected
   transition("force_selection")
+  if preset and preset.importKind == "acu-v2" then state.load.forceFull = false end
   if selected then
     log(("[LOAD] Force Full Load selected automatically for '%s': %s (format %s).")
       :format(selected, state.load.forceFull and "on" or "off", tostring(format)), "info")
@@ -629,8 +633,76 @@ beginLoadPass = function(preset, loadName)
   return values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
 end
 
+local function continueAcuLoad(system, options, preset)
+  local resolved = helpers.resolveAcuPreset(preset, options)
+  local pending = state.load.pendingChange
+  if pending then
+    local verified
+    for _, item in ipairs(resolved) do
+      if item.candidate and item.candidate.key == pending.optionKey
+          and item.target == pending.target and item.choice == pending.acuChoice then verified = item end
+    end
+    if verified then
+      local labels = {[verified.candidate.label]=true}
+      local scan = helpers.scanLoadOptions(options, labels, {})
+      if helpers.checkPendingChange(system, scan) == "waiting" then return end
+    else
+      state.load.pendingChange = nil
+      state.logLoadOnce("acu-pending:" .. pending.trackingKey,
+        "[SKIPPED] An ACU choice changed while loading. Its saved identity could not be confirmed.", "warn")
+    end
+  end
+  local remaining, confirmed, signature = 0, 0, {}
+  for position, item in ipairs(resolved) do
+    local trackingKey = "acu:" .. tostring(position)
+    local current = item.candidate and tonumber(item.candidate.option.currIndex)
+    if item.status == "resolved" and current == item.target then
+      confirmed = confirmed + 1
+    elseif item.status == "resolved" and not state.load.applyAttempts[trackingKey] then
+      local candidate = item.candidate
+      candidate.choiceShape = helpers.loadChoiceShape(candidate.option)
+      local ok, reason = helpers.beginPendingChange(system, candidate, item.target, "apply", trackingKey, current)
+      if not ok then
+        transition("stall")
+        log("[ACU IMPORT] The choice could not be applied: " .. tostring(reason), "error")
+        setStatus("load", "Loading stopped because an ACU choice could not be applied. Check the Activity Log.", true)
+        return
+      end
+      state.load.pendingChange.acuChoice = item.choice
+      state.load.remaining = #resolved - confirmed
+      setStatus("load", "Applying a verified ACU choice. Waiting for the editor to update.")
+      return
+    else
+      remaining = remaining + 1
+      signature[#signature + 1] = trackingKey .. ":" .. item.status
+      state.logLoadOnce(trackingKey .. ":" .. item.status,
+        ("[SKIPPED] ACU choice '%s' could not be confirmed by its saved identity. No numeric fallback was used.")
+          :format(item.entry.key), "warn")
+    end
+  end
+  state.load.remaining = remaining
+  if remaining > 0 then
+    eventBuffers.unresolved.signature = table.concat(signature, "|")
+    local stopped = transition("unresolved") == "stopped"
+    if stopped then
+      refreshCustomizationUi()
+      state.app.nativeLoadSummary = ("Confirmed %d ACU choices; %d remain unresolved."):format(confirmed, remaining)
+      state.app.nativePanelShowDetails = true
+    end
+    setStatus("load", ("Confirmed %d of %d ACU choices. %d could not be verified; check the appearance and Activity Log.")
+      :format(confirmed, #resolved, remaining), false, "warning")
+  else
+    transition("complete")
+    refreshCustomizationUi()
+    state.app.nativeLoadSummary = ("Confirmed all %d ACU choices."):format(confirmed)
+    state.app.nativePanelShowDetails = false
+    setStatus("load", state.app.nativeLoadSummary, false, "success")
+  end
+end
+
 continueLoadPass = function(system, options, preset, values, savedCounts,
     orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
+  if preset.importKind == "acu-v2" then return continueAcuLoad(system, options, preset) end
   eventBuffers.pass_start.valueCount = valueCount
   if transition("pass_start") == "empty" then
     setStatus("load", "The preset contains no saved options.", true)
@@ -1165,11 +1237,6 @@ local function performPresetLoad()
   if not selectedPreset then
     resetLoadState()
     setStatus("load", "The selected preset could not be read safely.", true)
-    return
-  end
-  if selectedPreset.importKind == "acu-v2" then
-    resetLoadState()
-    setStatus("load", "This ACU preset was read, but its choices cannot yet be verified safely.", true)
     return
   end
   local optionsStarted = helpers.loadClock()
