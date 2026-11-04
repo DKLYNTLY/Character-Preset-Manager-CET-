@@ -2,6 +2,7 @@ local runtime = assert(require("modules/runtime"),
   "Character Preset Manager runtime did not load")
 if setfenv then setfenv(1, runtime) end
 local _ENV = runtime
+local catalogExportMessage
 
 ui.setDebugLogText = function(text)
   state.ui.debugLogText = tostring(text or "")
@@ -97,6 +98,16 @@ ui.drawDebugPanel = function(height)
   if compactSubsectionButton(
       "Technical Details", "Hide Technical Details", "advancedDiagnostics") then
     ImGui.Indent(8)
+    local exportUnavailable = not state.app.inCustomization or state.load.auto
+      or state.load.needsContinue or state.load.pendingChange ~= nil
+    if exportUnavailable then ImGui.BeginDisabled() end
+    if ImGui.Button("Export Option Catalog##exportCatalog") then
+      local ok, message = helpers.exportOptionCatalog()
+      catalogExportMessage = ok and "Saved catalog: " .. message or message
+    end
+    if exportUnavailable then ImGui.EndDisabled() end
+    ImGui.TextWrapped("Writes a read-only snapshot of the editor options to Data/Logs. Unavailable identities are marked.")
+    if catalogExportMessage then ImGui.TextWrapped(catalogExportMessage) end
     ImGui.TextWrapped(("Editor launch: input=%d  controller=%d  redirect=%d  puppet=%d")
       :format(state.editor.inputCount, state.editor.controllerCaptureCount,
         state.editor.pauseRedirectCount, state.editor.puppetReadyCount))

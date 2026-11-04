@@ -315,6 +315,14 @@ Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened 
 
 The Activity Log also records selected choices before and after preset loads, saves, and Randomize. Editor session numbers help track leftovers that survive a return to the main menu. These records do not prove that a visible mesh was removed. Include screenshots and the preset names when reporting leftover hair or cyberware.
 
+To export the live option catalog, open a customization editor and choose **Log → Technical Details → Export Option Catalog** in the Advanced Preset Manager. Wait until any preset load has finished.
+
+The text file is saved under `Data/Logs` as `Option Catalog YYYY-MM-DD HH-MM-SS-NNN.txt`. It records internal option names, labels, slots, occurrences, indexes, active/editable flags, and available choice identities. Duplicate choices stay in their original order, and inaccessible fields are marked unavailable. Switcher-name lists may be unavailable through CET.
+
+I read only customization fields for this export; player and save names are not collected. Absolute paths in field values are redacted. The capture does not change options or preset files, and it adds no background polling. A large catalog may cause a short pause when you click the button.
+
+Exports stop without a completed file if they exceed 2,048 options, 65,536 choice/name records, 1,024 bytes per identity, or 8 MiB of text. Include the exported file when reporting missing or reordered choices.
+
 Include the **RED4ext log** when a report concerns ACU imports, folder watching, or opening CET. If it says the native file service stopped after an unexpected error, fully restart the game.
 
 Select **Log** at the top of the Advanced Preset Manager to read or copy it. You can also find the file inside your game folder:

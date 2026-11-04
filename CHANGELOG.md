@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Adds **Export Option Catalog** under the Advanced Preset Manager’s **Log → Technical Details**. It saves a bounded snapshot of live customization options to `Data/Logs` without changing the appearance or presets.
+
 - Fixes a startup error in the diagnostic test build that stopped the preset list from loading. Preset files were not removed.
 
 - Adds bounded appearance diagnostics to the Activity Log for preset loads, saves, Randomize, and editor sessions. These records compare selected choices and callbacks; they do not confirm that visible hair or cyberware was removed.
