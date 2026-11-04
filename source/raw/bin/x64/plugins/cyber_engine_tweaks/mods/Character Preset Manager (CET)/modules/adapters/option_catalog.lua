@@ -109,14 +109,15 @@ local function capture(runtime)
 end
 
 local function install(runtime)
-  runtime.helpers.exportOptionCatalog = function()
-    local state = runtime.state
+  if setfenv then setfenv(1, runtime) end
+  local _ENV = runtime
+  helpers.exportOptionCatalog = function()
     if not state.app.inCustomization or state.load.auto or state.load.needsContinue or state.load.pendingChange then
       local message = "Open the editor and wait for loading to finish before exporting its catalog."
-      runtime.setStatus("load", message)
+      setStatus("load", message)
       return false, message
     end
-    local ok, contents, count = pcall(capture, runtime)
+    local ok, contents, count = pcall(capture, {Game=Game, ToCName=ToCName, NameToString=NameToString, optionKey=optionKey})
     if not ok then
       local reasons = {
         ["The catalog exceeds the 8 MiB export limit."]=true,
@@ -127,40 +128,40 @@ local function install(runtime)
       contents = nil
     end
     if not contents then
-      runtime.log("[CATALOG EXPORT] " .. count, "warn")
-      runtime.setStatus("load", count, true)
+      log("[CATALOG EXPORT] " .. count, "warn")
+      setStatus("load", count, true)
       return false, count
     end
-    local dateOk, timestamp = pcall(runtime.os.date, "%Y-%m-%d %H-%M-%S")
+    local dateOk, timestamp = pcall(os.date, "%Y-%m-%d %H-%M-%S")
     timestamp = dateOk and type(timestamp) == "string" and timestamp:match("^%d%d%d%d%-%d%d%-%d%d %d%d%-%d%d%-%d%d$")
       or "undated"
     local destination
     for sequence = 1, 999 do
-      local candidate = ("%s/Option Catalog %s-%03d.txt"):format(runtime.LOG_DIR, timestamp, sequence)
+      local candidate = ("%s/Option Catalog %s-%03d.txt"):format(LOG_DIR, timestamp, sequence)
       local checkOk, exists = pcall(function()
-        return runtime.fileExists(candidate) or runtime.fileExists(candidate .. ".tmp")
-          or runtime.fileExists(candidate .. ".bak")
+        return fileExists(candidate) or fileExists(candidate .. ".tmp")
+          or fileExists(candidate .. ".bak")
       end)
       if not checkOk then break end
       if not exists then destination = candidate; break end
     end
     local saveOk, saved
-    if destination then saveOk, saved = pcall(runtime.atomicReplace, destination, function(temporary)
-      local file = runtime.io.open(temporary, "wb")
+    if destination then saveOk, saved = pcall(atomicReplace, destination, function(temporary)
+      local file = io.open(temporary, "wb")
       if not file then return false end
       local writeOk, result = pcall(file.write, file, contents)
       local closeOk, closed = pcall(file.close, file)
       return writeOk and result ~= nil and closeOk and closed ~= nil
     end, "option catalog export") end
     if not saveOk or not saved then
-      runtime.log("[CATALOG EXPORT] The diagnostic file could not be written.", "warn")
+      log("[CATALOG EXPORT] The diagnostic file could not be written.", "warn")
       local message = "The option catalog could not be saved. Check that Data/Logs is writable."
-      runtime.setStatus("load", message, true)
+      setStatus("load", message, true)
       return false, message
     end
     local message = ("Saved %d options to %s."):format(count, destination)
-    runtime.log("[CATALOG EXPORT] " .. message, "info")
-    runtime.setStatus("load", message, false, "success")
+    log("[CATALOG EXPORT] " .. message, "info")
+    setStatus("load", message, false, "success")
     return true, destination
   end
 end
