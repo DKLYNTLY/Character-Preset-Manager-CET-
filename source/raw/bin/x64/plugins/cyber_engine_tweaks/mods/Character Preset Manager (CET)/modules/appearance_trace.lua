@@ -1,25 +1,26 @@
 local function install(runtime)
-  local state = runtime.state
+  if setfenv then setfenv(1, runtime) end
+  local _ENV = runtime
   local trace = state.appearanceTrace
-  local timing = runtime.AUTO_LOAD_TIMING
+  local timing = AUTO_LOAD_TIMING
   local function clean(value)
     return tostring(value == nil and "unknown" or value):gsub("[%c|]", " "):sub(1, 512)
   end
   local function emit(kind, fields)
-    runtime.log(kind .. " | " .. fields, "info")
+    log(kind .. " | " .. fields, "info")
   end
   local function context(item)
     return "id=" .. item.id .. " editorSession=" .. item.session
   end
   local function choice(option, index)
-    return option and runtime.helpers.optionChoiceKey(option, index) or nil
+    return option and helpers.optionChoiceKey(option, index) or nil
   end
   local function snapshot(item, phase, supplied)
     local options = supplied
     if not options then
-      local system = runtime.Game.GetCharacterCustomizationSystem()
+      local system = Game.GetCharacterCustomizationSystem()
       if not system then return nil end
-      local empty = runtime.ToCName({})
+      local empty = ToCName({})
       options = system:GetUnitedOptions(true, true, true, empty, empty, empty)
     end
     if type(options) ~= "table" or #options == 0 then return nil end
@@ -29,8 +30,8 @@ local function install(runtime)
         emit("APPEARANCE TRACE", context(item) .. " phase=" .. phase .. " detail=option-limit")
         return nil
       end
-      local label = runtime.optionKey(option)
-      local slot = runtime.optionSlot(option)
+      local label = optionKey(option)
+      local slot = optionSlot(option)
       local index = tonumber(option.currIndex)
       local key = label or "missing-key"
       occurrences[key] = (occurrences[key] or 0) + 1
@@ -146,7 +147,7 @@ local function install(runtime)
       end
     end
   end
-  runtime.helpers.appearanceTrace = function(method, ...)
+  helpers.appearanceTrace = function(method, ...)
     local ok, failure = pcall(api[method], ...)
     if not ok then
       trace.items = {}

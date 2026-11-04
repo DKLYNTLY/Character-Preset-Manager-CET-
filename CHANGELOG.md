@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Fixes a startup error in the diagnostic test build that stopped the preset list from loading. Preset files were not removed.
+
 - Adds bounded appearance diagnostics to the Activity Log for preset loads, saves, Randomize, and editor sessions. These records compare selected choices and callbacks; they do not confirm that visible hair or cyberware was removed.
 
 - Reads ACU 4.1.1 version-2 presets with a `// ACU-PRESET` header. The header no longer becomes a false appearance option.
