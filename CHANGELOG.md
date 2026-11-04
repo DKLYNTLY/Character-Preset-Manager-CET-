@@ -13,6 +13,8 @@ for current steps.
 
 - Adds bounded appearance diagnostics to the Activity Log for preset loads, saves, Randomize, and editor sessions. These records compare selected choices and callbacks; they do not confirm that visible hair or cyberware was removed.
 
+- Fixes ACU version-2 matching to use internal option names. Appearance and morph choices now read their named identities; switchers and indexed catalogs still remain unresolved.
+
 - Reads ACU 4.1.1 version-2 presets with a `// ACU-PRESET` header. The header no longer becomes a false appearance option.
 - Matches these imports by verified appearance and morph identities. Unresolved choices stay unchanged, and numeric fallbacks and cleanup are disabled for these files.
 - Keeps imported ACU choice details intact by blocking edits that would lose them. Save the checked appearance under a new name to use notes, tags, and favorites.

@@ -60,7 +60,11 @@ function choiceCollectionValue(info, field, index, member)
     if collection == nil then return nil end
     local item = collection[index + 1]
     if item == nil then return nil end
-    return member and item[member] or item
+    if member then return item[member] end
+    local identityMember = field == "definitions" and "name"
+      or field == "morphNames" and "morphName" or nil
+    if identityMember and type(item) ~= "string" then return item[identityMember] end
+    return item
   end)
   return ok and stableRuntimeValue(value) or nil
 end
@@ -305,9 +309,11 @@ helpers.resolveAcuPreset = function(preset, options)
   local live, occurrences = {}, {}
   for position, option in ipairs(options or {}) do
     local label = optionKey(option)
-    if label and option.isEditable and option.isActive then
+    local nameOk, internalName = pcall(function() return stableRuntimeValue(option.info.name) end)
+    internalName = nameOk and matching.validSlot(internalName, MAX_PRESET_KEY_BYTES) or nil
+    if label and internalName and option.isEditable and option.isActive then
       occurrences[label] = (occurrences[label] or 0) + 1
-      live[#live + 1] = {option=option,label=label,position=position,
+      live[#live + 1] = {option=option,label=label,internalName=internalName,position=position,
         occurrence=occurrences[label],key=matching.occurrenceKey(label, occurrences[label]),
         slot=optionSlot(option)}
     end

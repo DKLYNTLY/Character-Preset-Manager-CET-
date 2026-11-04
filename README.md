@@ -161,7 +161,8 @@ Apartment mirrors give you access to the full character customization menu.
 **ACU 4.1.1 version-2 files** with a `// ACU-PRESET` header can be imported.
 The reader keeps their choice identities and leaves the original files unchanged.
 
-These imports load only choices that CPM can verify by an exact option name and a unique appearance or morph identity.
+These imports match the game’s internal option names and load only choices with a unique appearance or morph identity.
+I read the named identity inside each appearance or morph record so future CPM saves can preserve those choices.
 Switcher choices, duplicate catalogs, and other identities that cannot be verified remain unresolved.
 Check **Panel Status** and the **Activity Log**, then review the appearance before confirming the editor.
 **Force Full Load** does not enable numeric fallbacks for these files, and loading them does not clear unrelated choices.

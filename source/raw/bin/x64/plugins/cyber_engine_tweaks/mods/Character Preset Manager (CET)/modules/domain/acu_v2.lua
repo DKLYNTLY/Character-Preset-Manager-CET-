@@ -144,9 +144,10 @@ local function resolve(entries, live, choiceIndex)
   local results, savedCounts, liveByName = {}, {}, {}
   for _, entry in ipairs(entries or {}) do savedCounts[entry.key] = (savedCounts[entry.key] or 0) + 1 end
   for _, candidate in ipairs(live) do
-    local group = liveByName[candidate.label] or {}
+    local name = candidate.internalName or candidate.label
+    local group = liveByName[name] or {}
     group[#group + 1] = candidate
-    liveByName[candidate.label] = group
+    liveByName[name] = group
   end
   for position, entry in ipairs(entries or {}) do
     local result = {entry=entry,position=position,status="missing"}
