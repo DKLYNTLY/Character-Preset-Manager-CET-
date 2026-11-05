@@ -54,9 +54,8 @@ function stableChoiceIdentity(choice)
   return identities.stableChoiceIdentity(choice)
 end
 
-function choiceCollectionValue(info, field, index, member)
+local function collectionIdentity(collection, field, index, member)
   local ok, value = pcall(function()
-    local collection = info and info[field]
     if collection == nil then return nil end
     local item = collection[index + 1]
     if item == nil then return nil end
@@ -67,6 +66,12 @@ function choiceCollectionValue(info, field, index, member)
     return item
   end)
   return ok and stableRuntimeValue(value) or nil
+end
+
+function choiceCollectionValue(info, field, index, member)
+  local ok, collection = pcall(function() return info and info[field] end)
+  if not ok then return nil end
+  return collectionIdentity(collection, field, index, member)
 end
 
 helpers.optionChoiceKey = function(option, index)
@@ -107,7 +112,7 @@ helpers.bindOptionCatalog = function(options)
   state.app.optionChoiceBindings = bindings
 end
 
-helpers.cachedOptionChoices = function(option, field, size)
+helpers.cachedOptionChoices = function(option, field, size, collection)
   local binding = state.app.optionChoiceBindings and state.app.optionChoiceBindings[option]
   if not binding or size > OPTION_CHOICE_CACHE_LIMIT then return nil end
   local cached = binding.entry.fields[field]
@@ -115,11 +120,16 @@ helpers.cachedOptionChoices = function(option, field, size)
     state.app.optionCatalog.hits = state.app.optionCatalog.hits + 1
     return cached
   end
+  if not collection then
+    local ok, source = pcall(function() return option.info[field] end)
+    if not ok or not source then return nil end
+    collection = source
+  end
   local values, indexes = {}, {}
   local same = cached and cached.size == size
   local member = field == "options" and "localizedName" or nil
   for index = 0, size - 1 do
-    local value = choiceCollectionValue(option.info, field, index, member)
+    local value = collectionIdentity(collection, field, index, member)
     values[index + 1] = value or false
     if not cached or cached.values[index + 1] ~= values[index + 1] then same = false end
   end
@@ -159,9 +169,12 @@ function optionChoiceIndex(option, choice)
     return nil
   end
   local member = field == "options" and "localizedName" or nil
-  local sizeOk, size = pcall(function() return #(option.info[field] or {}) end)
+  local sizeOk, size, collection = pcall(function()
+    local source = option.info[field] or {}
+    return #source, source
+  end)
   if not sizeOk or type(size) ~= "number" or size > MAX_OPTION_INDEX then return nil end
-  local cached = helpers.cachedOptionChoices(option, field, size)
+  local cached = helpers.cachedOptionChoices(option, field, size, collection)
   if cached then
     local index = cached.indexes[wanted]
     if type(index) ~= "number" then return nil end
@@ -169,12 +182,12 @@ function optionChoiceIndex(option, choice)
     local binding = state.app.optionChoiceBindings[option]
     binding.checked[field] = nil
     cached = helpers.cachedOptionChoices(option, field, size)
-    index = cached.indexes[wanted]
+    index = cached and cached.indexes[wanted]
     return matching.numericChoiceIndex(index)
   end
   local match = nil
   for index = 0, size - 1 do
-    local value = choiceCollectionValue(option.info, field, index, member)
+    local value = collectionIdentity(collection, field, index, member)
     if value == wanted then
       local duplicate
       match, duplicate = matching.matchChoice(match, index, value, wanted)
