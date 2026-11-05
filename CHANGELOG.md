@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Reads each choice list once per scan when matching saved CPM choices. This cuts repeated reads from the game during loading.
+
 - Spreads ACU choice checks across updates and reads each choice array once per scan. Completed checks are reused while waiting, with a fresh verification pass after loading.
 
 - Tests an ACU-only batch loader that replaces individual confirmation waits with selector, choice, and final-verification stages. It uses the existing game API, keeps ambiguous choices unresolved, and schedules no cleanup.
