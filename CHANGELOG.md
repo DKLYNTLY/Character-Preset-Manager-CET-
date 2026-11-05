@@ -9,9 +9,11 @@ for current steps.
 
 ## 4.0.2
 
+- Removes the diagnostic catalog export limits so large modded catalogs can be captured. Privacy filtering and preset-file limits stay in place.
+
 - Fixes a catalog-export startup error that prevented the CPM menu from opening in CET.
 
-- Adds **Export Option Catalog** under the Advanced Preset Manager’s **Log → Technical Details**. It saves a bounded snapshot of live customization options to `Data/Logs` without changing the appearance or presets.
+- Adds **Export Option Catalog** under the Advanced Preset Manager’s **Log → Technical Details**. It saves a snapshot of live customization options to `Data/Logs` without changing the appearance or presets.
 
 - Fixes a startup error in the diagnostic test build that stopped the preset list from loading. Preset files were not removed.
 

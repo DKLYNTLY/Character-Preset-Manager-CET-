@@ -1,11 +1,8 @@
 local identities = require("modules/domain/identities")
-local MAX_OPTIONS, MAX_CHOICES, MAX_BYTES, MAX_TEXT = 2048, 65536, 8388608, 1024
 
 local function capture(runtime)
-  local lines, bytes, choices, occurrences = {}, 0, 0, {}
+  local lines, choices, occurrences = {}, 0, {}
   local function add(value)
-    bytes = bytes + #value + 1
-    if bytes > MAX_BYTES then error("The catalog exceeds the 8 MiB export limit.", 0) end
     lines[#lines + 1] = value
   end
   local function read(callback)
@@ -16,7 +13,6 @@ local function capture(runtime)
   local function text(value)
     if value == nil then return "[unavailable]" end
     if type(value) ~= "string" then return "[unavailable]" end
-    if #value > MAX_TEXT then error("A catalog identity exceeds the 1024-byte export limit.", 0) end
     if identities.isRuntimePointerText(value) then return "[unavailable]" end
     if value:find("%a:[/\\]") or value:find("\\\\", 1, true)
         or value:match("^%s*[/\\]") or value:find("%s[/\\]") or value:find("=[/\\]")
@@ -44,12 +40,10 @@ local function capture(runtime)
     if type(value) ~= "table" and type(value) ~= "userdata" then return nil end
     local size = read(function() return #value end)
     if type(size) ~= "number" or size < 0 or size ~= math.floor(size) then return nil end
-    if size > MAX_CHOICES then error("The catalog exceeds the 65536-choice export limit.", 0) end
     return size
   end
   local function charge()
     choices = choices + 1
-    if choices > MAX_CHOICES then error("The catalog exceeds the 65536-choice export limit.", 0) end
   end
   local system = read(function() return runtime.Game.GetCharacterCustomizationSystem() end)
   if not system then return nil, "The character editor is not available." end
@@ -58,7 +52,6 @@ local function capture(runtime)
     return system:GetUnitedOptions(true, true, true, empty, empty, empty)
   end)
   if type(options) ~= "table" or #options == 0 then return nil, "The option catalog is not available." end
-  if #options > MAX_OPTIONS then return nil, "The catalog exceeds the 2048-option export limit." end
   add("CPM customization option catalog")
   add("Catalog layout: 1")
   add("Indexes are zero-based. Occurrences include inactive and noneditable options.")
@@ -119,12 +112,7 @@ local function install(runtime)
     end
     local ok, contents, count = pcall(capture, {Game=Game, ToCName=ToCName, NameToString=NameToString, optionKey=optionKey})
     if not ok then
-      local reasons = {
-        ["The catalog exceeds the 8 MiB export limit."]=true,
-        ["The catalog exceeds the 65536-choice export limit."]=true,
-        ["A catalog identity exceeds the 1024-byte export limit."]=true,
-      }
-      count = reasons[contents] and contents or "The option catalog could not be captured."
+      count = "The option catalog could not be captured."
       contents = nil
     end
     if not contents then

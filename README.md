@@ -321,7 +321,7 @@ The text file is saved under `Data/Logs` as `Option Catalog YYYY-MM-DD HH-MM-SS-
 
 I read only customization fields for this export; player and save names are not collected. Absolute paths in field values are redacted. The capture does not change options or preset files, and it adds no background polling. A large catalog may cause a short pause when you click the button.
 
-Exports stop without a completed file if they exceed 2,048 options, 65,536 choice/name records, 1,024 bytes per identity, or 8 MiB of text. Include the exported file when reporting missing or reordered choices.
+The diagnostic export has no fixed option-count, choice-count, identity-length, or output-size limits. Include the exported file when reporting missing or reordered choices.
 
 Include the **RED4ext log** when a report concerns ACU imports, folder watching, or opening CET. If it says the native file service stopped after an unexpected error, fully restart the game.
 
