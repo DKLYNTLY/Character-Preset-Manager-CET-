@@ -163,8 +163,8 @@ The reader keeps their choice identities and leaves the original files unchanged
 
 These imports match the game’s internal option names and load only choices with a unique appearance, morph, or switcher identity.
 I read the named identity inside each appearance or morph record so future CPM saves can preserve those choices.
-Switcher choices require an exact, unique match for their ordered list of internal names. CPM checks selectors first and reads the live options again after each applied change so newly active choices can be found.
-Indexed catalogs and other identities that cannot be verified remain unresolved.
+Switcher choices require an exact, unique match for their ordered list of internal names. CPM checks selectors first and reads the live options again between selector changes. It then applies appearance and morph choices in small batches, followed by an aggregate final check.
+Indexed catalogs and other identities that cannot be verified remain unresolved. The batch loader is a test implementation; compare the appearance and review any warnings before confirming the editor.
 Check **Panel Status** and the **Activity Log**, then review the appearance before confirming the editor.
 **Force Full Load** does not enable numeric fallbacks for these files, and loading them does not clear unrelated choices.
 

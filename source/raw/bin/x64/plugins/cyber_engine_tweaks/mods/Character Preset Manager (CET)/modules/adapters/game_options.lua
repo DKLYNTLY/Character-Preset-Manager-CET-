@@ -4,6 +4,7 @@ local function install(runtime)
 if setfenv then setfenv(1,runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
+local acuBatch = require("modules/adapters/acu_batch").new(runtime)
 local matching = require("modules/domain/matching")
 local AUTO_LOAD_SAFETY_MARGIN = 10
 local control = {}
@@ -36,6 +37,7 @@ end
 for field in pairs(control) do control[field] = nil end
 eventBuffers.release.app = {optionsMemo=false}
 local function releaseControl()
+  acuBatch.reset()
   for key in pairs(control) do control[key] = nil end
   for _,event in pairs(eventBuffers) do
     for key in pairs(event) do
@@ -629,6 +631,7 @@ helpers.writeLoadGroup = function(system, options, prepared)
 end
 
 beginLoadPass = function(preset, loadName)
+  acuBatch.reset()
   if helpers.appearanceTrace then helpers.appearanceTrace("begin", "load", loadName, preset.format) end
   helpers.auditSection("LOAD PRESET")
   log(("[PRESET] Load requested: name='%s'"):format(tostring(loadName)), "load")
@@ -643,87 +646,9 @@ beginLoadPass = function(preset, loadName)
   return values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
 end
 
-local function continueAcuLoad(system, options, preset)
-  local resolved = helpers.resolveAcuPreset(preset, options)
-  local pending = state.load.pendingChange
-  if pending then
-    local verified
-    for _, item in ipairs(resolved) do
-      if item.candidate and item.candidate.key == pending.optionKey
-          and item.target == pending.target and item.choice == pending.acuChoice then verified = item end
-    end
-    if verified then
-      local labels = {[verified.candidate.label]=true}
-      local scan = helpers.scanLoadOptions(options, labels, {})
-      if helpers.checkPendingChange(system, scan) == "waiting" then return end
-    else
-      state.load.pendingChange = nil
-      state.logLoadOnce("acu-pending:" .. pending.trackingKey,
-        "[SKIPPED] An ACU choice changed while loading. Its saved identity could not be confirmed.", "warn")
-    end
-  end
-  table.sort(resolved, function(left, right)
-    local leftSwitcher = left.entry.selection and left.entry.selection.kind == "switcher"
-    local rightSwitcher = right.entry.selection and right.entry.selection.kind == "switcher"
-    if leftSwitcher ~= rightSwitcher then return leftSwitcher end
-    return left.position < right.position
-  end)
-  local remaining, confirmed, signature = 0, 0, {}
-  for _, item in ipairs(resolved) do
-    local trackingKey = "acu:" .. tostring(item.position)
-    local current = item.candidate and tonumber(item.candidate.option.currIndex)
-    if helpers.appearanceTrace then
-      helpers.appearanceTrace("compare", { slot = item.candidate and item.candidate.slot,
-        label = item.entry.key, kind = "acu-verify", target = item.target, savedChoice = item.choice },
-        item.candidate and item.candidate.option, item.status)
-    end
-    if item.status == "resolved" and current == item.target then
-      confirmed = confirmed + 1
-    elseif item.status == "resolved" and not state.load.applyAttempts[trackingKey] then
-      local candidate = item.candidate
-      candidate.choiceShape = helpers.loadChoiceShape(candidate.option)
-      local ok, reason = helpers.beginPendingChange(system, candidate, item.target, "apply", trackingKey, current)
-      if not ok then
-        transition("stall")
-        log("[ACU IMPORT] The choice could not be applied: " .. tostring(reason), "error")
-        setStatus("load", "Loading stopped because an ACU choice could not be applied. Check the Activity Log.", true)
-        return
-      end
-      state.load.pendingChange.acuChoice = item.choice
-      state.load.remaining = #resolved - confirmed
-      setStatus("load", "Applying a verified ACU choice. Waiting for the editor to update.")
-      return
-    else
-      remaining = remaining + 1
-      signature[#signature + 1] = trackingKey .. ":" .. item.status
-      state.logLoadOnce(trackingKey .. ":" .. item.status,
-        ("[SKIPPED] ACU choice '%s' could not be confirmed by its saved identity. No numeric fallback was used.")
-          :format(item.entry.key), "warn")
-    end
-  end
-  state.load.remaining = remaining
-  if remaining > 0 then
-    eventBuffers.unresolved.signature = table.concat(signature, "|")
-    local stopped = transition("unresolved") == "stopped"
-    if stopped then
-      refreshCustomizationUi()
-      state.app.nativeLoadSummary = ("Confirmed %d ACU choices; %d remain unresolved."):format(confirmed, remaining)
-      state.app.nativePanelShowDetails = true
-    end
-    setStatus("load", ("Confirmed %d of %d ACU choices. %d could not be verified; check the appearance and Activity Log.")
-      :format(confirmed, #resolved, remaining), false, "warning")
-  else
-    transition("complete")
-    refreshCustomizationUi()
-    state.app.nativeLoadSummary = ("Confirmed all %d ACU choices."):format(confirmed)
-    state.app.nativePanelShowDetails = false
-    setStatus("load", state.app.nativeLoadSummary, false, "success")
-  end
-end
-
 continueLoadPass = function(system, options, preset, values, savedCounts,
     orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
-  if preset.importKind == "acu-v2" then return continueAcuLoad(system, options, preset) end
+  if preset.importKind == "acu-v2" then return acuBatch.run(system, options, preset) end
   eventBuffers.pass_start.valueCount = valueCount
   if transition("pass_start") == "empty" then
     setStatus("load", "The preset contains no saved options.", true)
@@ -1284,6 +1209,7 @@ local function performPresetLoad()
     + math.max(0, helpers.loadClock() - optionsStarted)
   state.load.optionCalls = state.load.optionCalls + 1
   if not options then
+    acuBatch.reset()
     if state.load.needsContinue then
       transition("options_missing")
     end
@@ -1332,7 +1258,7 @@ function loadPreset()
   if helpers.appearanceTrace and (not ok or not state.load.needsContinue or state.load.stalled) then
     helpers.appearanceTrace("after", "load", not ok and "error" or state.load.stalled and "stalled" or "returned")
   end
-  if not ok then error(result, 0) end
+  if not ok then acuBatch.reset(); error(result, 0) end
   return result
 end
 

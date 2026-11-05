@@ -308,53 +308,57 @@ end
 helpers.resolveAcuPreset = function(preset, options)
   local live, occurrences = {}, {}
   for position, option in ipairs(options or {}) do
-    local label = optionKey(option)
-    local nameOk, internalName = pcall(function() return stableRuntimeValue(option.info.name) end)
-    internalName = nameOk and matching.validSlot(internalName, MAX_PRESET_KEY_BYTES) or nil
-    if label and internalName and option.isEditable and option.isActive then
-      occurrences[label] = (occurrences[label] or 0) + 1
-      live[#live + 1] = {option=option,label=label,internalName=internalName,position=position,
-        occurrence=occurrences[label],key=matching.occurrenceKey(label, occurrences[label]),
-        slot=optionSlot(option)}
+    if option and option.isEditable and option.isActive then
+      local label = optionKey(option)
+      local nameOk, internalName = pcall(function() return stableRuntimeValue(option.info.name) end)
+      internalName = nameOk and matching.validSlot(internalName, MAX_PRESET_KEY_BYTES) or nil
+      if label and internalName then
+        occurrences[label] = (occurrences[label] or 0) + 1
+        live[#live + 1] = {option=option,label=label,internalName=internalName,position=position,
+          occurrence=occurrences[label],key=matching.occurrenceKey(label, occurrences[label]),
+          slot=optionSlot(option)}
+      end
     end
   end
-  return acuV2.resolve(preset.entries, live, function(option, choice)
-    local field, wanted = matching.choiceParts(choice)
-    if field == "switcher" then
-      local ok, size = pcall(function() return #option.info.options end)
-      if not ok or not identities.optionIndexIsValid(size) then return nil end
-      local found
-      for index = 0, size - 1 do
-        local namesOk, identity = pcall(function()
-          local source = option.info.options[index + 1].names
-          local count = #source
-          if not identities.optionIndexIsValid(count) or count > 1024 then return nil end
-          local names = {}
-          for position = 1, count do
-            local name = stableRuntimeValue(source[position])
-            if not name then return nil end
-            names[position] = name
-          end
-          return acuV2.switcherIdentity(names)
-        end)
-        if namesOk and identity == choice then
-          if found ~= nil then return nil end
-          found = index
-        end
-      end
-      return found
-    end
-    local ok, size = pcall(function() return #(option.info[field] or {}) end)
-    if not ok then return nil end
+  return acuV2.resolve(preset.entries, live, helpers.resolveAcuChoice)
+end
+
+helpers.resolveAcuChoice = function(option, choice)
+  local field, wanted = matching.choiceParts(choice)
+  if field == "switcher" then
+    local ok, size = pcall(function() return #option.info.options end)
+    if not ok or not identities.optionIndexIsValid(size) then return nil end
     local found
     for index = 0, size - 1 do
-      if choiceCollectionValue(option.info, field, index) == wanted then
+      local namesOk, identity = pcall(function()
+        local source = option.info.options[index + 1].names
+        local count = #source
+        if not identities.optionIndexIsValid(count) or count > 1024 then return nil end
+        local names = {}
+        for position = 1, count do
+          local name = stableRuntimeValue(source[position])
+          if not name then return nil end
+          names[position] = name
+        end
+        return acuV2.switcherIdentity(names)
+      end)
+      if namesOk and identity == choice then
         if found ~= nil then return nil end
         found = index
       end
     end
     return found
-  end)
+  end
+  local ok, size = pcall(function() return #(option.info[field] or {}) end)
+  if not ok then return nil end
+  local found
+  for index = 0, size - 1 do
+    if choiceCollectionValue(option.info, field, index) == wanted then
+      if found ~= nil then return nil end
+      found = index
+    end
+  end
+  return found
 end
 
 return _ENV
