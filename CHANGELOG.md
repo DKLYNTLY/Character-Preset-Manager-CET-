@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Loads ACU version-2 switchers through exact, unique internal name lists. Selectors are checked before dependent appearance choices, with fresh option reads after changes; ambiguous identities stay unresolved.
+
 - Removes the diagnostic catalog export limits so large modded catalogs can be captured. Privacy filtering and preset-file limits stay in place.
 
 - Fixes a catalog-export startup error that prevented the CPM menu from opening in CET.
@@ -19,7 +21,7 @@ for current steps.
 
 - Adds bounded appearance diagnostics to the Activity Log for preset loads, saves, Randomize, and editor sessions. These records compare selected choices and callbacks; they do not confirm that visible hair or cyberware was removed.
 
-- Fixes ACU version-2 matching to use internal option names. Appearance and morph choices now read their named identities; switchers and indexed catalogs still remain unresolved.
+- Fixes ACU version-2 matching to use internal option names. Appearance and morph choices now read their named identities; indexed catalogs remain unresolved.
 
 - Reads ACU 4.1.1 version-2 presets with a `// ACU-PRESET` header. The header no longer becomes a false appearance option.
 - Matches these imports by verified appearance and morph identities. Unresolved choices stay unchanged, and numeric fallbacks and cleanup are disabled for these files.

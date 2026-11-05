@@ -140,6 +140,19 @@ local function decode(body, header, metadataOnly, encodeCodepoint)
       gameHash=decoded.game_hash,isMale=decoded.is_male,isMaleVoice=decoded.is_male_vo}}
 end
 
+local function switcherIdentity(names)
+  if not array(names) or #names == 0 then return nil end
+  local parts, size = {"switcher:"}, 9
+  for _, name in ipairs(names) do
+    if not text(name, 1024) then return nil end
+    local part = tostring(#name) .. ":" .. name
+    size = size + #part
+    if size > 1024 then return nil end
+    parts[#parts + 1] = part
+  end
+  return table.concat(parts)
+end
+
 local function resolve(entries, live, choiceIndex)
   local results, savedCounts, liveByName = {}, {}, {}
   for _, entry in ipairs(entries or {}) do savedCounts[entry.key] = (savedCounts[entry.key] or 0) + 1 end
@@ -158,7 +171,8 @@ local function resolve(entries, live, choiceIndex)
       local saved = entry.selection or {}
       local choice
       if saved.kind == "appearance" then choice = "definitions:" .. saved.name
-      elseif saved.kind == "morph" then choice = "morphNames:" .. saved.morph_name end
+      elseif saved.kind == "morph" then choice = "morphNames:" .. saved.morph_name
+      elseif saved.kind == "switcher" then choice = switcherIdentity(saved.names) end
       if choice then
         local target = choiceIndex(group[1].option, choice)
         if target ~= nil then
@@ -172,4 +186,4 @@ local function resolve(entries, live, choiceIndex)
   return results
 end
 
-return {envelope=envelope,decode=decode,resolve=resolve}
+return {envelope=envelope,decode=decode,resolve=resolve,switcherIdentity=switcherIdentity}

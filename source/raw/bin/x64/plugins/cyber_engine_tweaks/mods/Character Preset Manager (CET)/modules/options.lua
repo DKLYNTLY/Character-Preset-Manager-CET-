@@ -320,6 +320,30 @@ helpers.resolveAcuPreset = function(preset, options)
   end
   return acuV2.resolve(preset.entries, live, function(option, choice)
     local field, wanted = matching.choiceParts(choice)
+    if field == "switcher" then
+      local ok, size = pcall(function() return #option.info.options end)
+      if not ok or not identities.optionIndexIsValid(size) then return nil end
+      local found
+      for index = 0, size - 1 do
+        local namesOk, identity = pcall(function()
+          local source = option.info.options[index + 1].names
+          local count = #source
+          if not identities.optionIndexIsValid(count) or count > 1024 then return nil end
+          local names = {}
+          for position = 1, count do
+            local name = stableRuntimeValue(source[position])
+            if not name then return nil end
+            names[position] = name
+          end
+          return acuV2.switcherIdentity(names)
+        end)
+        if namesOk and identity == choice then
+          if found ~= nil then return nil end
+          found = index
+        end
+      end
+      return found
+    end
     local ok, size = pcall(function() return #(option.info[field] or {}) end)
     if not ok then return nil end
     local found

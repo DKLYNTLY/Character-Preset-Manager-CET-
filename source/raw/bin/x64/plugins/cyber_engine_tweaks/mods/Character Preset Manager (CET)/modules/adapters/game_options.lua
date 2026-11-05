@@ -662,9 +662,15 @@ local function continueAcuLoad(system, options, preset)
         "[SKIPPED] An ACU choice changed while loading. Its saved identity could not be confirmed.", "warn")
     end
   end
+  table.sort(resolved, function(left, right)
+    local leftSwitcher = left.entry.selection and left.entry.selection.kind == "switcher"
+    local rightSwitcher = right.entry.selection and right.entry.selection.kind == "switcher"
+    if leftSwitcher ~= rightSwitcher then return leftSwitcher end
+    return left.position < right.position
+  end)
   local remaining, confirmed, signature = 0, 0, {}
-  for position, item in ipairs(resolved) do
-    local trackingKey = "acu:" .. tostring(position)
+  for _, item in ipairs(resolved) do
+    local trackingKey = "acu:" .. tostring(item.position)
     local current = item.candidate and tonumber(item.candidate.option.currIndex)
     if helpers.appearanceTrace then
       helpers.appearanceTrace("compare", { slot = item.candidate and item.candidate.slot,
