@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Spreads ACU choice checks across updates and reads each choice array once per scan. Completed checks are reused while waiting, with a fresh verification pass after loading.
+
 - Tests an ACU-only batch loader that replaces individual confirmation waits with selector, choice, and final-verification stages. It uses the existing game API, keeps ambiguous choices unresolved, and schedules no cleanup.
 
 - Loads ACU version-2 switchers through exact, unique internal name lists. Selectors are checked before dependent appearance choices, with fresh option reads after changes; ambiguous identities stay unresolved.

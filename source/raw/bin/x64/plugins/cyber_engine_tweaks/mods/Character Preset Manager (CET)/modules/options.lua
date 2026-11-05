@@ -305,7 +305,7 @@ end
 
 
 
-helpers.resolveAcuPreset = function(preset, options)
+helpers.acuCandidates = function(options)
   local live, occurrences = {}, {}
   for position, option in ipairs(options or {}) do
     if option and option.isEditable and option.isActive then
@@ -320,18 +320,26 @@ helpers.resolveAcuPreset = function(preset, options)
       end
     end
   end
-  return acuV2.resolve(preset.entries, live, helpers.resolveAcuChoice)
+  return live
+end
+
+helpers.resolveAcuPreset = function(preset, options)
+  return acuV2.resolve(preset.entries, helpers.acuCandidates(options), helpers.resolveAcuChoice)
 end
 
 helpers.resolveAcuChoice = function(option, choice)
   local field, wanted = matching.choiceParts(choice)
+  local sourceField = field == "switcher" and "options" or field
+  if sourceField ~= "options" and sourceField ~= "definitions" and sourceField ~= "morphNames" then return nil end
+  local sourceOk, collection = pcall(function() return option.info[sourceField] end)
+  if not sourceOk or collection == nil then return nil end
+  local sizeOk, size = pcall(function() return #collection end)
+  if not sizeOk or not identities.optionIndexIsValid(size) then return nil end
   if field == "switcher" then
-    local ok, size = pcall(function() return #option.info.options end)
-    if not ok or not identities.optionIndexIsValid(size) then return nil end
     local found
     for index = 0, size - 1 do
       local namesOk, identity = pcall(function()
-        local source = option.info.options[index + 1].names
+        local source = collection[index + 1].names
         local count = #source
         if not identities.optionIndexIsValid(count) or count > 1024 then return nil end
         local names = {}
@@ -349,11 +357,14 @@ helpers.resolveAcuChoice = function(option, choice)
     end
     return found
   end
-  local ok, size = pcall(function() return #(option.info[field] or {}) end)
-  if not ok then return nil end
   local found
+  local member = field == "definitions" and "name" or field == "morphNames" and "morphName" or "localizedName"
   for index = 0, size - 1 do
-    if choiceCollectionValue(option.info, field, index) == wanted then
+    local valueOk, value = pcall(function()
+      local item = collection[index + 1]
+      return type(item) == "string" and item or item[member]
+    end)
+    if valueOk and stableRuntimeValue(value) == wanted then
       if found ~= nil then return nil end
       found = index
     end

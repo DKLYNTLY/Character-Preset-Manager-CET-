@@ -5,6 +5,7 @@ if setfenv then setfenv(1,runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local acuBatch = require("modules/adapters/acu_batch").new(runtime)
+helpers.noteAcuBatchChange = acuBatch.changed
 local matching = require("modules/domain/matching")
 local AUTO_LOAD_SAFETY_MARGIN = 10
 local control = {}
