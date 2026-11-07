@@ -66,22 +66,10 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
           return false
         end
         local preset
-        if scanReason == "startup" then
-          local inventoryName = assignments[storage]
-          if not validRelativePath(inventoryName) then inventoryName = storage end
-          if type(previousPresets[inventoryName]) == "table"
-              and validRelativePath(assignments[storage]) then
-            preset = {
-              entryCount = 0,
-              entryCountKnown = false,
-              metadataLoaded = false,
-              lazy = true,
-            }
-          else
-            preset = readPresetFile(path .. "/" .. filename, true)
-          end
-        else
-          preset = readPresetFile(path .. "/" .. filename, scanReason ~= "external")
+        preset = readPresetFile(path .. "/" .. filename, scanReason ~= "external")
+        if preset and scanReason == "startup" and bodyFilter.presetBody(preset)=="Unknown" then
+          local full=readPresetFile(path .. "/" .. filename,false)
+          if full then preset.detectedBody=bodyFilter.detect(full) end
         end
         if preset then
           if scanReason == "external" then
