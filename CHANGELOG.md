@@ -9,70 +9,22 @@ for current steps.
 
 ## 4.0.2
 
-- Reuses parsed format 9 records on repeated scans when file fingerprints match. Detailed appearance snapshots are now optional in CET Settings and default off.
+- Saves new appearances and recovery snapshots as readable **format 9** presets. Files use the name entered, keep header metadata, and support notes, tags, favorites, renaming, copies, and library folders. Overwriting still requires confirmation.
+- Adds a reviewed **Preview Upgrade to Format 9** flow for older CPM presets. Check the proposed current-catalog choices, then confirm **Save Format 9 Copy**; the original stays unchanged. Older CPM files must be upgraded before loading.
+- Converts old ACU text, JSON, and header-prefixed version-2 presets in memory before using the shared format 9 loader. Appearance and morph names and ordered switcher-name lists need unique matches. Unsupported identities, including indexed catalogs, stay unresolved; numeric-only ACU files map through the current catalog, so changed mods can change the proposed choice. Unsupported header-prefixed ACU versions are rejected.
+- Keeps imported ACU files read-only and removes the separate legacy apply paths. Save a checked appearance as a new CPM preset to edit its notes, tags, or favorite status.
+- Uses dependency checks, work spread across updates, fresh choice checks, and final verification in the shared loader. Success and partial-load messages are separate; Back and editor close remain available, and timeout handling releases the menu and camera.
+- Adds **Settings → Preset Visibility**. **Filter by body** shows only known matches; **Show all presets** also shows opposite-body and Unknown presets, while loading still blocks known mismatches. Startup and Refresh infer missing body metadata from known option identities without rewriting files.
+- Reuses unchanged body checks, ACU conversions, and valid format 9 parses during the session. File fingerprints and relevant numeric-choice catalogs are checked before reuse. Restarting clears these caches.
+- Fits CET buttons to the current font and stacks bulk-action pairs when needed. Sections start collapsed; **OPEN CET TO UPGRADE** opens CET and brings the upgrade section into view. Save and upgrade labels turn yellow when ready, while hover highlights stay blue.
+- Keeps **Advanced Preset Manager** as the CET entry point and removes the separate Load Details button. The first status message includes a Refresh prompt, while startup also scans the preset library.
+- Adds **Export Option Catalog** under **Log → Technical Details**, with privacy filtering and no fixed diagnostic output-size limit. **Detailed appearance tracing** is optional in CET Settings and defaults off; normal load summaries remain available.
+- Places **Randomize** below **Load Selected Preset**, with **Randomize Settings** in **Advanced Preset Options**. Removes Help, full-library backup export/import, and Cancel Loading; preset sorting, sharing, Trash, and appearance history remain available.
+- Removes unused legacy apply helpers, unreachable loading transitions, and retired comparison tracing. The active loader's write order, timing, verification, cancellation, and occasional hair-color warning are unchanged by this cleanup.
 
-- Reuses body-detection and ACU conversion results during the session. Changed file fingerprints or numeric-choice catalogs trigger fresh checks.
+**Update:** Back up `Character Presets` and `Data`, remove the three old mod folders listed in the README, then install and restore your saved folders. This clears scripts that an overwrite could leave behind; keep any `.cpmbackup` files you want to retain.
 
-- Removes legacy apply paths. ACU files convert in memory and use the existing format 9 loader; original source files stay intact. Refresh also recognizes older breast and beard option keys for body filtering.
-
-- Removes the separate View Load Details in CET button. Advanced Preset Manager remains the CET entry point.
-
-- Adds a Refresh prompt to the initial preset status message.
-
-- Reads preset body metadata during startup and checks missing body types before showing the filtered library, so Refresh is not needed after launch.
-
-- Starts CET menu sections collapsed and expands and scrolls to Load & Restore Appearance when opening CET for upgrade or load details.
-
-- Sizes CET buttons to the current font and frame height so text fits at higher display scaling. Bulk action pairs stack when their labels need more room.
-
-- Uses yellow labels for Open CET to Upgrade and Save Preset after a name is entered, while keeping blue hover and selection highlights.
-
-- Makes View Load Details in CET open the overlay through the same action as Advanced Preset Manager.
-
-- Adds Show all presets and strict Filter by body settings. Refresh detects missing body metadata from known option identities without rewriting presets.
-
-- Shows body metadata beside the selected preset format and adds an Open CET to Upgrade action for older CPM presets.
-
-- Filters both preset menus by the current body type and blocks known mismatches before loading. Presets with unknown body metadata stay visible and labeled.
-
-- Makes format 9 the native save format and restores the normal save flow, header metadata, notes, tags, favorites, folder updates, and recovery snapshots.
-- Adds a CET upgrade preview for older CPM presets. Review current catalog mappings and confirm before saving a new format 9 copy; the original file stays intact.
-- Stops direct loading of older CPM presets, keeping them away from the legacy apply path. Old ACU presets continue through the separate legacy ACU loader.
-- Uses the tested format 9 loader with dependency checks, bounded updates, and separate success and partial-load messages.
-
-- Reads each choice list once per scan when matching saved CPM choices. This cuts repeated reads from the game during loading.
-
-- Spreads ACU choice checks across updates and reads each choice array once per scan. Completed checks are reused while waiting, with a fresh verification pass after loading.
-
-- Tests an ACU-only batch loader that replaces individual confirmation waits with selector, choice, and final-verification stages. It uses the existing game API, keeps ambiguous choices unresolved, and schedules no cleanup.
-
-- Loads ACU version-2 switchers through exact, unique internal name lists. Selectors are checked before dependent appearance choices, with fresh option reads after changes; ambiguous identities stay unresolved.
-
-- Removes the diagnostic catalog export limits so large modded catalogs can be captured. Privacy filtering and preset-file limits stay in place.
-
-- Fixes a catalog-export startup error that prevented the CPM menu from opening in CET.
-
-- Adds **Export Option Catalog** under the Advanced Preset Manager’s **Log → Technical Details**. It saves a snapshot of live customization options to `Data/Logs` without changing the appearance or presets.
-
-- Fixes a startup error in the diagnostic test build that stopped the preset list from loading. Preset files were not removed.
-
-- Adds bounded appearance diagnostics to the Activity Log for preset loads, saves, Randomize, and editor sessions. These records compare selected choices and callbacks; they do not confirm that visible hair or cyberware was removed.
-
-- Fixes ACU version-2 matching to use internal option names. Appearance and morph choices now read their named identities; indexed catalogs remain unresolved.
-
-- Reads ACU 4.1.1 version-2 presets with a `// ACU-PRESET` header. The header no longer becomes a false appearance option.
-- Matches these imports by verified appearance and morph identities. Unresolved choices stay unchanged, and numeric fallbacks and cleanup are disabled for these files.
-- Keeps imported ACU choice details intact by blocking edits that would lose them. Save the checked appearance under a new name to use notes, tags, and favorites.
-
-- Moves Randomize below Load Selected Preset in the advanced CET menu. Randomize Settings is now in Advanced Preset Options.
-- Removes Help, full-library backup export/import, and Cancel Loading. Preset sorting stays in Settings; single-preset and folder sharing, Trash, and appearance history remain available.
-- Releases the menu and camera if a preset load times out.
-- Removes the on-screen notice about the character-screen panel being unavailable.
-- Tidies the mod's code and improves handling of unexpected file-service errors. Existing presets and settings stay compatible.
-
-Update: Back up your Character Presets and Data folders, remove the three old mod folders, then install this version and restore your saved folders. This removes old scripts that a ZIP overwrite would leave behind. Keep any .cpmbackup files you want to retain; this update does not delete them.
-
-Known issue: Some modded hair or cyberware may remain visible after loading several presets. Reopening the appearance menu may not clear the leftovers.
+**Known issue:** Testing has shown leftover hair or cyberware under some loading conditions, including opposite-body presets. Known body mismatches are blocked, but selected values and completion messages do not prove that old meshes disappeared. The cause remains unproven, and reopening the editor may not clear the leftovers.
 
 </details>
 

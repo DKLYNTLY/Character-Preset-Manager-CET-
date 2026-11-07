@@ -26,7 +26,7 @@
 Character Preset Manager is a successor to Appearance Change Unlocker (ACU).
 It saves and loads your character's appearance, so you can switch between presets without recreating each look.
 
-It reads older Character Preset Manager files and compatible ACU presets. ACU version-2 imports use the safety limits described below. You can:
+It reads older Character Preset Manager files and compatible ACU presets. Imports and older files follow the compatibility rules below. You can:
 
 - Save and load vanilla, CC, and CCXL appearance choices.
 - Open the character customization menu anywhere with a hotkey.
@@ -36,14 +36,7 @@ It reads older Character Preset Manager files and compatible ACU presets. ACU ve
 - Recover deleted items from Trash.
 
 <details>
-<summary><strong>Showcase</strong></summary>
-
-[![Watch my Character Preset Manager showcase](https://img.youtube.com/vi/zxrJ2Ryq-G8/hqdefault.jpg)](https://www.youtube.com/watch?v=zxrJ2Ryq-G8)
-
-</details>
-
-<details>
-<summary><strong>Install and update</strong></summary>
+<summary><strong>Install, update, and check compatibility</strong></summary>
 
 ## Requirements
 
@@ -86,10 +79,9 @@ Do not rely on overwriting files alone. Old scripts can remain active.
 5. Restore your backed-up `Character Presets` and `Data` folders to the mod folder.
 6. Start the game.
 
-</details>
+---
 
-<details>
-<summary><strong>Compatibility and incompatibilities</strong></summary>
+## Compatibility
 
 - EKT Custom Character Creator — Compatible
 - All CCXL mods — Compatible
@@ -99,7 +91,7 @@ Do not rely on overwriting files alone. Old scripts can remain active.
 </details>
 
 <details>
-<summary><strong>Menus</strong></summary>
+<summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
 ## Preset Manager
 
@@ -131,7 +123,7 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Share individual presets, folders, or selected groups.
 - Restore an earlier appearance from recovery history.
 - Move items to Trash, restore them, or delete them permanently.
-- Check preset compatibility and use Force Full Load.
+- Check preset compatibility and review warnings under **Advanced Preset Options**.
 - Open the full character customization menu.
 - Randomize your appearance and choose which categories can change.
 - Change preset sorting in **Settings** and view the Activity Log.
@@ -151,6 +143,12 @@ Apartment mirrors give you access to the full character customization menu.
 
 ![Full character customization options in an apartment mirror](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Mirror.gif)
 
+---
+
+## Showcase
+
+[![Watch my Character Preset Manager showcase](https://img.youtube.com/vi/zxrJ2Ryq-G8/hqdefault.jpg)](https://www.youtube.com/watch?v=zxrJ2Ryq-G8)
+
 </details>
 
 <details>
@@ -158,30 +156,46 @@ Apartment mirrors give you access to the full character customization menu.
 
 ## Import ACU presets
 
-**ACU 4.1.1 version-2 files** with a `// ACU-PRESET` header can be imported.
-The reader keeps their choice identities and leaves the original files unchanged.
+Remove the **ACU mod** and keep its preset files. Old ACU text and JSON files, including **ACU 4.1.1 version-2 files** with a `// ACU-PRESET` header, convert in memory and use the shared format 9 loader.
 
-These imports match the game’s internal option names and load only choices with a unique appearance, morph, or switcher identity.
-I read the named identity inside each appearance or morph record so future CPM saves can preserve those choices.
-Switcher choices require an exact, unique match for their ordered list of internal names. CPM checks selectors first and reads the live options again between changes. It scans at most one saved choice collection per update so the work is spread across frames, then checks the final state in the same way.
-Indexed catalogs and other identities that cannot be verified remain unresolved. The batch loader is a test implementation; compare the appearance and review any warnings before confirming the editor.
-Check **Panel Status** and the **Activity Log**, then review the appearance before confirming the editor.
-**Force Full Load** does not enable numeric fallbacks for these files, and loading them does not clear unrelated choices.
+Version-2 choices need a unique appearance name, morph name, or ordered switcher-name list. Indexed catalogs and unverifiable identities stay unresolved; those choices remain unchanged. Numeric-only ACU records use the choice currently at the saved index, so changed mods can change the mapped choice.
 
-*Support for these imports is conservative. The file's game version, body flag, and voice flag do not prove compatibility or change your character's body or voice.*
+Check **Panel Status**, the **Activity Log**, and the visible appearance before confirming the editor. **Force Full Load** does not bypass version-2 identity checks or clear unrelated choices. Header-prefixed ACU version-3 files are rejected without applying them.
 
-CPM keeps imported ACU files read-only so their extra choice details stay intact. Load an imported preset, check the appearance, and save a new CPM preset before editing its notes, tags, or favorite status.
-Load the preset, correct any unresolved choices, and **save the checked appearance under a new name** to use those features.
-During customization, both menus hide presets with a known opposite body type. Body type comes from preset metadata, independently of voice. Preset names stay unchanged. The selected-preset details show **Male**, **Female**, or **Unknown** beside the format. Loading also checks for a known mismatch. **Settings → Preset Visibility** selects **Filter by body** or **Show all presets**. Filter by body shows only known matches. Startup checks body metadata automatically. Press **Refresh** to recheck missing body metadata from breast or beard option identities. Conflicting or absent evidence stays Unknown. Detection updates the library in memory and leaves the source file intact. Session caches reuse unchanged body checks and ACU conversions. Numeric conversions also check the relevant live catalog before reuse. Caches rebuild after restarting the game. Valid format 9 parses are cached within a 4 MiB source-size budget; decoded tables use additional memory. Files are fingerprinted before reuse. Enable **Detailed appearance tracing** in CET Settings when troubleshooting full before/after option snapshots. It defaults off; normal load summaries remain available.
+*Game version, body, and voice metadata do not prove compatibility. Loading never changes your character's body or voice.*
 
-New saves use readable **format 9** files with the name you enter. The header keeps the preset name, source, creation and modification dates, notes, tags, favorite status, and library folder. Body and voice metadata describe the saved appearance; loading does not change either.
+Imported ACU files stay read-only to protect their extra choice data. Correct unresolved choices after loading, then **save the checked appearance under a new name** to use CPM notes, tags, and favorites.
 
-Older CPM presets must be upgraded before loading. Open the character editor, select the old preset in the **CET menu**, and choose **Preview Upgrade to Format 9**. CET menu sections start collapsed. In the simple menu, select **OPEN CET TO UPGRADE** to open CET using its configured binding and expand and scroll to **Load & Restore Appearance**. Review each proposed choice, enter a new name, then select **Save Format 9 Copy**. The original file stays intact.
+---
 
-*Older presets may store only a choice number. The preview shows the choice currently at that number, which can differ after mods reorder the catalog. Confirm only after reviewing those mappings. If the source file, catalog choices, or body changes, CPM requires a fresh preview.*
+## Save format 9 and upgrade older CPM presets
 
-The upgraded copy keeps the original notes, tags, and favorite status. Old ACU text, JSON, and header-prefixed files are converted in memory before using the format 9 loader. Original files stay intact. Numeric-only ACU records use the current catalog at the saved index, so a changed mod catalog may change the mapped choice. Unsupported identities stay unresolved. Saving a fresh appearance uses format 9, including automatic recovery snapshots; editing an old CPM file's notes keeps its older format until you upgrade it.
-Future ACU version-3 files are rejected without loading their choices.
+New saves use readable **format 9** files named after the text you enter. Headers keep the name, source, creation and modification dates, notes, tags, favorite status, library folder, and body/voice metadata. Automatic recovery snapshots also use format 9.
+
+Overwriting requires confirmation. Notes, tags, favorites, renaming, copies, and folders keep their normal save flow.
+
+Older CPM presets need a reviewed upgrade before loading:
+
+1. Open the character editor and select the old preset in the **CET menu**.
+2. Choose **Preview Upgrade to Format 9** and review each proposed choice.
+3. Enter a new name, then confirm **Save Format 9 Copy**.
+4. Load the copy and check the visible appearance before confirming the editor.
+
+The copy keeps the original notes, tags, and favorite status. Its source file stays unchanged; metadata edits to an old CPM file keep that file's older format.
+
+*Some older records store only a choice number. The preview shows the current catalog choice at that number, which may differ after mods reorder it. A changed source file, catalog, or body requires a fresh preview.*
+
+In the simple menu, **OPEN CET TO UPGRADE** uses the configured CET binding and expands and scrolls to **Load & Restore Appearance**. CET sections otherwise start collapsed. **Advanced Preset Manager** opens CET; the separate Load Details button has been removed.
+
+---
+
+## Body filtering
+
+**Settings → Preset Visibility → Filter by body** shows only known matches. Opposite-body and **Unknown** presets are hidden; **Show all presets** displays them, while loading still blocks known mismatches.
+
+The selected preset shows **Male**, **Female**, or **Unknown** beside its format. Body metadata is separate from voice, and preset names do not determine it.
+
+Startup scans the library and checks missing body metadata. Press **Refresh** after adding files or to recheck missing body information from known breast or beard option identities. Conflicting or absent evidence stays Unknown; detection updates the library in memory without rewriting files.
 
 ---
 
@@ -209,7 +223,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 
 To share a preset, send its `.preset` file. To install one, place it in this folder or a subfolder, then select **Refresh** in the Advanced Preset Manager.
 
-Loading an older preset leaves its file unchanged. Overwriting it or saving changes to its notes or tags updates it to the current format.
+Reading, scanning, converting for a load, and loading leave source files unchanged. Use the reviewed upgrade flow to create a format 9 copy of an older CPM preset; metadata edits keep its existing format.
 
 ---
 
@@ -254,7 +268,7 @@ Deleting the shared file afterward does not remove the presets you installed.
 </details>
 
 <details>
-<summary><strong>Recovery and Trash</strong></summary>
+<summary><strong>Backups, recovery, and Trash</strong></summary>
 
 ## Appearance history
 
@@ -273,7 +287,7 @@ Presets and folders moved to Trash can be restored through **Delete & Restore It
 </details>
 
 <details>
-<summary><strong>Common issues and bug reports</strong></summary>
+<summary><strong>Troubleshooting, logs, and settings</strong></summary>
 
 ## Redscript compilation failed
 
@@ -302,6 +316,8 @@ Remove your clothing and select **No Outfit** in the wardrobe before opening the
 
 Make sure all four required frameworks are installed and up to date, then fully restart the game.
 
+Startup scans the library, and the first status message also prompts **Refresh**. Refresh an empty list and check **Preset Visibility**; body filtering hides Unknown and opposite-body presets.
+
 ---
 
 ## Downloaded presets don't appear
@@ -318,15 +334,23 @@ Move the original out of the ACU presets folder, then delete the imported copy.
 
 ---
 
+## Leftover hair, cyberware, or unconfirmed choices
+
+Testing has shown leftovers in some loading sequences, including opposite-body presets. The cause is unproven; known body mismatches are blocked, and reopening the editor may not clear leftovers.
+
+Check visible hair and cyberware as well as selected choices. An occasional hair-color verification warning may still appear; **Back** and editor close remain available during loading.
+
+---
+
 ## Report a bug
 
 Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened and what you were doing. Include your latest `Activity.log` so I can check what went wrong.
 
-The Activity Log also records selected choices before and after preset loads, saves, and Randomize. Editor session numbers help track leftovers that survive a return to the main menu. These records do not prove that a visible mesh was removed. Include screenshots and the preset names when reporting leftover hair or cyberware.
+Normal load summaries remain available in the Activity Log. For full before/after snapshots, enable **Settings → Detailed appearance tracing**; it defaults off and adds diagnostic work. Editor session numbers help track editor visits, but selected values and callbacks do not prove that a visible mesh was removed. Include screenshots and preset names when reporting leftovers.
 
 To export the live option catalog, open a customization editor and choose **Log → Technical Details → Export Option Catalog** in the Advanced Preset Manager. Wait until any preset load has finished.
 
-The text file is saved under `Data/Logs` as `Option Catalog YYYY-MM-DD HH-MM-SS-NNN.txt`. It records internal option names, labels, slots, occurrences, indexes, active/editable flags, and available choice identities. Duplicate choices stay in their original order, and inaccessible fields are marked unavailable. Switcher-name lists may be unavailable through CET.
+The text file is saved under `Data/Logs` as `Option Catalog YYYY-MM-DD HH-MM-SS-NNN.txt`. It records internal option names, labels, slots, occurrences, indexes, active/editable flags, and available choice identities. Duplicate choices keep their order; fields the game does not expose are marked unavailable.
 
 I read only customization fields for this export; player and save names are not collected. Absolute paths in field values are redacted. The capture does not change options or preset files, and it adds no background polling. A large catalog may cause a short pause when you click the button.
 
@@ -340,20 +364,23 @@ Select **Log** at the top of the Advanced Preset Manager to read or copy it. You
 bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Logs/Activity.log
 ```
 
-</details>
-
-<details>
-<summary><strong>Common questions</strong></summary>
-
-## Can I have your preset?
-
-No.
-
 ---
 
 ## How do I change the settings?
 
 Select **Settings** at the top of the Advanced Preset Manager. Use **Preset Sort Order** to sort presets by name or last changed date.
+
+**Preset Visibility** chooses body filtering or all presets. Enable **Detailed appearance tracing** when troubleshooting, then turn it off after collecting the log.
+
+---
+
+## Session caches and file limits
+
+CPM reuses unchanged body checks and ACU conversions during the session. Numeric ACU conversions also check the relevant live catalog before reuse; restarting the game clears these caches.
+
+Valid format 9 parses use a **4 MiB source-size cache budget**. Decoded tables need additional memory, and file fingerprints are checked before reuse.
+
+Preset files remain limited to **1 MiB** and **4,096 format 9 option records**. These limits are separate from the diagnostic catalog export, which has no fixed output-size limit.
 
 </details>
 
@@ -383,5 +410,10 @@ ChatGPT helped me with this mod. I wrote the code myself.
 
 Thanks to CD Projekt Red for Cyberpunk 2077, and to everyone who has tested the mod, reported problems, or shared feedback.
 
-</details>
+---
 
+## Can I have your preset?
+
+No.
+
+</details>
