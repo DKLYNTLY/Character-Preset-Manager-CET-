@@ -48,7 +48,7 @@ if not state.app.overlayOpen or not state.app.windowOpen then return end
 local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local presetListHeight = ImGui.GetFontSize() * 6 + math.min(extraHeight * 0.16, 48)
     local statusHeight = 64 + math.min(extraHeight * 0.10, 28)
-    local actionButtonHeight = 32
+    local actionButtonHeight = math.max(32, ImGui.GetFrameHeight())
 
     local narrowTopRow = ImGui.GetWindowWidth() < 620
     local topRowStartX = ImGui.GetCursorPosX()

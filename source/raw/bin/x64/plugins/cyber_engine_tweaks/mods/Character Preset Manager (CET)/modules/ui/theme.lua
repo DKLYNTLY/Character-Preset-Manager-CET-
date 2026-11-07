@@ -95,7 +95,7 @@ end
 
 function fullWidthButton(label, height)
   local width = ImGui.GetContentRegionAvail()
-  return ImGui.Button(label, width, height or 32)
+  return ImGui.Button(label, width, math.max(height or 32, ImGui.GetFrameHeight()))
 end
 
 function compactSubsectionButton(closedLabel, openLabel, key)
@@ -119,7 +119,7 @@ function compactSubsectionButton(closedLabel, openLabel, key)
     open and 0.15 or 0.20, open and 0.85 or 0.55)
   ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
   if ImGui.Button((open and openLabel or closedLabel) ..
-      "##CPMSubsection:" .. key, width, 30) then
+      "##CPMSubsection:" .. key, width, math.max(30, ImGui.GetFrameHeight())) then
     open = not open
     state.ui.openSubsections[key] = open
   end
@@ -143,7 +143,7 @@ function dangerButton(label, width, height)
   ImGui.PushStyleColor(ImGuiCol.Button,        0.62, 0.16, 0.13, 0.92)
   ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.78, 0.20, 0.16, 1.0)
   ImGui.PushStyleColor(ImGuiCol.ButtonActive,  0.48, 0.11, 0.09, 1.0)
-  local pressed = ImGui.Button(label, width, height or 32)
+  local pressed = ImGui.Button(label, width, math.max(height or 32, ImGui.GetFrameHeight()))
   ImGui.PopStyleColor(3)
   return pressed
 end
@@ -248,13 +248,13 @@ function drawPageControls(key, count, pageSize, label)
   if pages <= 1 then return end
   local width = (ImGui.GetContentRegionAvail() - 8) * 0.5
   if page <= 1 then ImGui.BeginDisabled() end
-  if ImGui.Button("Previous##page:" .. key, width, 28) then
+  if ImGui.Button("Previous##page:" .. key, width, math.max(28, ImGui.GetFrameHeight())) then
     state.ui.listPages[key] = page - 1
   end
   if page <= 1 then ImGui.EndDisabled() end
   ImGui.SameLine()
   if page >= pages then ImGui.BeginDisabled() end
-  if ImGui.Button("Next##page:" .. key, width, 28) then
+  if ImGui.Button("Next##page:" .. key, width, math.max(28, ImGui.GetFrameHeight())) then
     state.ui.listPages[key] = page + 1
   end
   if page >= pages then ImGui.EndDisabled() end

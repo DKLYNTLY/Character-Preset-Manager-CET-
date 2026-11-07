@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Sizes CET buttons to the current font and frame height so text fits at higher display scaling. Bulk action pairs stack when their labels need more room.
+
 - Uses yellow labels for Open CET to Upgrade and Save Preset after a name is entered, while keeping blue hover and selection highlights.
 
 - Makes View Load Details in CET open the overlay through the same action as Advanced Preset Manager.

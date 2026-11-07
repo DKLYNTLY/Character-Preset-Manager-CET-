@@ -27,12 +27,14 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       commands.run(runtime, "bulk_filter")
     end
     ImGui.PopItemWidth()
-    local bulkButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+    local availableWidth = ImGui.GetContentRegionAvail()
+    local stackButtons = availableWidth < math.max(ImGui.CalcTextSize("Select All Visible"), ImGui.CalcTextSize("Clear Selection")) * 2 + ImGui.GetFontSize() * 4
+    local bulkButtonWidth = stackButtons and availableWidth or (availableWidth - 8) * 0.5
     if ImGui.Button("Select All Visible##bulkSelectAll",
         bulkButtonWidth, actionButtonHeight) then
       commands.run(runtime, "bulk_select_visible", {visibleNames = visibleNames})
     end
-    ImGui.SameLine()
+    if not stackButtons then ImGui.SameLine() end
     if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
     if ImGui.Button("Clear Selection##bulkClear",
         bulkButtonWidth, actionButtonHeight) then
@@ -73,11 +75,13 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       ImGui.EndCombo()
     end
     if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
-    local bulkActionWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+    local actionWidth = ImGui.GetContentRegionAvail()
+    local stackActions = actionWidth < math.max(ImGui.CalcTextSize("Move Selected"), ImGui.CalcTextSize("Export Selected")) * 2 + ImGui.GetFontSize() * 4
+    local bulkActionWidth = stackActions and actionWidth or (actionWidth - 8) * 0.5
     if ImGui.Button("Move Selected##bulkMove", bulkActionWidth, actionButtonHeight) then
       commands.run(runtime, "bulk_move", {selectedBulkNames = selectedBulkNames})
     end
-    ImGui.SameLine()
+    if not stackActions then ImGui.SameLine() end
     if ImGui.Button("Export Selected##bulkExport", bulkActionWidth, actionButtonHeight) then
       commands.run(runtime, "bulk_export", {selectedBulkNames = selectedBulkNames})
     end
