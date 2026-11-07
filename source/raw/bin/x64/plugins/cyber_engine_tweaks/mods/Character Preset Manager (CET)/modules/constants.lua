@@ -74,6 +74,6 @@ APPEARANCE_HISTORY_LIMIT = 5
 NATIVE_REQUEST_POLL_SECONDS = 0.05
 ACU_IMPORT_FILES_PER_FRAME = 2
 ACU_IMPORT_POLL_SECONDS = 0.25
-NATIVE_READY_STATUS = "Ready. Choose a preset to load it, or save the current appearance below."
+NATIVE_READY_STATUS = "Press Refresh to load the preset library. Choose a preset or save the current appearance."
 
 return _ENV

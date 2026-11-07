@@ -84,7 +84,7 @@ state = {
   },
   ui = {
     openSections = {
-      editor = true,
+      editor = false,
       load = false,
       create = false,
       folders = false,
@@ -148,7 +148,7 @@ state = {
   status = {
     sections = {
       editor = { message = "Load a save before opening the full editor.", error = false },
-      load = { message = "Load a save and open the character editor.", error = false },
+      load = { message = "Press Refresh to load the preset library. Open the character editor to load a preset.", error = false },
       create = { message = "", error = false },
       folder = { message = "", error = false },
       rename = { message = "", error = false },

@@ -9,9 +9,11 @@ for current steps.
 
 ## 4.0.2
 
+- Adds a Refresh prompt to the initial preset status message.
+
 - Reads preset body metadata during startup and checks missing body types before showing the filtered library, so Refresh is not needed after launch.
 
-- Keeps CET menu sections expanded and scrolls to Load & Restore Appearance when opening CET for upgrade or load details.
+- Starts CET menu sections collapsed and expands and scrolls to Load & Restore Appearance when opening CET for upgrade or load details.
 
 - Sizes CET buttons to the current font and frame height so text fits at higher display scaling. Bulk action pairs stack when their labels need more room.
 

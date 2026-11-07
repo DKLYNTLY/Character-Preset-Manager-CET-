@@ -84,13 +84,22 @@ function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
   ImGui.Separator()
   ImGui.Spacing()
-  ImGui.TextColored(1.0, 1.0, 1.0, 1.0, label)
-  if key == "load" and state.ui.scrollToLoadRequested then
+  local focusLoad = state.ui.scrollToLoadRequested == true
+  if focusLoad then
+    ImGui.SetNextItemOpen(key == "load", ImGuiCond.Always)
+  else
+    ImGui.SetNextItemOpen(false, ImGuiCond.Once)
+  end
+  pushFoldingHeaderTheme()
+  local open = ImGui.CollapsingHeader(label .. "##CPMSectionV4:" .. key)
+  popFoldingHeaderTheme()
+  state.ui.openSections[key] = open
+  if key == "load" and focusLoad then
     ImGui.SetScrollHereY(0.0)
     state.ui.scrollToLoadRequested = false
   end
-  ImGui.Spacing()
-  return true
+  if open then ImGui.Spacing() end
+  return open
 end
 
 function fullWidthButton(label, height)
