@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Keeps CET menu sections expanded and scrolls to Load & Restore Appearance when opening CET for upgrade or load details.
+
 - Sizes CET buttons to the current font and frame height so text fits at higher display scaling. Bulk action pairs stack when their labels need more room.
 
 - Uses yellow labels for Open CET to Upgrade and Save Preset after a name is entered, while keeping blue hover and selection highlights.

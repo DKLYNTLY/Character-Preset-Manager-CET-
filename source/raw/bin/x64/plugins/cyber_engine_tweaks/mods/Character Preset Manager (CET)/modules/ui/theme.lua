@@ -84,13 +84,13 @@ function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
   ImGui.Separator()
   ImGui.Spacing()
-  pushFoldingHeaderTheme()
-  local defaultFlag = state.ui.openSections[key] ~= false and 32 or 0
-  local open = ImGui.CollapsingHeader(label .. "##CPMSectionV3:" .. key,
-    defaultFlag)
-  popFoldingHeaderTheme()
-  if open then ImGui.Spacing() end
-  return open
+  ImGui.TextColored(1.0, 1.0, 1.0, 1.0, label)
+  if key == "load" and state.ui.scrollToLoadRequested then
+    ImGui.SetScrollHereY(0.0)
+    state.ui.scrollToLoadRequested = false
+  end
+  ImGui.Spacing()
+  return true
 end
 
 function fullWidthButton(label, height)

@@ -264,6 +264,7 @@ local nativeCommandPorts = {
 state.app.windowOpen = true
     state.ui.focusWindowRequested = true
     state.ui.openSections.load = true
+    state.ui.scrollToLoadRequested = true
     if state.app.overlayOpen then return "status", "Character Preset Manager is open in CET." end
     if overlayRequest then return "status", "Opening Character Preset Manager in CET..." end
     overlayRequestCounter = overlayRequestCounter + 1
