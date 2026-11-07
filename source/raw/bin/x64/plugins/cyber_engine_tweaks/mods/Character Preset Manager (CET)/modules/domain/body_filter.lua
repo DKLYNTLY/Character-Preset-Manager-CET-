@@ -10,8 +10,8 @@ end
 local function detect(preset)
   local female,male=false,false
   for _,entry in ipairs(preset.entries or {}) do
-    if entry.slot=="breast" or entry.key=="breast" then female=true end
-    if entry.slot=="beard" or entry.key=="beard" then male=true end
+    if entry.slot=="breast" or entry.key=="breast" or entry.key=="LocKey#14444638123505366956" then female=true end
+    if entry.slot=="beard" or entry.key=="beard" or entry.key=="LocKey#7487713073032863221" then male=true end
   end
   if female==male then return "Unknown" end
   return male and "Male" or "Female"

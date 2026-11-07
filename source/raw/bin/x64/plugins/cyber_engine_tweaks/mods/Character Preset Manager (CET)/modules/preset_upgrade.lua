@@ -8,7 +8,6 @@ local preview
 
 local function legacyCpm(preset)
   return preset and preset.format ~= 9
-    and (preset.managedByCpm or (tonumber(preset.format) or 4) >= 5)
 end
 
 local function captureTargets(source, options)
@@ -19,6 +18,12 @@ local function captureTargets(source, options)
       local group=groups[key] or {}
       group[#group+1]=option
       groups[key]=group
+      local internal=stableRuntimeValue(option.info.name)
+      if internal and internal~=key then
+        local internalGroup=groups[internal] or {}
+        internalGroup[#internalGroup+1]=option
+        groups[internal]=internalGroup
+      end
     end
   end
   local rows,details,missing,assumed = {},{},0,0
@@ -71,6 +76,28 @@ local function captureTargets(source, options)
   local decoded=codec9.decode(contents,false)
   if not decoded then return nil end
   return decoded,details,missing,assumed
+end
+
+helpers.convertAcuForLoad=function(source,options)
+  if source.importKind=="acu-v2" then
+    local rows={}
+    for _,entry in ipairs(source.entries or {}) do
+      local selection=entry.selection or {}
+      local row={name=entry.key,state="Selected",slot=entry.slot,value=tostring(entry.index or 0)}
+      if selection.kind=="appearance" then row.kind,row.choices="Appearance",{selection.name}
+      elseif selection.kind=="morph" then row.kind,row.choices="Morph",{selection.morph_name}
+      elseif selection.kind=="switcher" then row.kind,row.choices="Switcher",selection.names
+      else row.state="Not captured" end
+      rows[#rows+1]=row
+    end
+    return {format=9,format9Rows=rows,entries=source.entries,sourceBody=helpers.presetBody(source)}
+  end
+  local captured,_,missing,assumed=captureTargets(source,options)
+  if captured then
+    log(("[ACU UPGRADE] Prepared %d choices for the format 9 loader; %d current-index mappings; %d unavailable.")
+      :format(#captured.entries,assumed,missing),"info")
+  end
+  return captured
 end
 
 helpers.canUpgradePreset9 = legacyCpm

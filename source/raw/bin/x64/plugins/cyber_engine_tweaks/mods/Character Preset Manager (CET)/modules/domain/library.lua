@@ -18,6 +18,7 @@ local function dehydratePreset(preset)
   preset.entryCountKnown = true
   preset.entries = nil
   preset.format9Rows = nil
+  preset.runtimeFormat9 = nil
   preset.lazy = true
   return true
 end

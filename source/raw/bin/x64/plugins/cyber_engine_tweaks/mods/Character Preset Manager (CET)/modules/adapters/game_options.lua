@@ -5,17 +5,8 @@ if setfenv then setfenv(1,runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local acuBatch = require("modules/adapters/shared_load_adapter").new(runtime)
-local legacyLoadPass
-local legacyLoader = require("modules/adapters/legacy_acu_loader").new({
-  identityBatch=require("modules/adapters/acu_batch").new(runtime),
-  loadEntries=function(...) return legacyLoadPass(...) end,
-  log=log,
-})
 helpers.compareFormat9 = acuBatch.compare
-helpers.noteAcuBatchChange = function()
-  acuBatch.changed()
-  legacyLoader.changed()
-end
+helpers.noteAcuBatchChange = acuBatch.changed
 local matching = require("modules/domain/matching")
 local AUTO_LOAD_SAFETY_MARGIN = 10
 local control = {}
@@ -48,7 +39,7 @@ end
 for field in pairs(control) do control[field] = nil end
 eventBuffers.release.app = {optionsMemo=false}
 local function releaseControl()
-  acuBatch.reset(); legacyLoader.reset()
+  acuBatch.reset()
   for key in pairs(control) do control[key] = nil end
   for _,event in pairs(eventBuffers) do
     for key in pairs(event) do
@@ -642,7 +633,7 @@ helpers.writeLoadGroup = function(system, options, prepared)
 end
 
 beginLoadPass = function(preset, loadName)
-  acuBatch.reset(); legacyLoader.reset()
+  acuBatch.reset()
   if helpers.appearanceTrace then helpers.appearanceTrace("begin", "load", loadName, preset.format) end
   helpers.auditSection("LOAD PRESET")
   log(("[PRESET] Load requested: name='%s'"):format(tostring(loadName)), "load")
@@ -659,547 +650,7 @@ end
 
 continueLoadPass = function(system, options, preset, values, savedCounts,
     orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
-  if preset.format ~= 9 then
-    return legacyLoader.run(system, options, preset, values, savedCounts,
-      orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
-  end
   return acuBatch.run(system, options, preset)
-end
-
-legacyLoadPass = function(system, options, preset, values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
-  eventBuffers.pass_start.valueCount = valueCount
-  if transition("pass_start") == "empty" then
-    setStatus("load", "The preset contains no saved options.", true)
-    return
-  end
-
-  if state.load.pass == 1 then
-    log(("Preset='%s' | saved=%d options | editor exposes=%d options | format=%s")
-      :format(state.load.presetName or state.library.selected,
-        valueCount, #options, tostring(preset.format or 1)),
-      "load")
-  end
-
-  local applied, missing, ambiguous, invalid = 0, 0, 0, 0
-  local deferred = {}
-  local unresolved = {}
-  local seen = {}
-  if helpers.pollPendingOption(options) == "waiting" then return end
-  local scan = helpers.scanLoadOptions(options, savedCounts, savedSlotCounts)
-  local exposed = scan.exposed
-  local activeKeySet = scan.activeKeySet
-  local activeCounts = scan.activeCounts
-  local activeExposed = scan.activeExposed
-  local exposedBySlot = scan.exposedBySlot
-  local activeSlotCounts = scan.activeSlotCounts
-
-  local pendingResult = helpers.checkPendingChange(system, scan)
-  if pendingResult == "waiting" or pendingResult == "failed" then return end
-  if helpers.confirmLoadGroup(system, scan) == "waiting" then return end
-  local gate = eventBuffers.pass_gate
-  gate.pendingResult,gate.valueCount,gate.structureChanged = pendingResult,valueCount,scan.structureChanged
-  local nextAction = transition("pass_gate")
-  if nextAction == "verify_remaining" then
-    setStatus("load", "A remaining option was cleared. Verifying the preset again.")
-    return
-  end
-  if nextAction == "precleanup_changed" then
-    log("PRECLEANUP | The editor's option list changed while old choices were being cleared. Checking the new list.", "info")
-    setStatus("load", "The editor changed while old options were cleared. Checking again.")
-    return
-  end
-  if nextAction == "cleanup_changed" then
-    helpers.clearVisibleLoadSatisfaction(scan)
-    log("CLEANUP | The editor's option list changed. Checking the preset again before clearing old choices.", "info")
-    setStatus("load", "The editor changed before cleanup. Checking your saved choices again before clearing old ones.")
-    return
-  end
-
-  if nextAction == "cleanup" then
-    local isPrecleanup = state.load.phase == "precleanup"
-    local savedEntryBySlot = {}
-    for _, entry in ipairs(orderedEntries or {}) do
-      if entry.slot and entry.slotOccurrence then
-        savedEntryBySlot[entry.slot .. "\31" .. tostring(entry.slotOccurrence)] = entry
-      end
-    end
-    local prepared = {}
-    for _, exposedOption in ipairs(exposed) do
-      local label = exposedOption.label
-      local occurrence = exposedOption.occurrence
-      local cleanupKey = exposedOption.key
-      local current = tonumber(exposedOption.option.currIndex) or 0
-      local remap = cleanupKey and state.load.dependencyRemaps[cleanupKey] or nil
-      local keepRemap = matching.keepRemap(remap, remap and state.load.satisfied[remap.savedKey],
-        exposedOption.label, exposedOption.occurrence, exposedOption.position,
-        exposedOption.slot, exposedOption.slotOccurrence, current, activeSlotCounts)
-        and (not remap.choice or optionChoiceMatchesIndex(
-          exposedOption.option, remap.choice, remap.target))
-      if remap and not keepRemap then
-        state.load.dependencyRemaps[cleanupKey] = nil
-      end
-      local savedSlotEntry = nil
-      if exposedOption.slot and exposedOption.slotOccurrence
-          and (activeSlotCounts[exposedOption.slot] or 0)
-            == (savedSlotCounts[exposedOption.slot] or 0) then
-        savedSlotEntry = savedEntryBySlot[exposedOption.slot .. "\31" ..
-          tostring(exposedOption.slotOccurrence)]
-      end
-      if matching.cleanupNeeded(cleanupKey, occurrence, savedCounts[label], savedSlotEntry,
-          current, keepRemap, state.load.cleanupSkipped[cleanupKey],
-          state.load.stageApplied[cleanupKey]) then
-        prepared[#prepared + 1] = { candidate = exposedOption, target = 0,
-          kind = isPrecleanup and "precleanup" or "cleanup" }
-      end
-    end
-    if helpers.writeLoadGroup(system, options, prepared) then return end
-    if isPrecleanup then
-      eventBuffers.apply_after_cleanup.valueCount = valueCount
-      transition("apply_after_cleanup")
-      log("PRECLEANUP | Cleared old linked options before loading the preset.", "info")
-      setStatus("load", "Old linked options cleared. Now loading your saved preset choices.")
-      return
-    end
-    eventBuffers.verify_after_cleanup.valueCount = valueCount
-    transition("verify_after_cleanup")
-    helpers.clearVisibleLoadSatisfaction(scan)
-    log("CLEANUP | No more visible old choices need clearing. Checking the saved preset values.", "info")
-    setStatus("load", "Old choices cleared. Checking the preset again.")
-    return
-  end
-
-  if helpers.applyLoadGroup(system, options, scan) then return end
-
-  local satisfiedBefore = 0
-  for _, exposedOption in ipairs(exposed) do
-    local key = exposedOption.key
-    local label = exposedOption.label
-    local wanted = key and values[key] or nil
-    local savedEntry = key and savedEntryByKey[key] or nil
-    if wanted ~= nil and savedEntry and savedEntry.choice then
-      local cachedIndex = state.load.resolvedChoiceIndexes[key]
-      local resolvedIndex = helpers.resolveLoadChoice(
-        exposedOption.option, savedEntry.choice, cachedIndex)
-      if resolvedIndex ~= nil then
-        state.load.resolvedChoiceIndexes[key] = resolvedIndex
-        wanted = resolvedIndex
-        values[key] = resolvedIndex
-      end
-    end
-    local countMatches = label
-      and matching.countsMatch(savedCounts[label], activeCounts[label])
-    if wanted ~= nil and countMatches and optionIndexIsValid(wanted)
-        and ((tonumber(exposedOption.option.currIndex) or 0) == wanted
-          or (state.load.satisfied[key] and state.load.unconfirmed[key])) then
-      satisfiedBefore = satisfiedBefore + 1
-    end
-  end
-  for key in pairs(values) do
-    if not activeKeySet[key] and state.load.satisfied[key] then
-      satisfiedBefore = satisfiedBefore + 1
-    end
-  end
-
-  for i = 1, #exposed do
-    local exposedOption = exposed[i]
-    local option = exposedOption.option
-    local label = exposedOption.label
-    local key = exposedOption.key
-    local wanted = key and values[key] or nil
-    local savedEntry = key and savedEntryByKey[key] or nil
-    local choiceUnavailable = false
-    if wanted ~= nil and savedEntry and savedEntry.choice then
-      local resolvedIndex = helpers.resolveLoadChoice(
-        option, savedEntry.choice, state.load.resolvedChoiceIndexes[key])
-      if resolvedIndex == nil then
-        state.load.resolvedChoiceIndexes[key] = nil
-        choiceUnavailable = true
-      else
-        state.load.resolvedChoiceIndexes[key] = resolvedIndex
-        wanted = resolvedIndex
-        values[key] = resolvedIndex
-      end
-    end
-    local countMatches = label
-      and matching.countsMatch(savedCounts[label], activeCounts[label])
-    local indexIsValid = wanted == nil or optionIndexIsValid(wanted)
-    if wanted ~= nil then
-      seen[key] = true
-      local unavailableReason = matching.unavailableReason(choiceUnavailable, countMatches, indexIsValid)
-      if unavailableReason == "choice" then
-        missing = missing + 1
-        unresolved["unavailable-choice:" .. tostring(key)] = true
-        state.logLoadOnce("unavailable-choice:" .. tostring(key),
-          ("[SKIPPED] Saved choice is no longer exposed for %s choice='%s'")
-            :format(state.loadOptionIdentity(option, label, exposedOption.occurrence),
-              tostring(savedEntry.choice)), "warn")
-      elseif unavailableReason == "ambiguous" then
-        ambiguous = ambiguous + 1
-        unresolved["ambiguous:" .. tostring(key)] = true
-        state.logLoadOnce("ambiguous:" .. tostring(key),
-          ("[SKIPPED] Ambiguous repeated option: %s savedCount=%d exposedCount=%d")
-            :format(
-              state.loadOptionIdentity(option, label, exposedOption.occurrence),
-              savedCounts[label] or 0,
-              activeCounts[label] or 0
-            ), "warn")
-      elseif unavailableReason == "invalid" then
-        invalid = invalid + 1
-        unresolved["invalid-index:" .. tostring(key)] = true
-        state.logLoadOnce("invalid-index:" .. tostring(key),
-          ("[SKIPPED] Saved index is outside the supported native range: %s targetIndex=%s")
-            :format(state.loadOptionIdentity(option, label, exposedOption.occurrence),
-              tostring(wanted)), "warn")
-      end
-    end
-    if wanted ~= nil and not choiceUnavailable and countMatches and indexIsValid
-        and option.isEditable and option.isActive then
-      local current = tonumber(option.currIndex) or 0
-      local disposition = matching.disposition(current, wanted, state.load.satisfied[key], state.load.unconfirmed[key])
-      if helpers.appearanceTrace then
-        helpers.appearanceTrace("compare", { slot = exposedOption.slot, label = label,
-          occurrence = exposedOption.occurrence, kind = "verify", target = wanted, trackingKey = key },
-          option, disposition)
-      end
-      if disposition == "matching" then
-        state.load.satisfied[key] = true
-        state.load.unconfirmed[key] = nil
-        applied = applied + 1
-      elseif disposition == "unconfirmed" then
-        applied = applied + 1
-      elseif disposition == "reverted" then
-        deferred[key] = true
-        missing = missing + 1
-        unresolved["reverted:" .. tostring(key)] = true
-      else
-        if savedEntry and savedEntry.choice and wanted ~= savedEntry.index then
-          log(("CHOICE REMAP | pass=%d | %s | savedIndex=%s currentIndex=%s choice='%s'")
-            :format(state.load.pass,
-              state.loadOptionIdentity(option, label, exposedOption.occurrence),
-              tostring(savedEntry.index), tostring(wanted), tostring(savedEntry.choice)),
-            "info")
-        end
-        local ok, applyError = helpers.beginPendingChange(
-          system, exposedOption, wanted, "apply", key, current)
-        if ok then
-          state.load.remaining = math.max(0, valueCount - satisfiedBefore - 1)
-          log(("CHANGE | pass=%d | %s | index %s -> %s")
-            :format(state.load.pass,
-              state.loadOptionIdentity(option, label, exposedOption.occurrence),
-              tostring(current), tostring(wanted)), "info")
-          setStatus("load", ("Applied one option. Waiting for the editor; %d %s remain%s to be checked.")
-            :format(state.load.remaining,
-              state.load.remaining == 1 and "option" or "options",
-              state.load.remaining == 1 and "s" or ""))
-        else
-          transition("stall")
-          log(("FAILED | pass=%d | %s | target index %s | %s")
-            :format(state.load.pass,
-              state.loadOptionIdentity(option, label, exposedOption.occurrence),
-              tostring(wanted), tostring(applyError)), "error")
-          setStatus("load",
-            "Loading stopped because an option could not be applied safely. " ..
-            "Close the editor without confirming, reopen it, and retry.",
-            true
-          )
-          helpers.logLoadMeasurements("apply-failed")
-        end
-        return
-      end
-    end
-  end
-  for key, wanted in pairs(values) do
-    if wanted == 0 and not activeKeySet[key] and not state.load.satisfied[key] then
-      state.load.satisfied[key] = true
-      local hiddenLabel, hiddenOccurrence = occurrenceKeyParts(key)
-      log(("VERIFY | %s | target index=0 | already clear because the dependent option is hidden")
-        :format(optionAuditIdentity(nil, hiddenLabel, hiddenOccurrence)), "info")
-    end
-  end
-  local claimedOptions = {}
-  for _, exposedOption in ipairs(exposed) do
-    if exposedOption.key and values[exposedOption.key] ~= nil then
-      claimedOptions[exposedOption.option] = true
-    end
-  end
-  for _, entry in ipairs(orderedEntries or {}) do
-    local savedKey = entry.key
-    if not seen[savedKey]
-        and entry.slot and entry.choice
-        and matching.countsMatch(savedSlotCounts[entry.slot], activeSlotCounts[entry.slot]) then
-      local slotKey = entry.slot .. "\31" .. tostring(entry.slotOccurrence or 1)
-      local candidate = exposedBySlot[slotKey]
-      if candidate and candidate.option.isEditable and candidate.option.isActive
-          and not claimedOptions[candidate.option] then
-        local target = helpers.resolveLoadChoice(candidate.option, entry.choice,
-          state.load.resolvedChoiceIndexes[savedKey])
-        if target ~= nil and optionIndexIsValid(target) then
-          state.load.resolvedChoiceIndexes[savedKey] = target
-          seen[savedKey] = true
-          claimedOptions[candidate.option] = true
-          state.load.dependencyRemaps[candidate.key] = {
-            savedKey = savedKey,
-            label = candidate.label,
-            occurrence = candidate.occurrence,
-            position = candidate.position,
-            slot = candidate.slot,
-            slotOccurrence = candidate.slotOccurrence,
-            slotCount = savedSlotCounts[entry.slot] or 0,
-            choice = entry.choice,
-            target = target,
-          }
-          local current = tonumber(candidate.option.currIndex) or 0
-          local disposition = matching.disposition(current, target, state.load.satisfied[savedKey], state.load.unconfirmed[savedKey])
-          if helpers.appearanceTrace then
-            helpers.appearanceTrace("compare", { slot = candidate.slot, label = candidate.label,
-              occurrence = candidate.occurrence, kind = "remap-verify", target = target, trackingKey = savedKey },
-              candidate.option, disposition)
-          end
-          if disposition == "matching" then
-            state.load.satisfied[savedKey] = true
-            state.load.unconfirmed[savedKey] = nil
-            applied = applied + 1
-          elseif disposition == "unconfirmed" then
-            applied = applied + 1
-          elseif disposition == "reverted" then
-            deferred[savedKey] = true
-            missing = missing + 1
-            unresolved["reverted-remap:" .. tostring(savedKey)] = true
-          else
-            state.load.dependencyKeys[savedKey] = true
-            local ok, applyError = helpers.beginPendingChange(
-              system, candidate, target, "apply", savedKey, current)
-            if ok then
-              state.load.remaining = math.max(0, valueCount - satisfiedBefore - 1)
-              log(("DEPENDENCY REMAP | pass=%d | saved LocKey='%s' disappeared | uiSlot='%s' and saved choice='%s' matched %s | index %s -> %s")
-                :format(state.load.pass, entry.label, entry.slot, entry.choice,
-                  optionAuditIdentity(candidate.option, candidate.label,
-                    candidate.occurrence), tostring(current), tostring(target)), "info")
-              setStatus("load",
-                "A linked hair option changed. Its saved choice was matched; waiting for the editor to update.")
-            else
-              transition("stall")
-              log(("DEPENDENCY REMAP FAILED | pass=%d | saved LocKey='%s' | uiSlot='%s' target index %s | %s")
-                :format(state.load.pass, entry.label, entry.slot, tostring(target),
-                  tostring(applyError)), "error")
-              helpers.logLoadMeasurements("dependency-remap-failed")
-              setStatus("load",
-                "Loading stopped because a linked hair option changed and could not be matched safely. Close the editor without confirming your appearance, then reopen it and try again.",
-                true)
-            end
-            return
-          end
-        end
-      end
-    end
-  end
-  if state.load.forceFull then
-    for _, entry in ipairs(orderedEntries or {}) do
-      local savedKey = entry.key
-      if not seen[savedKey]
-          and optionIndexIsValid(entry.index) then
-        local candidate = nil
-        local method = nil
-        if entry.slot
-            and matching.countsMatch(savedSlotCounts[entry.slot], activeSlotCounts[entry.slot]) then
-          local slotKey = entry.slot .. "\31" .. tostring(entry.slotOccurrence or 1)
-          candidate = exposedBySlot[slotKey]
-          method = "uiSlot"
-        elseif not entry.slot and entry.position and entry.position > 1
-            and entry.position < #(orderedEntries or {}) then
-          local previousEntry = orderedEntries[entry.position - 1]
-          local nextEntry = orderedEntries[entry.position + 1]
-          local positioned = activeExposed[entry.position]
-          if positioned and activeExposed[entry.position - 1]
-              and activeExposed[entry.position + 1]
-              and matching.anchoredPosition(activeExposed[entry.position - 1].key, previousEntry.key,
-                activeExposed[entry.position + 1].key, nextEntry.key, values[positioned.key]) then
-            candidate = positioned
-            method = "anchored legacy position"
-          end
-        end
-        if candidate and candidate.option.isEditable and candidate.option.isActive
-            and not claimedOptions[candidate.option] then
-          local target = entry.choice and helpers.resolveLoadChoice(
-            candidate.option, entry.choice, nil)
-            or entry.index
-          if target ~= nil and optionIndexIsValid(target) then
-            seen[savedKey] = true
-            claimedOptions[candidate.option] = true
-            state.load.dependencyRemaps[candidate.key] = {
-              savedKey = savedKey,
-              label = candidate.label,
-              occurrence = candidate.occurrence,
-              position = candidate.position,
-              slot = candidate.slot,
-              slotOccurrence = candidate.slotOccurrence,
-              slotCount = candidate.slot
-                and (activeSlotCounts[candidate.slot] or 0) or 0,
-              choice = entry.choice,
-              target = target,
-            }
-            local current = tonumber(candidate.option.currIndex) or 0
-            local disposition = matching.disposition(current, target, state.load.satisfied[savedKey], state.load.unconfirmed[savedKey])
-            if helpers.appearanceTrace then
-              helpers.appearanceTrace("compare", { slot = candidate.slot, label = candidate.label,
-                occurrence = candidate.occurrence, kind = "remap-verify", target = target, trackingKey = savedKey },
-                candidate.option, disposition)
-            end
-            if disposition == "matching" then
-              state.load.satisfied[savedKey] = true
-              state.load.unconfirmed[savedKey] = nil
-              state.load.forcedKeys[savedKey] = true
-            elseif disposition == "unconfirmed" then
-              state.load.forcedKeys[savedKey] = true
-            elseif disposition == "reverted" then
-              state.load.forcedKeys[savedKey] = nil
-              deferred[savedKey] = true
-              missing = missing + 1
-              unresolved["reverted-force:" .. tostring(savedKey)] = true
-            else
-              local ok, applyError = helpers.beginPendingChange(
-                system, candidate, target, "apply", savedKey, current)
-              if ok then
-                state.load.pendingChange.forced = true
-                state.load.remaining = math.max(0, valueCount - satisfiedBefore - 1)
-                log(("FORCED | pass=%d | saved LocKey='%s' unavailable | %s fallback -> %s | index %s -> %s")
-                  :format(state.load.pass, entry.label, method,
-                    optionAuditIdentity(candidate.option, candidate.label, candidate.occurrence),
-                    tostring(current), tostring(target)), "warn")
-                setStatus("load",
-                  "Applied one unmatched option using Force Full Load. Waiting for the editor.")
-                return
-              else
-                state.load.forcedKeys[savedKey] = nil
-                log(("FORCE FAILED | pass=%d | saved LocKey='%s' | %s fallback target index %s | %s")
-                  :format(state.load.pass, entry.label, method, tostring(target),
-                    tostring(applyError)), "error")
-                transition("stall")
-                helpers.logLoadMeasurements("force-failed")
-                setStatus("load",
-                  "Loading stopped because Force Full Load could not apply an option safely. Close the editor without confirming, reopen it, and retry.",
-                  true)
-                return
-              end
-            end
-          elseif entry.choice then
-            state.logLoadOnce("force-choice:" .. tostring(savedKey),
-              ("[SKIPPED] Force Full Load found the selector but not its saved choice: LocKey='%s' choice='%s'.")
-                :format(entry.label, tostring(entry.choice)), "warn")
-          end
-        end
-      end
-    end
-  end
-
-  for key in pairs(deferred) do state.load.satisfied[key] = nil end
-
-  local forced = 0
-  for key in pairs(values) do
-    if not seen[key] then
-      if state.load.satisfied[key] then
-        applied = applied + 1
-        if state.load.forcedKeys[key] then forced = forced + 1 end
-        local hiddenLabel, hiddenOccurrence = occurrenceKeyParts(key)
-        log(("VERIFY | %s | target index=%s | applied, then hidden by dependency")
-          :format(optionAuditIdentity(nil, hiddenLabel, hiddenOccurrence),
-            tostring(values[key])), "info")
-      else
-        missing = missing + 1
-        unresolved["unavailable:" .. tostring(key)] = true
-        local missingLabel, missingOccurrence = occurrenceKeyParts(key)
-        state.logLoadOnce("unavailable:" .. tostring(key),
-          ("[SKIPPED] Saved option unavailable in current editor/body setup: %s targetIndex=%s")
-            :format(state.loadOptionIdentity(nil, missingLabel, missingOccurrence)
-              .. savedEntryAuditIdentity(savedEntryByKey[key]), tostring(values[key])), "warn")
-      end
-    elseif state.load.forcedKeys[key] then
-      applied = applied + 1
-      forced = forced + 1
-    end
-  end
-  eventBuffers.count_remaining.remaining = missing + ambiguous + invalid
-  transition("count_remaining")
-  if state.load.remaining > 0 then
-    local signature = unresolvedSignature(unresolved)
-    eventBuffers.unresolved.signature = signature
-    if transition("unresolved") == "stopped" then
-      refreshCustomizationUi()
-      log(("SUMMARY | preset='%s' | applied=%d | unresolved=%d | passes=%d | result=stopped")
-        :format(state.load.presetName or state.library.selected,
-          applied, state.load.remaining, state.load.pass), "warn")
-      log(("Load stalled: preset='%s' pass=%d unresolved=%d signature='%s'")
-        :format(state.load.presetName or state.library.selected,
-          state.load.pass, state.load.remaining, signature), "warn")
-      helpers.logLoadMeasurements("stopped")
-      setStatus("load", (
-        "Loading stopped because %d of %d options were still missing after %d checks. " ..
-        "Adding, removing, updating, or changing the order of CCXL mods can move or rename options. " ..
-        "Check your option mods. Correct the appearance if needed, then save the preset again."
-      ):format(state.load.remaining, valueCount, STALL_CONFIRMATION_PASSES))
-    else
-      setStatus("load", ("Pass %d complete: %d of %d applied, %d remaining. Continuing automatically.")
-        :format(state.load.pass, applied, valueCount, state.load.remaining))
-    end
-  else
-    eventBuffers.finish_pass.valueCount = valueCount
-    local finishAction = transition("finish_pass")
-    if finishAction == "begin_cleanup" then
-      log("APPLY | Saved choices were processed. Checking for old choices the preset does not use.", "info")
-      setStatus("load", "Saved choices applied. Checking for old choices that remain.")
-      return
-    end
-    if finishAction == "return_cleanup" then
-      log("VERIFY | Checked saved choices after cleanup. Looking for another old choice to clear.", "info")
-      setStatus("load", "Saved choices checked. Looking for another old choice.")
-      return
-    end
-    helpers.finalVerifyUnconfirmed()
-    transition("complete")
-    local cleanupSkipped,unconfirmed = control.cleanupCount,control.unconfirmedCount
-    refreshCustomizationUi()
-    local completionResult, completionLevel = matching.completionResult(cleanupSkipped, unconfirmed)
-    log(("SUMMARY | preset='%s' | processed=%d | confirmed=%d | unconfirmed=%d | forced=%d | cleanupUnconfirmed=%d | failed=0 | unavailable=0 | ambiguous=0 | passes=%d | result=%s")
-      :format(state.load.presetName or state.library.selected,
-        applied, math.max(0, applied - unconfirmed), unconfirmed,
-        forced, cleanupSkipped, state.load.pass,
-        completionResult),
-      completionLevel)
-    helpers.logLoadMeasurements("complete")
-    if cleanupSkipped > 0 or unconfirmed > 0 then
-      state.app.nativeLoadSummary = ("Loaded %d options. %d could not be confirmed; check the appearance.")
-        :format(valueCount, unconfirmed + cleanupSkipped)
-      state.app.nativePanelShowDetails = true
-      local details = {}
-      if unconfirmed > 0 then
-        details[#details + 1] = ("%d saved option%s could not be confirmed")
-          :format(unconfirmed, unconfirmed == 1 and "" or "s")
-      end
-      if cleanupSkipped > 0 then
-        details[#details + 1] = ("%d remaining option%s could not be confirmed as cleared")
-          :format(cleanupSkipped, cleanupSkipped == 1 and "" or "s")
-      end
-      setStatus("load", "Preset load finished, but " .. table.concat(details, " and ") ..
-        ". Check the appearance and Activity Log before confirming the editor.",
-        false, "warning")
-    elseif forced > 0 then
-      state.app.nativeLoadSummary = ("Loaded %d options. %d used less certain matching; check the appearance.")
-        :format(valueCount, forced)
-      state.app.nativePanelShowDetails = true
-      setStatus("load", (
-        "Loaded %d saved options in %d pass%s. Force Full Load matched %d option%s. " ..
-        "Check the hair, hair color, and other forced options."
-      ):format(valueCount, state.load.pass, state.load.pass == 1 and "" or "es", forced,
-        forced == 1 and "" or "s"), false, "success")
-    else
-      state.app.nativeLoadSummary = ("Loaded %d options. The game confirmed every saved value.")
-        :format(valueCount)
-      state.app.nativePanelShowDetails = false
-      setStatus("load", ("Loaded %d saved options in %d pass%s.")
-        :format(valueCount, state.load.pass, state.load.pass == 1 and "" or "es"),
-        false, "success")
-    end
-  end
 end
 
 local function performPresetLoad()
@@ -1232,7 +683,7 @@ local function performPresetLoad()
     + math.max(0, helpers.loadClock() - optionsStarted)
   state.load.optionCalls = state.load.optionCalls + 1
   if not options then
-    acuBatch.reset(); legacyLoader.reset()
+    acuBatch.reset()
     if state.load.needsContinue then
       transition("options_missing")
     end
@@ -1244,6 +695,17 @@ local function performPresetLoad()
     resetLoadState()
     setStatus("load", "Open the CET menu and review Upgrade to Format 9 before loading this CPM preset.", true)
     return
+  end
+  if selectedPreset.format~=9 then
+    if not state.load.needsContinue or not selectedPreset.runtimeFormat9 then
+      selectedPreset.runtimeFormat9=helpers.convertAcuForLoad(selectedPreset,options)
+    end
+    if not selectedPreset.runtimeFormat9 then
+      resetLoadState()
+      setStatus("load","This ACU preset could not be converted from the current catalog. Open CET to review its upgrade.",true)
+      return
+    end
+    selectedPreset=selectedPreset.runtimeFormat9
   end
   local preset = selectedPreset
   local values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
@@ -1286,7 +748,7 @@ function loadPreset()
   if helpers.appearanceTrace and (not ok or not state.load.needsContinue or state.load.stalled) then
     helpers.appearanceTrace("after", "load", not ok and "error" or state.load.stalled and "stalled" or "returned")
   end
-  if not ok then acuBatch.reset(); legacyLoader.reset(); error(result, 0) end
+  if not ok then acuBatch.reset(); error(result, 0) end
   return result
 end
 

@@ -180,7 +180,7 @@ Older CPM presets must be upgraded before loading. Open the character editor, se
 
 *Older presets may store only a choice number. The preview shows the choice currently at that number, which can differ after mods reorder the catalog. Confirm only after reviewing those mappings. If the source file, catalog choices, or body changes, CPM requires a fresh preview.*
 
-The upgraded copy keeps the original notes, tags, and favorite status. Old ACU text, JSON, and header-prefixed files continue through the **legacy ACU loader**. Saving a fresh appearance uses format 9, including automatic recovery snapshots; editing an old CPM file's notes keeps its older format until you upgrade it.
+The upgraded copy keeps the original notes, tags, and favorite status. Old ACU text, JSON, and header-prefixed files are converted in memory before using the format 9 loader. Original files stay intact. Numeric-only ACU records use the current catalog at the saved index, so a changed mod catalog may change the mapped choice. Unsupported identities stay unresolved. Saving a fresh appearance uses format 9, including automatic recovery snapshots; editing an old CPM file's notes keeps its older format until you upgrade it.
 Future ACU version-3 files are rejected without loading their choices.
 
 ---
