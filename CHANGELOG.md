@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Filters both preset menus by the current body type and blocks known mismatches before loading. Presets with unknown body metadata stay visible and labeled.
+
 - Makes format 9 the native save format and restores the normal save flow, header metadata, notes, tags, favorites, folder updates, and recovery snapshots.
 - Adds a CET upgrade preview for older CPM presets. Review current catalog mappings and confirm before saving a new format 9 copy; the original file stays intact.
 - Stops direct loading of older CPM presets, keeping them away from the legacy apply path. Old ACU presets continue through the separate legacy ACU loader.

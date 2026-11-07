@@ -172,6 +172,8 @@ Check **Panel Status** and the **Activity Log**, then review the appearance befo
 
 CPM keeps imported ACU files read-only so their extra choice details stay intact. Load an imported preset, check the appearance, and save a new CPM preset before editing its notes, tags, or favorite status.
 Load the preset, correct any unresolved choices, and **save the checked appearance under a new name** to use those features.
+During customization, both menus hide presets with a known opposite body type. Body type comes from preset metadata, independently of voice. Presets without body metadata remain visible with **Unknown body**. Loading also checks for a known mismatch.
+
 New saves use readable **format 9** files with the name you enter. The header keeps the preset name, source, creation and modification dates, notes, tags, favorite status, and library folder. Body and voice metadata describe the saved appearance; loading does not change either.
 
 Older CPM presets must be upgraded before loading. Open the character editor, select the old preset in the **CET menu**, and choose **Preview Upgrade to Format 9**. Review each proposed choice, enter a new name, then select **Save Format 9 Copy**. The original file stays intact.

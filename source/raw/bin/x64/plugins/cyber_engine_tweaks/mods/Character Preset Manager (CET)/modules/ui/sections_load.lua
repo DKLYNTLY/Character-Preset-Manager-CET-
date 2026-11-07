@@ -8,7 +8,11 @@ drawLoadSection = function(presetListHeight, statusHeight, actionButtonHeight, e
 helpers.syncForceFullLoadSelection()
 if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
-    local names = helpers.sortedPresetNames()
+    local body=helpers.editorBody()
+    local names = {}
+    for _,name in ipairs(helpers.sortedPresetNames()) do
+      if helpers.presetVisibleForBody(state.library.presets[name],body) then names[#names+1]=name end
+    end
     local selectedPreset = state.library.selected
       and state.library.presets[state.library.selected]
     local loadStatus, loadStatusKind
@@ -91,7 +95,9 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     local matchedFolders = state.cache.matchedFolders
     local loadRows = {}
     local visibleNames = {}
-    for _, name in ipairs(helpers.filteredPresetNames()) do visibleNames[name] = true end
+    for _, name in ipairs(helpers.filteredPresetNames()) do
+      if helpers.presetVisibleForBody(state.library.presets[name],body) then visibleNames[name] = true end
+    end
     local favoriteHeadingAdded = false
     for _, name in ipairs(names) do
       local preset = state.library.presets[name]
@@ -121,15 +127,17 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         }
         if expanded or queryActive then
           for _, name in ipairs(folderMatches and folderPresets or matchingPresets) do
-            loadRows[#loadRows + 1] = {
-              kind = "preset", name = name, label = baseName(name)
-            }
+            if helpers.presetVisibleForBody(state.library.presets[name],body) then
+              loadRows[#loadRows + 1] = {kind="preset",name=name,label=baseName(name)}
+            end
           end
         end
       end
     end
     for _, name in ipairs(state.cache.matchingPresetsByFolder[""] or EMPTY_LIST) do
-      loadRows[#loadRows + 1] = { kind = "preset", name = name, label = name }
+      if helpers.presetVisibleForBody(state.library.presets[name],body) then
+        loadRows[#loadRows + 1] = { kind = "preset", name = name, label = name }
+      end
     end
     drawPageControls("loadPresets", #loadRows, UI_LIST_PAGE_SIZE, "Presets")
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
@@ -139,14 +147,14 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       local function drawPresetChoice(name, label, idSuffix)
         local preset = state.library.presets[name]
         local tags = tostring(preset and preset.tags or "")
-        local displayLabel = label
+        local displayLabel = helpers.presetBodyLabel(preset,label)
         if tags ~= "" then
           local maximumRowLength = narrowTopRow and 46 or 72
           local availableTagLength = math.max(8, maximumRowLength - #label - 5)
           if #tags > availableTagLength then
             tags = tags:sub(1, availableTagLength - 3) .. "..."
           end
-          displayLabel = label .. "  -  " .. tags
+          displayLabel = displayLabel .. "  -  " .. tags
         end
         if ImGui.Selectable(displayLabel .. "##preset:" .. name .. tostring(idSuffix or ""),
             state.library.selected == name)

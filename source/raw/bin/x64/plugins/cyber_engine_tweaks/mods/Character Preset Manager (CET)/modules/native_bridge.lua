@@ -96,6 +96,7 @@ end
 local function listPayload(query, overrideMessage, overrideError)
   query = tostring(query or ""):lower()
   local lines = {}
+  local body=helpers.editorBody()
   local names = helpers.sortedPresetNames()
   local selected = state.library.selected and state.library.presets[state.library.selected]
   lines[#lines + 1] = table.concat({
@@ -125,14 +126,14 @@ local function listPayload(query, overrideMessage, overrideError)
   lines[#lines + 1] = "RECOVERY\t" ..
     (state.load.recoverySnapshotAvailable == true and "1" or "0")
   local rowsKey = table.concat({ tostring(state.cache.revision), query,
-    tostring(nativeViewRevision) }, "\31")
+    tostring(nativeViewRevision),body }, "\31")
   if nativeRowsCacheKey ~= rowsKey then
     local visibleNames = {}
     local matchedFolders = {}
     for _, name in ipairs(names) do
       local metadata = state.library.presets[name]
       local haystack = (name .. " " .. tostring(metadata and metadata.tags or "")):lower()
-      if query == "" or haystack:find(query, 1, true) then
+      if helpers.presetVisibleForBody(metadata,body) and (query == "" or haystack:find(query, 1, true)) then
         visibleNames[name] = true
         local current = parentFolder(name)
         while current ~= "" do
@@ -145,6 +146,7 @@ local function listPayload(query, overrideMessage, overrideError)
     local added = 0
     local function addRow(kind, value, label)
       if added >= NATIVE_LIST_LIMIT then return false end
+      if kind=="PRESET" then label=helpers.presetBodyLabel(state.library.presets[value],label) end
       cachedRows[#cachedRows + 1] = table.concat({
         "ROW", kind, cleanField(value), cleanField(label),
       }, "\t")
@@ -177,7 +179,7 @@ local function listPayload(query, overrideMessage, overrideError)
             prefix .. baseName(folder) .. " (" .. tostring(count) .. ")") then break end
         if expanded or query ~= "" then
           for _, name in ipairs(helpers.presetsInFolder(folder)) do
-            if folderMatches or visibleNames[name] then
+            if helpers.presetVisibleForBody(state.library.presets[name],body) and (folderMatches or visibleNames[name]) then
               local metadata = state.library.presets[name]
               local tags = tostring(metadata and metadata.tags or "")
               local label = string.rep("  ", folderDepth(folder) + 1) .. baseName(name)

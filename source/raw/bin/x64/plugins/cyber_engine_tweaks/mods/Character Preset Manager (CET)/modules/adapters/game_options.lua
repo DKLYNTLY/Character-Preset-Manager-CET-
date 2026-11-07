@@ -1218,6 +1218,11 @@ local function performPresetLoad()
     setStatus("load", "The selected preset could not be read safely.", true)
     return
   end
+  if not helpers.presetVisibleForBody(selectedPreset,helpers.editorBody()) then
+    resetLoadState()
+    setStatus("load","This preset uses a different body type. Select a preset for the current body.",true)
+    return
+  end
   local optionsStarted = helpers.loadClock()
   local refreshCleanup = state.load.pendingChange
     and state.load.pendingChange.kind ~= "apply"
