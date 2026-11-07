@@ -7,14 +7,12 @@ local stateModel = require("modules/domain/state")
 local acuBatch = require("modules/adapters/shared_load_adapter").new(runtime)
 helpers.compareFormat9 = acuBatch.compare
 helpers.noteAcuBatchChange = acuBatch.changed
-local matching = require("modules/domain/matching")
 local AUTO_LOAD_SAFETY_MARGIN = 10
 local control = {}
 local eventBuffers = {}
 local emptyFields = {}
 for kind in pairs(loading.fields) do
-  eventBuffers[kind] = {kind=kind,timing=AUTO_LOAD_TIMING,limits=AUTO_LOAD_LIMITS,safetyMargin=AUTO_LOAD_SAFETY_MARGIN,
-    stallPasses=STALL_CONFIRMATION_PASSES}
+  eventBuffers[kind] = {kind=kind,timing=AUTO_LOAD_TIMING,limits=AUTO_LOAD_LIMITS,safetyMargin=AUTO_LOAD_SAFETY_MARGIN}
 end
 local reservedEventFields = {
   "elapsed","hasSelection","invocationBefore","signature","present","label","occurrence","slot","shape",
@@ -32,9 +30,6 @@ for _,fields in pairs(loading.fields) do
 end
 for _,fields in pairs(loading.appFields) do
   for _,field in ipairs(fields) do control[field] = false end
-end
-for _,field in ipairs({"waiting","groupWaitSeconds","accountedAt","waited","rebuildSignature","fullExposure","cleanupCount","unconfirmedCount"}) do
-  control[field] = false
 end
 for field in pairs(control) do control[field] = nil end
 eventBuffers.release.app = {optionsMemo=false}
@@ -63,13 +58,6 @@ local function transition(kind)
   if kind == "entries" then
     local event = eventBuffers.entries
     event.values,event.savedCounts,event.orderedEntries,event.savedEntryByKey,event.savedSlotCounts = nil,nil,nil,nil,nil
-  elseif kind == "group_finish" or kind == "group_finish_write" then
-    eventBuffers[kind].group,eventBuffers[kind].waiting = nil,nil
-    control.waiting,control.groupWaitSeconds,control.accountedAt = nil,nil,nil
-  elseif kind == "visible" then eventBuffers.visible.activeKeySet = nil
-  elseif kind == "group_member" or kind == "group_collect" or kind == "pending" or kind == "poll_result" then
-    eventBuffers[kind].pending,eventBuffers[kind].waiting = nil,nil
-  elseif kind == "attempt" then eventBuffers.attempt.attempts = nil
   end
   if kind == "release" then releaseControl() end
   return actions[1]
@@ -119,21 +107,6 @@ end
 helpers.loadClock = function()
   local ok, value = pcall(os.clock)
   return ok and tonumber(value) or 0
-end
-
-helpers.loadChoiceShape = function(option)
-  local parts = {}
-  for _, field in ipairs({ "definitions", "options", "morphNames" }) do
-    local ok, size = pcall(function()
-      return option and option.info and #(option.info[field] or {}) or 0
-    end)
-    parts[#parts + 1] = field .. ":" .. tostring(ok and tonumber(size) or "?")
-  end
-  return table.concat(parts, ",")
-end
-
-helpers.clearLoadScanTable = function(target)
-  stateModel.clearScanCollection(target)
 end
 
 helpers.logLoadMeasurements = function(result)
