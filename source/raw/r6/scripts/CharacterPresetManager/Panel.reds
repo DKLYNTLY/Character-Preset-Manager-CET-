@@ -606,6 +606,7 @@ public class PresetPanel extends inkCustomController {
         if StrLen(this.selectedName) == 0 {
           this.selectedInfoValue = "SELECTED PRESET - NONE";
         } else {
+          this.openCETAction.SetText((StrBeginsWith(fields[6], "9 |") || StrBeginsWith(fields[6], "4 |")) ? "ADVANCED PRESET MANAGER" : "OPEN CET TO UPGRADE");
           let details: String = fields[7] + " | " + fields[4] + " OPTIONS | FORMAT " + fields[6];
           if StrLen(fields[3]) > 0 { details = details + " | " + fields[3]; };
           let selectedLine: String = this.selectedName + " | " + details;

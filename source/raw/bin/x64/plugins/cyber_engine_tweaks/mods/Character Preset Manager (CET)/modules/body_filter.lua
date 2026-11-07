@@ -16,8 +16,12 @@ helpers.presetVisibleForBody=function(preset,body)
   return filter.visible(preset,body)
 end
 
-helpers.presetBodyLabel=function(preset,label)
-  return filter.presetBody(preset)=="Unknown" and (label.." [Unknown body]") or label
+helpers.presetBody=function(preset)
+  return filter.presetBody(preset)
+end
+
+helpers.presetBodyLabel=function(_,label)
+  return label
 end
 
 return _ENV

@@ -202,10 +202,10 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     if state.library.selected and state.library.presets[state.library.selected] then
       local preset = state.library.presets[state.library.selected]
       coloredWrapped(0.97, 0.72, 0.20, 1.0,
-        ("%s  |  %s  |  %d options  |  Format %s")
+        ("%s  |  %s  |  %d options  |  Format %s | %s")
           :format(baseName(state.library.selected),
           helpers.breadcrumb(parentFolder(state.library.selected)),
-          state.presetEntryCount(preset), tostring(preset.format or 4)))
+          state.presetEntryCount(preset), tostring(preset.format or 4),helpers.presetBody(preset)))
     end
 
     if helpers.canUpgradePreset9(selectedPreset) then

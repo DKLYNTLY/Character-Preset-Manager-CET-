@@ -104,7 +104,7 @@ local function listPayload(query, overrideMessage, overrideError)
     cleanField(selected and selected.notes), cleanField(selected and selected.tags),
     tostring(state.presetEntryCount(selected)),
     selected and selected.favorite == true and "1" or "0",
-    tostring(selected and selected.format or ""),
+    selected and (tostring(selected.format or 4) .. " | " .. helpers.presetBody(selected)) or "",
     cleanField(helpers.breadcrumb(parentFolder(state.library.selected or ""))),
   }, "\t")
   local message = tostring(state.app.nativePanelStatus or "")
@@ -263,6 +263,7 @@ local nativeCommandPorts = {
   openAdvanced = function()
 state.app.windowOpen = true
     state.ui.focusWindowRequested = true
+    state.ui.openSections.load = true
     if state.app.overlayOpen then return "status", "Character Preset Manager is open in CET." end
     if overlayRequest then return "status", "Opening Character Preset Manager in CET..." end
     overlayRequestCounter = overlayRequestCounter + 1

@@ -475,6 +475,11 @@ if state.library.presets[payload] then
       state.library.selected = payload
 
       hydrateNamedPresetMetadata(payload)
+      if helpers.canUpgradePreset9(state.library.presets[payload]) then
+        state.app.nativePanelStatus = "This CPM preset needs upgrading. Select OPEN CET TO UPGRADE to review a format 9 copy."
+        state.app.nativePanelStatusError = false
+      end
+
 
       state.invalidatePreflight()
 

@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Shows body metadata beside the selected preset format and adds an Open CET to Upgrade action for older CPM presets.
+
 - Filters both preset menus by the current body type and blocks known mismatches before loading. Presets with unknown body metadata stay visible and labeled.
 
 - Makes format 9 the native save format and restores the normal save flow, header metadata, notes, tags, favorites, folder updates, and recovery snapshots.
