@@ -338,6 +338,12 @@ if state.ui.settingsOpen then
         helpers.setPresetBodyFilter("all")
       end
       ImGui.TextWrapped("Refresh checks presets missing body metadata. Unknown presets appear only in Show all presets.")
+      local detailed=ImGui.Checkbox("Detailed appearance tracing",state.preferences.detailedAppearanceTrace==true)
+      if detailed~=state.preferences.detailedAppearanceTrace then
+        local previous=state.preferences.detailedAppearanceTrace
+        state.preferences.detailedAppearanceTrace=detailed
+        if not writeConfig() then state.preferences.detailedAppearanceTrace=previous end
+      end
       ImGui.TextWrapped("Preset Sort Order")
       if ImGui.Selectable("Name##settingsSortName",
           state.preferences.presetSort == "name") then

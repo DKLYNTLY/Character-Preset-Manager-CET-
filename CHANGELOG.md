@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Reuses parsed format 9 records on repeated scans when file fingerprints match. Detailed appearance snapshots are now optional in CET Settings and default off.
+
 - Reuses body-detection and ACU conversion results during the session. Changed file fingerprints or numeric-choice catalogs trigger fresh checks.
 
 - Removes legacy apply paths. ACU files convert in memory and use the existing format 9 loader; original source files stay intact. Refresh also recognizes older breast and beard option keys for body filtering.

@@ -7,6 +7,7 @@ local paths = require("modules/domain/paths")
 local libraryApplication = require("modules/application/library")
 local bodyFilter=require("modules/domain/body_filter")
 local bodyCache={}
+local parseCache=require("modules/domain/preset_parse_cache").new(4*1048576)
 local catalogCodec = require("modules/domain/catalog_codec")
 
 function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
@@ -66,12 +67,22 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
             :format(scannedPresetCount), "error")
           return false
         end
-        local preset=readPresetFile(path .. "/" .. filename, scanReason ~= "external")
+        local sourcePath=path .. "/" .. filename
+        local nativeFile = nativeCatalog and nativeCatalog.fileByRelative
+          and nativeCatalog.fileByRelative[childRelative:lower()]
+        local fingerprint=fileFingerprint(sourcePath,MAX_PRESET_BYTES)
+        local cacheKey=storage.."|"..(scanReason=="external" and "full" or "metadata")
+        local preset=parseCache.get(cacheKey,fingerprint)
+        if not preset then
+          preset=readPresetFile(sourcePath,scanReason~="external")
+          if preset and preset.format==9 and fingerprint then
+            local bytes=readBoundedFile(sourcePath,MAX_PRESET_BYTES)
+            if bytes and fileFingerprint(sourcePath,MAX_PRESET_BYTES)==fingerprint then
+              parseCache.put(cacheKey,fingerprint,preset,#bytes)
+            end
+          end
+        end
         if preset then
-          local nativeFile = nativeCatalog and nativeCatalog.fileByRelative
-            and nativeCatalog.fileByRelative[childRelative:lower()]
-          local fingerprint=nativeFile and nativeFile.fingerprint
-            or fileFingerprint(path .. "/" .. filename, MAX_PRESET_BYTES)
           if scanReason=="external" and not fingerprint then
             log(("[FILES] Scan stopped because '%s' could not be checked safely."):format(childRelative),"error")
             return false
@@ -214,6 +225,11 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   for _ in pairs(presets) do count = count + 1 end
   log(("[FILES] Scanned '%s': %d readable preset file%s found (reason=%s).")
     :format(PRESET_DIR, count, count == 1 and "" or "s", tostring(scanReason or "unspecified")), "info")
+  local retained={}
+  for storage in pairs(scannedPresets) do
+    retained[storage.."|full"],retained[storage.."|metadata"]=true,true
+  end
+  parseCache.retain(retained)
   for storage in pairs(bodyCache) do
     if not scannedPresets[storage] then bodyCache[storage]=nil end
   end

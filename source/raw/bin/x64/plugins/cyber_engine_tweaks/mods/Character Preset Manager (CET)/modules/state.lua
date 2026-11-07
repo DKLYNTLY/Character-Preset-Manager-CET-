@@ -10,6 +10,7 @@ state = {
   preferences = {
     presetSort = "name",
     presetBodyFilter = "body",
+    detailedAppearanceTrace = false,
   },
   library = {
     selected = nil,

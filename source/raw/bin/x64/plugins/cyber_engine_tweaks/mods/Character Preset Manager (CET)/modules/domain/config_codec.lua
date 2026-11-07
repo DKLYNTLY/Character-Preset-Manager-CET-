@@ -14,7 +14,7 @@ local RETIRED_SETTINGS = {
 }
 
 local function defaultConfig()
-  return { presetSort = DEFAULT_PRESET_SORT, presetBodyFilter="body" }
+  return { presetSort = DEFAULT_PRESET_SORT, presetBodyFilter="body", detailedAppearanceTrace=false }
 end
 
 local function newDecoder()
@@ -25,6 +25,8 @@ local function newDecoder()
       config.presetSort = value
     elseif key=="presetBodyFilter" and (value=="all" or value=="body") then
       config.presetBodyFilter=value
+    elseif key=="detailedAppearanceTrace" and (value=="true" or value=="false") then
+      config.detailedAppearanceTrace=value=="true"
     elseif RETIRED_SETTINGS[key] then
     elseif line:match("%S") and not line:match("^%s*#") then
       return "[CONFIG] Ignored unsupported config line: " .. tostring(line), "warn"
@@ -34,7 +36,7 @@ local function newDecoder()
 end
 
 local function encode(preferences)
-  return "presetSort=" .. tostring(preferences.presetSort) .. "\npresetBodyFilter=" .. (preferences.presetBodyFilter=="all" and "all" or "body") .. "\n"
+  return "presetSort=" .. tostring(preferences.presetSort) .. "\npresetBodyFilter=" .. (preferences.presetBodyFilter=="all" and "all" or "body") .. "\ndetailedAppearanceTrace=" .. tostring(preferences.detailedAppearanceTrace==true) .. "\n"
 end
 
 local function decode(contents)

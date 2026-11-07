@@ -16,6 +16,7 @@ local function install(runtime)
     return option and helpers.optionChoiceKey(option, index) or nil
   end
   local function snapshot(item, phase, supplied)
+    if not state.preferences.detailedAppearanceTrace then return nil end
     local options = supplied
     if not options then
       local system = Game.GetCharacterCustomizationSystem()
@@ -124,6 +125,10 @@ local function install(runtime)
     end
   end
   function api.update(delta)
+    if not state.preferences.detailedAppearanceTrace then
+      trace.items={}
+      return
+    end
     for _, item in pairs(trace.items) do
       if item.polling then
         local elapsed = math.max(0, tonumber(delta) or 0)

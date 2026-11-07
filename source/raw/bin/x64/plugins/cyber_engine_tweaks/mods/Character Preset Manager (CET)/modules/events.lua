@@ -40,6 +40,7 @@ events.onInit = function()
   local config, configLoaded = readConfig()
   state.preferences.presetSort = config.presetSort
   state.preferences.presetBodyFilter = config.presetBodyFilter
+  state.preferences.detailedAppearanceTrace = config.detailedAppearanceTrace
   state.library.sortMode = config.presetSort == "modified" and "modified" or "name"
   writeConfig()
   log(("[CONFIG] Loaded '%s': presetSort=%s.")
