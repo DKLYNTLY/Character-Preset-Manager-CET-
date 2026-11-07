@@ -63,7 +63,7 @@ local function install(runtime)
     if previous then finish(previous, "superseded") end
     trace.sequence = trace.sequence + 1
     local item = { id = trace.sequence, session = trace.session, action = action,
-      snapshots = 0, elapsed = 0, poll = 0, events = 0, comparisons = {}, comparisonCount = 0 }
+      snapshots = 0, elapsed = 0, poll = 0, events = 0 }
     item.waitingRandomize = action == "randomize"
     trace.items[action] = item
     emit("APPEARANCE TRACE", context(item) .. " action=" .. action .. " phase=before preset=" .. clean(name) .. " format=" .. clean(format))
@@ -91,22 +91,6 @@ local function install(runtime)
     item.signature = snapshot(item, "after")
     item.polling = true
     item.stable = 0
-  end
-  function api.compare(pending, option, outcome)
-    local item = trace.items.load
-    if not item or item.comparisonCount >= 512 then return end
-    local index = option and tonumber(option.currIndex)
-    local observed = choice(option, index)
-    local entry = state.load.savedEntryByKey and state.load.savedEntryByKey[pending.trackingKey]
-    local fields = "slot=" .. clean(pending.slot) .. " label=" .. clean(pending.label)
-      .. " occurrence=" .. clean(pending.occurrence) .. " kind=" .. clean(pending.kind)
-      .. " savedChoice=" .. clean(pending.acuChoice or pending.savedChoice or (entry and entry.choice)) .. " resolvedTarget=" .. clean(pending.target)
-      .. " observedIndex=" .. clean(index) .. " observedChoice=" .. clean(observed)
-      .. " outcome=" .. clean(outcome)
-    if item.comparisons[fields] then return end
-    item.comparisons[fields] = true
-    item.comparisonCount = item.comparisonCount + 1
-    emit("LOAD COMPARE", context(item) .. " " .. fields)
   end
   function api.event(name)
     for _, item in pairs(trace.items) do
