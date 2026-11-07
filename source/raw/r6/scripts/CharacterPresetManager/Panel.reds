@@ -141,7 +141,6 @@ public class PresetPanel extends inkCustomController {
   private let trashAction: ref<PanelButton>;
   private let undoAction: ref<PanelButton>;
   private let historyAction: ref<PanelButton>;
-  private let detailsAction: ref<PanelButton>;
   private let listButtons: array<ref<PanelButton>>;
   private let actionButtons: array<ref<PanelButton>>;
   private let rowKinds: array<String>;
@@ -159,7 +158,6 @@ public class PresetPanel extends inkCustomController {
   private let busy: Bool;
   private let mode: Int32;
   private let recoveryAvailable: Bool;
-  private let showLoadDetails: Bool;
 
   protected cb func OnCreate() -> Bool {
     let root: ref<inkCanvas> = new inkCanvas();
@@ -241,10 +239,6 @@ public class PresetPanel extends inkCustomController {
     this.statusText.SetTintColor(HDRColor(0.94, 0.97, 1.0, 1.0));
     this.statusText.SetVisible(false);
     this.statusText.Reparent(root);
-    this.detailsAction = this.AddAction(root, "VIEW LOAD DETAILS IN CET", 34.0, 1192.0, n"OnLoadDetails");
-    this.detailsAction.SetWidth(654.0);
-    this.detailsAction.SetStyle(3);
-    this.detailsAction.GetRootWidget().SetVisible(false);
     this.AddDivider(root, 1256.0);
     this.presetName = HubTextInput.Create();
     this.presetName.SetName(n"PresetName");
@@ -482,12 +476,6 @@ public class PresetPanel extends inkCustomController {
     this.ReleaseButtonFocus();
     return true;
   }
-  protected cb func OnLoadDetails(widget: wref<inkWidget>) -> Bool {
-    this.bridge.Request("open_load_details", "");
-    this.ReleaseButtonFocus();
-    return true;
-  }
-
   private func UpdateActionAvailability() -> Void {
     this.saveAction.SetDisabled(this.busy || this.mode != 0);
     this.trashAction.SetDisabled(this.busy || this.mode != 0 || StrLen(this.selectedName) == 0);
@@ -594,8 +582,6 @@ public class PresetPanel extends inkCustomController {
       if ArraySize(fields) > 2 && Equals(fields[0], "STATUS") {
         if StrLen(fields[2]) > 0 { this.SetStatus(fields[2], Equals(fields[1], "1")); }
         else { this.ClearStatus(); };
-        this.showLoadDetails = ArraySize(fields) > 4 && Equals(fields[4], "1");
-        this.detailsAction.GetRootWidget().SetVisible(this.showLoadDetails);
       };
       if ArraySize(fields) > 2 && Equals(fields[0], "CONFIRM") {
         if Equals(fields[1], "SAVE") { this.saveAction.SetText(Equals(fields[2], "1") ? "CONFIRM OVERWRITE" : "SAVE PRESET"); };

@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Removes the separate View Load Details in CET button. Advanced Preset Manager remains the CET entry point.
+
 - Adds a Refresh prompt to the initial preset status message.
 
 - Reads preset body metadata during startup and checks missing body types before showing the filtered library, so Refresh is not needed after launch.
