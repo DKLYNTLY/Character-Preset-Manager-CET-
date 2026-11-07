@@ -459,7 +459,7 @@ public class PresetPanel extends inkCustomController {
     if Equals(currentValue, this.presetNameValue) { return true; };
     this.presetNameValue = currentValue;
     this.saveAction.SetText("SAVE PRESET");
-    this.saveAction.SetStyle(StrLen(currentValue) > 0 ? 3 : 1);
+    this.saveAction.SetStyle(StrLen(currentValue) > 0 ? 4 : 1);
     this.bridge.Request("cancel_save_confirmation", "");
     return true;
   }
@@ -605,8 +605,11 @@ public class PresetPanel extends inkCustomController {
         this.selectedName = fields[1];
         if StrLen(this.selectedName) == 0 {
           this.selectedInfoValue = "SELECTED PRESET - NONE";
+          this.openCETAction.SetText("ADVANCED PRESET MANAGER");
+          this.openCETAction.SetStyle(1);
         } else {
           this.openCETAction.SetText((StrBeginsWith(fields[6], "9 |") || StrBeginsWith(fields[6], "4 |")) ? "ADVANCED PRESET MANAGER" : "OPEN CET TO UPGRADE");
+          this.openCETAction.SetStyle((StrBeginsWith(fields[6], "9 |") || StrBeginsWith(fields[6], "4 |")) ? 1 : 4);
           let details: String = fields[7] + " | " + fields[4] + " OPTIONS | FORMAT " + fields[6];
           if StrLen(fields[3]) > 0 { details = details + " | " + fields[3]; };
           let selectedLine: String = this.selectedName + " | " + details;

@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Uses yellow labels for Open CET to Upgrade and Save Preset after a name is entered, while keeping blue hover and selection highlights.
+
 - Makes View Load Details in CET open the overlay through the same action as Advanced Preset Manager.
 
 - Adds Show all presets and strict Filter by body settings. Refresh detects missing body metadata from known option identities without rewriting presets.
