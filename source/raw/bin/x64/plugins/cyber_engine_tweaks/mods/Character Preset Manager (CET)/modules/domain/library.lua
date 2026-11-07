@@ -17,6 +17,7 @@ local function dehydratePreset(preset)
   preset.entryCount = #preset.entries
   preset.entryCountKnown = true
   preset.entries = nil
+  preset.format9Rows = nil
   preset.lazy = true
   return true
 end
@@ -31,7 +32,7 @@ end
 local function mergeMetadata(preset, loaded)
   for _, key in ipairs({
     "format", "source", "created", "modified", "notes", "tags", "favorite",
-    "managedByCpm", "presetName", "libraryFolder", "entryCount",
+    "managedByCpm", "presetName", "libraryFolder", "sourceBody", "sourceVoice", "entryCount",
     "entryCountKnown", "metadataLoaded", "importKind", "importMetadata",
   }) do
     preset[key] = loaded[key]
@@ -40,7 +41,7 @@ local function mergeMetadata(preset, loaded)
 end
 
 local function headerChange(preset, logicalName, currentFormat)
-  if not preset.managedByCpm or (tonumber(preset.format) or LEGACY_PRESET_FORMAT) < currentFormat then return nil end
+  if not preset.managedByCpm or (tonumber(preset.format) or LEGACY_PRESET_FORMAT) < math.min(currentFormat, 8) then return nil end
   local desiredFolder = parentFolder(logicalName)
   local desiredName = baseName(logicalName)
   if preset.libraryFolder == desiredFolder and preset.presetName == desiredName then return nil end

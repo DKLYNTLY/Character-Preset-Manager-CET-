@@ -40,6 +40,7 @@ local function liveAppearanceIndex(options)
 end
 
 comparePresetWithCurrent = function(preset, options)
+  if preset and preset.format == 9 then return helpers.compareFormat9(preset,options) end
   if preset and preset.importKind == "acu-v2" then
     local result = {total=#(preset.entries or {}),matching=0,changing=0,missing=0,
       ambiguous=0,invalid=0,clearing=0,details={}}

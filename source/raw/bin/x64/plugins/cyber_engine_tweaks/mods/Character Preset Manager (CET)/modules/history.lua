@@ -11,24 +11,13 @@ local function historyPath(index)
 end
 
 local function snapshotFromOptions(options, action)
-  local entries = {}
-  for _, option in ipairs(options or {}) do
-    local key = optionKey(option)
-    if key and option.isEditable and option.isActive then
-      local currentIndex = tonumber(option.currIndex)
-      if #key > MAX_PRESET_KEY_BYTES or #entries >= MAX_PRESET_ENTRIES
-          or optionIndexValidationError(currentIndex) then return nil end
-      entries[#entries + 1] = {
-        key = key,
-        index = currentIndex,
-        slot = optionSlot(option),
-        choice = helpers.optionChoiceKey(option, currentIndex),
-      }
-    end
-  end
-  if #entries == 0 then return nil end
+  local ok, captured = pcall(helpers.capturePreset9, options)
+  if not ok or not captured then return nil end
   local timestamp = logTimestamp()
-  return appearanceHistory.snapshot(entries,action,timestamp,CURRENT_PRESET_FORMAT,MOD_NAME)
+  local preset = appearanceHistory.snapshot(captured.entries,action,timestamp,CURRENT_PRESET_FORMAT,MOD_NAME)
+  preset.format9Rows = captured.format9Rows
+  preset.sourceBody, preset.sourceVoice = captured.sourceBody, captured.sourceVoice
+  return preset
 end
 
 local function sameAppearance(first,second)

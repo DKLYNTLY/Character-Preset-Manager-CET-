@@ -4,8 +4,18 @@ local function install(runtime)
 if setfenv then setfenv(1,runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
-local acuBatch = require("modules/adapters/acu_batch").new(runtime)
-helpers.noteAcuBatchChange = acuBatch.changed
+local acuBatch = require("modules/adapters/shared_load_adapter").new(runtime)
+local legacyLoadPass
+local legacyLoader = require("modules/adapters/legacy_acu_loader").new({
+  identityBatch=require("modules/adapters/acu_batch").new(runtime),
+  loadEntries=function(...) return legacyLoadPass(...) end,
+  log=log,
+})
+helpers.compareFormat9 = acuBatch.compare
+helpers.noteAcuBatchChange = function()
+  acuBatch.changed()
+  legacyLoader.changed()
+end
 local matching = require("modules/domain/matching")
 local AUTO_LOAD_SAFETY_MARGIN = 10
 local control = {}
@@ -38,7 +48,7 @@ end
 for field in pairs(control) do control[field] = nil end
 eventBuffers.release.app = {optionsMemo=false}
 local function releaseControl()
-  acuBatch.reset()
+  acuBatch.reset(); legacyLoader.reset()
   for key in pairs(control) do control[key] = nil end
   for _,event in pairs(eventBuffers) do
     for key in pairs(event) do
@@ -632,7 +642,7 @@ helpers.writeLoadGroup = function(system, options, prepared)
 end
 
 beginLoadPass = function(preset, loadName)
-  acuBatch.reset()
+  acuBatch.reset(); legacyLoader.reset()
   if helpers.appearanceTrace then helpers.appearanceTrace("begin", "load", loadName, preset.format) end
   helpers.auditSection("LOAD PRESET")
   log(("[PRESET] Load requested: name='%s'"):format(tostring(loadName)), "load")
@@ -649,7 +659,14 @@ end
 
 continueLoadPass = function(system, options, preset, values, savedCounts,
     orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
-  if preset.importKind == "acu-v2" then return acuBatch.run(system, options, preset) end
+  if preset.format ~= 9 then
+    return legacyLoader.run(system, options, preset, values, savedCounts,
+      orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
+  end
+  return acuBatch.run(system, options, preset)
+end
+
+legacyLoadPass = function(system, options, preset, values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey)
   eventBuffers.pass_start.valueCount = valueCount
   if transition("pass_start") == "empty" then
     setStatus("load", "The preset contains no saved options.", true)
@@ -1210,12 +1227,17 @@ local function performPresetLoad()
     + math.max(0, helpers.loadClock() - optionsStarted)
   state.load.optionCalls = state.load.optionCalls + 1
   if not options then
-    acuBatch.reset()
+    acuBatch.reset(); legacyLoader.reset()
     if state.load.needsContinue then
       transition("options_missing")
     end
     setStatus("load", "Open a customization screen before loading a preset.", true)
     log("[load] " .. tostring(optionsError), "warn")
+    return
+  end
+  if selectedPreset.format ~= 9 and (selectedPreset.managedByCpm or (tonumber(selectedPreset.format) or 4) >= 5) then
+    resetLoadState()
+    setStatus("load", "Open the CET menu and review Upgrade to Format 9 before loading this CPM preset.", true)
     return
   end
   local preset = selectedPreset
@@ -1259,7 +1281,7 @@ function loadPreset()
   if helpers.appearanceTrace and (not ok or not state.load.needsContinue or state.load.stalled) then
     helpers.appearanceTrace("after", "load", not ok and "error" or state.load.stalled and "stalled" or "returned")
   end
-  if not ok then acuBatch.reset(); error(result, 0) end
+  if not ok then acuBatch.reset(); legacyLoader.reset(); error(result, 0) end
   return result
 end
 

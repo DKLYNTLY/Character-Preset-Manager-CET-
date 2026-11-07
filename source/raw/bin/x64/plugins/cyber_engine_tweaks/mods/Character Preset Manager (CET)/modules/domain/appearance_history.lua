@@ -3,6 +3,9 @@ local MAX_HISTORY_SCAN_INDEX = 10
 local MAX_ACTION_BYTES = 512
 
 local function sameAppearance(first, second)
+  if first and second and first.format == 9 and second.format == 9 then
+    return require("modules/domain/preset9_codec").sameAppearance(first, second)
+  end
   if not first or not second or not first.entries or not second.entries
       or #first.entries ~= #second.entries then return false end
   for index, entry in ipairs(first.entries) do

@@ -11,6 +11,17 @@ local jsonCodec = require("modules/domain/json")
 local acuV2 = require("modules/domain/acu_v2")
 local presetCodec = require("modules/domain/preset_codec")
 local configCodec = require("modules/domain/config_codec")
+local preset9 = require("modules/domain/preset9_codec")
+local capture9 = require("modules/adapters/format9_capture")
+
+helpers.capturePreset9 = function(options)
+  local contents, count, missing = capture9.capture({
+    Game=Game,ToCName=ToCName,NameToString=NameToString,log=log,
+  }, options)
+  if not contents then return nil end
+  local preset = preset9.decode(contents, false)
+  return preset, missing
+end
 
 local function encodeJsonCodepoint(codepoint)
   if utf8 and utf8.char then return pcall(utf8.char, codepoint) end
@@ -137,11 +148,12 @@ end
 
 function writePresetContents(path, preset)
   if preset and preset.importKind == "acu-v2" then
-    log("[FILES] This ACU preset keeps choice details that format 8 cannot store. Load it, check the appearance, then save a new preset.", "warn")
+    log("[FILES] This ACU preset keeps choice details that the CPM writer cannot safely preserve. Load it, check the appearance, then save a new preset.", "warn")
     return false
   end
   return writeFileSafely(path, "w", function(file)
-    local _, chunks = presetCodec.encode(preset, MOD_NAME)
+    local contents, chunks = presetCodec.encode(preset, MOD_NAME)
+    if not contents then return false end
     for _, chunk in ipairs(chunks) do
       if not file:write(chunk) then return false end
     end
@@ -189,17 +201,28 @@ readConfig = function()
   return config, true
 end
 
-function writePresetPath(path, preset)
+function writePresetPath(path, preset, expectedFingerprint)
+  local function unchanged()
+    if expectedFingerprint == false then return not fileExists(path) end
+    if expectedFingerprint ~= nil then return fileFingerprint(path,MAX_PRESET_BYTES)==expectedFingerprint end
+    return true
+  end
+  if not unchanged() then return false end
   preset.managedByCpm = true
   local wrote = atomicReplace(path, function(temporary)
-    if not writePresetContents(temporary, preset) then return false end
-    return presetsMatch(preset, readPresetFile(temporary))
+    if not unchanged() or not writePresetContents(temporary, preset) then return false end
+    return unchanged() and presetsMatch(preset, readPresetFile(temporary))
   end, "preset")
   if wrote then preset.fingerprint = fileFingerprint(path, MAX_PRESET_BYTES) end
   return wrote
 end
 
 presetsMatch = function(expected, actual)
+  if expected and actual and (tonumber(expected.format) == 9 or tonumber(actual.format) == 9) then
+    if tonumber(expected.format) ~= 9 or tonumber(actual.format) ~= 9 then return false end
+    local contents = preset9.encode(expected, MOD_NAME)
+    return contents ~= nil and contents == preset9.encode(actual, MOD_NAME)
+  end
   local expectedEntries = expected and expected.entries or {}
   local actualEntries = actual and actual.entries or {}
   if expected and actual and expected.fingerprint and actual.fingerprint then
@@ -314,64 +337,15 @@ function savePreset(confirmOverwrite)
   state.library.pendingOverwriteName = nil
   state.library.pendingOverwriteFingerprint = nil
 
-  local entries = {}
-  local savedOccurrences = {}
-  for _, option in ipairs(options) do
-    local key = optionKey(option)
-    if key and option.isEditable and option.isActive then
-      local currentIndex = tonumber(option.currIndex)
-      local identity = optionAuditIdentity(
-        option,
-        key,
-        (savedOccurrences[key] or 0) + 1
-      )
-      if #key > MAX_PRESET_KEY_BYTES then
-        log(("[SNAPSHOT] Rejected %s | keyBytes=%d maximum=%d")
-          :format(identity, #key, MAX_PRESET_KEY_BYTES), "error")
-        setStatus("create",
-          ("An option name exceeds the %d-byte preset limit. The Activity Log names the option that caused this.")
-            :format(MAX_PRESET_KEY_BYTES),
-          true
-        )
-        return
-      end
-      if #entries >= MAX_PRESET_ENTRIES then
-        log(("[SNAPSHOT] Rejected %s | savedEntries=%d maximum=%d")
-          :format(identity, #entries, MAX_PRESET_ENTRIES), "error")
-        setStatus("create",
-          ("The editor has more than %d active options. See the Activity Log for details.")
-            :format(MAX_PRESET_ENTRIES),
-          true
-        )
-        return
-      end
-      local indexError = optionIndexValidationError(currentIndex)
-      if indexError then
-        log(("[SNAPSHOT] Rejected %s | index=%s reason='%s' nativeMaximum=%d")
-          :format(identity, tostring(currentIndex), indexError, MAX_OPTION_INDEX), "error")
-        setStatus("create",
-          "An option returned a number that cannot be saved. See the Activity Log for the option name and number.",
-          true
-        )
-        return
-      end
-      savedOccurrences[key] = (savedOccurrences[key] or 0) + 1
-      local slot = optionSlot(option)
-      local choice = helpers.optionChoiceKey(option, currentIndex)
-      log(("[SNAPSHOT] Saved %s index=%d slot='%s' choice='%s' editable=true active=true")
-        :format(optionAuditIdentity(option, key, savedOccurrences[key]),
-          currentIndex, tostring(slot or "none"), tostring(choice or "none")), "info")
-      table.insert(entries, {
-        key = key,
-        index = currentIndex,
-        slot = slot,
-        choice = choice,
-      })
-    end
-  end
-  if #entries == 0 then
-    setStatus("create", "No editable options were found.", true)
+  local captureOk, captured, missing = pcall(helpers.capturePreset9, options)
+  if not captureOk or not captured or not captured.entries or #captured.entries == 0 then
+    setStatus("create", "The current appearance could not be captured safely.", true)
     return
+  end
+  local entries = captured.entries
+  if missing and missing > 0 then
+    log(("[SNAPSHOT] %d editable choices have no verified identity. Those records will not request a change.")
+      :format(missing), "warn")
   end
 
   local previousPreset = state.library.presets[name]
@@ -393,8 +367,11 @@ function savePreset(confirmOverwrite)
   local modified = logTimestamp()
   local newPreset = libraryModel.newSavedPreset(previousPreset, entries, name, storage,
     created, modified, CURRENT_PRESET_FORMAT, MOD_NAME)
+  newPreset.format9Rows = captured.format9Rows
+  newPreset.sourceBody, newPreset.sourceVoice = captured.sourceBody, captured.sourceVoice
   local storagePath = PRESET_DIR .. "/" .. storage .. ".preset"
-  if not writePresetPath(storagePath, newPreset) then
+  local expectedFingerprint = previousPreset and armedOverwriteFingerprint or false
+  if not writePresetPath(storagePath, newPreset, expectedFingerprint) then
     setStatus("create", "Could not write " .. storagePath .. ".", true)
     return
   end
@@ -640,7 +617,7 @@ function savePresetMetadata()
     return
   end
   local previous = libraryModel.beginMetadata(preset, state.library.presetNotes, state.library.presetTags)
-  libraryModel.finishMetadata(preset, state.library.selected, logTimestamp(), MOD_NAME, CURRENT_PRESET_FORMAT)
+  libraryModel.finishMetadata(preset, state.library.selected, logTimestamp(), MOD_NAME, preset.format == 9 and 9 or 8)
   if not writePresetPath(presetPath(state.library.selected), preset) then
     libraryModel.restoreMetadata(preset, previous)
     setStatus("rename", "Preset details could not be saved safely.", true)

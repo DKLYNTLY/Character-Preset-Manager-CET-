@@ -170,9 +170,15 @@ Check **Panel Status** and the **Activity Log**, then review the appearance befo
 
 *Support for these imports is conservative. The file's game version, body flag, and voice flag do not prove compatibility or change your character's body or voice.*
 
-To keep the imported choice details, CPM blocks notes, tags, favorites, and overwriting these files with format 8.
+CPM keeps imported ACU files read-only so their extra choice details stay intact. Load an imported preset, check the appearance, and save a new CPM preset before editing its notes, tags, or favorite status.
 Load the preset, correct any unresolved choices, and **save the checked appearance under a new name** to use those features.
-New saves still use the readable format-8 layout.
+New saves use readable **format 9** files with the name you enter. The header keeps the preset name, source, creation and modification dates, notes, tags, favorite status, and library folder. Body and voice metadata describe the saved appearance; loading does not change either.
+
+Older CPM presets must be upgraded before loading. Open the character editor, select the old preset in the **CET menu**, and choose **Preview Upgrade to Format 9**. Review each proposed choice, enter a new name, then select **Save Format 9 Copy**. The original file stays intact.
+
+*Older presets may store only a choice number. The preview shows the choice currently at that number, which can differ after mods reorder the catalog. Confirm only after reviewing those mappings. If the source file, catalog choices, or body changes, CPM requires a fresh preview.*
+
+The upgraded copy keeps the original notes, tags, and favorite status. Old ACU text, JSON, and header-prefixed files continue through the **legacy ACU loader**. Saving a fresh appearance uses format 9, including automatic recovery snapshots; editing an old CPM file's notes keeps its older format until you upgrade it.
 Future ACU version-3 files are rejected without loading their choices.
 
 ---

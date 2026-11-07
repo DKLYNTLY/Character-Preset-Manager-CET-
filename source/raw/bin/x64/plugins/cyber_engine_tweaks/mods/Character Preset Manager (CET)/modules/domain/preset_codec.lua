@@ -7,7 +7,9 @@ local PRESET_LINES_PER_ENTRY = 4
 local PRESET_HEADER_LINE_ALLOWANCE = 64
 local MAX_PRESET_LINES = MAX_PRESET_ENTRIES * PRESET_LINES_PER_ENTRY + PRESET_HEADER_LINE_ALLOWANCE
 local MAX_PRESET_KEY_BYTES = 256
-local CURRENT_PRESET_FORMAT = 8
+local CURRENT_PRESET_FORMAT = 9
+local READABLE_PRESET_FORMAT = 8
+local preset9 = require("modules/domain/preset9_codec")
 local LEGACY_PRESET_FORMAT = 4
 local MAX_NOTES_BYTES = 512
 local MAX_TAGS_BYTES = 128
@@ -73,7 +75,7 @@ local function newTextDecoder(path, metadataOnly)
     local readableKey, readableValue = line:match("^# ([%a ]+):%s?(.*)$")
     if readableKey == "Format" and entryCount == 0 then
       local readableFormat = tonumber(readableValue)
-      if readableFormat and readableFormat >= CURRENT_PRESET_FORMAT then
+      if readableFormat and readableFormat >= READABLE_PRESET_FORMAT then
         metadata.format = readableFormat
         readableFormatConfirmed = true
       end
@@ -215,6 +217,10 @@ end
 
 local function encode(preset, modName)
   local format = tonumber(preset.format) or CURRENT_PRESET_FORMAT
+  if format == 9 then
+    local contents = preset9.encode(preset, modName)
+    return contents, contents and {contents} or {}
+  end
   local libraryFolder = tostring(preset.libraryFolder or "")
   if libraryFolder ~= "" and not validRelativePath(libraryFolder) then
     libraryFolder = ""
@@ -264,6 +270,15 @@ local function stringLines(contents)
 end
 
 local function decodeText(contents, path, metadataOnly)
+  local version = type(contents) == "string" and contents:match("^# CPM Preset\r?\n# Format: (%d+)\r?\n")
+  if version and tonumber(version) >= 9 then
+    local preset = preset9.decode(contents, metadataOnly)
+    local diagnostics = {}
+    if not preset then
+      diagnostics[1] = {message="[FILES] The CPM preset format or data could not be read safely. File: " .. tostring(path),level="warn"}
+    end
+    return preset, diagnostics
+  end
   local decoder = newTextDecoder(path, metadataOnly)
   for line in stringLines(contents) do
     if not decoder.readLine(line) then return nil, decoder.diagnostics end
