@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Reuses body-detection and ACU conversion results during the session. Changed file fingerprints or numeric-choice catalogs trigger fresh checks.
+
 - Removes legacy apply paths. ACU files convert in memory and use the existing format 9 loader; original source files stay intact. Refresh also recognizes older breast and beard option keys for body filtering.
 
 - Removes the separate View Load Details in CET button. Advanced Preset Manager remains the CET entry point.

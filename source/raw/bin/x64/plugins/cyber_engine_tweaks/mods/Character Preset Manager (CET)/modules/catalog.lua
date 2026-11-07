@@ -6,6 +6,7 @@ local codecs = require("modules/domain/codecs")
 local paths = require("modules/domain/paths")
 local libraryApplication = require("modules/application/library")
 local bodyFilter=require("modules/domain/body_filter")
+local bodyCache={}
 local catalogCodec = require("modules/domain/catalog_codec")
 
 function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
@@ -65,23 +66,27 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
             :format(scannedPresetCount), "error")
           return false
         end
-        local preset
-        preset = readPresetFile(path .. "/" .. filename, scanReason ~= "external")
-        if preset and scanReason == "startup" and bodyFilter.presetBody(preset)=="Unknown" then
-          local full=readPresetFile(path .. "/" .. filename,false)
-          if full then preset.detectedBody=bodyFilter.detect(full) end
-        end
+        local preset=readPresetFile(path .. "/" .. filename, scanReason ~= "external")
         if preset then
-          if scanReason == "external" then
-            if bodyFilter.presetBody(preset)=="Unknown" then preset.detectedBody=bodyFilter.detect(preset) end
-            local nativeFile = nativeCatalog and nativeCatalog.fileByRelative
-              and nativeCatalog.fileByRelative[childRelative:lower()]
-            preset.fingerprint = nativeFile and nativeFile.fingerprint
-              or fileFingerprint(path .. "/" .. filename, MAX_PRESET_BYTES)
-            if not preset.fingerprint then
-              log(("[FILES] Scan stopped because '%s' could not be checked safely.")
-                :format(childRelative), "error")
-              return false
+          local nativeFile = nativeCatalog and nativeCatalog.fileByRelative
+            and nativeCatalog.fileByRelative[childRelative:lower()]
+          local fingerprint=nativeFile and nativeFile.fingerprint
+            or fileFingerprint(path .. "/" .. filename, MAX_PRESET_BYTES)
+          if scanReason=="external" and not fingerprint then
+            log(("[FILES] Scan stopped because '%s' could not be checked safely."):format(childRelative),"error")
+            return false
+          end
+          preset.fingerprint=fingerprint
+          if bodyFilter.presetBody(preset)=="Unknown" then
+            local cached=bodyCache[storage]
+            if fingerprint and cached and cached.fingerprint==fingerprint then
+              preset.detectedBody=cached.body
+            else
+              local full=preset.entries and preset or readPresetFile(path .. "/" .. filename,false)
+              if full then
+                preset.detectedBody=bodyFilter.detect(full)
+                if fingerprint then bodyCache[storage]={fingerprint=fingerprint,body=preset.detectedBody} end
+              end
             end
           end
           scannedPresetCount = scannedPresetCount + 1
@@ -209,6 +214,9 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   for _ in pairs(presets) do count = count + 1 end
   log(("[FILES] Scanned '%s': %d readable preset file%s found (reason=%s).")
     :format(PRESET_DIR, count, count == 1 and "" or "s", tostring(scanReason or "unspecified")), "info")
+  for storage in pairs(bodyCache) do
+    if not scannedPresets[storage] then bodyCache[storage]=nil end
+  end
   return presets, true, changeSummary
 end
 

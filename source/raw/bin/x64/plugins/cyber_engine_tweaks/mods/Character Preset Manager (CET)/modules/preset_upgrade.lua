@@ -5,6 +5,7 @@ local codec9 = require("modules/domain/preset9_codec")
 local capture9 = require("modules/adapters/format9_capture")
 local library = require("modules/domain/library")
 local preview
+local identityConversions=setmetatable({}, {__mode="k"})
 
 local function legacyCpm(preset)
   return preset and preset.format ~= 9
@@ -78,8 +79,56 @@ local function captureTargets(source, options)
   return decoded,details,missing,assumed
 end
 
+local function catalogSignature(source,options)
+  local wanted={}
+  for _,entry in ipairs(source.entries or {}) do wanted[entry.key]=true end
+  local chunks,bytes={},0
+  local function add(value)
+    value=tostring(value)
+    bytes=bytes+#value+16
+    if bytes>MAX_PRESET_BYTES then error("Catalog signature exceeds its limit.") end
+    chunks[#chunks+1]=tostring(#value)..":"..value
+  end
+  local ok=pcall(function()
+    add(helpers.editorBody())
+    for _,option in ipairs(options) do
+      local key=optionKey(option)
+      local internal=stableRuntimeValue(option.info.name)
+      if wanted[key] or wanted[internal] then
+        add(key);add(internal);add(optionSlot(option));add(option.isActive);add(option.isEditable)
+        for _,field in ipairs({"definitions","morphNames","options"}) do
+          local available,collection=pcall(function()return option.info[field]end)
+          add(field)
+          if available and collection then
+            local count=#collection
+            if count>16384 then error("Catalog collection exceeds its limit.") end
+            add(count)
+            for index=1,count do
+              local item=collection[index]
+              if field=="options" then
+                add(item.localizedName)
+                local names=item.names
+                add(#names)
+                for member=1,#names do add(stableRuntimeValue(names[member])) end
+              else
+                add(stableRuntimeValue(type(item)=="string" and item
+                  or item[field=="definitions" and "name" or "morphName"]))
+              end
+            end
+          else add("unavailable") end
+        end
+      end
+    end
+  end)
+  return ok and table.concat(chunks) or nil
+end
+
 helpers.convertAcuForLoad=function(source,options)
   if source.importKind=="acu-v2" then
+    local cached=identityConversions[source]
+    if source.fingerprint and cached and cached.fingerprint==source.fingerprint then
+      return cached.preset
+    end
     local rows={}
     for _,entry in ipairs(source.entries or {}) do
       local selection=entry.selection or {}
@@ -90,9 +139,19 @@ helpers.convertAcuForLoad=function(source,options)
       else row.state="Not captured" end
       rows[#rows+1]=row
     end
-    return {format=9,format9Rows=rows,entries=source.entries,sourceBody=helpers.presetBody(source)}
+    local converted={format=9,format9Rows=rows,entries=source.entries,sourceBody=helpers.presetBody(source)}
+    if source.fingerprint then identityConversions[source]={fingerprint=source.fingerprint,preset=converted} end
+    return converted
+  end
+  local signature=source.fingerprint and catalogSignature(source,options)
+  local cached=identityConversions[source]
+  if signature and cached and cached.fingerprint==source.fingerprint and cached.signature==signature then
+    return cached.preset
   end
   local captured,_,missing,assumed=captureTargets(source,options)
+  if captured and signature then
+    identityConversions[source]={fingerprint=source.fingerprint,signature=signature,preset=captured}
+  end
   if captured then
     log(("[ACU UPGRADE] Prepared %d choices for the format 9 loader; %d current-index mappings; %d unavailable.")
       :format(#captured.entries,assumed,missing),"info")
