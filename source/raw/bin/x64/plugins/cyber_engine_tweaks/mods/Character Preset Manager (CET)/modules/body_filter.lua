@@ -13,7 +13,25 @@ helpers.editorBody=function()
 end
 
 helpers.presetVisibleForBody=function(preset,body)
+  if state.preferences.presetBodyFilter=="all" then return true end
   return filter.visible(preset,body)
+end
+
+helpers.presetBodyCompatible=function(preset,body)
+  local source=filter.presetBody(preset)
+  return source=="Unknown" or body=="Unknown" or source==body
+end
+
+helpers.setPresetBodyFilter=function(mode)
+  local previous=state.preferences.presetBodyFilter
+  state.preferences.presetBodyFilter=mode=="all" and "all" or "body"
+  if not writeConfig() then
+    state.preferences.presetBodyFilter=previous
+    state.status.settings="The preset visibility setting could not be saved."
+    return
+  end
+  invalidateViewCache()
+  state.status.settings="Preset visibility saved."
 end
 
 helpers.presetBody=function(preset)

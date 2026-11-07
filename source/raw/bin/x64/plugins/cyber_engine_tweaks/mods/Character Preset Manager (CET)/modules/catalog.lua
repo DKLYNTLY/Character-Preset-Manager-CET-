@@ -5,6 +5,7 @@ local _ENV = runtime
 local codecs = require("modules/domain/codecs")
 local paths = require("modules/domain/paths")
 local libraryApplication = require("modules/application/library")
+local bodyFilter=require("modules/domain/body_filter")
 local catalogCodec = require("modules/domain/catalog_codec")
 
 function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
@@ -84,6 +85,7 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
         end
         if preset then
           if scanReason == "external" then
+            if bodyFilter.presetBody(preset)=="Unknown" then preset.detectedBody=bodyFilter.detect(preset) end
             local nativeFile = nativeCatalog and nativeCatalog.fileByRelative
               and nativeCatalog.fileByRelative[childRelative:lower()]
             preset.fingerprint = nativeFile and nativeFile.fingerprint

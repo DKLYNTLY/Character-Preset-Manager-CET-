@@ -1218,7 +1218,7 @@ local function performPresetLoad()
     setStatus("load", "The selected preset could not be read safely.", true)
     return
   end
-  if not helpers.presetVisibleForBody(selectedPreset,helpers.editorBody()) then
+  if not helpers.presetBodyCompatible(selectedPreset,helpers.editorBody()) then
     resetLoadState()
     setStatus("load","This preset uses a different body type. Select a preset for the current body.",true)
     return

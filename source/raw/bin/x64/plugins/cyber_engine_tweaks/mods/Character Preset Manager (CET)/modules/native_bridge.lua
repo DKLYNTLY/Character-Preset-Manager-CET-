@@ -126,7 +126,7 @@ local function listPayload(query, overrideMessage, overrideError)
   lines[#lines + 1] = "RECOVERY\t" ..
     (state.load.recoverySnapshotAvailable == true and "1" or "0")
   local rowsKey = table.concat({ tostring(state.cache.revision), query,
-    tostring(nativeViewRevision),body }, "\31")
+    tostring(nativeViewRevision),body,tostring(state.preferences.presetBodyFilter) }, "\31")
   if nativeRowsCacheKey ~= rowsKey then
     local visibleNames = {}
     local matchedFolders = {}

@@ -321,6 +321,14 @@ if state.ui.settingsOpen then
       ImGui.Spacing()
       ImGui.BeginChild("##settings", 0, 240, true)
       ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
+      ImGui.TextWrapped("Preset Visibility")
+      if ImGui.Selectable("Filter by body##bodyFilter",state.preferences.presetBodyFilter~="all") then
+        helpers.setPresetBodyFilter("body")
+      end
+      if ImGui.Selectable("Show all presets##showAllBodies",state.preferences.presetBodyFilter=="all") then
+        helpers.setPresetBodyFilter("all")
+      end
+      ImGui.TextWrapped("Refresh checks presets missing body metadata. Unknown presets appear only in Show all presets.")
       ImGui.TextWrapped("Preset Sort Order")
       if ImGui.Selectable("Name##settingsSortName",
           state.preferences.presetSort == "name") then

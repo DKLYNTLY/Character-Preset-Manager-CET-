@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Adds Show all presets and strict Filter by body settings. Refresh detects missing body metadata from known option identities without rewriting presets.
+
 - Shows body metadata beside the selected preset format and adds an Open CET to Upgrade action for older CPM presets.
 
 - Filters both preset menus by the current body type and blocks known mismatches before loading. Presets with unknown body metadata stay visible and labeled.

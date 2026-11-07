@@ -9,6 +9,7 @@ state = {
   app = stateModel.newApp(NATIVE_READY_STATUS),
   preferences = {
     presetSort = "name",
+    presetBodyFilter = "body",
   },
   library = {
     selected = nil,

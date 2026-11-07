@@ -23,10 +23,11 @@ local function dehydratePreset(preset)
 end
 
 local function mergeHydrated(preset, loaded)
-  local storage = preset.storage
+  local storage,detectedBody = preset.storage,preset.detectedBody
   for key in pairs(preset) do preset[key] = nil end
   for key, value in pairs(loaded) do preset[key] = value end
   preset.storage = storage
+  preset.detectedBody = detectedBody
 end
 
 local function mergeMetadata(preset, loaded)
