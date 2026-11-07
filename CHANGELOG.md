@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Makes View Load Details in CET open the overlay through the same action as Advanced Preset Manager.
+
 - Adds Show all presets and strict Filter by body settings. Refresh detects missing body metadata from known option identities without rewriting presets.
 
 - Shows body metadata beside the selected preset format and adds an Open CET to Upgrade action for older CPM presets.

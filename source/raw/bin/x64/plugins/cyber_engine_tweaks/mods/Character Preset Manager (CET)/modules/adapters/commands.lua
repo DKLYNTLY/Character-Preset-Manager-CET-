@@ -667,7 +667,7 @@ state.app.windowOpen = true
 
     state.ui.openSections.load = true
 
-    return "status", "Press your CET binding. Load details are open in Character Preset Manager."
+    return ports.openAdvanced()
   end
   native.unsupported = function()
     return nativeStatus("The simple menu requested an action this version does not support.", true)
