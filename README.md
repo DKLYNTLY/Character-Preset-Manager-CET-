@@ -166,6 +166,18 @@ Check **Panel Status**, the **Activity Log**, and the visible appearance before 
 
 Imported ACU files stay read-only to protect their extra choice data. Correct unresolved choices after loading, then **save the checked appearance under a new name** to use CPM notes, tags, and favorites.
 
+1. Remove the ACU mod, but keep its `.preset` files.
+2. Put those presets in this folder inside your game directory. Create the folder if it no longer exists:
+
+   ```text
+   bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets
+   ```
+
+3. Start the game with Character Preset Manager installed.
+4. Open the Advanced Preset Manager and look under **ACU Presets**. Select **Refresh** if a preset is missing.
+
+Importing is automatic. Your original files stay unchanged, and imported copies keep their subfolders.
+
 ---
 
 ## Save format 9 and upgrade older CPM presets
@@ -174,7 +186,7 @@ New saves use readable **format 9** files named after the text you enter. Header
 
 Overwriting requires confirmation. Notes, tags, favorites, renaming, copies, and folders keep their normal save flow.
 
-Identified CPM presets in formats 8 and below upgrade automatically. CPM finds them at startup and after **Refresh**, then uses the first matching-body editor catalog to convert their choices.
+Identified CPM presets in formats 8 and below upgrade automatically. CPM finds them at startup and after **Refresh**, then uses the first matching-body editor catalog to convert their choices. A male preset waits for a male editor, and a female preset waits for a female editor.
 
 Before replacing a file, CPM saves and verifies its original bytes under:
 
@@ -192,8 +204,6 @@ Selecting an old CPM preset loads it after a successful automatic upgrade in the
 
 Unmarked old text files keep the existing ACU-compatible path. Backup, path, and validation failures preserve the source and appear in the Activity Log; update the native DLL with the rest of the mod before testing upgrades.
 
-To restore an original, close the game and copy its backup over the corresponding file in **Character Presets**. That old CPM file is eligible for automatic upgrade again on the next run.
-
 CET sections start collapsed, and **Advanced Preset Manager** remains the normal entry point. The manual upgrade preview, copy confirmation, and separate upgrade-opening action have been removed.
 
 ---
@@ -204,21 +214,9 @@ CET sections start collapsed, and **Advanced Preset Manager** remains the normal
 
 The selected preset shows **Male**, **Female**, or **Unknown** beside its format. Body metadata is separate from voice, and preset names do not determine it.
 
-Startup scans the library and checks missing body metadata. Press **Refresh** after adding files or to recheck missing body information from known breast or beard option identities. Conflicting or absent evidence stays Unknown; detection updates the library in memory without rewriting files.
+Old CPM presets needing a body choice still appear in the CET body-choice section when the normal list hides them. Choosing their source body labels the preset; it does not change your character.
 
----
-
-1. Remove the ACU mod, but keep its `.preset` files.
-2. Put those presets in this folder inside your game directory. Create the folder if it no longer exists:
-
-   ```text
-   bin/x64/plugins/cyber_engine_tweaks/mods/AppearanceChangeUnlocker/character-presets
-   ```
-
-3. Start the game with Character Preset Manager installed.
-4. Open the Advanced Preset Manager and look under **ACU Presets**. Select **Refresh** if a preset is missing.
-
-Importing is automatic. Your original files stay unchanged, and imported copies keep their subfolders.
+Startup scans the library and checks missing body metadata. Press **Refresh** after adding files or to recheck missing body information from known breast or beard option identities. Conflicting or absent evidence stays Unknown; body detection itself updates only the library in memory. Automatic upgrades follow the separate backup and replacement steps above.
 
 ---
 
@@ -278,6 +276,14 @@ Deleting the shared file afterward does not remove the presets you installed.
 
 <details>
 <summary><strong>Backups, recovery, and Trash</strong></summary>
+
+## Original presets from automatic upgrades
+
+Automatic-upgrade backups are separate from appearance history and Trash. They keep the original file bytes and subfolders under `Data/Recovery/Preset Upgrades`; CPM does not delete these backups automatically.
+
+To restore one, close the game and copy the backed-up `.preset` over its matching path in **Character Presets**. Keep the backup copy afterward, since the restored old CPM file becomes eligible for automatic upgrade on the next run.
+
+---
 
 ## Appearance history
 
@@ -340,6 +346,18 @@ Check [Where files are stored](#where-files-are-stored) for preset installation 
 The original ACU preset may still be in your ACU presets folder. Automatic importing can bring it back after you delete the copy in Character Preset Manager.
 
 Move the original out of the ACU presets folder, then delete the imported copy.
+
+---
+
+## An automatic upgrade is still pending
+
+Open an editor with the preset's body type. If CPM cannot determine that body, use **Load & Restore Appearance → Presets needing a body type** in CET; the choice is saved for unchanged source bytes.
+
+If the filesystem check times out, close the game and install the full update, including its **RED4ext DLL**. The Activity Log explains backup, permission, path, and journal errors. Correct the problem, then select **Refresh**.
+
+Upgrade paths must use ordinary folders; folder links are rejected. CPM keeps the original when a backup cannot be verified, no actionable choices can be captured, or adding the upgrade note would exceed the notes limit.
+
+Partial upgrades keep unresolved records and report a warning. Check the visible appearance and installed mods, because those unresolved choices remain unchanged during loading.
 
 ---
 
