@@ -25,31 +25,10 @@ local function new(runtime)
     generation = generation + 1
   end
 
-  local function lookup(candidates)
-    local names,labels={},{}
-    for _,candidate in ipairs(candidates) do
-      if candidate.internalName then
-        local group=names[candidate.internalName] or {}
-        group[#group+1]=candidate;names[candidate.internalName]=group
-      end
-      if candidate.label then
-        local group=labels[candidate.label] or {}
-        group[#group+1]=candidate;labels[candidate.label]=group
-      end
-    end
-    return {names=names,labels=labels,generation=generation,results={}}
-  end
-
-  local function candidatesFor(intent,candidates,current)
-    if not current then return candidates end
-    if intent.internalName then return current.names[intent.internalName] or {} end
-    return current.labels[intent.label] or {}
-  end
-
-  local function resolveRaw(intent, candidates, current)
+  local function resolveRaw(intent, candidates)
     if intent.outcome ~= "resolve" then return {status=intent.outcome} end
     local catalog = {}
-    for _, candidate in ipairs(candidatesFor(intent,candidates,current)) do
+    for _, candidate in ipairs(candidates) do
       local matches = intent.internalName and candidate.internalName == intent.internalName
         or not intent.internalName and candidate.label == intent.label
       if matches and (not intent.slot or candidate.slot == intent.slot) then
@@ -72,17 +51,10 @@ local function new(runtime)
     return result
   end
 
-  local function resolve(intent,candidates,current,fresh)
+  local function resolve(intent,candidates)
     local profile=helpers.loadProfile
     local started=profile and helpers.loadClock()
-    if current and current.generation~=generation then
-      current.generation,current.results=generation,{}
-    end
-    local result=not fresh and current and current.results[intent]
-    if not result then
-      result=resolveRaw(intent,candidates,current)
-      if not fresh and current then current.results[intent]=result end
-    end
+    local result=resolveRaw(intent,candidates)
     if profile then profile.add("resolves");profile.add("resolveSeconds",math.max(0,helpers.loadClock()-started)) end
     return result
   end
@@ -115,7 +87,7 @@ local function new(runtime)
     end
   end
 
-  local function advance(system, options, preset, candidates, current)
+  local function advance(system, options, preset, candidates)
     if not state.app.inCustomization then reset(); return end
     if not job then
       local input = preset
@@ -174,11 +146,11 @@ local function new(runtime)
     local event = {now=now,editorOpen=true,generation=generation}
     local waiting = job.machine.waiting
     if waiting then
-      event.matching = resolve(job.intents[waiting.position],candidates,current).status == "matching"
+      event.matching = resolve(job.intents[waiting.position],candidates).status == "matching"
     else
       local position = job.machine.order[job.machine.cursor or 1]
       if position and job.machine.pending[position] then
-        local result = resolve(job.intents[position],candidates,current)
+        local result = resolve(job.intents[position],candidates)
         event.position,event.status,event.target = position,result.status,result.target
       end
     end
@@ -187,9 +159,9 @@ local function new(runtime)
       progress("Applying saved choices. Dependencies are checked before their colors and styles.")
       job.wroteThisUpdate = true
       local intent = job.intents[action.position]
-      local fresh = resolve(intent,candidates,current,true)
+      local fresh = resolve(intent,candidates)
       local option
-      for _, candidate in ipairs(candidatesFor(intent,candidates,current)) do
+      for _, candidate in ipairs(candidates) do
         if (intent.internalName and candidate.internalName == intent.internalName
             or not intent.internalName and candidate.label == intent.label)
             and (not intent.slot or candidate.slot == intent.slot) then
@@ -209,7 +181,6 @@ local function new(runtime)
         end
         if not ok then execution.step(job.machine,{now=now,editorOpen=true,writeFailed=true}) end
         state.app.optionsMemo = nil
-        current.results={}
       end
     elseif action.kind == "warn" then
       log(("[SHARED LOAD] Skipped saved option %d: %s."):format(action.position,action.reason),"warn")
@@ -231,10 +202,9 @@ local function new(runtime)
     local ok = pcall(function()
       if not state.app.inCustomization then reset(); return end
       local candidates = helpers.acuCandidates(options)
-      local current=lookup(candidates)
       if job then job.wroteThisUpdate = false end
       for _ = 1, 8 do
-        advance(system,options,preset,candidates,current)
+        advance(system,options,preset,candidates)
         if not job or job.wroteThisUpdate or job.machine.waiting or job.verifying and not job.verificationReady
             or helpers.loadClock() - started >= AUTO_LOAD_TIMING.groupBudgetSeconds then break end
       end

@@ -11,7 +11,6 @@ for current steps.
 
 - Matches the README headings and section order to the Nexus description while keeping the updated instructions, warnings, and technical details.
 
-- Reuses option lookups within each loading update while keeping duplicate checks and a fresh choice check before every write. Selector waits and final verification are unchanged.
 - Adds load-only **[LOAD PROFILE]** counters for option reads, matching, writes, verification, and observed wait intervals. Loading order and wait settings are unchanged.
 - Saves new appearances and recovery snapshots as readable **format 9** presets. Files use the name entered, keep header metadata, and support notes, tags, favorites, renaming, copies, and library folders. Overwriting still requires confirmation.
 - Ships the six bundled default presets in format 9 with body metadata and includes the **Data/Recovery/Preset Upgrades** folder.
