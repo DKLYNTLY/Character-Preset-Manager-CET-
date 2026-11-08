@@ -15,10 +15,10 @@ local fields = {
   ["camera_exit"] = {},
   ["invocation"] = {},
   ["reset"] = {},
-  ["begin"] = {"resetBefore","presetName","pass","previousUnresolvedSignature","unresolvedRepeatCount","satisfied","forcedKeys","resolvedChoiceIndexes","applyAttempts","unconfirmed","cleanupAttempts","cleanupSkipped","phase","choiceStage","stageApplied","stagePending","needsContinue","returnToCleanup","pendingChange","batch"},
+  ["begin"] = {"resetBefore","presetName","pass","needsContinue","pendingChange"},
   ["entries"] = {"values","savedCounts","orderedEntries","savedEntryByKey","savedSlotCounts","valueCount"},
-  ["release"] = {"batch","stageApplied","stagePending","choiceStage","overridePreset","values","savedCounts","orderedEntries","savedEntryByKey","savedSlotCounts","satisfied","forcedKeys","resolvedChoiceIndexes","applyAttempts","unconfirmed","cleanupAttempts","cleanupSkipped","loggedWarnings","optionIdentityCache","pendingChange","lastStructureSignature","lastOptionCount","scanResult","dependencyKeys","dependencyRemaps","auto","autoTimer","autoPasses"},
-  ["options_missing"] = {"batch","pendingChange","needsContinue","auto","stalled"},
+  ["release"] = {"overridePreset","values","savedCounts","orderedEntries","savedEntryByKey","savedSlotCounts","loggedWarnings","optionIdentityCache","pendingChange","auto","autoTimer","autoPasses"},
+  ["options_missing"] = {"pendingChange","needsContinue","auto","stalled"},
 }
 local appFields = {
   ["release"] = {"optionsMemo"},

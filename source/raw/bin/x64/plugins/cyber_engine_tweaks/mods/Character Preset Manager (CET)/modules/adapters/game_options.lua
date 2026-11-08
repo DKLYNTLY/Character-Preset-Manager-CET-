@@ -47,7 +47,7 @@ local function transition(kind)
   local fields = loading.fields[kind]
   local appFields = loading.appFields[kind] or emptyFields
   for _,field in ipairs(fields) do
-    if field == "scanResult" then control[field] = nil else control[field] = state.load[field] end
+    control[field] = state.load[field]
   end
   for _,field in ipairs(appFields) do
     if field == "optionsMemo" then control[field] = nil else control[field] = state.app[field] end
