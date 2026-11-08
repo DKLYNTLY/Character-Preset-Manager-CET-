@@ -218,7 +218,7 @@ Selecting an old CPM preset loads it after a successful automatic upgrade in the
 
 Unmarked old text files keep the existing ACU-compatible path. Backup, path, and validation failures preserve the source and appear in the Activity Log; update the native DLL with the rest of the mod before testing upgrades.
 
-CET sections start collapsed, and **Advanced Preset Manager** remains the normal entry point. The manual upgrade preview, copy confirmation, and separate upgrade-opening action have been removed.
+CET sections start collapsed. Use **Advanced Preset Manager** for body assignments and upgrade progress; ordinary preset overwrites still require confirmation.
 
 ---
 
@@ -301,13 +301,11 @@ To restore one, close the game and copy the backed-up `.preset` over its matchin
 
 ---
 
-The current test build skips selector quiet waits during preset loading. It still checks identities before writing and waits before final verification. Check colors, makeup, hair, and cyberware when testing; matching option values do not prove that the visible appearance is correct.
-
 ### Undo Last Load
 
 Before loading a preset, CPM saves one snapshot of your current appearance to `Data/Recovery/LastAppearance.preset`. The next different snapshot replaces it; it is not a five-entry history.
 
-Use **Undo Last Load** in either menu to restore that appearance. CPM no longer shows the Appearance History or Recovery History controls, and saves only one recovery file per changed snapshot.
+Use **Undo Last Load** in either menu to restore that appearance. CPM saves one recovery file per changed snapshot.
 
 Older files in `Data/Recovery/Appearance History` stay on disk. If the new undo file is absent, CPM can read the old newest entry for compatibility; it does not rotate or delete those older files.
 
@@ -384,6 +382,8 @@ Partial upgrades keep unresolved records and report a warning. Check the visible
 ---
 
 ### Leftover hair, cyberware, or unconfirmed choices
+
+The shared loader applies selectors before their dependent choices, without selector quiet waits. It checks identities before each write and keeps a quiet period before final verification.
 
 Testing has shown leftovers in some loading sequences, including opposite-body presets. The cause is unproven; known body mismatches are blocked, and reopening the editor may not clear leftovers.
 
@@ -475,5 +475,11 @@ ChatGPT helped me with this mod. I wrote the code myself.
 - **psiberx and contributors** — [Codeware](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 
 Thanks to CD Projekt Red for Cyberpunk 2077, and to everyone who has tested the mod, reported problems, or shared feedback.
+
+---
+
+### Development archive
+
+Tests, fixtures, and development reports are kept separately on [dev-archive](https://github.com/DKLYNTLY/Character-Preset-Manager-CET-dev-archive/tree/dev-archive).
 
 </details>
