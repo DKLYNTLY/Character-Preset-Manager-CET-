@@ -5,11 +5,12 @@ local _ENV = runtime
 local commands = require("modules/ui/commands")
 
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if compactSubsectionButton("Edit Details", "Hide Edit Details", "presetDetails") then
+local detailsOpen=compactSubsectionButton("Advanced Preset Actions","Hide Advanced Preset Actions","presetDetails")
+coloredWrapped(0.64,0.67,0.73,1.0,"Rename, copy, favorite, tags, notes, and file details.")
+if detailsOpen then
       ImGui.Indent(8)
       local selectedPresetAvailable = state.library.selected
         and state.library.presets[state.library.selected]
-      ImGui.TextWrapped("Rename, copy, or edit the selected preset.")
       if selectedPresetAvailable then
         local selectedPresetPath =
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/" ..

@@ -201,7 +201,8 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
   local kind = hasCurrentStatus and state.status.kinds[section] or fallbackKind
   local isError = hasCurrentStatus and (sectionStatus.error or kind == "error")
   local success = not isError and (kind == "success" or kind == "ready")
-  local warning = not isError and kind == "warning"
+  local guidance = not hasCurrentStatus and kind == "guidance"
+  local warning = not isError and (kind == "warning" or guidance)
   local criticalWarning = not isError and kind == "critical_warning"
   local attention = section == "load"
     and (state.load.stalled or state.load.remaining > 0)
@@ -252,8 +253,8 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
     ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "WARNING")
     drawStatusText(1.0, 0.4, 0.4)
   elseif warning then
-    ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "WARNING")
-    drawStatusText(1.0, 1.0, 1.0)
+    ImGui.TextColored(1.0,0.8,0.2,1.0,guidance and "STATUS" or "WARNING")
+    if guidance then drawStatusText(1.0,0.8,0.2) else drawStatusText(1.0,1.0,1.0) end
   elseif section == "load" and state.load.stalled then
     ImGui.TextColored(1.0, 0.55, 0.15, 1.0, "ATTENTION")
     drawStatusText(1.0, 1.0, 1.0)

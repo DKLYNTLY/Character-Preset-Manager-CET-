@@ -83,14 +83,12 @@ ui.drawDebugPanel = function(height)
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Activity Log")
   local available = ImGui.GetContentRegionAvail()
   local logButtonHeight = math.max(32,ImGui.GetFrameHeight())
-  local minimum = math.max(ImGui.CalcTextSize("Refresh"),ImGui.CalcTextSize("Close")) + ImGui.GetFontSize()*2
-  local stack = available < minimum*3+16
-  local width = stack and available or (available-16)/3
+  local minimum = math.max(ImGui.CalcTextSize("Refresh"),ImGui.CalcTextSize("Copy")) + ImGui.GetFontSize()*2
+  local stack = available < minimum*2+8
+  local width = stack and available or (available-8)/2
   if ImGui.Button("Refresh##debugRefresh",width,logButtonHeight) then ui.readDiagnosticLog() end
   if not stack then ImGui.SameLine() end
   if ImGui.Button("Copy##debugCopy",width,logButtonHeight) then ImGui.SetClipboardText(state.ui.debugLogText or "") end
-  if not stack then ImGui.SameLine() end
-  if ImGui.Button("Close##debugClose",width,logButtonHeight) then ui.closeDebugPanel() end
   ImGui.Spacing()
   local _,_,page,pages=pagedRange("activityLog",#state.ui.debugLogLines,ACTIVITY_LOG_PAGE_SIZE)
   local caption=("%d / %d"):format(page,pages)
