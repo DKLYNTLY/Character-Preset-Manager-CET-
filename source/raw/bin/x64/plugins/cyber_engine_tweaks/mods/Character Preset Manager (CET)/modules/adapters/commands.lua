@@ -164,9 +164,6 @@ state.trash.bulkTargetFolder = folder
   cet.bulk_move = function(input, ports, decision)
 moveSelectedBulkPresetsToFolder()
   end
-  cet.bulk_export = function(input, ports, decision)
-exportSelectedBulkPresetBundle()
-  end
   cet.bulk_trash = function(input, ports, decision)
     local selectedBulkNames = input.selectedBulkNames
 requestBulkTrash(selectedBulkNames)
@@ -226,33 +223,6 @@ requestBulkTrash(folderBulkNames, state.library.selectedFolder)
   end
   cet.move_root = function(input, ports, decision)
 movePresetToSelectedFolder()
-  end
-  cet.bundle_export = function(input, ports, decision)
-exportSelectedFolderBundle()
-  end
-  cet.bundle_import = function(input, ports, decision)
-importAvailableFolderBundles()
-  end
-  cet.bundle_select = function(input, ports, decision)
-    local leaf = input.leaf
-if state.library.selectedBundleFile ~= leaf then clearFolderBundlePreview() end
-
-            state.library.selectedBundleFile = leaf
-
-            cancelConfirmations()
-  end
-  cet.bundle_preview = function(input, ports, decision)
-    local previewVisible = input.previewVisible
-if previewVisible then
-
-            clearFolderBundlePreview()
-
-            clearStatus("folder")
-
-          else viewSelectedFolderBundleContents() end
-  end
-  cet.bundle_trash = function(input, ports, decision)
-trashSelectedFolderBundle()
   end
   cet.filter = function(input, ports, decision)
 invalidateFilteredViewCache()
@@ -598,21 +568,16 @@ if payload == "" or folderNameExists(payload) then
     local payload = input.payload
 if not state.library.selected then return nativeStatus("Select a preset first.", true) end
 
-    trashPreset("native")
+    local moved = trashPreset("native")
+    if moved then
+      local status = state.status.sections.delete
+      setStatus("delete", status.message .. " Open Advanced Preset Manager to restore it or delete it permanently.", status.error, state.status.kinds.delete)
+      if helpers.setTrashFollowup then helpers.setTrashFollowup(true) end
+    end
 
     local status = state.status.sections.delete
 
     local message = tostring(status.message or "")
-
-    if status.error ~= true then
-
-      message = message .. (state.trash.nativePendingDeleteName ~= nil
-
-        and " After moving it, open CET to restore it or delete it permanently."
-
-        or " Open CET to restore it or delete it permanently.")
-
-    end
 
     return "list", ports.listPayload(ports.query(), message, status.error)
   end

@@ -253,6 +253,14 @@ runAppearanceRandomizer = function(settings)
   return result.responseKind, result.responsePayload
 end
 
+helpers.setTrashFollowup = function(active)
+  state.app.trashFollowup = active == true
+  if not active and state.ui.scrollToSectionRequested == "trash" then state.ui.scrollToSectionRequested = nil end
+  if state.app.nativeBridge then
+    pcall(function() state.app.nativeBridge:SetTrashFollowup(active == true) end)
+  end
+end
+
 local nativeCommandPorts = {
   query = function() return nativeQuery end,
   setQuery = function(value) nativeQuery = value end,
@@ -263,8 +271,13 @@ local nativeCommandPorts = {
   openAdvanced = function()
 state.app.windowOpen = true
     state.ui.focusWindowRequested = true
-    state.ui.openSections.load = true
-    state.ui.scrollToLoadRequested = true
+    if state.app.trashFollowup then
+      state.ui.scrollToSectionRequested = "trash"
+      state.ui.openSections.trash = true
+    else
+      state.ui.openSections.load = true
+      state.ui.scrollToLoadRequested = true
+    end
     if state.app.overlayOpen then return "status", "Character Preset Manager is open in CET." end
     if overlayRequest then return "status", "Opening Character Preset Manager in CET..." end
     overlayRequestCounter = overlayRequestCounter + 1

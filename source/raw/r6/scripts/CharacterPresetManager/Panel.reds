@@ -127,6 +127,7 @@ public class PanelButton extends CustomButton {
 
 public class PresetPanel extends inkCustomController {
   private let bridge: wref<NativeBridge>;
+  private let trashFollowup: Bool;
   private let search: ref<HubTextInput>;
   private let presetName: ref<HubTextInput>;
   private let statusText: ref<inkText>;
@@ -164,12 +165,12 @@ public class PresetPanel extends inkCustomController {
     root.SetAnchor(inkEAnchor.TopLeft);
     root.SetAnchorPoint(new Vector2(0.0, 0.0));
     root.SetMargin(new inkMargin(120.0, 220.0, 0.0, 0.0));
-    root.SetSize(730.0, 1602.0);
+    root.SetSize(730.0, 1540.0);
     root.SetInteractive(true);
     root.SetSupportFocus(true);
     this.AddSurface(root, 18.0, -20.0, 688.0, 1622.0);
     let rail: ref<inkRectangle> = new inkRectangle();
-    rail.SetSize(3.0, 1602.0);
+    rail.SetSize(3.0, 1540.0);
     rail.SetTintColor(HDRColor(1.0, 0.22, 0.20, 1.0));
     rail.Reparent(root);
     let title: ref<inkText> = this.MakeText("CHARACTER PRESET MANAGER", 46, 34.0, -16.0, 654.0, 58.0);
@@ -221,21 +222,18 @@ public class PresetPanel extends inkCustomController {
     this.selectedInfo.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.selectedInfo.Reparent(root);
     this.AddDivider(root, 884.0);
-    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 956.0, n"OnRestorePrevious");
-    this.undoAction.SetWidth(654.0);
-    this.AddDivider(root, 1020.0);
     this.statusRail = new inkRectangle();
     this.statusRail.SetSize(5.0, 136.0);
-    this.statusRail.SetMargin(new inkMargin(34.0, 1044.0, 0.0, 0.0));
+    this.statusRail.SetMargin(new inkMargin(34.0, 932.0, 0.0, 0.0));
     this.statusRail.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     this.statusRail.SetVisible(false);
     this.statusRail.Reparent(root);
-    this.statusText = this.MakeText("", 28, 52.0, 1034.0, 636.0, 146.0);
+    this.statusText = this.MakeText("", 28, 52.0, 922.0, 636.0, 146.0);
     this.statusText.SetWrapping(true, 626.0);
     this.statusText.SetTintColor(HDRColor(0.94, 0.97, 1.0, 1.0));
     this.statusText.SetVisible(false);
     this.statusText.Reparent(root);
-    this.AddDivider(root, 1256.0);
+    this.AddDivider(root, 1136.0);
     this.presetName = HubTextInput.Create();
     this.presetName.SetName(n"PresetName");
     this.presetName.SetDefaultText("PRESET NAME");
@@ -243,18 +241,21 @@ public class PresetPanel extends inkCustomController {
     this.presetName.SetMaxLength(64);
     this.SetInputTransparency(this.presetName);
     this.CenterInputText(this.presetName);
-    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1270.0, 0.0, 0.0));
+    this.presetName.GetRootWidget().SetMargin(new inkMargin(34.0, 1150.0, 0.0, 0.0));
     this.presetName.RegisterToCallback(n"OnInput", this, n"OnPresetNameChanged");
     this.presetName.Reparent(root, this.GetGameController());
-    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1362.0, n"OnSaveLocation");
+    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1242.0, n"OnSave");
+    this.saveAction.SetWidth(654.0);
+    this.locationButton = this.AddAction(root, "SAVE LOCATION: ALL PRESETS", 34.0, 1300.0, n"OnSaveLocation");
     this.locationButton.SetWidth(654.0);
     this.locationButton.SetStyle(3);
-    this.saveAction = this.AddAction(root, "SAVE PRESET", 34.0, 1420.0, n"OnSave");
-    this.saveAction.SetWidth(654.0);
-    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1478.0, n"OnMoveToTrash");
+    this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 1358.0, n"OnRestorePrevious");
+    this.undoAction.SetWidth(654.0);
+    this.undoAction.SetStyle(4);
+    this.trashAction = this.AddAction(root, "MOVE PRESET TO TRASH", 34.0, 1416.0, n"OnMoveToTrash");
     this.trashAction.SetWidth(654.0);
     this.trashAction.SetStyle(2);
-    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1536.0, n"OnOpenCET");
+    this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1474.0, n"OnOpenCET");
     this.openCETAction.SetWidth(654.0);
     this.SetRootWidget(root);
     return true;
@@ -384,6 +385,11 @@ public class PresetPanel extends inkCustomController {
   public func UpdateRandomizerAvailability(available: Bool) -> Void {
     this.randomizeAction.SetDisabled(this.busy || !available);
     this.randomizeSettingsAction.SetDisabled(this.busy || !available);
+  }
+
+  public func SetTrashFollowup(active: Bool) -> Void {
+    this.trashFollowup = active;
+    if IsDefined(this.openCETAction) { this.openCETAction.SetStyle(active ? 4 : 1); };
   }
 
   protected cb func OnOpenCET(widget: wref<inkWidget>) -> Bool {
@@ -587,10 +593,10 @@ public class PresetPanel extends inkCustomController {
         if StrLen(this.selectedName) == 0 {
           this.selectedInfoValue = "SELECTED PRESET - NONE";
           this.openCETAction.SetText("ADVANCED PRESET MANAGER");
-          this.openCETAction.SetStyle(1);
+          this.openCETAction.SetStyle(this.trashFollowup ? 4 : 1);
         } else {
           this.openCETAction.SetText("ADVANCED PRESET MANAGER");
-          this.openCETAction.SetStyle(1);
+          this.openCETAction.SetStyle(this.trashFollowup ? 4 : 1);
           let details: String = fields[7] + " | " + fields[4] + " OPTIONS | FORMAT " + fields[6];
           if StrLen(fields[3]) > 0 { details = details + " | " + fields[3]; };
           let selectedLine: String = this.selectedName + " | " + details;

@@ -32,7 +32,7 @@ It reads older Character Preset Manager files and compatible ACU presets. Import
 - Open the character customization menu anywhere with a hotkey.
 - Search by preset name, folder, or tag.
 - Organize presets into folders, mark favorites, add notes, and rename or copy them.
-- Share individual presets, folders, or selected groups.
+- Share individual preset files.
 - Recover deleted items from Trash.
 
 ---
@@ -135,8 +135,8 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Save, load, rename, and copy presets.
 - Search presets and organize them with folders, favorites, notes, and tags.
 - Move, export, or delete several presets at once.
-- Import ACU presets and shared preset folders.
-- Share individual presets, folders, or selected groups.
+- Import ACU presets.
+- Share individual preset files.
 - Undo the last preset load.
 - Move items to Trash, restore them, or delete them permanently.
 - Check preset compatibility and review warnings under **Advanced Preset Options**.
@@ -144,8 +144,14 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Randomize your appearance and choose which categories can change.
 - Change preset sorting in **Settings** and view the Activity Log.
 
-In CET, open **Load & Restore Appearance → Advanced Preset Options** to use
-**Randomize Settings**. The **Randomize** button is under **Load & Restore Appearance**, below **Load Selected Preset**.
+CET has three sections: **Open In-Game Character Creator**, **Advanced Preset Manager**, and **Delete & Restore Items**. The manager uses one preset list for loading and **Select multiple** mode; leaving that mode clears its selection and confirmation without loading a preset. **Edit Details** contains rename, copy, favorite, notes, tags, and file-path controls. Actions share one status area.
+
+In the simple menu, Save appears above Save Location, followed by yellow **Undo Last Load** and **Move Preset to Trash**. After a confirmed move, **Advanced Preset Manager** turns yellow; clicking it opens CET at **Delete & Restore Items**. That section restores or permanently deletes items already in Trash.
+
+Log controls resize with the font, pagination stays together, and **Technical Details** contains the severity guide and catalog export. Settings groups library choices, diagnostics, and saved settings into labeled areas with explicit controls.
+
+In CET, open **Advanced Preset Manager → Advanced Preset Options** to use
+**Randomize Settings**. The **Randomize** button is inside **Advanced Preset Manager**, below **Load Selected Preset**.
 
 ![Advanced Preset Manager](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Advanced%20Menu.gif)
 
@@ -210,7 +216,7 @@ Data/Recovery/Preset Upgrades/<batch>/<original preset path>.preset
 
 The new format 9 file replaces the old file at its existing library path. Names, folders, notes, tags, favorites, and creation dates are kept; notes gain an automatic-upgrade message. Backups stay outside the library and are not deleted automatically.
 
-If body evidence is missing or conflicting, open **Advanced Preset Manager → Load & Restore Appearance → Presets needing a body type** in CET. Choose **Male** or **Female** for the body that preset was saved for, independently of voice or its filename.
+If body evidence is missing or conflicting, open **Advanced Preset Manager → Presets needing a body type** in CET. Choose **Male** or **Female** for the body that preset was saved for, independently of voice or its filename.
 
 *Older records may contain only a choice number. Automatic upgrades use the current catalog at that number, so changed mods can change the mapped choice. Missing or ambiguous records stay unresolved in partial upgrades; files with no actionable choices remain unchanged.*
 
@@ -224,7 +230,7 @@ CET sections start collapsed. Use **Advanced Preset Manager** for body assignmen
 
 ### Body filtering
 
-**Settings → Preset Visibility → Filter by body** shows only known matches. Opposite-body and **Unknown** presets are hidden; **Show all presets** displays them, while loading still blocks known mismatches.
+**Settings → Preset Library → Visibility → Filter by body** shows only known matches. Opposite-body and **Unknown** presets are hidden; **Show all presets** displays them, while loading still blocks known mismatches.
 
 The selected preset shows **Male**, **Female**, or **Unknown** beside its format. Body metadata is separate from voice, and preset names do not determine it.
 
@@ -250,7 +256,7 @@ Ordinary format 9 and ACU reads and loads leave source files unchanged. Identifi
 
 ### Preset folders
 
-Folders created in the Advanced Preset Manager organize your library without creating Windows folders. You can also make subfolders.
+Open **Advanced Preset Manager → Folders** to create virtual folders and move presets between them. Folders created in the Advanced Preset Manager organize your library without creating Windows folders. You can also make subfolders.
 
 Copying a folder includes its presets and subfolders. **Remove Folder, Keep Presets** moves its contents to the parent folder.
 
@@ -266,25 +272,9 @@ Use regular folders, with no more than 12 levels of subfolders. Folder links tha
 
 ---
 
-### Share a folder
+### Share preset files
 
-1. Select a folder in **Create & Organize Folders**.
-2. Open **Share & Import Folders** and choose **Export Selected Folder as a .cpmfolder File**.
-3. Find the exported file in `Character Presets` and send it to someone else.
-
-The file includes presets, subfolders, notes, tags, and favorites. Empty folders cannot be exported.
-
----
-
-### Install a shared folder
-
-1. Put the `.cpmfolder` file in `Character Presets`.
-2. In the Advanced Preset Manager, open **Create & Organize Folders > Share & Import Folders**.
-3. Select **Install .cpmfolder Files from Character Presets**.
-
-To preview a file first, choose it under **Manage & Remove .cpmfolder Files**, then select **View Selected .cpmfolder Contents**.
-
-Deleting the shared file afterward does not remove the presets you installed.
+Send individual `.preset` files and place received presets in `Character Presets`, then select **Refresh**. Folder sharing and `.cpmfolder` import/export are no longer available. Existing files are left alone; a sharing file already in Trash can still be restored or permanently deleted.
 
 </details>
 
@@ -371,7 +361,7 @@ Move the original out of the ACU presets folder, then delete the imported copy.
 
 ### An automatic upgrade is still pending
 
-Open an editor with the preset's body type. If CPM cannot determine that body, use **Load & Restore Appearance → Presets needing a body type** in CET; the choice is saved for unchanged source bytes.
+Open an editor with the preset's body type. If CPM cannot determine that body, use **Advanced Preset Manager → Presets needing a body type** in CET; the choice is saved for unchanged source bytes.
 
 If the filesystem check times out, close the game and install the full update, including its **RED4ext DLL**. The Activity Log explains backup, permission, path, and journal errors. Correct the problem, then select **Refresh**.
 
@@ -401,7 +391,7 @@ The Activity Log separates **confirmed**, **confirmed after delay**, and **uncon
 
 Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened and what you were doing. Include your latest `Activity.log` so I can check what went wrong.
 
-Normal load summaries remain available in the Activity Log. Enable **Settings → Detailed appearance tracing** for per-choice logs, timing profiles, and full before/after snapshots. It defaults off and adds diagnostic work. **[LOAD PROFILE]** records load-only timing and work counters; nested CPU fields must not be added together, and waiting intervals do not prove mesh completion. Editor session numbers help track editor visits, but selected values and callbacks do not prove that a visible mesh was removed. Include screenshots and preset names when reporting leftovers.
+Normal load summaries remain available in the Activity Log. Enable **Settings → Diagnostics → Detailed appearance tracing** for per-choice logs, timing profiles, and full before/after snapshots. It defaults off and adds diagnostic work. **[LOAD PROFILE]** records load-only timing and work counters; nested CPU fields must not be added together, and waiting intervals do not prove mesh completion. Editor session numbers help track editor visits, but selected values and callbacks do not prove that a visible mesh was removed. Include screenshots and preset names when reporting leftovers.
 
 To export the live option catalog, open a customization editor and choose **Log → Technical Details → Export Option Catalog** in the Advanced Preset Manager. Wait until any preset load has finished.
 

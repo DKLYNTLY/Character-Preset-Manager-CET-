@@ -13,7 +13,10 @@ effects.disableWardrobe = function() temporarilyDisableWardrobe() end
 effects.measureOpened = function() measure("editor-opened") end
 effects.measureClosed = function() measure("editor-closed") end
 effects.resetLoad = function() resetLoadState() end
-effects.captureMenu = function(menu) state.editor.activeBodyMorphMenu = menu end
+effects.captureMenu = function(menu)
+  state.editor.activeBodyMorphMenu = menu
+  if helpers.setTrashFollowup then helpers.setTrashFollowup(false) end
+end
 effects.enterCustomization = function() state.app.inCustomization = true end
 effects.leaveCustomization = function() state.app.inCustomization = false end
 effects.invalidatePreflight = function() state.invalidatePreflight() end

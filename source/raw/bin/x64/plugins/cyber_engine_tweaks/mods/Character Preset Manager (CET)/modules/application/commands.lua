@@ -10,7 +10,6 @@ local cet = {
   bulk_location_root = {operation = "bulk_location", section = "bulk"},
   bulk_location = {operation = "bulk_location", section = "bulk"},
   bulk_move = {operation = "bulk_move", section = "bulk"},
-  bulk_export = {operation = "bulk_export", section = "bulk"},
   bulk_trash = {operation = "bulk_trash", section = "bulk"},
   randomize = {operation = "randomize", section = "editor"},
   randomize_settings = {operation = "randomize_settings", section = "editor"},
@@ -24,11 +23,6 @@ local cet = {
   folder_remove = {operation = "folder_remove", section = "folder"},
   folder_trash = {operation = "folder_trash", section = "folder"},
   move_root = {operation = "move", section = "folder"},
-  bundle_export = {operation = "bundle_export", section = "folder"},
-  bundle_import = {operation = "bundle_import", section = "folder"},
-  bundle_select = {operation = "bundle_select", section = "folder"},
-  bundle_preview = {operation = "bundle_preview", section = "folder"},
-  bundle_trash = {operation = "bundle_trash", section = "folder"},
   filter = {operation = "filter", section = "load"},
   clear_filter = {operation = "clear_filter", section = "load"},
   refresh = {operation = "refresh", section = "load"},
@@ -118,7 +112,7 @@ local function blocked(name, context)
     return not context.selected or context.sameFolder
   elseif name == "bundle_preview" or name == "bundle_trash" then
     return not context.bundleSelected
-  elseif name == "bulk_clear" or name == "bulk_move" or name == "bulk_export" or name == "bulk_trash" then
+  elseif name == "bulk_move" or name == "bulk_trash" then
     return context.emptyBulk
   elseif name == "delete" then
     return not context.selected

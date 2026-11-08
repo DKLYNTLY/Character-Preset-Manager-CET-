@@ -5,26 +5,13 @@ local _ENV = runtime
 local commands = require("modules/ui/commands")
 
 drawEditorSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("OPEN & EDIT APPEARANCE", "editor") then
+if collapsibleSectionHeader("OPEN IN-GAME CHARACTER CREATOR", "editor") then
     ImGui.TextWrapped("Open the full character editor here or use an apartment mirror. Both show the same options.")
     local editorUnavailable = state.editor.openPending or state.app.inCustomization
       or not state.editor.hooksAvailable
-    local editorStatus = state.editor.openPending
-      and "Opening the full appearance editor."
-      or (state.app.inCustomization
-        and "A character editor is already open."
-        or (not state.editor.hooksAvailable
-          and "This game or CET version does not support the full editor."
-          or "Ready to open the full editor."))
-    drawSectionStatus("editor", "##editorStatus", statusHeight, editorStatus,
-      not state.editor.openPending and not state.app.inCustomization
-        and state.editor.hooksAvailable and "ready" or "info",
-      "Editor state: " .. (state.editor.openPending and "Opening"
-        or (state.app.inCustomization and "Open"
-          or (state.editor.hooksAvailable and "Available" or "Unavailable"))))
     ImGui.Spacing()
     if editorUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Open Full Appearance Editor##openEditor", actionButtonHeight) then
+    if fullWidthButton("Open In-Game Character Creator##openEditor", actionButtonHeight) then
       commands.run(runtime, "open_editor")
     end
     if editorUnavailable then ImGui.EndDisabled() end

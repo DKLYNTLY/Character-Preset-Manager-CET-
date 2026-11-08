@@ -53,7 +53,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local narrowTopRow = ImGui.GetWindowWidth() < 620
     local topRowStartX = ImGui.GetCursorPosX()
     local topRowWidth = ImGui.GetContentRegionAvail()
-    local topButtonWidth = 72
+    local topButtonWidth = math.max(ImGui.CalcTextSize("Settings"),ImGui.CalcTextSize("Log")) + ImGui.GetFontSize()*2
     local topControlsWidth = topButtonWidth * 2 + 8
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
     ImGui.SameLine()
@@ -64,8 +64,8 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
       ImGui.TextColored(1.0, 0.65, 0.2, 1.0,
         narrowTopRow and "Open editor" or "Open customization to save or load presets")
     end
-    ImGui.SameLine()
-    ImGui.SetCursorPosX(topRowStartX + topRowWidth - topControlsWidth)
+    if topRowWidth > topControlsWidth + ImGui.GetFontSize()*16 then ImGui.SameLine() end
+    ImGui.SetCursorPosX(topRowStartX + math.max(0,topRowWidth - topControlsWidth))
     if ImGui.Button("Settings##settings", topButtonWidth, actionButtonHeight) then
       state.ui.settingsOpen = not state.ui.settingsOpen
       if state.ui.settingsOpen then
@@ -86,12 +86,11 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     if state.ui.debugOpen then
       ui.drawDebugPanel(extraHeight)
     end
+    local actionSection = state.ui.actionStatusSection or "load"
+    drawSectionStatus(actionSection, "##managerActionStatus", statusHeight,
+      "Choose a preset or save the current appearance. Press Refresh to reload the library.", "info")
     drawEditorSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawLoadSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-    drawSaveSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-    drawManageSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-    drawFoldersSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-    drawBulkSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawTrashSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
   end
 ImGui.End()

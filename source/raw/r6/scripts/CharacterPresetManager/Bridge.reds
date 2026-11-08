@@ -8,6 +8,7 @@ public class NativeBridge extends ScriptableSystem {
   private let luaVersion: String;
   private let protocolVersion: Int32;
   private let busy: Bool;
+  private let trashFollowup: Bool;
   private let panels: array<wref<PresetPanel>>;
 
   public func RegisterPanel(panel: ref<PresetPanel>) -> Void {
@@ -17,6 +18,7 @@ public class NativeBridge extends ScriptableSystem {
       index += 1;
     };
     ArrayPush(this.panels, panel);
+    panel.SetTrashFollowup(this.trashFollowup);
   }
 
   public func UnregisterPanel(panel: ref<PresetPanel>) -> Void {
@@ -26,6 +28,15 @@ public class NativeBridge extends ScriptableSystem {
         ArrayErase(this.panels, index);
       };
       index -= 1;
+    };
+  }
+
+  public func SetTrashFollowup(active: Bool) -> Void {
+    let index: Int32 = 0;
+    this.trashFollowup = active;
+    while index < ArraySize(this.panels) {
+      if IsDefined(this.panels[index]) { this.panels[index].SetTrashFollowup(active); };
+      index += 1;
     };
   }
 

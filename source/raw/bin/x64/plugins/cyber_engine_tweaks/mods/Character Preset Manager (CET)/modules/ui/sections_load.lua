@@ -6,7 +6,7 @@ local commands = require("modules/ui/commands")
 
 drawLoadSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 helpers.syncForceFullLoadSelection()
-if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
+if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     local body=helpers.editorBody()
     local names = {}
@@ -15,49 +15,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     end
     local selectedPreset = state.library.selected
       and state.library.presets[state.library.selected]
-    local loadStatus, loadStatusKind
-    if #names == 0 then
-      loadStatus = "Save or install a preset before loading an appearance."
-      loadStatusKind = "info"
-    elseif not state.library.selected then
-      loadStatus = "Select a preset to enable loading."
-      loadStatusKind = "info"
-    elseif not state.app.inCustomization then
-      loadStatus = "Open new-game creation, the full editor, a mirror, or a supported ripperdoc to load this preset."
-      loadStatusKind = "info"
-    else
-      local messages = {}
-      local check = state.load.preflight
-      if check then
-        messages[#messages + 1] =
-          ("Option check: %d found, %d missing, %d repeated, %d invalid.")
-            :format(check.available, check.unavailable, check.ambiguous, check.invalid)
-        if check.ambiguous + check.invalid > 0 then
-          loadStatusKind = "critical_warning"
-        elseif check.unavailable > 0 then
-          loadStatusKind = "warning"
-        else
-          loadStatusKind = "ready"
-        end
-      end
-      if state.load.forceFull then
-        local forceWarning, forceWarningKind = helpers.forceFullLoadWarning(selectedPreset)
-        messages[#messages + 1] = forceWarning
-        if forceWarningKind == "critical_warning" or loadStatusKind ~= "critical_warning" then
-          loadStatusKind = forceWarningKind
-        end
-      end
-      if #messages == 0 then
-        messages[1] = ("Ready to load %s."):format(state.library.selected)
-        loadStatusKind = "ready"
-      end
-      loadStatus = table.concat(messages, " ")
-    end
-    local loadContext = #names == 0
-      and "Available presets: 0"
-      or "Selected preset: " .. tostring(state.library.selected or "None")
-    drawSectionStatus("load", "##loadStatus", statusHeight, loadStatus,
-      loadStatusKind, loadContext)
     ImGui.Spacing()
     local searchRowWidth = ImGui.GetContentRegionAvail()
     local searchButtonWidth = narrowTopRow
@@ -139,6 +96,28 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
         loadRows[#loadRows + 1] = { kind = "preset", name = name, label = name }
       end
     end
+    local multiple = ImGui.Checkbox("Select multiple##managerMultiple", state.ui.multiplePresets == true)
+    if multiple ~= (state.ui.multiplePresets == true) then
+      state.ui.multiplePresets = multiple
+      commands.run(runtime, "bulk_clear", {selectedBulkNames=selectedBulkPresetNames()})
+    end
+    if state.ui.multiplePresets then
+      local visibleBulkNames, seenBulkNames = {}, {}
+      for _, row in ipairs(loadRows) do
+        if row.kind == "preset" and not seenBulkNames[row.name] then
+          seenBulkNames[row.name] = true
+          visibleBulkNames[#visibleBulkNames+1] = row.name
+        end
+      end
+      state.ui.visibleBulkNames = visibleBulkNames
+      ImGui.TextWrapped(("Selected presets: %d"):format(#selectedBulkPresetNames()))
+      if fullWidthButton("Select All Visible##managerSelectAll", actionButtonHeight) then
+        commands.run(runtime, "bulk_select_visible", {visibleNames=visibleBulkNames})
+      end
+      if fullWidthButton("Clear Selection##managerClearAll", actionButtonHeight) then
+        commands.run(runtime, "bulk_clear", {selectedBulkNames=selectedBulkPresetNames()})
+      end
+    end
     drawPageControls("loadPresets", #loadRows, UI_LIST_PAGE_SIZE, "Presets")
     ImGui.BeginChild("##presetList", 0, presetListHeight, true)
     if #names == 0 then
@@ -156,10 +135,15 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           end
           displayLabel = displayLabel .. "  -  " .. tags
         end
-        if ImGui.Selectable(displayLabel .. "##preset:" .. name .. tostring(idSuffix or ""),
-            state.library.selected == name)
-            and state.library.selected ~= name then
-          commands.run(runtime, "select", {name = name})
+        local selected = state.ui.multiplePresets and state.trash.bulkSelected[name] == true
+          or not state.ui.multiplePresets and state.library.selected == name
+        if state.ui.multiplePresets then displayLabel = (selected and "[Selected] " or "[ ] ") .. displayLabel end
+        if ImGui.Selectable(displayLabel .. "##preset:" .. name .. tostring(idSuffix or ""), selected) then
+          if state.ui.multiplePresets then
+            commands.run(runtime, "bulk_select", {name=name,selectedForBulk=selected})
+          elseif state.library.selected ~= name then
+            commands.run(runtime, "select", {name=name})
+          end
         end
       end
       local firstRow, lastRow = pagedRange("loadPresets",
@@ -199,6 +183,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     ImGui.EndChild()
     ImGui.Spacing()
 
+    if not state.ui.multiplePresets then
     if state.library.selected and state.library.presets[state.library.selected] then
       local preset = state.library.presets[state.library.selected]
       coloredWrapped(0.97, 0.72, 0.20, 1.0,
@@ -208,6 +193,11 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           state.presetEntryCount(preset), tostring(preset.format or 4),helpers.presetBody(preset)))
     end
 
+    if state.load.preflight then
+      local check=state.load.preflight
+      ImGui.TextWrapped(("Option check: %d found, %d missing, %d repeated, %d invalid.")
+        :format(check.available,check.unavailable,check.ambiguous,check.invalid))
+    end
     local migration=helpers.presetMigration
     if migration then
       local heading=false
@@ -250,16 +240,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     end
     if not randomizerAvailable then ImGui.EndDisabled() end
     ImGui.Spacing()
-    local restoreFileAvailable = state.load.recoverySnapshotAvailable == true
-    local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
-      or state.load.auto or state.load.needsContinue
-    if restoreUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Undo Last Load##restoreAppearance",
-        actionButtonHeight) then
-      commands.run(runtime, "restore_previous")
-    end
-    if restoreUnavailable then ImGui.EndDisabled() end
-
     if compactSubsectionButton("Advanced Preset Options",
         "Hide Advanced Preset Options", "loadFavorites") then
       ImGui.Indent(8)
@@ -291,16 +271,24 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           commands.run(runtime, "force_full")
         end
         if state.load.auto then ImGui.EndDisabled() end
-        local favoriteLabel = optionalPreset.favorite == true
-          and "Remove Selected Preset from Favorites##favoritePreset"
-          or "Add Selected Preset to Favorites##favoritePreset"
-        if fullWidthButton(favoriteLabel, actionButtonHeight) then
-          commands.run(runtime, "favorite")
+        if state.load.forceFull then
+          local warning,kind=helpers.forceFullLoadWarning(optionalPreset)
+          if kind=="critical_warning" then coloredWrapped(1.0,0.4,0.4,1.0,warning)
+          else coloredWrapped(1.0,0.8,0.2,1.0,warning) end
         end
+
       end
       finishCompactSubsection()
     end
 
+    end
+    if state.ui.multiplePresets then
+      drawBulkSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
+    else
+      drawSaveSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
+      drawManageSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
+    end
+    drawFoldersSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
     end
 end
 

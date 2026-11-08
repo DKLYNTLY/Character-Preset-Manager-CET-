@@ -84,9 +84,10 @@ function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
   ImGui.Separator()
   ImGui.Spacing()
-  local focusLoad = state.ui.scrollToLoadRequested == true
+  local destination = state.ui.scrollToSectionRequested or (state.ui.scrollToLoadRequested and "load")
+  local focusLoad = destination ~= nil
   if focusLoad then
-    ImGui.SetNextItemOpen(key == "load", ImGuiCond.Always)
+    ImGui.SetNextItemOpen(key == destination, ImGuiCond.Always)
   else
     ImGui.SetNextItemOpen(false, ImGuiCond.Once)
   end
@@ -94,17 +95,35 @@ function collapsibleSectionHeader(label, key)
   local open = ImGui.CollapsingHeader(label .. "##CPMSectionV4:" .. key)
   popFoldingHeaderTheme()
   state.ui.openSections[key] = open
-  if key == "load" and focusLoad then
+  if key == destination and focusLoad then
     ImGui.SetScrollHereY(0.0)
     state.ui.scrollToLoadRequested = false
+    state.ui.scrollToSectionRequested = nil
+    if key == "trash" and helpers.setTrashFollowup then helpers.setTrashFollowup(false) end
   end
   if open then ImGui.Spacing() end
   return open
 end
 
+local function fitButtonText(label,width,height)
+  local text,suffix=label:match("^(.-)(##.*)$")
+  text,suffix=text or label,suffix or ""
+  local lines,line={},""
+  for word in text:gmatch("%S+") do
+    local nextLine=line=="" and word or line.." "..word
+    if line~="" and ImGui.CalcTextSize(nextLine)>math.max(ImGui.GetFontSize()*2,width-24) then
+      lines[#lines+1]=line
+      line=word
+    else line=nextLine end
+  end
+  lines[#lines+1]=line
+  return table.concat(lines,"\n")..suffix,math.max(height or 32,ImGui.GetFrameHeight()+(#lines-1)*ImGui.GetFontSize())
+end
+
 function fullWidthButton(label, height)
   local width = ImGui.GetContentRegionAvail()
-  return ImGui.Button(label, width, math.max(height or 32, ImGui.GetFrameHeight()))
+  local text,buttonHeight=fitButtonText(label,width,height)
+  return ImGui.Button(text,width,buttonHeight)
 end
 
 function compactSubsectionButton(closedLabel, openLabel, key)
@@ -127,8 +146,8 @@ function compactSubsectionButton(closedLabel, openLabel, key)
     open and 1.0 or 0.95, open and 0.55 or 0.72,
     open and 0.15 or 0.20, open and 0.85 or 0.55)
   ImGui.PushStyleColor(ImGuiCol.Text, 1.0, 1.0, 1.0, 1.0)
-  if ImGui.Button((open and openLabel or closedLabel) ..
-      "##CPMSubsection:" .. key, width, math.max(30, ImGui.GetFrameHeight())) then
+  local text,buttonHeight=fitButtonText((open and openLabel or closedLabel).."##CPMSubsection:"..key,width,30)
+  if ImGui.Button(text,width,buttonHeight) then
     open = not open
     state.ui.openSubsections[key] = open
   end
@@ -152,7 +171,8 @@ function dangerButton(label, width, height)
   ImGui.PushStyleColor(ImGuiCol.Button,        0.62, 0.16, 0.13, 0.92)
   ImGui.PushStyleColor(ImGuiCol.ButtonHovered, 0.78, 0.20, 0.16, 1.0)
   ImGui.PushStyleColor(ImGuiCol.ButtonActive,  0.48, 0.11, 0.09, 1.0)
-  local pressed = ImGui.Button(label, width, math.max(height or 32, ImGui.GetFrameHeight()))
+  local text,buttonHeight=fitButtonText(label,width,height)
+  local pressed = ImGui.Button(text,width,buttonHeight)
   ImGui.PopStyleColor(3)
   return pressed
 end
@@ -208,7 +228,7 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
   end
   local estimatedLines = math.max(1, math.ceil(#tostring(text) / 48))
   if contextText and contextText ~= "" then estimatedLines = estimatedLines + 1 end
-  local panelHeight = math.min(144, math.max(height or 64, 40 + estimatedLines * 18))
+  local panelHeight = math.min(ImGui.GetFontSize()*9, math.max(height or 64, ImGui.GetFontSize()*(2+estimatedLines)))
   ImGui.BeginChild(childId, 0, panelHeight, true)
   local function drawStatusText(r, g, b)
     if contextText and contextText ~= "" then
@@ -275,7 +295,7 @@ ui.pathCallout = function(childId, label, path)
   ImGui.PushStyleColor(ImGuiCol.ChildBg, 0.086, 0.094, 0.118, 0.85)
   ImGui.PushStyleColor(ImGuiCol.Border, 0.95, 0.72, 0.20, 0.55)
   local pathLines = math.max(1, math.ceil(#tostring(path) / 48))
-  local calloutHeight = math.min(118, 38 + pathLines * 18)
+  local calloutHeight = ImGui.GetFontSize() * math.min(8, 2 + pathLines)
   ImGui.BeginChild(childId, 0, calloutHeight, true)
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, label)
   coloredWrapped(1.0, 1.0, 1.0, 1.0, path)
@@ -326,48 +346,46 @@ ui.defaultWindowPosition = function()
 end
 
 drawSettingsPanel = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if state.ui.settingsOpen then
-      ImGui.Spacing()
-      ImGui.BeginChild("##settings", 0, 240, true)
-      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Settings")
-      ImGui.TextWrapped("Preset Visibility")
-      if ImGui.Selectable("Filter by body##bodyFilter",state.preferences.presetBodyFilter~="all") then
-        helpers.setPresetBodyFilter("body")
-      end
-      if ImGui.Selectable("Show all presets##showAllBodies",state.preferences.presetBodyFilter=="all") then
-        helpers.setPresetBodyFilter("all")
-      end
-      ImGui.TextWrapped("Refresh checks presets missing body metadata. Unknown presets appear only in Show all presets.")
-      local detailed=ImGui.Checkbox("Detailed appearance tracing",state.preferences.detailedAppearanceTrace==true)
-      if detailed~=state.preferences.detailedAppearanceTrace then
-        local previous=state.preferences.detailedAppearanceTrace
-        state.preferences.detailedAppearanceTrace=detailed
-        if not writeConfig() then state.preferences.detailedAppearanceTrace=previous end
-      end
-      ImGui.TextWrapped("Detailed tracing adds appearance snapshots, per-choice logs, and load performance profiles. Leave it off for normal use.")
-      ImGui.TextWrapped("Preset Sort Order")
-      if ImGui.Selectable("Name##settingsSortName",
-          state.preferences.presetSort == "name") then
-        commands.run(runtime, "sort_name")
-      end
-      if ImGui.Selectable("Last modified##settingsSortModified",
-          state.preferences.presetSort == "modified") then
-        commands.run(runtime, "sort_modified")
-      end
-      ImGui.Spacing()
-      ImGui.TextWrapped("This setting is available here in CET.")
-      ImGui.TextDisabled(CONFIG_FILE)
-      if compactSubsectionButton("Settings File",
-          "Hide Settings File", "settingsFile") then
-      ImGui.Indent(8)
-      ImGui.TextWrapped("This file mirrors the shared setting automatically.")
-      finishCompactSubsection()
-      end
-      if state.status.settings ~= "" then
-        coloredWrapped(0.64, 0.67, 0.73, 1.0, state.status.settings)
-      end
-      ImGui.EndChild()
-    end
+  if not state.ui.settingsOpen then return end
+  ImGui.Spacing()
+  ImGui.BeginChild("##settings",0,ImGui.GetFontSize()*18,true)
+  ImGui.TextColored(0.97,0.72,0.20,1.0,"Settings")
+  ImGui.Separator()
+  ImGui.TextColored(0.22,0.92,1.0,1.0,"Preset Library")
+  ImGui.TextWrapped("Visibility")
+  ImGui.PushItemWidth(-1)
+  local visibility = state.preferences.presetBodyFilter == "all" and "Show all presets" or "Filter by body"
+  if ImGui.BeginCombo("##settingsVisibility",visibility) then
+    if ImGui.Selectable("Filter by body",state.preferences.presetBodyFilter~="all") then helpers.setPresetBodyFilter("body") end
+    if ImGui.Selectable("Show all presets",state.preferences.presetBodyFilter=="all") then helpers.setPresetBodyFilter("all") end
+    ImGui.EndCombo()
+  end
+  ImGui.TextWrapped("Filter by body hides Unknown and opposite-body presets. Refresh checks missing body information.")
+  ImGui.TextWrapped("Sort order")
+  local modified = state.preferences.presetSort == "modified"
+  if ImGui.BeginCombo("##settingsSort",modified and "Last modified" or "Name") then
+    if ImGui.Selectable("Name",not modified) then commands.run(runtime,"sort_name") end
+    if ImGui.Selectable("Last modified",modified) then commands.run(runtime,"sort_modified") end
+    ImGui.EndCombo()
+  end
+  ImGui.PopItemWidth()
+  ImGui.Spacing()
+  ImGui.Separator()
+  ImGui.TextColored(0.22,0.92,1.0,1.0,"Diagnostics")
+  local detailed=ImGui.Checkbox("Detailed appearance tracing",state.preferences.detailedAppearanceTrace==true)
+  if detailed~=state.preferences.detailedAppearanceTrace then
+    local previous=state.preferences.detailedAppearanceTrace
+    state.preferences.detailedAppearanceTrace=detailed
+    if not writeConfig() then state.preferences.detailedAppearanceTrace=previous end
+  end
+  ImGui.TextWrapped("Adds snapshots, per-choice logs, and performance profiles. Leave this off for normal use.")
+  ImGui.Spacing()
+  ImGui.Separator()
+  ImGui.TextColored(0.22,0.92,1.0,1.0,"Saved Settings")
+  ImGui.TextWrapped("Changes save automatically. These controls are available in CET.")
+  ImGui.TextWrapped(CONFIG_FILE)
+  if state.status.settings ~= "" then ImGui.TextWrapped(state.status.settings) end
+  ImGui.EndChild()
 end
 
 

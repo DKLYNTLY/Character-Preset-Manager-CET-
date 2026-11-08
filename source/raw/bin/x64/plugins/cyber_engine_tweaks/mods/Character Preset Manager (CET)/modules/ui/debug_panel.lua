@@ -80,24 +80,49 @@ end
 
 ui.drawDebugPanel = function(height)
   ImGui.Spacing()
-  local logRowStartX = ImGui.GetCursorPosX()
-  local logRowWidth = ImGui.GetContentRegionAvail()
-  local logButtonWidth = 68
-  local logButtonHeight = 32
-  local logButtonsWidth = logButtonWidth * 3 + 16
   ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Activity Log")
+  local available = ImGui.GetContentRegionAvail()
+  local logButtonHeight = math.max(32,ImGui.GetFrameHeight())
+  local minimum = math.max(ImGui.CalcTextSize("Refresh"),ImGui.CalcTextSize("Close")) + ImGui.GetFontSize()*2
+  local stack = available < minimum*3+16
+  local width = stack and available or (available-16)/3
+  if ImGui.Button("Refresh##debugRefresh",width,logButtonHeight) then ui.readDiagnosticLog() end
+  if not stack then ImGui.SameLine() end
+  if ImGui.Button("Copy##debugCopy",width,logButtonHeight) then ImGui.SetClipboardText(state.ui.debugLogText or "") end
+  if not stack then ImGui.SameLine() end
+  if ImGui.Button("Close##debugClose",width,logButtonHeight) then ui.closeDebugPanel() end
+  ImGui.Spacing()
+  local _,_,page,pages=pagedRange("activityLog",#state.ui.debugLogLines,ACTIVITY_LOG_PAGE_SIZE)
+  local caption=("%d / %d"):format(page,pages)
+  local pageWidth=math.max(ImGui.GetFontSize()*2,(available-ImGui.CalcTextSize(caption)-32)/2)
+  if page<=1 then ImGui.BeginDisabled() end
+  if ImGui.Button("<##logPrevious",pageWidth,logButtonHeight) then state.ui.listPages.activityLog=page-1 end
+  if page<=1 then ImGui.EndDisabled() end
   ImGui.SameLine()
-  ImGui.SetCursorPosX(logRowStartX + logRowWidth - logButtonsWidth)
-  if ImGui.Button("Refresh##debugRefresh", logButtonWidth, logButtonHeight) then ui.readDiagnosticLog() end
+  ImGui.Text(caption)
   ImGui.SameLine()
-  if ImGui.Button("Copy##debugCopy", logButtonWidth, logButtonHeight) then
-    ImGui.SetClipboardText(state.ui.debugLogText or "")
+  if page>=pages then ImGui.BeginDisabled() end
+  if ImGui.Button(">##logNext",pageWidth,logButtonHeight) then state.ui.listPages.activityLog=page+1 end
+  if page>=pages then ImGui.EndDisabled() end
+  ImGui.BeginChild("##debugLog",0,ImGui.GetFontSize()*12+math.min(math.max(height or 0,0),100),true)
+  local firstLine,lastLine=pagedRange("activityLog",#state.ui.debugLogLines,ACTIVITY_LOG_PAGE_SIZE)
+  for index=firstLine,lastLine do
+    local entry=state.ui.debugLogLines[index]
+    if entry.kind=="blank" then ImGui.Spacing()
+    elseif entry.kind=="error" then coloredWrapped(1.0,0.4,0.4,1.0,entry.text)
+    elseif entry.kind=="warn" then coloredWrapped(1.0,0.8,0.2,1.0,entry.text)
+    elseif entry.kind=="complete" then coloredWrapped(0.3,1.0,0.4,1.0,entry.text)
+    elseif entry.kind=="info" or entry.kind=="load" then ImGui.TextWrapped(entry.text)
+    else ImGui.TextDisabled(entry.text) end
   end
-  ImGui.SameLine()
-  if ImGui.Button("Close##debugClose", logButtonWidth, logButtonHeight) then ui.closeDebugPanel() end
+  ImGui.EndChild()
   if compactSubsectionButton(
       "Technical Details", "Hide Technical Details", "advancedDiagnostics") then
     ImGui.Indent(8)
+    ImGui.TextColored(0.3,1.0,0.4,1.0,"Green: complete")
+    ImGui.TextColored(1.0,0.8,0.2,1.0,"Yellow: warning")
+    ImGui.TextColored(1.0,0.4,0.4,1.0,"Red: error")
+    ImGui.Separator()
     local exportUnavailable = not state.app.inCustomization or state.load.auto
       or state.load.needsContinue or state.load.pendingChange ~= nil
     if exportUnavailable then ImGui.BeginDisabled() end
@@ -123,41 +148,6 @@ ui.drawDebugPanel = function(height)
     end
     finishCompactSubsection()
   end
-  ImGui.TextColored(0.3, 1.0, 0.4, 1.0, "Green = complete")
-  ImGui.SameLine()
-  ImGui.TextColored(0.75, 0.77, 0.82, 1.0, "|")
-  ImGui.SameLine()
-  ImGui.TextColored(1.0, 0.8, 0.2, 1.0, "Yellow = warning")
-  ImGui.SameLine()
-  ImGui.TextColored(0.75, 0.77, 0.82, 1.0, "|")
-  ImGui.SameLine()
-  ImGui.TextColored(1.0, 0.4, 0.4, 1.0, "Red = error")
-  ImGui.Spacing()
-  drawPageControls("activityLog", #state.ui.debugLogLines,
-    ACTIVITY_LOG_PAGE_SIZE, "Activity Log")
-  ImGui.BeginChild("##debugLog", 0, height or 200, true)
-  local firstLine, lastLine = pagedRange("activityLog",
-    #state.ui.debugLogLines, ACTIVITY_LOG_PAGE_SIZE)
-  for index = firstLine, lastLine do
-    local entry = state.ui.debugLogLines[index]
-    local line = entry.text
-    if entry.kind == "blank" then
-      ImGui.Spacing()
-    elseif entry.kind == "error" then
-      coloredWrapped(1.0, 0.4, 0.4, 1.0, line)
-    elseif entry.kind == "warn" then
-      coloredWrapped(1.0, 0.8, 0.2, 1.0, line)
-    elseif entry.kind == "complete" then
-      coloredWrapped(0.3, 1.0, 0.4, 1.0, line)
-    elseif entry.kind == "load" then
-      coloredWrapped(1.0, 1.0, 1.0, 1.0, line)
-    elseif entry.kind == "info" then
-      coloredWrapped(1.0, 1.0, 1.0, 1.0, line)
-    else
-      ImGui.TextDisabled(line)
-    end
-  end
-  ImGui.EndChild()
 end
 
 return _ENV

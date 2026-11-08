@@ -6,27 +6,13 @@ local commands = require("modules/ui/commands")
 
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
-      ImGui.TextWrapped("Send presets, folders, and shared-folder files to Trash. When you want an item back, restore it here.")
+      ImGui.TextWrapped("Restore items already in Trash or permanently delete them.")
       state.ensureTrashViewCache()
       local trashNames = state.trash.cachedNames
       local trashGroupIds = state.trash.cachedGroupIds
       local trashBundleNames = state.trash.cachedBundleNames
       local trashCount = #trashNames + #trashGroupIds + #trashBundleNames
-      local trashStatus = state.library.selected
-        and ("Ready to move %s to Trash."):format(state.library.selected)
-        or "Choose a preset under Load & Restore Appearance before sending it to Trash."
-      drawSectionStatus("delete", "##trashStatus", statusHeight, trashStatus,
-        state.library.selected and "ready" or "info",
-        ("Recoverable items: %d"):format(trashCount))
-      if state.library.selected then
-        local deleteLabel = state.trash.pendingDeleteName == state.library.selected
-          and "Confirm Move to Trash##danger"
-          or "Move Selected Preset to Trash##danger"
-        if dangerButton(deleteLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
-          commands.run(runtime, "delete")
-        end
-      end
-
+      ImGui.TextWrapped(("Recoverable items: %d"):format(trashCount))
       ImGui.Spacing()
       ImGui.Separator()
       ImGui.Spacing()

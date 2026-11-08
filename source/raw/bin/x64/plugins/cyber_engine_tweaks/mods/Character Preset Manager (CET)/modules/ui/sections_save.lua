@@ -5,19 +5,9 @@ local _ENV = runtime
 local commands = require("modules/ui/commands")
 
 drawSaveSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
+do
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Save the current appearance as a new preset")
-    local saveLocation = helpers.breadcrumb(state.library.selectedFolder)
-    local statusSaveUnavailable = not state.app.inCustomization
-      or validatedPresetName(state.library.newName) == nil
-    local saveStatus = not state.app.inCustomization
-      and "Open new-game creation, the full editor, a mirror, or a supported ripperdoc to save a preset."
-      or (validatedPresetName(state.library.newName) == nil
-        and "Enter a preset name to enable saving."
-        or "Ready to save this appearance.")
-    drawSectionStatus("create", "##createStatus", statusHeight, saveStatus,
-      statusSaveUnavailable and "info" or "ready", "Save location: " .. saveLocation)
     ImGui.Spacing()
     ImGui.PushItemWidth(-1)
     local previousNewName = state.library.newName
@@ -63,6 +53,19 @@ if collapsibleSectionHeader("SAVE & REPLACE PRESETS", "create") then
       ImGui.EndChild()
       finishCompactSubsection()
     end
+    ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.library.selectedFolder))
+    local restoreUnavailable = not state.load.recoverySnapshotAvailable or not state.app.inCustomization
+      or state.load.auto or state.load.needsContinue
+    if restoreUnavailable then ImGui.BeginDisabled() end
+    if not restoreUnavailable then ImGui.PushStyleColor(ImGuiCol.Text,1.0,0.8,0.2,1.0) end
+    if fullWidthButton("Undo Last Load##restoreAppearance",actionButtonHeight) then commands.run(runtime,"restore_previous") end
+    if not restoreUnavailable then ImGui.PopStyleColor(1) end
+    if restoreUnavailable then ImGui.EndDisabled() end
+    if not state.library.selected then ImGui.BeginDisabled() end
+    local deleteLabel = state.trash.pendingDeleteName == state.library.selected and state.library.selected
+      and "Confirm Move to Trash##managerTrash" or "Move Selected Preset to Trash##managerTrash"
+    if dangerButton(deleteLabel,ImGui.GetContentRegionAvail(),actionButtonHeight) then commands.run(runtime,"delete") end
+    if not state.library.selected then ImGui.EndDisabled() end
     end
 end
 

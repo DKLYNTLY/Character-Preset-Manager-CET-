@@ -5,18 +5,10 @@ local _ENV = runtime
 local commands = require("modules/ui/commands")
 
 drawFoldersSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
+if compactSubsectionButton("Folders", "Hide Folders", "folders") then
+    ImGui.Indent(8)
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0,
       "Create folders or move presets between them")
-    local folderStatus = state.library.selectedFolder == ""
-      and (not state.library.selected
-        and "Enter a name to create a folder. Select a preset first if you want to move it."
-        or (parentFolder(state.library.selected) == ""
-          and "The selected preset is already here."
-          or "The selected preset can be moved here."))
-      or "Create a folder or open actions for the selected folder."
-    drawSectionStatus("folder", "##folderStatus", statusHeight, folderStatus, "ready",
-      "Destination: " .. helpers.breadcrumb(state.library.selectedFolder))
     ImGui.Spacing()
     local folderNames = sortedFolderNames()
     drawPageControls("organizeFolders", #folderNames, UI_LIST_PAGE_SIZE, "Folders")
@@ -92,110 +84,6 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
       if fullWidthButton("Move Selected Preset to All Presets", actionButtonHeight) then commands.run(runtime, "move_root") end
       if rootMoveUnavailable then ImGui.EndDisabled() end
     end
-    if compactSubsectionButton("Share & Import Folders",
-        "Hide Share & Import Folders", "folderSharing") then
-    ImGui.Indent(8)
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Shared Folder Files")
-    ImGui.TextWrapped("Export a folder to share it. You can also install .cpmfolder files placed in Character Presets.")
-    local folderExportUnavailable = state.library.selectedFolder == ""
-    if folderExportUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Export Selected Folder as a .cpmfolder File", actionButtonHeight) then
-      commands.run(runtime, "bundle_export")
-    end
-    if folderExportUnavailable then ImGui.EndDisabled() end
-    if fullWidthButton("Install .cpmfolder Files from Character Presets", actionButtonHeight) then
-      commands.run(runtime, "bundle_import")
-    end
-    finishCompactSubsection()
-    end
-    local bundleFiles = folderBundleFiles()
-    local bundleLabel = ("Manage & Remove .cpmfolder Files (%d)")
-      :format(#bundleFiles)
-    if compactSubsectionButton(bundleLabel, "Hide .cpmfolder File Manager",
-        "folderBundleFiles") then
-      ImGui.Indent(8)
-      if #bundleFiles == 0 then
-        state.library.selectedBundleFile = nil
-        clearFolderBundlePreview()
-        ImGui.TextWrapped("No .cpmfolder files found in Character Presets.")
-      else
-        ImGui.TextWrapped("Choose a sharing file to preview it or send the file to Trash. Installed presets stay in your library.")
-        drawPageControls("folderBundleFiles", #bundleFiles,
-          UI_LIST_PAGE_SIZE, "Sharing files")
-        ImGui.BeginChild("##folderBundleFileList", 0, ImGui.GetFontSize() * 3.5, true)
-        local selectedStillExists = false
-        for _, path in ipairs(bundleFiles) do
-          local leaf = path:match("([^/]+)$") or path
-          if state.library.selectedBundleFile
-              and state.library.selectedBundleFile:lower() == leaf:lower() then
-            state.library.selectedBundleFile = leaf
-            selectedStillExists = true
-          end
-        end
-        local firstBundle, lastBundle = pagedRange("folderBundleFiles",
-          #bundleFiles, UI_LIST_PAGE_SIZE)
-        for index = firstBundle, lastBundle do
-          local path = bundleFiles[index]
-          local leaf = path:match("([^/]+)$") or path
-          if ImGui.Selectable(leaf .. "##bundleFile:" .. leaf,
-              state.library.selectedBundleFile == leaf) then
-            commands.run(runtime, "bundle_select", {leaf = leaf})
-            selectedStillExists = true
-          end
-        end
-        ImGui.EndChild()
-        if state.library.selectedBundleFile and not selectedStillExists then
-          state.library.selectedBundleFile = nil
-          clearFolderBundlePreview()
-        end
-        local bundleActionUnavailable = not state.library.selectedBundleFile
-        if bundleActionUnavailable then ImGui.BeginDisabled() end
-        local preview = state.library.folderBundlePreview
-        local previewVisible = preview and state.library.selectedBundleFile
-          and preview.filename:lower() == state.library.selectedBundleFile:lower()
-        local previewLabel = previewVisible
-          and "Hide Selected .cpmfolder Contents##viewFolderBundle"
-          or "View Selected .cpmfolder Contents##viewFolderBundle"
-        if fullWidthButton(previewLabel, actionButtonHeight) then
-          commands.run(runtime, "bundle_preview", {previewVisible = previewVisible})
-        end
-        if dangerButton("Move Selected .cpmfolder File to Trash##trashFolderBundle",
-            ImGui.GetContentRegionAvail(), actionButtonHeight) then
-          commands.run(runtime, "bundle_trash")
-        end
-        if bundleActionUnavailable then ImGui.EndDisabled() end
-        preview = state.library.folderBundlePreview
-        previewVisible = preview and state.library.selectedBundleFile
-          and preview.filename:lower() == state.library.selectedBundleFile:lower()
-        if previewVisible then
-          ImGui.Spacing()
-          ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Selected File Contents")
-          ImGui.TextWrapped("Main folder: " .. preview.root)
-          ImGui.TextWrapped(("Nested folders: %d    Presets: %d")
-            :format(#preview.folders, #preview.presets))
-          local previewRows = { "Folder: " .. preview.root }
-          for _, folder in ipairs(preview.folders) do
-            previewRows[#previewRows + 1] = "Folder: " ..
-              joinFolder(preview.root, folder)
-          end
-          for _, preset in ipairs(preview.presets) do
-            previewRows[#previewRows + 1] = "Preset: " ..
-              joinFolder(preview.root, preset)
-          end
-          drawPageControls("folderBundlePreview", #previewRows,
-            UI_LIST_PAGE_SIZE, "Contents")
-          ImGui.BeginChild("##folderBundleContents", 0, ImGui.GetFontSize() * 7, true)
-          local firstPreview, lastPreview = pagedRange("folderBundlePreview",
-            #previewRows, UI_LIST_PAGE_SIZE)
-          for index = firstPreview, lastPreview do
-            ImGui.TextWrapped(previewRows[index])
-          end
-          ImGui.EndChild()
-        end
-        ImGui.TextWrapped("To get the file back, use Delete & Restore Items.")
-      end
-      finishCompactSubsection()
-    end
     if state.status.sections.folder.message ~= "" then
       if state.status.lastLoggedFolder ~= state.status.sections.folder.message then
         local level = state.status.sections.folder.error and "error" or "info"
@@ -203,6 +91,7 @@ if collapsibleSectionHeader("CREATE & ORGANIZE FOLDERS", "folders") then
         state.status.lastLoggedFolder = state.status.sections.folder.message
       end
     end
+    finishCompactSubsection()
     end
 end
 

@@ -286,6 +286,7 @@ trashPreset = function(source)
     setStatus("delete", "Moved \"" .. old .. "\" to Trash, but the preset file list could not be updated.",
       false, "warning")
   end
+  return true
 end
 
 restoreTrashPreset = function(filename)

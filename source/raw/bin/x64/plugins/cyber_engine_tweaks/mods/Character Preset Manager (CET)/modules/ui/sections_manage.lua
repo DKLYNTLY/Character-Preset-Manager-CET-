@@ -5,16 +5,11 @@ local _ENV = runtime
 local commands = require("modules/ui/commands")
 
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
+if compactSubsectionButton("Edit Details", "Hide Edit Details", "presetDetails") then
+      ImGui.Indent(8)
       local selectedPresetAvailable = state.library.selected
         and state.library.presets[state.library.selected]
       ImGui.TextWrapped("Rename, copy, or edit the selected preset.")
-      local manageStatus = state.library.selected
-        and "You can rename, copy, or edit the selected preset."
-        or "Choose a preset under Load & Restore Appearance first. Its rename, copy, and detail controls will appear here."
-      drawSectionStatus("rename", "##renameStatus", statusHeight, manageStatus,
-        state.library.selected and "ready" or "info",
-        "Selected preset: " .. tostring(state.library.selected or "None"))
       if selectedPresetAvailable then
         local selectedPresetPath =
           "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/" ..
@@ -25,18 +20,16 @@ if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
           "##renamePreset", "New preset name", state.library.renameName, 65)
         ImGui.PopItemWidth()
         local renameUnavailable = sanitizeName(state.library.renameName) == ""
-        local manageButtonWidth = (ImGui.GetContentRegionAvail() - 8) * 0.5
+        local stackActions = ImGui.GetContentRegionAvail() < math.max(ImGui.CalcTextSize("Rename Preset"),ImGui.CalcTextSize("Copy Preset"))*2+48
+        local manageButtonWidth = stackActions and ImGui.GetContentRegionAvail() or (ImGui.GetContentRegionAvail()-8)*0.5
         if renameUnavailable then ImGui.BeginDisabled() end
         if ImGui.Button("Rename Preset##renameSelected",
             manageButtonWidth, actionButtonHeight) then commands.run(runtime, "rename") end
         if renameUnavailable then ImGui.EndDisabled() end
-        ImGui.SameLine()
+        if not stackActions then ImGui.SameLine() end
         if ImGui.Button("Copy Preset##duplicateSelected",
             manageButtonWidth, actionButtonHeight) then commands.run(runtime, "duplicate") end
-        if compactSubsectionButton("Tags, Notes & File",
-            "Hide Tags, Notes & File",
-            "presetDetails") then
-          ImGui.Indent(8)
+        do
           ui.pathCallout("##selectedPresetPath", "Preset File", selectedPresetPath)
           if fullWidthButton("Copy File Path##copyPresetPath", actionButtonHeight) then
             commands.run(runtime, "copy_path", {selectedPresetPath = selectedPresetPath})
@@ -48,9 +41,13 @@ if collapsibleSectionHeader("RENAME & COPY PRESETS", "manage") then
           if fullWidthButton("Save Preset Details", actionButtonHeight) then
             commands.run(runtime, "metadata")
           end
-          finishCompactSubsection()
+          local favorite = state.library.presets[state.library.selected].favorite == true
+          if fullWidthButton(favorite and "Remove from Favorites##detailFavorite" or "Add to Favorites##detailFavorite", actionButtonHeight) then
+            commands.run(runtime,"favorite")
+          end
         end
       end
+      finishCompactSubsection()
     end
 end
 

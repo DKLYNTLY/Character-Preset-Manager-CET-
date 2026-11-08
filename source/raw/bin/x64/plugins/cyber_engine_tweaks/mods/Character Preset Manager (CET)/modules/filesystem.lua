@@ -216,6 +216,7 @@ helpers.auditSection = function(title)
 end
 
 function setStatus(section, message, isError, kind)
+  if section ~= "settings" then state.ui.actionStatusSection = section end
   local effectiveError = isError == true
   local sectionStatus = state.status.sections[section]
   sectionStatus.message = message

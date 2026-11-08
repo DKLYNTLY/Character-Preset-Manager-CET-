@@ -6,60 +6,8 @@ local commands = require("modules/ui/commands")
 
 drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight,
     narrowTopRow)
-  if collapsibleSectionHeader("SELECT & MANAGE MULTIPLE PRESETS", "bulk") then
-    ImGui.TextWrapped("Select the presets you want to work with. Move them to a folder, export them together, or send them to Trash.")
-    local visibleNames = helpers.filteredPresetNames()
-    local selectedBulkNames = selectedBulkPresetNames()
-    local bulkStatus = #visibleNames == 0
-      and "No presets match the current search."
-      or (#selectedBulkNames == 0
-        and "Select a row to include that preset. Select the row again to leave it out."
-        or "Choose an action below.")
-    drawSectionStatus("bulk", "##bulkStatus", statusHeight, bulkStatus,
-      #selectedBulkNames > 0 and "ready" or "info",
-      ("Selected presets: %d"):format(#selectedBulkNames))
-    ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Select multiple presets")
-    ImGui.PushItemWidth(-1)
-    local previousSearchText = state.library.searchText
-    state.library.searchText = ImGui.InputTextWithHint("##bulkPresetSearch",
-      "Search presets or folders", state.library.searchText, 65)
-    if state.library.searchText ~= previousSearchText then
-      commands.run(runtime, "bulk_filter")
-    end
-    ImGui.PopItemWidth()
-    local availableWidth = ImGui.GetContentRegionAvail()
-    local stackButtons = availableWidth < math.max(ImGui.CalcTextSize("Select All Visible"), ImGui.CalcTextSize("Clear Selection")) * 2 + ImGui.GetFontSize() * 4
-    local bulkButtonWidth = stackButtons and availableWidth or (availableWidth - 8) * 0.5
-    if ImGui.Button("Select All Visible##bulkSelectAll",
-        bulkButtonWidth, actionButtonHeight) then
-      commands.run(runtime, "bulk_select_visible", {visibleNames = visibleNames})
-    end
-    if not stackButtons then ImGui.SameLine() end
-    if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
-    if ImGui.Button("Clear Selection##bulkClear",
-        bulkButtonWidth, actionButtonHeight) then
-      commands.run(runtime, "bulk_clear", {selectedBulkNames = selectedBulkNames})
-    end
-    if #selectedBulkNames == 0 then ImGui.EndDisabled() end
-    drawPageControls("bulkPresets", #visibleNames, UI_LIST_PAGE_SIZE, "Presets")
-    ImGui.BeginChild("##bulkPresetList", 0, ImGui.GetFontSize() * 6, true)
-    if #visibleNames == 0 then
-      ImGui.TextWrapped("No presets match the current search.")
-    else
-      local firstPreset, lastPreset = pagedRange("bulkPresets",
-        #visibleNames, UI_LIST_PAGE_SIZE)
-      for index = firstPreset, lastPreset do
-        local name = visibleNames[index]
-        local selectedForBulk = state.trash.bulkSelected[name] == true
-        local rowLabel = (selectedForBulk and "[Selected] " or "[ ] ") ..
-          helpers.breadcrumb(name) .. "##bulkPreset:" .. name
-        if fullWidthButton(rowLabel, 28) then
-          commands.run(runtime, "bulk_select", {name = name, selectedForBulk = selectedForBulk})
-        end
-      end
-    end
-    ImGui.EndChild()
-    selectedBulkNames = selectedBulkPresetNames()
+  if state.ui.multiplePresets then
+    local selectedBulkNames=selectedBulkPresetNames()
     local targetLabel = state.trash.bulkTargetFolder == ""
       and "All Presets" or state.trash.bulkTargetFolder
     if ImGui.BeginCombo("Move selected to folder##bulkTargetFolder", targetLabel) then
@@ -75,15 +23,8 @@ drawBulkSection = function(presetListHeight, statusHeight, actionButtonHeight, e
       ImGui.EndCombo()
     end
     if #selectedBulkNames == 0 then ImGui.BeginDisabled() end
-    local actionWidth = ImGui.GetContentRegionAvail()
-    local stackActions = actionWidth < math.max(ImGui.CalcTextSize("Move Selected"), ImGui.CalcTextSize("Export Selected")) * 2 + ImGui.GetFontSize() * 4
-    local bulkActionWidth = stackActions and actionWidth or (actionWidth - 8) * 0.5
-    if ImGui.Button("Move Selected##bulkMove", bulkActionWidth, actionButtonHeight) then
-      commands.run(runtime, "bulk_move", {selectedBulkNames = selectedBulkNames})
-    end
-    if not stackActions then ImGui.SameLine() end
-    if ImGui.Button("Export Selected##bulkExport", bulkActionWidth, actionButtonHeight) then
-      commands.run(runtime, "bulk_export", {selectedBulkNames = selectedBulkNames})
+    if fullWidthButton("Move Selected##bulkMove",actionButtonHeight) then
+      commands.run(runtime,"bulk_move",{selectedBulkNames=selectedBulkNames})
     end
     local bulkTrashLabel = state.trash.pendingBulkAction == "presets"
       and "Confirm Bulk Trash"
