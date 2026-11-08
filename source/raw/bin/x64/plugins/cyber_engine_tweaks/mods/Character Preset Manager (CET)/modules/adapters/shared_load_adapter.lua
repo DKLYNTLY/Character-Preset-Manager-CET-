@@ -111,7 +111,7 @@ local function new(runtime)
         :format(#intents, observed), "info")
       local order, parents, cyclic = resolution.dependencies(intents)
       job = {intents=intents,machine=execution.new(order,parents,120,AUTO_LOAD_TIMING.dependencyStableTime),
-        verified={},verifyCursor=1}
+        verified={},verifyCursor=1,writtenLeaves={}}
       for _, position in ipairs(cyclic) do
         log(("[SHARED LOAD] Dependency cycle at saved option %d."):format(position),"warn")
       end
@@ -137,7 +137,14 @@ local function new(runtime)
       if not intent then finish(); return end
       progress("Checking saved choices.")
       local verifyStarted=helpers.loadProfile and helpers.loadClock()
-      job.verified[job.verifyCursor] = resolve(intent,candidates).status == "matching"
+      local observed=resolve(intent,candidates)
+      job.verified[job.verifyCursor] = observed.status == "matching"
+      local written=job.writtenLeaves[intent.position]
+      if written then
+        log(("[CHILD OBSERVED] option='%s' phase=verification written=%s immediate=%s current=%s resolved=%s status=%s")
+          :format(tostring(intent.internalName or intent.label),tostring(written.target),tostring(written.immediate),
+            tostring(observed.current),tostring(observed.target),tostring(observed.status)),"info")
+      end
       if helpers.loadProfile then
         helpers.loadProfile.add("verification")
         helpers.loadProfile.add("verificationSeconds",math.max(0,helpers.loadClock()-verifyStarted))
@@ -182,10 +189,20 @@ local function new(runtime)
       else
         log(("[SHARED LOAD] Apply '%s' target=%d."):format(intent.internalName or intent.label, action.target),"info")
         local applyStarted=helpers.loadProfile and helpers.loadClock()
-        local ok = pcall(system.ApplyChangeToOption,system,option,action.target)
+        local instant=job.machine.hasChildren[action.position]==true
+        local ok
+        if instant then ok=pcall(system.ApplyChangeToOption,system,option,action.target,true)
+        else ok=pcall(system.ApplyChangeToOption,system,option,action.target) end
         if helpers.loadProfile then
           helpers.loadProfile.add("applies")
           helpers.loadProfile.add("applySeconds",math.max(0,helpers.loadClock()-applyStarted))
+        end
+        if not instant then
+          local readOk,immediate=pcall(function()return tonumber(option.currIndex)end)
+          job.writtenLeaves[action.position]={target=action.target,immediate=readOk and immediate or "unavailable"}
+          log(("[CHILD OBSERVED] option='%s' phase=after-write target=%s current=%s callSucceeded=%s")
+            :format(tostring(intent.internalName or intent.label),tostring(action.target),
+              tostring(readOk and immediate or "unavailable"),tostring(ok)),"info")
         end
         if not ok then execution.step(job.machine,{now=now,editorOpen=true,writeFailed=true}) end
         state.app.optionsMemo = nil
