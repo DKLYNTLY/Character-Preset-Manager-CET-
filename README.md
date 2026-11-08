@@ -305,10 +305,6 @@ To restore one, close the game and copy the backed-up `.preset` over its matchin
 
 Before loading a preset, CPM saves one snapshot of your current appearance to `Data/Recovery/LastAppearance.preset`. The next different snapshot replaces it; it is not a five-entry history.
 
-Normal preset loads prepare this snapshot across several updates. Capture, comparison, validation, and storage finish before the first appearance change; the menu shows **Preparing Undo Last Load** while that work runs. Individual reads and writes can still cause a short pause.
-
-If preparation fails, takes too long, or detects an editor or appearance change, loading stops before applying the preset. **Back** and editor close stay available. Undo also stops if it cannot save the appearance you would be replacing.
-
 Use **Undo Last Load** in either menu to restore that appearance. CPM saves one recovery file per changed snapshot.
 
 Older files in `Data/Recovery/Appearance History` stay on disk. If the new undo file is absent, CPM can read the old newest entry for compatibility; it does not rotate or delete those older files.
@@ -404,8 +400,6 @@ The Activity Log separates **confirmed**, **confirmed after delay**, and **uncon
 Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened and what you were doing. Include your latest `Activity.log` so I can check what went wrong.
 
 Normal load summaries remain available in the Activity Log. Enable **Settings → Detailed appearance tracing** for per-choice logs, timing profiles, and full before/after snapshots. It defaults off and adds diagnostic work. **[LOAD PROFILE]** records load-only timing and work counters; nested CPU fields must not be added together, and waiting intervals do not prove mesh completion. Editor session numbers help track editor visits, but selected values and callbacks do not prove that a visible mesh was removed. Include screenshots and preset names when reporting leftovers.
-
-**[UNDO PREP PROFILE]** separates snapshot capture, comparison, encoding, persistence, and the final readiness check. These stage timings include the checks for changes to the current appearance; keep detailed tracing off outside troubleshooting.
 
 To export the live option catalog, open a customization editor and choose **Log → Technical Details → Export Option Catalog** in the Advanced Preset Manager. Wait until any preset load has finished.
 

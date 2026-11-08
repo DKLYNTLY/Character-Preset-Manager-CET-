@@ -5,13 +5,8 @@ if setfenv then setfenv(1,runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local acuBatch = require("modules/adapters/shared_load_adapter").new(runtime)
-local undoPreparation,undoGeneration=nil,0
-helpers.undoPreparationActive=function()return undoPreparation~=nil end
 helpers.compareFormat9 = acuBatch.compare
-helpers.noteAcuBatchChange = function(name)
-  undoGeneration=undoGeneration+1
-  acuBatch.changed(name)
-end
+helpers.noteAcuBatchChange = acuBatch.changed
 local AUTO_LOAD_SAFETY_MARGIN = 10
 local control = {}
 local eventBuffers = {}
@@ -71,8 +66,6 @@ local profile=require("modules/adapters/load_profile").new(function() return hel
 helpers.loadProfile=nil
 local oldReset = resetLoadState
 resetLoadState = function()
-  undoPreparation=nil
-  undoGeneration=undoGeneration+1
   profile.finish("reset")
   helpers.loadProfile=nil
   if helpers.appearanceTrace then helpers.appearanceTrace("after", "load", "reset") end
@@ -217,7 +210,6 @@ local function performPresetLoad()
     + math.max(0, helpers.loadClock() - optionsStarted)
   state.load.optionCalls = state.load.optionCalls + 1
   if not options then
-    undoPreparation=nil
     acuBatch.reset()
     if state.load.needsContinue then
       transition("options_missing")
@@ -226,7 +218,6 @@ local function performPresetLoad()
     log("[load] " .. tostring(optionsError), "warn")
     return
   end
-  local sourceFingerprint=selectedPreset.fingerprint
   if selectedPreset.format ~= 9 and (selectedPreset.managedByCpm or (tonumber(selectedPreset.format) or 4) >= 5) then
     resetLoadState()
     if helpers.requestPresetUpgradeLoad then helpers.requestPresetUpgradeLoad(loadName)
@@ -245,39 +236,6 @@ local function performPresetLoad()
     selectedPreset=selectedPreset.runtimeFormat9
   end
   local preset = selectedPreset
-  if not state.load.overridePreset and state.load.presetName~=loadName then
-    local historyStarted=helpers.loadClock()
-    local historyStage=undoPreparation and undoPreparation.stage or "capture"
-    local context={name=loadName,session=state.appearanceTrace.session,generation=undoGeneration,
-      body=helpers.editorBody(),source=sourceFingerprint,now=state.load.elapsed,editorOpen=state.app.inCustomization}
-    local status,reason
-    if not undoPreparation then
-      undoPreparation,reason=helpers.beginUndoPreparation(options,"Before loading "..tostring(loadName),context)
-      status=undoPreparation and "pending" or "error"
-    else status,reason=helpers.stepUndoPreparation(undoPreparation,options,context) end
-    if not state.app.inCustomization or state.appearanceTrace.session~=context.session or undoGeneration~=context.generation then
-      status,reason="error","The editor changed while preparing Undo. Loading stopped before appearance changes."
-    end
-    if helpers.loadProfile then
-      local seconds=math.max(0,helpers.loadClock()-historyStarted)
-      helpers.loadProfile.add("historySeconds",seconds)
-      helpers.loadProfile.add("undo"..historyStage.."Seconds",seconds)
-    end
-    if status=="pending" then
-      state.load.needsContinue=true
-      state.load.nextInterval=0
-      setStatus("load","Preparing Undo Last Load before changing your appearance.")
-      return
-    end
-    undoPreparation=nil
-    if status~="ready" then
-      helpers.logLoadMeasurements("undo-preparation-failed")
-      resetLoadState()
-      setStatus("load",reason or "Undo preparation failed. Loading stopped.",true)
-      log("[UNDO PREP] "..tostring(reason or "Loading stopped before appearance changes."),"warn")
-      return
-    end
-  end
   local values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey
   eventBuffers.load_request.loadName = loadName
   if transition("load_request") == "continue" then
@@ -288,6 +246,11 @@ local function performPresetLoad()
     savedSlotCounts = state.load.savedSlotCounts
     valueCount = state.load.valueCount
   else
+    if not state.load.overridePreset then
+      local historyStarted=helpers.loadClock()
+      saveAppearanceHistorySnapshot(options, "Before loading " .. tostring(loadName))
+      if helpers.loadProfile then helpers.loadProfile.add("historySeconds",math.max(0,helpers.loadClock()-historyStarted)) end
+    end
     values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey =
       beginLoadPass(preset, loadName)
   end
