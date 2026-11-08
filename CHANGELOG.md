@@ -11,7 +11,6 @@ for current steps.
 
 - Matches the README headings and section order to the Nexus description while keeping the updated instructions, warnings, and technical details.
 
-- Tests the game's optional instant flag for preset option writes. Dependency order, identity checks, settling waits, and final verification remain unchanged; rendered results still need in-game testing.
 - Adds **[SELECTOR PROFILE]** summaries for individual dependency waits, saved dependents, and observed quiet-period restarts. **[SELECTOR OBSERVED]** records bounded index/status transitions and existing callback names without extra option reads. Write order and wait settings stay unchanged.
 - Adds load-only **[LOAD PROFILE]** counters for option reads, matching, writes, verification, and observed wait intervals. Loading order and wait settings are unchanged.
 - Saves new appearances and recovery snapshots as readable **format 9** presets. Files use the name entered, keep header metadata, and support notes, tags, favorites, renaming, copies, and library folders. Overwriting still requires confirmation.
