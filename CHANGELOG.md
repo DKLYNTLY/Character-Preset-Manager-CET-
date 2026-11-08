@@ -5,42 +5,45 @@ was then, including controls and paths that may have changed. Use the README
 for current steps.
 
 <details open>
-<summary><strong>Latest release - 4.0.2</strong></summary>
+<summary><strong>Latest release - 4.1.0</strong></summary>
+
+## 4.1.0
+
+- Saves new appearances and the single Undo snapshot as readable **format 9** presets, with names, notes, tags, favorites, dates, body metadata, and library folders. Overwriting still requires confirmation.
+- Automatically upgrades identified CPM formats 8 and below at their original paths after verifying exact-byte backups under `Data/Recovery/Preset Upgrades`. Missing body evidence needs a CET choice, and opposite-body upgrades wait for a matching editor.
+- Converts compatible ACU text, JSON, and header-prefixed version-2 presets for the shared loader. ACU sources stay read-only; unsupported versions and unverifiable identities warn rather than receive guessed choices.
+- Applies choices in dependency order with fresh identity checks and work spread across updates. Selectors with saved dependents use instant application; colors and other leaf choices retain normal application. Final verification retries delayed values within its existing deadline.
+- Keeps one **Undo Last Load** snapshot. Back, editor close, timeout, and failure handling remain available; breathing and idle animation continue while manual turning and new option poses pause during a load.
+- Reorganizes CET into an always-visible preset manager and **Permanently Delete or Restore** area. The **Character Creator** launcher sits beside Settings and Log, and one status area shows action results and warnings.
+- Groups Load, Undo, and Trash above Randomize, Randomize Settings, and Save. **Advanced Preset Actions** contains rename, copy, favorite, tags, notes, and file tools; virtual folders and multiple selection use the same library list.
+- Fixes individual multi-selection, including deselection and idle frames. **Refresh** updates the library and idle editor catalog together, and both menus keep explicit save and Trash confirmations.
+- Moves the simple panel left and places its Randomize buttons above **Advanced Preset Manager**. After a confirmed Trash move, the yellow Advanced button opens CET at the recovery area.
+- Adds body filtering and session caches for unchanged preset reads, body checks, and ACU conversions. Known body mismatches are blocked, and unknown bodies remain hidden in **Filter by body** mode.
+- Gives Settings labeled controls and the Activity Log responsive buttons and pagination. **Detailed appearance tracing** defaults off; **Export Option Catalog** remains under Log → Technical Details.
+- Removes folder sharing, `.cpmfolder` import/export, the obsolete Advanced Preset Options section, Check Compatibility control, and unused Force Full Load state. Existing sharing files and their Trash recovery remain intact.
+
+**Update:** Close the game and back up `Character Presets` and `Data`. Remove the three old mod folders listed in the README, install the full archive, then restore your saved folders; overwriting alone can leave retired scripts behind.
+
+**Compatibility:** Old numeric-only presets map through the current installed catalog during upgrade, so changed mods can change their meaning. Partial upgrades preserve unresolved records. Some bundled defaults may warn about missing eye-color or eyelash-color options on a different catalog; those choices stay unchanged. Check the visible result before confirming the editor.
+
+**Known limitation:** Recent in-game tests looked correct on the tested setup. Matching indexes and completion messages do not prove that old hair or cyberware meshes disappeared, and the earlier overlap cause remains unproven. No universal rendering fix is claimed.
+
+</details>
+
+<details>
+<summary><strong>4.0.2</strong></summary>
 
 ## 4.0.2
 
-- Saves new appearances and recovery snapshots as readable **format 9** presets. Files use the entered name and keep header metadata, notes, tags, favorites, dates, and library folders; overwriting still requires confirmation.
-- Ships six format 9 **Default Presets** with body metadata and the **Data/Recovery/Preset Upgrades** folder. Identified CPM formats 8 and below upgrade at their original paths only after an exact original backup is verified.
-- Waits for a matching-body catalog before upgrading and asks for missing or conflicting body types in CET. Upgrades preserve names, folders, metadata, and creation dates, append an upgrade note, and retain unresolved records in partial results. Numeric-only records map through the current catalog, so changed mods can change their meaning.
-- Uses the native file service to check upgrade paths and recover interrupted replacements. Failed backups and unusable conversions preserve originals; completed upgrades are reused without repeated backups, notes, or body prompts.
-- Converts compatible ACU text, JSON, and header-prefixed version-2 files in memory for the shared format 9 loader. Appearance names, morph names, and ordered switcher lists require unique matches; indexed catalogs and unverifiable identities remain unresolved. Unsupported header versions are rejected, and ACU sources stay read-only. Save a checked appearance as a new CPM preset to edit its notes, tags, or favorite status.
-- Uses one dependency-ordered loader, with fresh identity checks before writes and work spread across updates. Selectors with saved dependents use instant application; colors and other leaf choices use normal application. Selector quiet waits are removed, while the final quiet period, cancellation, timeout, and camera release remain.
-- Rechecks uniquely resolved delayed values within the existing verification deadline, without writing again. Normal logs separate first-pass confirmations, confirmations after delay, and unconfirmed choices; missing or ambiguous choices still warn.
-- Keeps Advanced Preset Actions visible when no preset is selected, with disabled tools and a selection prompt. Removes its extra description line and points startup guidance to the Character Creator button at the top left.
-- Adds yellow guidance for opening a character creation menu and renames Edit Details to Advanced Preset Actions, for rename/copy/detail tools. Removes the log panel's extra Close button; the top Log button remains its toggle.
-- Removes the Advanced Preset Options section, Check Compatibility control, and unused Force Full Load bookkeeping. Randomize Settings now sits beside Randomize, with a stacked fallback for large fonts or narrow windows; internal comparison and load verification remain.
-- Moves the simple menu closer to the left edge and places Randomize and Randomize Settings directly above Advanced Preset Manager. Closes the gap left at the top and keeps the settings popup beside the panel.
-- Keeps preset management and **Permanently Delete or Restore** visible without outer tabs. Orders the gray controls as Save Location, Folders, Edit Details, and Select Multiple, and shortens the toolbar launcher to **Character Creator**.
-- Fixes individual multi-selection by reacting to changes in CET's returned selection state, including deselection and idle frames. Combines library and editor-option refresh into one **Refresh** action, with no refresh work during a load.
-- Moves the character-creator launcher beside Settings and Log. Groups Load, Undo, and Trash above Randomize and Save, with full-width stacked subsection controls.
-- Makes multiple selection an explicit button, exposes matching presets inside folders, and lets Select All cover the filtered list without losing the normal folder expansion state.
-- Keeps manually opened sections open after automatic navigation finishes.
-- Combines preset loading, saving, details, virtual folders, and multiple selection in **Advanced Preset Manager**. The character-creator launcher sits in the toolbar, with one shared action-status area and recovery controls below the manager.
-- Moves Save above Save Location in the simple menu, with yellow Undo beneath it. Confirmed Trash moves offer a yellow Advanced Preset Manager button that opens CET at restore and permanent-delete controls.
-- Groups Settings into labeled controls and gives the Activity Log responsive buttons, compact pagination, a font-sized viewer, and diagnostics under Technical Details.
-- Removes folder sharing and `.cpmfolder` import, export, and management. Ordinary virtual folders and individual preset files remain; existing sharing files and their Trash recovery are preserved.
-- Pauses manual character turning and new option-triggered poses during preset loading. Breathing, idle animation, Back, and editor close remain available; a missing motion hook does not block loading. Motion setup uses the active hook environment and cannot stop preset startup if it fails.
-- Keeps one **Undo Last Load** snapshot instead of rotating five entries and writing a duplicate recovery copy. Both menus retain Undo, while older recovery files stay on disk and can provide a fallback when the current snapshot is absent.
-- Adds **Preset Visibility** settings: **Filter by body** shows known matches; **Show all presets** also includes Unknown and opposite-body files. Loading blocks known body mismatches, and startup/Refresh infer missing body metadata without rewriting presets outside the separate upgrade process.
-- Reuses unchanged body checks, ACU conversions, and valid format 9 parses during the session. File fingerprints and relevant numeric-choice catalogs guard reuse; restarting clears the caches.
-- Fits CET controls to the current font, stacks bulk actions when needed, and starts sections collapsed. The Save label turns yellow after a name is entered while hover highlights stay blue. **Advanced Preset Manager** remains the entry point, startup scans the library, and the first status message includes Refresh guidance.
-- Keeps **Randomize** below **Load Selected Preset** and **Randomize Settings** in **Advanced Preset Options**. Manual upgrade review, the separate Load Details button, Help, full-library backup import/export, Cancel Loading, and multi-entry recovery history controls are removed; individual-file sharing, sorting, Trash, and metadata controls remain.
-- Adds read-only **Export Option Catalog** under **Log → Technical Details**, with privacy filtering and no fixed diagnostic output-size limit. **Detailed appearance tracing** defaults off and controls snapshots, per-choice observations, and load/stall/history profiles; normal summaries and warnings remain available.
-- Removes proven-unused state, matching, and history-rotation helpers without changing the accepted apply sequence or verification logic. Tests and caller evidence stay on dev-archive; native format 9 saves, automatic upgrades, ACU conversion, and bridge protocol 1 keep their existing behavior.
+- Moves Randomize below Load Selected Preset in the advanced CET menu. Randomize Settings is now in Advanced Preset Options.
+- Removes Help, full-library backup export/import, and Cancel Loading. Preset sorting stays in Settings; single-preset and folder sharing, Trash, and appearance history remain available.
+- Releases the menu and camera if a preset load times out.
+- Removes the on-screen notice about the character-screen panel being unavailable.
+- Tidies the mod's code and improves handling of unexpected file-service errors. Existing presets and settings stay compatible.
 
-**Update:** Back up `Character Presets` and `Data`, remove the three old mod folders listed in the README, then install and restore your saved folders. This clears scripts that an overwrite could leave behind; keep any `.cpmbackup` files you want to retain.
+Update: Back up your Character Presets and Data folders, remove the three old mod folders, then install this version and restore your saved folders. This removes old scripts that a ZIP overwrite would leave behind. Keep any .cpmbackup files you want to retain; this update does not delete them.
 
-**Known issue:** Hair or cyberware overlap was observed in earlier loading sequences, including opposite-body presets. Recent dependency-ordered loading tests have looked correct, but the cause is unproven and broader testing remains necessary. Known body mismatches are blocked. Matching values and completion messages do not prove that an old mesh disappeared; reopening the editor may not clear leftovers.
+Known issue: Some modded cyberware may remain visible after loading several presets. Leaving the appearance menu clears the preview.
 
 </details>
 

@@ -16,7 +16,7 @@
   • <a href="https://github.com/DKLYNTLY/Character-Preset-Manager-CET-"><strong>SOURCE CODE</strong></a>
 </p>
 
-<p align="center"><strong>Current version: 4.0.2</strong> · <a href="CHANGELOG.md">Changelog</a></p>
+<p align="center"><strong>Current version: 4.1.0</strong> · <a href="CHANGELOG.md">Changelog</a></p>
 
 > [!IMPORTANT]
 > Remove the **ACU mod**, but keep your **ACU presets**.
@@ -38,16 +38,7 @@ It reads older Character Preset Manager files and compatible ACU presets. Import
 ---
 
 <details>
-<summary><strong>Showcase</strong></summary>
-
-[![Watch my Character Preset Manager showcase](https://img.youtube.com/vi/zxrJ2Ryq-G8/hqdefault.jpg)](https://www.youtube.com/watch?v=zxrJ2Ryq-G8)
-
-</details>
-
----
-
-<details>
-<summary><strong>Install and update</strong></summary>
+<summary><strong>Install, update, and check compatibility</strong></summary>
 
 ### Requirements
 
@@ -90,15 +81,12 @@ Do not rely on overwriting files alone. Old scripts can remain active.
 5. Restore your backed-up `Character Presets` and `Data` folders to the mod folder.
 6. Start the game.
 
-</details>
-
 ---
 
-<details>
-<summary><strong>Compatibility and incompatibilities</strong></summary>
+### Compatibility
 
 - EKT Custom Character Creator — Compatible
-- All CCXL mods — Compatible
+- CCXL customization mods — Supported when the saved choices can be identified in the installed catalog.
 - Character Customization Anywhere — Incompatible
 - Appearance Change Unlocker (ACU) — Incompatible
 
@@ -107,7 +95,7 @@ Do not rely on overwriting files alone. Old scripts can remain active.
 ---
 
 <details>
-<summary><strong>Menus</strong></summary>
+<summary><strong>Use the menus: save, load, and randomize</strong></summary>
 
 ### Preset Manager
 
@@ -165,6 +153,12 @@ Apartment mirrors give you access to the full character customization menu.
 **Gender cannot be changed mid-game.** Choose it when creating a new character.
 
 ![Full character customization options in an apartment mirror](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Mirror.gif)
+
+---
+
+### Showcase
+
+[![Watch my Character Preset Manager showcase](https://img.youtube.com/vi/zxrJ2Ryq-G8/hqdefault.jpg)](https://www.youtube.com/watch?v=zxrJ2Ryq-G8)
 
 </details>
 
@@ -282,7 +276,7 @@ Send individual `.preset` files and place received presets in `Character Presets
 ---
 
 <details>
-<summary><strong>Recovery and Trash</strong></summary>
+<summary><strong>Backups, recovery, and Trash</strong></summary>
 
 ### Original presets from automatic upgrades
 
@@ -313,7 +307,7 @@ Presets and folders moved to Trash can be restored through **Permanently Delete 
 ---
 
 <details>
-<summary><strong>Common issues and bug reports</strong></summary>
+<summary><strong>Troubleshooting, logs, and settings</strong></summary>
 
 ### Redscript compilation failed
 
@@ -380,6 +374,8 @@ Testing has shown leftovers in some loading sequences, including opposite-body p
 
 Character turning and new option-triggered poses pause while a preset loads. Breathing and idle animation continue. **Back** and editor close stay available, and turning resumes when loading ends; a missing motion hook does not block presets from loading. This does not prevent manual option edits or stop an animation that was already playing.
 
+Some bundled defaults can warn about missing eye-color or eyelash-color options when the installed catalog differs. Those choices stay unchanged; check the visible result before confirming the editor.
+
 Check visible hair and cyberware as well as selected choices. An occasional hair-color verification warning may still appear; **Back** and editor close remain available during loading.
 
 After the first verification pass, CPM rechecks uniquely identified choices whose values have not caught up. It reads fresh state every 50 ms and requires two matching observations before confirming a delayed value. These checks stay within the existing 1.25-second verification window and never apply a choice again. Loads that match on the first pass gain no extra wait; other loads can spend roughly another second checking.
@@ -420,17 +416,6 @@ Valid format 9 parses use a **4 MiB source-size cache budget**. Decoded tables n
 
 Preset files remain limited to **1 MiB** and **4,096 format 9 option records**. These limits are separate from the diagnostic catalog export, which has no fixed output-size limit.
 
-</details>
-
----
-
-<details>
-<summary><strong>Common questions</strong></summary>
-
-### Can I have your preset?
-
-No.
-
 ---
 
 ### How do I change the settings?
@@ -445,6 +430,12 @@ Select **Settings** at the top of the Advanced Preset Manager. Use **Preset Sort
 
 <details>
 <summary><strong>About this mod</strong></summary>
+
+### Can I have your preset?
+
+No.
+
+---
 
 ### License
 
