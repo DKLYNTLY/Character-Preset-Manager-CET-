@@ -387,6 +387,8 @@ The shared loader applies selectors before their dependent choices, without sele
 
 Testing has shown leftovers in some loading sequences, including opposite-body presets. The cause is unproven; known body mismatches are blocked, and reopening the editor may not clear leftovers.
 
+Character turning and new option-triggered poses pause while a preset loads. Breathing and idle animation continue. **Back** and editor close stay available, and turning resumes when loading ends; a missing motion hook does not block presets from loading. This does not prevent manual option edits or stop an animation that was already playing.
+
 Check visible hair and cyberware as well as selected choices. An occasional hair-color verification warning may still appear; **Back** and editor close remain available during loading.
 
 After the first verification pass, CPM rechecks uniquely identified choices whose values have not caught up. It reads fresh state every 50 ms and requires two matching observations before confirming a delayed value. These checks stay within the existing 1.25-second verification window and never apply a choice again. Loads that match on the first pass gain no extra wait; other loads can spend roughly another second checking.

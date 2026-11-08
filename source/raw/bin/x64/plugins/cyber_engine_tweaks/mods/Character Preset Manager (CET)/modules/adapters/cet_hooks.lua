@@ -72,6 +72,7 @@ end
 local function setupPuppet(scenario, actions) execute(actions, scenario) end
 
 helpers.registerEditorHooks = function()
+  require("modules/adapters/character_motion").install(runtime)
   for _, method in ipairs({"OnOptionUpdated", "OnAppearanceAppliedEvent", "OnPresetAppliedEvent"}) do
     local eventName=method
     local ok = pcall(Observe, "characterCreationBodyMorphMenu", method, function()
