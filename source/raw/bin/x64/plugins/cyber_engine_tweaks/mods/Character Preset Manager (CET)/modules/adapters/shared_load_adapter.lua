@@ -9,6 +9,7 @@ local function new(runtime)
   if setfenv then setfenv(1, runtime) end
   local _ENV = runtime
   local job, generation = nil, 0
+  local selectorProfile=require("modules/adapters/selector_profile").new(log)
   local lastProgress
   local function progress(message)
     if lastProgress ~= message then
@@ -18,6 +19,7 @@ local function new(runtime)
   end
 
   local function reset()
+    selectorProfile.finish(state.load.elapsed or 0,"reset")
     job = nil; lastProgress = nil
   end
 
@@ -147,6 +149,7 @@ local function new(runtime)
     local waiting = job.machine.waiting
     if waiting then
       event.matching = resolve(job.intents[waiting.position],candidates).status == "matching"
+      selectorProfile.sample(waiting,event)
     else
       local position = job.machine.order[job.machine.cursor or 1]
       if position and job.machine.pending[position] then
@@ -156,6 +159,9 @@ local function new(runtime)
     end
     local action = execution.step(job.machine,event)
     if action.kind == "write" then
+      if job.machine.waiting then
+        selectorProfile.begin(job.intents,job.machine.parents,action.position,now,generation)
+      end
       progress("Applying saved choices. Dependencies are checked before their colors and styles.")
       job.wroteThisUpdate = true
       local intent = job.intents[action.position]
@@ -185,10 +191,12 @@ local function new(runtime)
     elseif action.kind == "warn" then
       log(("[SHARED LOAD] Skipped saved option %d: %s."):format(action.position,action.reason),"warn")
     elseif action.kind == "finished" then
+      selectorProfile.finish(now,action.reason or "finished")
       job.verifying = true
       job.verifyGeneration, job.verifyQuietAt = generation, now
       job.verifyDeadline = now + AUTO_LOAD_TIMING.dependencyTimeout
     elseif action.kind == "refresh" then
+      selectorProfile.finish(now,"settled")
       state.app.optionsMemo = nil
     end
     if action.kind == "wait" then
