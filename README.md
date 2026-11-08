@@ -35,10 +35,21 @@ It reads older Character Preset Manager files and compatible ACU presets. Import
 - Share individual presets, folders, or selected groups.
 - Recover deleted items from Trash.
 
-<details>
-<summary><strong>Install, update, and check compatibility</strong></summary>
+---
 
-## Requirements
+<details>
+<summary><strong>Showcase</strong></summary>
+
+[![Watch my Character Preset Manager showcase](https://img.youtube.com/vi/zxrJ2Ryq-G8/hqdefault.jpg)](https://www.youtube.com/watch?v=zxrJ2Ryq-G8)
+
+</details>
+
+---
+
+<details>
+<summary><strong>Install and update</strong></summary>
+
+### Requirements
 
 Install these four frameworks:
 
@@ -51,7 +62,7 @@ Install these four frameworks:
 
 ---
 
-## First installation
+### First installation
 
 1. Install the four required frameworks listed above.
 2. Download Character Preset Manager from [Nexus Mods](https://www.nexusmods.com/cyberpunk2077/mods/31886).
@@ -61,7 +72,7 @@ Install these four frameworks:
 
 ---
 
-## Update an existing installation
+### Update an existing installation
 
 1. Close the game.
 2. Back up the `Character Presets` and `Data` folders inside your current `Character Preset Manager (CET)` mod folder.
@@ -79,9 +90,12 @@ Do not rely on overwriting files alone. Old scripts can remain active.
 5. Restore your backed-up `Character Presets` and `Data` folders to the mod folder.
 6. Start the game.
 
+</details>
+
 ---
 
-## Compatibility
+<details>
+<summary><strong>Compatibility and incompatibilities</strong></summary>
 
 - EKT Custom Character Creator — Compatible
 - All CCXL mods — Compatible
@@ -90,10 +104,12 @@ Do not rely on overwriting files alone. Old scripts can remain active.
 
 </details>
 
-<details>
-<summary><strong>Use the menus: save, load, and randomize</strong></summary>
+---
 
-## Preset Manager
+<details>
+<summary><strong>Menus</strong></summary>
+
+### Preset Manager
 
 Appears in the character customization screen. From here, you can:
 
@@ -112,7 +128,7 @@ Appears in the character customization screen. From here, you can:
 
 ---
 
-## Advanced Preset Manager
+### Advanced Preset Manager
 
 Open it with your CET overlay key, or select **Advanced Preset Manager** in the Preset Manager menu. From here, you can:
 
@@ -135,7 +151,7 @@ In CET, open **Load & Restore Appearance → Advanced Preset Options** to use
 
 ---
 
-## Apartment mirrors
+### Apartment mirrors
 
 Apartment mirrors give you access to the full character customization menu.
 
@@ -143,18 +159,14 @@ Apartment mirrors give you access to the full character customization menu.
 
 ![Full character customization options in an apartment mirror](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Mirror.gif)
 
----
-
-## Showcase
-
-[![Watch my Character Preset Manager showcase](https://img.youtube.com/vi/zxrJ2Ryq-G8/hqdefault.jpg)](https://www.youtube.com/watch?v=zxrJ2Ryq-G8)
-
 </details>
+
+---
 
 <details>
 <summary><strong>Manage presets: imports, folders, and sharing</strong></summary>
 
-## Import ACU presets
+### Import ACU presets
 
 Remove the **ACU mod** and keep its preset files. Old ACU text and JSON files, including **ACU 4.1.1 version-2 files** with a `// ACU-PRESET` header, convert in memory and use the shared format 9 loader.
 
@@ -180,7 +192,7 @@ Importing is automatic. Your original files stay unchanged, and imported copies 
 
 ---
 
-## Save format 9 and upgrade older CPM presets
+### Save format 9 and upgrade older CPM presets
 
 New saves use readable **format 9** files named after the text you enter. Headers keep the name, source, creation and modification dates, notes, tags, favorite status, library folder, and body/voice metadata. Automatic recovery snapshots also use format 9.
 
@@ -210,7 +222,7 @@ CET sections start collapsed, and **Advanced Preset Manager** remains the normal
 
 ---
 
-## Body filtering
+### Body filtering
 
 **Settings → Preset Visibility → Filter by body** shows only known matches. Opposite-body and **Unknown** presets are hidden; **Show all presets** displays them, while loading still blocks known mismatches.
 
@@ -222,7 +234,7 @@ Startup scans the library and checks missing body metadata. Press **Refresh** af
 
 ---
 
-## Where files are stored
+### Where files are stored
 
 Your presets are stored here, inside the game folder:
 
@@ -236,7 +248,7 @@ Ordinary format 9 and ACU reads and loads leave source files unchanged. Identifi
 
 ---
 
-## Preset folders
+### Preset folders
 
 Folders created in the Advanced Preset Manager organize your library without creating Windows folders. You can also make subfolders.
 
@@ -244,7 +256,7 @@ Copying a folder includes its presets and subfolders. **Remove Folder, Keep Pres
 
 ---
 
-## Folders added outside the game
+### Folders added outside the game
 
 If you put a folder inside `Character Presets`, it appears in the menu as **Imported**. Renaming or moving it in the menu does not rename or move the folder on your computer.
 
@@ -254,7 +266,7 @@ Use regular folders, with no more than 12 levels of subfolders. Folder links tha
 
 ---
 
-## Share a folder
+### Share a folder
 
 1. Select a folder in **Create & Organize Folders**.
 2. Open **Share & Import Folders** and choose **Export Selected Folder as a .cpmfolder File**.
@@ -264,7 +276,7 @@ The file includes presets, subfolders, notes, tags, and favorites. Empty folders
 
 ---
 
-## Install a shared folder
+### Install a shared folder
 
 1. Put the `.cpmfolder` file in `Character Presets`.
 2. In the Advanced Preset Manager, open **Create & Organize Folders > Share & Import Folders**.
@@ -276,10 +288,12 @@ Deleting the shared file afterward does not remove the presets you installed.
 
 </details>
 
-<details>
-<summary><strong>Backups, recovery, and Trash</strong></summary>
+---
 
-## Original presets from automatic upgrades
+<details>
+<summary><strong>Recovery and Trash</strong></summary>
+
+### Original presets from automatic upgrades
 
 Automatic-upgrade backups are separate from appearance history and Trash. They keep the original file bytes and subfolders under `Data/Recovery/Preset Upgrades`; CPM does not delete these backups automatically.
 
@@ -287,7 +301,7 @@ To restore one, close the game and copy the backed-up `.preset` over its matchin
 
 ---
 
-## Appearance history
+### Appearance history
 
 Before loading a preset, the mod saves your current appearance. It keeps up to five different appearances for recovery.
 
@@ -295,7 +309,7 @@ In the Preset Manager, use **Undo Last Load** or **Recovery History**. In the Ad
 
 ---
 
-## Trash
+### Trash
 
 Presets and folders moved to Trash can be restored through **Delete & Restore Items** in the Advanced Preset Manager. If a name is already taken, the restored item gets “Copy” added to its name.
 
@@ -303,10 +317,12 @@ Presets and folders moved to Trash can be restored through **Delete & Restore It
 
 </details>
 
-<details>
-<summary><strong>Troubleshooting, logs, and settings</strong></summary>
+---
 
-## Redscript compilation failed
+<details>
+<summary><strong>Common issues and bug reports</strong></summary>
+
+### Redscript compilation failed
 
 The error may name Character Preset Manager even when another mod is causing the problem. Check the log before deciding which mod to remove.
 
@@ -321,7 +337,7 @@ You can also test with only the required frameworks installed, then enable your 
 
 ---
 
-## Endless loading after changing your appearance
+### Endless loading after changing your appearance
 
 If the game gets stuck loading after you confirm your changes, your clothing or wardrobe outfit may be causing it.
 
@@ -329,7 +345,7 @@ Remove your clothing and select **No Outfit** in the wardrobe before opening the
 
 ---
 
-## Menu buttons don't respond or presets don't appear
+### Menu buttons don't respond or presets don't appear
 
 Make sure all four required frameworks are installed and up to date, then fully restart the game.
 
@@ -337,13 +353,13 @@ Startup scans the library, and the first status message also prompts **Refresh**
 
 ---
 
-## Downloaded presets don't appear
+### Downloaded presets don't appear
 
 Check [Where files are stored](#where-files-are-stored) for preset installation steps. For ACU presets, follow [Import ACU presets](#import-acu-presets), then select **Refresh** in the Advanced Preset Manager.
 
 ---
 
-## Deleted presets appear again
+### Deleted presets appear again
 
 The original ACU preset may still be in your ACU presets folder. Automatic importing can bring it back after you delete the copy in Character Preset Manager.
 
@@ -351,7 +367,7 @@ Move the original out of the ACU presets folder, then delete the imported copy.
 
 ---
 
-## An automatic upgrade is still pending
+### An automatic upgrade is still pending
 
 Open an editor with the preset's body type. If CPM cannot determine that body, use **Load & Restore Appearance → Presets needing a body type** in CET; the choice is saved for unchanged source bytes.
 
@@ -363,7 +379,7 @@ Partial upgrades keep unresolved records and report a warning. Check the visible
 
 ---
 
-## Leftover hair, cyberware, or unconfirmed choices
+### Leftover hair, cyberware, or unconfirmed choices
 
 Testing has shown leftovers in some loading sequences, including opposite-body presets. The cause is unproven; known body mismatches are blocked, and reopening the editor may not clear leftovers.
 
@@ -371,7 +387,7 @@ Check visible hair and cyberware as well as selected choices. An occasional hair
 
 ---
 
-## Report a bug
+### Report a bug
 
 Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened and what you were doing. Include your latest `Activity.log` so I can check what went wrong.
 
@@ -395,15 +411,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Data/Log
 
 ---
 
-## How do I change the settings?
-
-Select **Settings** at the top of the Advanced Preset Manager. Use **Preset Sort Order** to sort presets by name or last changed date.
-
-**Preset Visibility** chooses body filtering or all presets. Enable **Detailed appearance tracing** when troubleshooting, then turn it off after collecting the log.
-
----
-
-## Session caches and file limits
+### Session caches and file limits
 
 CPM reuses unchanged body checks and ACU conversions during the session. Numeric ACU conversions also check the relevant live catalog before reuse; restarting the game clears these caches.
 
@@ -413,10 +421,31 @@ Preset files remain limited to **1 MiB** and **4,096 format 9 option records**. 
 
 </details>
 
+---
+
+<details>
+<summary><strong>Common questions</strong></summary>
+
+### Can I have your preset?
+
+No.
+
+---
+
+### How do I change the settings?
+
+Select **Settings** at the top of the Advanced Preset Manager. Use **Preset Sort Order** to sort presets by name or last changed date.
+
+**Preset Visibility** chooses body filtering or all presets. Enable **Detailed appearance tracing** when troubleshooting, then turn it off after collecting the log.
+
+</details>
+
+---
+
 <details>
 <summary><strong>About this mod</strong></summary>
 
-## License
+### License
 
 © Dnydd (formerly known as dklyntly). All Rights Reserved.
 
@@ -426,7 +455,7 @@ For other uses, permissions, and exceptions, refer to the [full license](LICENSE
 
 ---
 
-## Credits
+### Credits
 
 ChatGPT helped me with this mod. I wrote the code myself.
 
@@ -438,11 +467,5 @@ ChatGPT helped me with this mod. I wrote the code myself.
 - **psiberx and contributors** — [Codeware](https://www.nexusmods.com/cyberpunk2077/mods/7780)
 
 Thanks to CD Projekt Red for Cyberpunk 2077, and to everyone who has tested the mod, reported problems, or shared feedback.
-
----
-
-## Can I have your preset?
-
-No.
 
 </details>
