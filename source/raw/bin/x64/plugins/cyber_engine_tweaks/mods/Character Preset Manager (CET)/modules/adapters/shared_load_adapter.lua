@@ -112,7 +112,7 @@ local function new(runtime)
       log(("[SHARED LOAD] Queued %d choices; retained %d descriptive records in the file.")
         :format(#intents, observed), "info")
       local order, parents, cyclic = resolution.dependencies(intents)
-      job = {intents=intents,machine=execution.new(order,parents,120,AUTO_LOAD_TIMING.dependencyStableTime),
+      job = {intents=intents,machine=execution.new(order,parents,120,0),
         verified={},verifyCursor=1,writtenLeaves={}}
       for _, position in ipairs(cyclic) do
         log(("[SHARED LOAD] Dependency cycle at saved option %d."):format(position),"warn")

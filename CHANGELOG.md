@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Tests loading without selector quiet waits. Write order, fresh identity checks, normal color writes, and the final verification quiet period stay unchanged. This is an experimental timing change; visual testing is still required.
+
 - Matches the README headings and section order to the Nexus description while keeping the updated instructions, warnings, and technical details.
 
 - Keeps one verified **Undo Last Load** snapshot instead of rotating five history entries and writing a duplicate recovery copy. Removes the history-list controls from both menus while leaving older recovery files on disk.

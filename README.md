@@ -301,6 +301,8 @@ To restore one, close the game and copy the backed-up `.preset` over its matchin
 
 ---
 
+The current test build skips selector quiet waits during preset loading. It still checks identities before writing and waits before final verification. Check colors, makeup, hair, and cyberware when testing; matching option values do not prove that the visible appearance is correct.
+
 ### Undo Last Load
 
 Before loading a preset, CPM saves one snapshot of your current appearance to `Data/Recovery/LastAppearance.preset`. The next different snapshot replaces it; it is not a five-entry history.

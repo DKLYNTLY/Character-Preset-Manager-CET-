@@ -59,10 +59,10 @@ local function step(job, event)
     job.cursor = job.cursor + 1
     return {kind="warn", position=position, reason=job.outcomes[position]}
   end
-  if job.hasChildren[position] then
+  if job.hasChildren[position] and job.quietTime > 0 then
     job.waiting = {position=position, quietAt=event.now, generation=event.generation}
   else
-    job.pending[position], job.outcomes[position] = nil, "applied"
+    job.pending[position], job.outcomes[position] = nil, job.hasChildren[position] and "confirmed" or "applied"
     job.cursor = job.cursor + 1
   end
   return {kind="write", position=position, target=event.target}
