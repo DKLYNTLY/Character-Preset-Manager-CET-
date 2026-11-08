@@ -11,6 +11,7 @@ for current steps.
 
 - Matches the README headings and section order to the Nexus description while keeping the updated instructions, warnings, and technical details.
 
+- Adds **[HISTORY PROFILE]** measurements to separate recovery capture, codec work, comparison, rotation, and file writes before a load. Recovery behavior is unchanged.
 - Adds bounded **[LOAD STALL]** measurements for slow loader updates, including option access, matching, writes, history capture, and UI refresh. These measurements do not change loading decisions.
 - Tests instant writes only for selectors with saved dependents, keeping normal writes for leaf choices. Child-index observations compare the immediate result with final verification; existing order, waits, and identity checks remain in place.
 - Adds **[SELECTOR PROFILE]** summaries for individual dependency waits, saved dependents, and observed quiet-period restarts. **[SELECTOR OBSERVED]** records bounded index/status transitions and existing callback names without extra option reads. Write order and wait settings stay unchanged.

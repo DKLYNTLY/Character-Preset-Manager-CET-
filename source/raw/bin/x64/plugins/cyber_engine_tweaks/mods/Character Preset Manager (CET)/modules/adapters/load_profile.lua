@@ -45,6 +45,10 @@ local function new(clock,log)
   function api.finish(reason)
     if not current then return end
     local p=current;current=nil
+    log(("[HISTORY PROFILE] preset='%s' | capture total=%.6fs capture encode=%.6fs capture decode=%.6fs | newest read=%.6fs comparison=%.6fs rotation reads=%.6fs rotation writes=%.6fs new write=%.6fs recovery write=%.6fs refresh=%.6fs | nested CPU timings; writes include encoding and readback")
+      :format(p.name,p.historyCapture or 0,p.historyEncode or 0,p.historyDecode or 0,p.historyNewest or 0,
+        p.historyCompare or 0,p.historyRotationRead or 0,p.historyRotationWrite or 0,p.historyNewWrite or 0,
+        p.historyRecovery or 0,p.historyRefresh or 0),"info")
     local t=p.maxTimes
     log(("[LOAD STALL SUMMARY] preset='%s' slow updates=%d printed=%d | maxima: option access=%.6fs engine read=%.6fs candidates=%.6fs resolution=%.6fs writes=%.6fs history=%.6fs ui=%.6fs | each maximum may come from a different update")
       :format(p.name,p.slow,p.slowLogged,t.optionTotal or 0,t.readSeconds or 0,t.candidateSeconds or 0,

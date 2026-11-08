@@ -184,7 +184,9 @@ local function capture(runtime, liveOptions)
     if type(value) ~= "boolean" then return "Unknown" end
     return value and "Male" or "Female"
   end
+  local encodeStarted=runtime.profile and runtime.clock()
   local text = codec.encode(entries, gender("IsBodyGenderMale"), gender("IsBrainGenderMale"))
+  if runtime.profile then runtime.profile.add("historyEncode",math.max(0,runtime.clock()-encodeStarted)) end
   if not text then return nil, "No usable format 9 snapshot could be written." end
   return text, #entries, missing
 end

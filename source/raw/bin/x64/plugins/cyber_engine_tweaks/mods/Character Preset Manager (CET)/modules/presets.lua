@@ -17,9 +17,12 @@ local capture9 = require("modules/adapters/format9_capture")
 helpers.capturePreset9 = function(options)
   local contents, count, missing = capture9.capture({
     Game=Game,ToCName=ToCName,NameToString=NameToString,log=log,
+    profile=helpers.loadProfile,clock=helpers.loadClock,
   }, options)
   if not contents then return nil end
+  local started=helpers.loadProfile and helpers.loadClock()
   local preset = preset9.decode(contents, false)
+  if helpers.loadProfile then helpers.loadProfile.add("historyDecode",math.max(0,helpers.loadClock()-started)) end
   return preset, missing
 end
 

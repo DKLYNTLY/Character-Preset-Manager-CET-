@@ -11,7 +11,9 @@ local function historyPath(index)
 end
 
 local function snapshotFromOptions(options, action)
+  local started=helpers.loadProfile and helpers.loadClock()
   local ok, captured = pcall(helpers.capturePreset9, options)
+  if helpers.loadProfile then helpers.loadProfile.add("historyCapture",math.max(0,helpers.loadClock()-started)) end
   if not ok or not captured then return nil end
   local timestamp = logTimestamp()
   local preset = appearanceHistory.snapshot(captured.entries,action,timestamp,CURRENT_PRESET_FORMAT,MOD_NAME)
@@ -45,27 +47,44 @@ saveAppearanceHistorySnapshot = function(options, action)
     log("[APPEARANCE HISTORY] The current appearance could not be read safely, so no recovery copy was saved.", "warn")
     return false
   end
+  local started=helpers.loadProfile and helpers.loadClock()
   local newest = readPresetFile(historyPath(1))
-  if newest and sameAppearance(preset, newest) then
+  if helpers.loadProfile then helpers.loadProfile.add("historyNewest",math.max(0,helpers.loadClock()-started)) end
+  started=helpers.loadProfile and helpers.loadClock()
+  local identical=newest and sameAppearance(preset,newest)
+  if helpers.loadProfile then helpers.loadProfile.add("historyCompare",math.max(0,helpers.loadClock()-started)) end
+  if identical then
     log("[APPEARANCE HISTORY] Skipped an identical recovery snapshot.", "info")
     return true
   end
   local limit = APPEARANCE_HISTORY_LIMIT
   for _, rotation in ipairs(appearanceHistory.rotation(limit)) do
     local index = rotation.destination
+    started=helpers.loadProfile and helpers.loadClock()
     local older = readPresetFile(historyPath(rotation.source))
-    if older and not writePresetPath(historyPath(index), older) then
+    if helpers.loadProfile then helpers.loadProfile.add("historyRotationRead",math.max(0,helpers.loadClock()-started)) end
+    started=helpers.loadProfile and helpers.loadClock()
+    local written=not older or writePresetPath(historyPath(index),older)
+    if helpers.loadProfile then helpers.loadProfile.add("historyRotationWrite",math.max(0,helpers.loadClock()-started)) end
+    if not written then
       log("[APPEARANCE HISTORY] Older entries could not be moved safely to make room for the new recovery copy.", "warn")
       return false
     end
   end
-  if not writePresetPath(historyPath(1), preset) then
+  started=helpers.loadProfile and helpers.loadClock()
+  local written=writePresetPath(historyPath(1),preset)
+  if helpers.loadProfile then helpers.loadProfile.add("historyNewWrite",math.max(0,helpers.loadClock()-started)) end
+  if not written then
     log("[APPEARANCE HISTORY] The new recovery copy could not be saved.", "warn")
     return false
   end
   for _, index in ipairs(appearanceHistory.trimIndices(limit)) do deleteFile(historyPath(index)) end
+  started=helpers.loadProfile and helpers.loadClock()
   writePresetPath(LAST_APPEARANCE_FILE, preset)
+  if helpers.loadProfile then helpers.loadProfile.add("historyRecovery",math.max(0,helpers.loadClock()-started)) end
+  started=helpers.loadProfile and helpers.loadClock()
   refreshAppearanceHistory()
+  if helpers.loadProfile then helpers.loadProfile.add("historyRefresh",math.max(0,helpers.loadClock()-started)) end
   log(("[APPEARANCE HISTORY] Saved '%s' with %d options.")
     :format(tostring(action), #preset.entries), "info")
   return true
