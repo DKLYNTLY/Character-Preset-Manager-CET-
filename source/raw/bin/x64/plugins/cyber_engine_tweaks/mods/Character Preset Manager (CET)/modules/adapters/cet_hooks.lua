@@ -72,7 +72,12 @@ end
 local function setupPuppet(scenario, actions) execute(actions, scenario) end
 
 helpers.registerEditorHooks = function()
-  require("modules/adapters/character_motion").install(runtime)
+  local motionOk = pcall(function()
+    require("modules/adapters/character_motion").install({state=state,Override=Override,log=log})
+  end)
+  if not motionOk then
+    log("[MOTION] Character motion could not be paused. Preset loading is still available.", "warn")
+  end
   for _, method in ipairs({"OnOptionUpdated", "OnAppearanceAppliedEvent", "OnPresetAppliedEvent"}) do
     local eventName=method
     local ok = pcall(Observe, "characterCreationBodyMorphMenu", method, function()
