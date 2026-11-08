@@ -236,6 +236,26 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       end
     end
 
+    local migration=helpers.presetMigration
+    if migration then
+      local heading=false
+      for _,item in ipairs(migration.rows()) do
+        if item.phase=="body" then
+          if not heading then
+            ImGui.TextWrapped("Presets needing a body type")
+            ImGui.TextWrapped("Choose the body this preset was saved for. Voice and file names do not determine it.")
+            heading=true
+          end
+          ImGui.TextWrapped(helpers.breadcrumb(item.name))
+          local busy=state.load.auto or state.load.needsContinue or state.load.pendingChange
+          if busy then ImGui.BeginDisabled() end
+          if fullWidthButton("Male##upgradeBodyMale:"..item.storage,actionButtonHeight) then migration.assignBody(item.name,"Male") end
+          if fullWidthButton("Female##upgradeBodyFemale:"..item.storage,actionButtonHeight) then migration.assignBody(item.name,"Female") end
+          if busy then ImGui.EndDisabled() end
+        end
+      end
+    end
+
     local loadUnavailable = not state.library.selected or not state.app.inCustomization or helpers.canUpgradePreset9(selectedPreset)
     local loadLabel
     if state.load.auto then
