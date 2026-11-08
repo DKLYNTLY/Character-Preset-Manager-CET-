@@ -2,6 +2,7 @@ local loadStatus = require("modules/domain/load_status")
 local intentsModel = require("modules/domain/load_intents")
 local resolution = require("modules/domain/load_resolution")
 local execution = require("modules/application/load_execution")
+local verification = require("modules/application/load_verification")
 local stateModel = require("modules/domain/state")
 local acu = require("modules/domain/acu_v2")
 
@@ -63,16 +64,20 @@ local function new(runtime)
   end
 
   local function finish()
-    local confirmed, unresolved = 0, 0
+    local confirmed, delayed, unresolved = 0, 0, 0
     for _, intent in ipairs(job.intents) do
       if intent.outcome == "resolve" or intent.outcome == "unresolved" then
-        if job.verified[intent.position] then confirmed = confirmed + 1
+        if job.verified[intent.position] then
+          confirmed = confirmed + 1
+          if job.verification.delayed[intent.position] then delayed=delayed+1 end
         else
           unresolved = unresolved + 1
           log(("[SHARED LOAD] Unresolved option '%s'."):format(intent.internalName or intent.label or "unknown"), "warn")
         end
       end
     end
+    log(("[VERIFY SUMMARY] confirmed=%d confirmed after delay=%d unconfirmed=%d")
+      :format(confirmed-delayed,delayed,unresolved),"info")
     local reason = job.machine.stopped
     state.load.remaining = unresolved
     state.load.pendingChange = nil
@@ -112,8 +117,9 @@ local function new(runtime)
       log(("[SHARED LOAD] Queued %d choices; retained %d descriptive records in the file.")
         :format(#intents, observed), "info")
       local order, parents, cyclic = resolution.dependencies(intents)
+      local checks=verification.new(#intents,generation)
       job = {intents=intents,machine=execution.new(order,parents,120,0),
-        verified={},verifyCursor=1,writtenLeaves={},detailed=state.preferences and state.preferences.detailedAppearanceTrace==true}
+        verified=checks.verified,verification=checks,verifyCursor=1,writtenLeaves={},detailed=state.preferences and state.preferences.detailedAppearanceTrace==true}
       for _, position in ipairs(cyclic) do
         log(("[SHARED LOAD] Dependency cycle at saved option %d."):format(position),"warn")
       end
@@ -132,15 +138,43 @@ local function new(runtime)
           job.machine.stopped = "unstable"
         end
         job.verificationReady = true
+        job.verification.generation=generation
         state.app.optionsMemo = nil
         return
       end
-      local intent = job.intents[job.verifyCursor]
-      if not intent then finish(); return end
+      local function nextRound()
+        job.retryQueue=verification.pending(job.verification)
+        if #job.retryQueue==0 or now>=job.verifyDeadline or job.machine.stopped~="complete" then
+          finish()
+          return
+        end
+        job.retryCursor,job.retryAt=1,now+AUTO_LOAD_TIMING.pollInterval
+        state.app.optionsMemo=nil
+        state.load.nextInterval=AUTO_LOAD_TIMING.pollInterval
+        job.retryPause=true
+      end
+      if job.verifyInitialDone then
+        if verification.invalidate(job.verification,generation) then nextRound();return end
+        if now>=job.verifyDeadline then finish();return end
+        if job.retryAt and now<job.retryAt then
+          state.load.nextInterval=AUTO_LOAD_TIMING.pollInterval
+          job.retryPause=true
+          return
+        end
+        job.retryAt=nil
+      end
+      local position=job.verifyInitialDone and job.retryQueue[job.retryCursor] or job.verifyCursor
+      local intent=position and job.intents[position]
+      if not intent then
+        job.verifyInitialDone=true
+        verification.invalidate(job.verification,generation)
+        nextRound()
+        return
+      end
       progress("Checking saved choices.")
       local verifyStarted=helpers.loadProfile and helpers.loadClock()
       local observed=resolve(intent,candidates)
-      job.verified[job.verifyCursor] = observed.status == "matching"
+      verification.observe(job.verification,position,observed,job.verifyInitialDone)
       local written=job.writtenLeaves[intent.position]
       if written then
         log(("[CHILD OBSERVED] option='%s' phase=verification written=%s immediate=%s current=%s resolved=%s status=%s")
@@ -151,7 +185,8 @@ local function new(runtime)
         helpers.loadProfile.add("verification")
         helpers.loadProfile.add("verificationSeconds",math.max(0,helpers.loadClock()-verifyStarted))
       end
-      job.verifyCursor = job.verifyCursor + 1
+      if job.verifyInitialDone then job.retryCursor=job.retryCursor+1
+      else job.verifyCursor=job.verifyCursor+1 end
       state.load.nextInterval = 0
       return
     end
@@ -233,16 +268,16 @@ local function new(runtime)
     local ok = pcall(function()
       if not state.app.inCustomization then reset(); return end
       local candidates = helpers.acuCandidates(options)
-      if job then job.wroteThisUpdate = false end
+      if job then job.wroteThisUpdate,job.retryPause = false,false end
       for _ = 1, 8 do
         advance(system,options,preset,candidates)
-        if not job or job.wroteThisUpdate or job.machine.waiting or job.verifying and not job.verificationReady
+        if not job or job.wroteThisUpdate or job.retryPause or job.machine.waiting or job.verifying and not job.verificationReady
             or helpers.loadClock() - started >= AUTO_LOAD_TIMING.groupBudgetSeconds then break end
       end
     end)
     if helpers.loadProfile then
       helpers.loadProfile.wait(job and job.machine.waiting and "selector"
-        or job and job.verifying and not job.verificationReady and "verification" or nil)
+        or job and job.verifying and (not job.verificationReady or job.retryPause) and "verification" or nil)
     end
     state.load.choiceSeconds = state.load.choiceSeconds + math.max(0,helpers.loadClock()-started)
     if not ok then
