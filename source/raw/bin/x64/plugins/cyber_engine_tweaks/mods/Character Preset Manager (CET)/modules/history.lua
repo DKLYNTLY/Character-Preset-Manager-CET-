@@ -203,21 +203,16 @@ restoreAppearanceHistory = function(index)
     return false
   end
   local preset = entry.preset
-  resetLoadState()
-  if not helpers.acquireLoadProtection() then return false end
-  local ok, saved = pcall(function()
-    local _, options = getOptions()
-    return options and saveAppearanceHistorySnapshot(options, "Before undoing last load")
-  end)
-  if not ok or not saved or not helpers.loadProtectionActive() then
-    helpers.releaseLoadProtection()
+  local _, options = getOptions()
+  if not options or not saveAppearanceHistorySnapshot(options, "Before undoing last load") then
     setStatus("load","Undo stopped because the current appearance could not be saved safely.",true)
     return false
   end
+  resetLoadState()
   stateModel.prepareRecoveryLoad(state.load, preset, "Undo Last Load")
-  local started = loadPreset()
+  loadPreset()
   if state.load.needsContinue then state.load.auto = true end
-  return started ~= false
+  return true
 end
 
 clearAppearanceHistory = function()

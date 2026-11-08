@@ -82,22 +82,7 @@ local native = {
   open_load_details = {operation = "open_load_details"},
 }
 
-local loadBlocked = {
-  select=true,load=true,save=true,restore_previous=true,restore_history=true,
-  randomize=true,randomize_settings=true,force_full=true,refresh_options=true,
-  refresh=true,delete=true,rename=true,duplicate=true,metadata=true,favorite=true,
-  move=true,folder_create=true,folder_rename=true,folder_duplicate=true,
-  folder_remove=true,folder_trash=true,bulk_move=true,bulk_trash=true,
-  bundle_import=true,bundle_trash=true,trash_restore=true,trash_restore_group=true,
-  trash_restore_bundle=true,trash_empty=true,clear_history=true,
-}
-
-local function busy(context)
-  return context.auto or context.needsContinue or context.pendingChange or context.loadingProtected
-end
-
 local function blocked(name, context)
-  if busy(context) and loadBlocked[name] then return true end
   if name == "load" then
     return not context.selected or not context.inCustomization or context.auto
   elseif name == "refresh_options" then
@@ -142,20 +127,13 @@ local function blocked(name, context)
 end
 
 local function plan(origin, name, input, context)
-  local definitions = origin == "cet" and cet or native
-  local definition = definitions[name]
-  if busy(context) and definition and loadBlocked[definition.operation] then
-    local message = "Wait for loading to finish before changing presets or saving. Back and editor close remain available."
-    local rejected = resultModel.failure(message)
-    rejected.actions, rejected.disabled = {}, true
-    rejected.responseKind, rejected.responsePayload = "error", message
-    return rejected
-  end
   if origin == "cet" and blocked(name, context) then
     local rejected = resultModel.failure("")
     rejected.actions, rejected.disabled = {}, true
     return rejected
   end
+  local definitions = origin == "cet" and cet or native
+  local definition = definitions[name]
   if not definition and origin == "cet" then
     local rejected = resultModel.failure("")
     rejected.actions = {}

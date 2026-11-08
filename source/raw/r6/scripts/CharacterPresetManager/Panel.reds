@@ -745,7 +745,6 @@ private func CPMInitializePresetPanel() -> Void {
 
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnUninitialize() -> Bool {
-  this.CPMSetLoadProtected(false);
   this.CPMTeardownPresetPanel();
   wrappedMethod();
 }
@@ -761,7 +760,7 @@ private func CPMTeardownPresetPanel() -> Void {
 @addMethod(characterCreationBodyMorphMenu)
 public func CPMCanRandomize() -> Bool {
   let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
-  return IsDefined(bridge) && !bridge.IsBusy() && !this.CPMIsLoadProtected() && !this.m_inputDisabled
+  return IsDefined(bridge) && !bridge.IsBusy() && !this.m_inputDisabled
     && this.m_introComplete && Equals(this.m_busySwitchingAppearance, BusySwitchingReason.AVAILABLE)
     && IsDefined(this.m_randomizationSettingsController)
     && IsDefined(inkWidgetRef.Get(this.m_randomizationSettingsWidget))
@@ -810,7 +809,7 @@ public func CPMUpdateRandomizerControls() -> Void {
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnRandomize(e: ref<inkPointerEvent>) -> Bool {
   let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
-  if this.CPMIsLoadProtected() || (IsDefined(bridge) && bridge.IsBusy()) { return false; };
+  if IsDefined(bridge) && bridge.IsBusy() { return false; };
   return wrappedMethod(e);
 }
 

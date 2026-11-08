@@ -5,10 +5,6 @@ if setfenv then setfenv(1,runtime) end
 local _ENV = runtime
 local stateModel = require("modules/domain/state")
 local acuBatch = require("modules/adapters/shared_load_adapter").new(runtime)
-local protection = require("modules/adapters/load_protection").new(runtime)
-helpers.acquireLoadProtection = protection.acquire
-helpers.releaseLoadProtection = protection.release
-helpers.loadProtectionActive = protection.active
 local undoPreparation,undoGeneration=nil,0
 helpers.undoPreparationActive=function()return undoPreparation~=nil end
 helpers.compareFormat9 = acuBatch.compare
@@ -75,7 +71,6 @@ local profile=require("modules/adapters/load_profile").new(function() return hel
 helpers.loadProfile=nil
 local oldReset = resetLoadState
 resetLoadState = function()
-  protection.release()
   undoPreparation=nil
   undoGeneration=undoGeneration+1
   profile.finish("reset")
@@ -306,7 +301,6 @@ local function performPresetLoad()
 end
 
 function loadPreset()
-  if not protection.acquire() then resetLoadState(); return false end
   transition("invocation")
   local started = helpers.loadClock()
   profile.begin(state.load.overrideName or state.library.selected,state.load.elapsed,state.preferences.detailedAppearanceTrace==true)
@@ -322,7 +316,6 @@ function loadPreset()
     math.max(0, helpers.loadClock() - started))
   profile.leave(math.max(0,helpers.loadClock()-started))
   if not ok or not state.load.needsContinue or state.load.stalled then
-    protection.release()
     profile.finish(not ok and "error" or state.load.stalled and "partial" or "returned")
     helpers.loadProfile=nil
   end

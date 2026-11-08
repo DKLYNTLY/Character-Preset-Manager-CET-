@@ -27,11 +27,11 @@ if not state.library.selected then return false, "Select a preset first." end
 
   stateModel.prepareAutomaticLoad(state.load)
 
-  local started = loadPreset()
+  loadPreset()
 
   if state.load.needsContinue then state.load.auto = true end
 
-  return started ~= false, state.status.sections.load.message
+  return true, state.status.sections.load.message
   end
   local function canRandomize()
 if not state.app.inCustomization or not state.editor.activeBodyMorphMenu
@@ -684,7 +684,6 @@ state.app.windowOpen = true
       auto = state.load.auto,
       needsContinue = state.load.needsContinue,
       pendingChange = not not state.load.pendingChange,
-      loadingProtected = helpers.loadProtectionActive and helpers.loadProtectionActive() or false,
       recoveryAvailable = state.load.recoverySnapshotAvailable == true,
       hasEditor = not not state.editor.activeBodyMorphMenu,
       openPending = state.editor.openPending,

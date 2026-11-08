@@ -307,9 +307,6 @@ Before loading a preset, CPM saves one snapshot of your current appearance to `D
 
 Normal preset loads prepare this snapshot across several updates. Capture, comparison, validation, and storage finish before the first appearance change; the menu shows **Preparing Undo Last Load** while that work runs. Individual reads and writes can still cause a short pause.
 
-Manual appearance edits are blocked from Undo preparation through final verification. This includes sliders, colors, voice, built-in presets, Randomize, forward confirmation, and preset selection or saving in either CPM menu. **Back** and editor close stay available, and controls are released when loading finishes, stalls, fails, times out, or the editor closes. Other mods can still change options directly; this protection does not intercept their game calls.
-
-
 If preparation fails, takes too long, or detects an editor or appearance change, loading stops before applying the preset. **Back** and editor close stay available. Undo also stops if it cannot save the appearance you would be replacing.
 
 Use **Undo Last Load** in either menu to restore that appearance. CPM saves one recovery file per changed snapshot.
