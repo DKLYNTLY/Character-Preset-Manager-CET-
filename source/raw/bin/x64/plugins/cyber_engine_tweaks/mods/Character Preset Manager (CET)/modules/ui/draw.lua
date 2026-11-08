@@ -54,7 +54,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     ImGui.TextColored(1.0,1.0,1.0,1.0,"v"..VERSION)
     ImGui.SameLine()
     if state.app.inCustomization then ImGui.TextColored(0.35,0.9,0.45,1.0,"Editor ready")
-    else coloredWrapped(1.0,0.8,0.2,1.0,"Open a character creation menu.") end
+    else coloredWrapped(1.0,0.8,0.2,1.0,"Press Character Creator at the top left.") end
     local available=ImGui.GetContentRegionAvail()
     local settingsWidth=ImGui.CalcTextSize("Settings")+ImGui.GetFontSize()*2
     local logWidth=ImGui.CalcTextSize("Log")+ImGui.GetFontSize()*2
@@ -84,7 +84,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     drawSectionStatus(actionSection, "##managerActionStatus", statusHeight,
       state.app.inCustomization
         and "Choose a preset or save the current appearance. Press Refresh to reload the library."
-        or "Open a character creation menu with Character Creator, New Game, a mirror, or a supported ripperdoc.",
+        or "Press the Character Creator button at the top left to save or load presets. New Game, mirrors, and supported ripperdocs also work.",
       state.app.inCustomization and "info" or "guidance")
     drawLoadSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawTrashSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)

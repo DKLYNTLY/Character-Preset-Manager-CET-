@@ -75,8 +75,11 @@ events.onInit = function()
   refreshAppearanceHistory()
   refreshEditorState()
   if recovered then
-    setStatus("load", "Open the character creator, a mirror, or a ripperdoc to save or load presets.",
-      false, "ready")
+    if state.app.inCustomization then
+      setStatus("load","Choose a preset or save the current appearance.",false,"info")
+    else
+      setStatus("load","Press the Character Creator button at the top left to save or load presets. New Game, mirrors, and supported ripperdocs also work.",false,"guidance")
+    end
   end
 end
 

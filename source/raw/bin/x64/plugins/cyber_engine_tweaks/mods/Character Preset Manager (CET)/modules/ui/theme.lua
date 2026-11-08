@@ -201,7 +201,7 @@ function drawSectionStatus(section, childId, height, fallbackMessage, fallbackKi
   local kind = hasCurrentStatus and state.status.kinds[section] or fallbackKind
   local isError = hasCurrentStatus and (sectionStatus.error or kind == "error")
   local success = not isError and (kind == "success" or kind == "ready")
-  local guidance = not hasCurrentStatus and kind == "guidance"
+  local guidance = kind == "guidance"
   local warning = not isError and (kind == "warning" or guidance)
   local criticalWarning = not isError and kind == "critical_warning"
   local attention = section == "load"

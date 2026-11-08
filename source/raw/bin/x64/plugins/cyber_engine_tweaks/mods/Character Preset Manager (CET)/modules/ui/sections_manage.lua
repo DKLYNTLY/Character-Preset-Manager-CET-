@@ -6,15 +6,18 @@ local commands = require("modules/ui/commands")
 
 drawManageSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 local detailsOpen=compactSubsectionButton("Advanced Preset Actions","Hide Advanced Preset Actions","presetDetails")
-coloredWrapped(0.64,0.67,0.73,1.0,"Rename, copy, favorite, tags, notes, and file details.")
 if detailsOpen then
       ImGui.Indent(8)
       local selectedPresetAvailable = state.library.selected
         and state.library.presets[state.library.selected]
-      if selectedPresetAvailable then
-        local selectedPresetPath =
-          "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/" ..
-          presetPath(state.library.selected)
+      if not selectedPresetAvailable then
+        ImGui.TextWrapped("Select a preset above to rename, copy, or edit it.")
+        ImGui.BeginDisabled()
+      end
+      do
+        local selectedPresetPath = selectedPresetAvailable
+          and "bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/" .. presetPath(state.library.selected)
+          or "No preset selected."
         ImGui.Spacing()
         ImGui.PushItemWidth(-1)
         state.library.renameName = ImGui.InputTextWithHint(
@@ -42,12 +45,13 @@ if detailsOpen then
           if fullWidthButton("Save Preset Details", actionButtonHeight) then
             commands.run(runtime, "metadata")
           end
-          local favorite = state.library.presets[state.library.selected].favorite == true
+          local favorite = selectedPresetAvailable and selectedPresetAvailable.favorite == true
           if fullWidthButton(favorite and "Remove from Favorites##detailFavorite" or "Add to Favorites##detailFavorite", actionButtonHeight) then
             commands.run(runtime,"favorite")
           end
         end
       end
+      if not selectedPresetAvailable then ImGui.EndDisabled() end
       finishCompactSubsection()
     end
 end
