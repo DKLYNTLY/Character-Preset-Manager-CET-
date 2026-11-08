@@ -9,7 +9,7 @@ local function new(runtime)
   if setfenv then setfenv(1, runtime) end
   local _ENV = runtime
   local job, generation = nil, 0
-  local selectorProfile=require("modules/adapters/selector_profile").new(log)
+  local selectorProfile=require("modules/adapters/selector_profile").new(log,function()return state.preferences and state.preferences.detailedAppearanceTrace==true end)
   local lastProgress
   local function progress(message)
     if lastProgress ~= message then
@@ -113,7 +113,7 @@ local function new(runtime)
         :format(#intents, observed), "info")
       local order, parents, cyclic = resolution.dependencies(intents)
       job = {intents=intents,machine=execution.new(order,parents,120,0),
-        verified={},verifyCursor=1,writtenLeaves={}}
+        verified={},verifyCursor=1,writtenLeaves={},detailed=state.preferences and state.preferences.detailedAppearanceTrace==true}
       for _, position in ipairs(cyclic) do
         log(("[SHARED LOAD] Dependency cycle at saved option %d."):format(position),"warn")
       end
@@ -189,7 +189,9 @@ local function new(runtime)
       if fresh.status ~= "ready" or fresh.target ~= action.target or not option then
         execution.step(job.machine,{now=now,editorOpen=true,writeFailed=true})
       else
-        log(("[SHARED LOAD] Apply '%s' target=%d."):format(intent.internalName or intent.label, action.target),"info")
+        if job.detailed then
+          log(("[SHARED LOAD] Apply '%s' target=%d."):format(intent.internalName or intent.label, action.target),"info")
+        end
         local applyStarted=helpers.loadProfile and helpers.loadClock()
         local instant=job.machine.hasChildren[action.position]==true
         local ok
@@ -199,7 +201,7 @@ local function new(runtime)
           helpers.loadProfile.add("applies")
           helpers.loadProfile.add("applySeconds",math.max(0,helpers.loadClock()-applyStarted))
         end
-        if not instant then
+        if not instant and job.detailed then
           local readOk,immediate=pcall(function()return tonumber(option.currIndex)end)
           job.writtenLeaves[action.position]={target=action.target,immediate=readOk and immediate or "unavailable"}
           log(("[CHILD OBSERVED] option='%s' phase=after-write target=%s current=%s callSucceeded=%s")

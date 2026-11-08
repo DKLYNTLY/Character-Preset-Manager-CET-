@@ -1,4 +1,4 @@
-local function new(report)
+local function new(report,enabled)
   local active
   local api={}
   local function clean(value)
@@ -17,6 +17,7 @@ local function new(report)
   end
   function api.begin(intents,parents,position,now,generation,target)
     api.finish(now,"superseded")
+    if enabled and not enabled() then return end
     local intent=intents[position] or {}
     local children,count={},0
     for child=1,#intents do

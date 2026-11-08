@@ -344,6 +344,7 @@ if state.ui.settingsOpen then
         state.preferences.detailedAppearanceTrace=detailed
         if not writeConfig() then state.preferences.detailedAppearanceTrace=previous end
       end
+      ImGui.TextWrapped("Detailed tracing adds appearance snapshots, per-choice logs, and load performance profiles. Leave it off for normal use.")
       ImGui.TextWrapped("Preset Sort Order")
       if ImGui.Selectable("Name##settingsSortName",
           state.preferences.presetSort == "name") then

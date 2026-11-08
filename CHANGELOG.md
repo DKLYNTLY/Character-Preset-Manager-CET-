@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Detailed appearance tracing now controls per-choice load logs and performance profiles as well as snapshots. Normal summaries and warnings stay available with tracing off; loading order and timing are unchanged.
+
 - Tests loading without selector quiet waits. Write order, fresh identity checks, normal color writes, and the final verification quiet period stay unchanged. This is an experimental timing change; visual testing is still required.
 
 - Matches the README headings and section order to the Nexus description while keeping the updated instructions, warnings, and technical details.

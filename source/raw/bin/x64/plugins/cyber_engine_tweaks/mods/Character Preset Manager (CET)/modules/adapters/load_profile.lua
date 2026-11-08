@@ -2,12 +2,16 @@ local function new(clock,log)
   local current
   local api={}
   local categories={"optionTotal","readSeconds","candidateSeconds","resolveSeconds","applySeconds","historySeconds","uiSeconds"}
-  function api.begin(name,elapsed)
+  function api.begin(name,elapsed,enabled)
     if current then return end
+    if enabled==false then return end
     current={name=tostring(name or "Unknown"),started=clock(),initialElapsed=elapsed or 0,elapsed=elapsed or 0,updates=0,
       reads=0,readSeconds=0,builds=0,visited=0,candidateSeconds=0,resolves=0,resolveSeconds=0,
       arrays=0,elements=0,applies=0,applySeconds=0,selectorWait=0,verifyWait=0,
       verification=0,verificationSeconds=0,longest=0,inCall=false,updateTimes={},maxTimes={},slow=0,slowLogged=0}
+  end
+  function api.active()
+    return current~=nil
   end
   function api.enter(elapsed)
     if not current then return end

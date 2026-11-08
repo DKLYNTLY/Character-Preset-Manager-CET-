@@ -395,7 +395,7 @@ Check visible hair and cyberware as well as selected choices. An occasional hair
 
 Join [Discord](https://discord.com/invite/mUGHmQxHG8) and explain what happened and what you were doing. Include your latest `Activity.log` so I can check what went wrong.
 
-Normal load summaries remain available in the Activity Log. **[LOAD PROFILE]** adds load-only timing and work counters for performance testing; nested CPU fields must not be added together, and waiting intervals do not prove mesh completion. For full before/after snapshots, enable **Settings → Detailed appearance tracing**; it defaults off and adds diagnostic work. Editor session numbers help track editor visits, but selected values and callbacks do not prove that a visible mesh was removed. Include screenshots and preset names when reporting leftovers.
+Normal load summaries remain available in the Activity Log. Enable **Settings → Detailed appearance tracing** for per-choice logs, timing profiles, and full before/after snapshots. It defaults off and adds diagnostic work. **[LOAD PROFILE]** records load-only timing and work counters; nested CPU fields must not be added together, and waiting intervals do not prove mesh completion. Editor session numbers help track editor visits, but selected values and callbacks do not prove that a visible mesh was removed. Include screenshots and preset names when reporting leftovers.
 
 To export the live option catalog, open a customization editor and choose **Log → Technical Details → Export Option Catalog** in the Advanced Preset Manager. Wait until any preset load has finished.
 

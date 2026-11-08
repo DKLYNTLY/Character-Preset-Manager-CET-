@@ -63,10 +63,11 @@ local function transition(kind)
   return actions[1]
 end
 local profile=require("modules/adapters/load_profile").new(function() return helpers.loadClock() end,log)
-helpers.loadProfile=profile
+helpers.loadProfile=nil
 local oldReset = resetLoadState
 resetLoadState = function()
   profile.finish("reset")
+  helpers.loadProfile=nil
   if helpers.appearanceTrace then helpers.appearanceTrace("after", "load", "reset") end
   if transition("reset") == "reset" then
     oldReset()
@@ -265,7 +266,8 @@ end
 function loadPreset()
   transition("invocation")
   local started = helpers.loadClock()
-  profile.begin(state.load.overrideName or state.library.selected,state.load.elapsed)
+  profile.begin(state.load.overrideName or state.library.selected,state.load.elapsed,state.preferences.detailedAppearanceTrace==true)
+  helpers.loadProfile=profile.active() and profile or nil
   profile.enter(state.load.elapsed)
   state.load.updateStarted = started
   local previousCameraHold = state.app.presetCameraHold
@@ -278,6 +280,7 @@ function loadPreset()
   profile.leave(math.max(0,helpers.loadClock()-started))
   if not ok or not state.load.needsContinue or state.load.stalled then
     profile.finish(not ok and "error" or state.load.stalled and "partial" or "returned")
+    helpers.loadProfile=nil
   end
   state.load.updateStarted = nil
   if helpers.appearanceTrace and (not ok or not state.load.needsContinue or state.load.stalled) then
