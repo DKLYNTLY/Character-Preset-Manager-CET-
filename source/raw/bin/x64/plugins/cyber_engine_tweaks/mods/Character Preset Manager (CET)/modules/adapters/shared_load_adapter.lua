@@ -182,7 +182,7 @@ local function new(runtime)
       else
         log(("[SHARED LOAD] Apply '%s' target=%d."):format(intent.internalName or intent.label, action.target),"info")
         local applyStarted=helpers.loadProfile and helpers.loadClock()
-        local ok = pcall(system.ApplyChangeToOption,system,option,action.target)
+        local ok = pcall(system.ApplyChangeToOption,system,option,action.target,true)
         if helpers.loadProfile then
           helpers.loadProfile.add("applies")
           helpers.loadProfile.add("applySeconds",math.max(0,helpers.loadClock()-applyStarted))
