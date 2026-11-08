@@ -389,6 +389,10 @@ Testing has shown leftovers in some loading sequences, including opposite-body p
 
 Check visible hair and cyberware as well as selected choices. An occasional hair-color verification warning may still appear; **Back** and editor close remain available during loading.
 
+After the first verification pass, CPM rechecks uniquely identified choices whose values have not caught up. It reads fresh state every 50 ms and requires two matching observations before confirming a delayed value. These checks stay within the existing 1.25-second verification window and never apply a choice again. Loads that match on the first pass gain no extra wait; other loads can spend roughly another second checking.
+
+The Activity Log separates **confirmed**, **confirmed after delay**, and **unconfirmed** choices. Missing or ambiguous choices still warn, and a confirmed value does not prove that an old mesh disappeared.
+
 ---
 
 ### Report a bug

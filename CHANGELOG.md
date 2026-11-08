@@ -9,6 +9,8 @@ for current steps.
 
 ## 4.0.2
 
+- Rechecks delayed choice values within the existing verification deadline, without applying them again. The Activity Log separates first-pass confirmations, delayed confirmations, and unresolved choices; loading order and selector timing stay unchanged.
+
 - Detailed appearance tracing now controls per-choice load logs and performance profiles as well as snapshots. Normal summaries and warnings stay available with tracing off; loading order and timing are unchanged.
 
 - Tests loading without selector quiet waits. Write order, fresh identity checks, normal color writes, and the final verification quiet period stay unchanged. This is an experimental timing change; visual testing is still required.
