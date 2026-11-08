@@ -140,7 +140,6 @@ public class PresetPanel extends inkCustomController {
   private let saveAction: ref<PanelButton>;
   private let trashAction: ref<PanelButton>;
   private let undoAction: ref<PanelButton>;
-  private let historyAction: ref<PanelButton>;
   private let listButtons: array<ref<PanelButton>>;
   private let actionButtons: array<ref<PanelButton>>;
   private let rowKinds: array<String>;
@@ -223,10 +222,7 @@ public class PresetPanel extends inkCustomController {
     this.selectedInfo.Reparent(root);
     this.AddDivider(root, 884.0);
     this.undoAction = this.AddAction(root, "UNDO LAST LOAD", 34.0, 956.0, n"OnRestorePrevious");
-    this.undoAction.SetWidth(323.0);
-    this.historyAction = this.AddAction(root, "RECOVERY HISTORY", 365.0, 956.0, n"OnHistory");
-    this.historyAction.SetWidth(323.0);
-    this.historyAction.SetStyle(3);
+    this.undoAction.SetWidth(654.0);
     this.AddDivider(root, 1020.0);
     this.statusRail = new inkRectangle();
     this.statusRail.SetSize(5.0, 136.0);
@@ -480,7 +476,6 @@ public class PresetPanel extends inkCustomController {
     this.saveAction.SetDisabled(this.busy || this.mode != 0);
     this.trashAction.SetDisabled(this.busy || this.mode != 0 || StrLen(this.selectedName) == 0);
     this.undoAction.SetDisabled(this.busy || this.mode != 0 || !this.recoveryAvailable);
-    this.historyAction.SetDisabled(this.busy);
     this.refreshAction.SetDisabled(this.busy);
     this.locationButton.SetDisabled(this.busy);
     this.search.GetRootWidget().SetInteractive(!this.busy && this.mode == 0);
@@ -641,7 +636,6 @@ public class PresetPanel extends inkCustomController {
   }
   private func UpdateMode() -> Void {
     this.refreshAction.SetText(this.mode == 0 ? "REFRESH" : "BACK");
-    this.historyAction.SetText(this.mode == 2 ? "BACK TO PRESETS" : "RECOVERY HISTORY");
     if this.mode == 1 {
       this.locationButton.SetText("CANCEL LOCATION PICKER");
       this.selectedInfo.SetText("CHOOSE A SAVE LOCATION");

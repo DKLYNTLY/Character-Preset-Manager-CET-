@@ -28,16 +28,16 @@ end
 
 refreshAppearanceHistory = function()
   state.history.entries = {}
-  local limit = APPEARANCE_HISTORY_LIMIT
-  for index = 1, limit do
-    local path = historyPath(index)
-    local preset = readPresetFile(path)
-    if preset then
-      state.history.entries[#state.history.entries + 1] = appearanceHistory.entry(index,path,preset,state.presetEntryCount(preset))
-    end
+  local path=LAST_APPEARANCE_FILE
+  local preset=readPresetFile(path)
+  if not preset and not fileExists(path) then
+    path=historyPath(1)
+    preset=readPresetFile(path)
   end
-  state.load.recoverySnapshotAvailable = #state.history.entries > 0
-    or fileExists(LAST_APPEARANCE_FILE)
+  if preset then
+    state.history.entries[1]=appearanceHistory.entry(1,path,preset,state.presetEntryCount(preset))
+  end
+  state.load.recoverySnapshotAvailable=#state.history.entries>0
   return state.history.entries
 end
 
@@ -48,7 +48,7 @@ saveAppearanceHistorySnapshot = function(options, action)
     return false
   end
   local started=helpers.loadProfile and helpers.loadClock()
-  local newest = readPresetFile(historyPath(1))
+  local newest = readPresetFile(LAST_APPEARANCE_FILE)
   if helpers.loadProfile then helpers.loadProfile.add("historyNewest",math.max(0,helpers.loadClock()-started)) end
   started=helpers.loadProfile and helpers.loadClock()
   local identical=newest and sameAppearance(preset,newest)
@@ -57,34 +57,15 @@ saveAppearanceHistorySnapshot = function(options, action)
     log("[APPEARANCE HISTORY] Skipped an identical recovery snapshot.", "info")
     return true
   end
-  local limit = APPEARANCE_HISTORY_LIMIT
-  for _, rotation in ipairs(appearanceHistory.rotation(limit)) do
-    local index = rotation.destination
-    started=helpers.loadProfile and helpers.loadClock()
-    local older = readPresetFile(historyPath(rotation.source))
-    if helpers.loadProfile then helpers.loadProfile.add("historyRotationRead",math.max(0,helpers.loadClock()-started)) end
-    started=helpers.loadProfile and helpers.loadClock()
-    local written=not older or writePresetPath(historyPath(index),older)
-    if helpers.loadProfile then helpers.loadProfile.add("historyRotationWrite",math.max(0,helpers.loadClock()-started)) end
-    if not written then
-      log("[APPEARANCE HISTORY] Older entries could not be moved safely to make room for the new recovery copy.", "warn")
-      return false
-    end
-  end
   started=helpers.loadProfile and helpers.loadClock()
-  local written=writePresetPath(historyPath(1),preset)
+  local written=writePresetPath(LAST_APPEARANCE_FILE,preset)
   if helpers.loadProfile then helpers.loadProfile.add("historyNewWrite",math.max(0,helpers.loadClock()-started)) end
   if not written then
-    log("[APPEARANCE HISTORY] The new recovery copy could not be saved.", "warn")
+    log("[APPEARANCE HISTORY] The undo snapshot could not be saved. The previous copy was kept.","warn")
     return false
   end
-  for _, index in ipairs(appearanceHistory.trimIndices(limit)) do deleteFile(historyPath(index)) end
-  started=helpers.loadProfile and helpers.loadClock()
-  writePresetPath(LAST_APPEARANCE_FILE, preset)
-  if helpers.loadProfile then helpers.loadProfile.add("historyRecovery",math.max(0,helpers.loadClock()-started)) end
-  started=helpers.loadProfile and helpers.loadClock()
-  refreshAppearanceHistory()
-  if helpers.loadProfile then helpers.loadProfile.add("historyRefresh",math.max(0,helpers.loadClock()-started)) end
+  state.history.entries={appearanceHistory.entry(1,LAST_APPEARANCE_FILE,preset,state.presetEntryCount(preset))}
+  state.load.recoverySnapshotAvailable=true
   log(("[APPEARANCE HISTORY] Saved '%s' with %d options.")
     :format(tostring(action), #preset.entries), "info")
   return true
@@ -100,32 +81,17 @@ restoreAppearanceHistory = function(index)
   local preset = entry.preset
   local _, options = getOptions()
   if options then
-    saveAppearanceHistorySnapshot(options, "Before restoring appearance history")
+    saveAppearanceHistorySnapshot(options, "Before undoing last load")
   end
   resetLoadState()
-  stateModel.prepareRecoveryLoad(state.load, preset, "Appearance History " .. tostring(index))
+  stateModel.prepareRecoveryLoad(state.load, preset, "Undo Last Load")
   loadPreset()
   if state.load.needsContinue then state.load.auto = true end
   return true
 end
 
-clearAppearanceHistory = function(confirm)
-  if not confirm or not state.history.pendingClear then
-    state.history.pendingClear = true
-    return false, "Select Clear Appearance History again to confirm."
-  end
-  local removed = true
-  for index = 1, 10 do
-    local path = historyPath(index)
-    if fileExists(path) and not deleteFile(path) then removed = false end
-  end
-  if fileExists(LAST_APPEARANCE_FILE) and not deleteFile(LAST_APPEARANCE_FILE) then
-    removed = false
-  end
-  state.history.pendingClear = false
-  refreshAppearanceHistory()
-  return removed, removed and "Appearance history cleared."
-    or "Some saved recovery appearances could not be deleted."
+clearAppearanceHistory = function()
+  return false,"The history list was removed. Undo Last Load uses one recovery snapshot."
 end
 
 return _ENV

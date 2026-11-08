@@ -119,7 +119,7 @@ Appears in the character customization screen. From here, you can:
 - Search by preset name, folder, or tag.
 - Refresh the list after adding or changing preset files.
 - Randomize your appearance and choose which categories can change.
-- Undo the last load or restore an appearance from recovery history.
+- Undo the last preset load using one recovery snapshot.
 - Move a preset to Trash.
 - Open the Advanced Preset Manager.
 - Check Panel Status for progress, warnings, and confirmations.
@@ -137,7 +137,7 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Move, export, or delete several presets at once.
 - Import ACU presets and shared preset folders.
 - Share individual presets, folders, or selected groups.
-- Restore an earlier appearance from recovery history.
+- Undo the last preset load.
 - Move items to Trash, restore them, or delete them permanently.
 - Check preset compatibility and review warnings under **Advanced Preset Options**.
 - Open the full character customization menu.
@@ -301,11 +301,13 @@ To restore one, close the game and copy the backed-up `.preset` over its matchin
 
 ---
 
-### Appearance history
+### Undo Last Load
 
-Before loading a preset, the mod saves your current appearance. It keeps up to five different appearances for recovery.
+Before loading a preset, CPM saves one snapshot of your current appearance to `Data/Recovery/LastAppearance.preset`. The next different snapshot replaces it; it is not a five-entry history.
 
-In the Preset Manager, use **Undo Last Load** or **Recovery History**. In the Advanced Preset Manager, use **Restore Previous Appearance** or **Appearance History**.
+Use **Undo Last Load** in either menu to restore that appearance. CPM no longer shows the Appearance History or Recovery History controls, and saves only one recovery file per changed snapshot.
+
+Older files in `Data/Recovery/Appearance History` stay on disk. If the new undo file is absent, CPM can read the old newest entry for compatibility; it does not rotate or delete those older files.
 
 ---
 

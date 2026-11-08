@@ -11,6 +11,7 @@ for current steps.
 
 - Matches the README headings and section order to the Nexus description while keeping the updated instructions, warnings, and technical details.
 
+- Keeps one verified **Undo Last Load** snapshot instead of rotating five history entries and writing a duplicate recovery copy. Removes the history-list controls from both menus while leaving older recovery files on disk.
 - Adds **[HISTORY PROFILE]** measurements to separate recovery capture, codec work, comparison, rotation, and file writes before a load. Recovery behavior is unchanged.
 - Adds bounded **[LOAD STALL]** measurements for slow loader updates, including option access, matching, writes, history capture, and UI refresh. These measurements do not change loading decisions.
 - Tests instant writes only for selectors with saved dependents, keeping normal writes for leaf choices. Child-index observations compare the immediate result with final verification; existing order, waits, and identity checks remain in place.
@@ -28,7 +29,7 @@ for current steps.
 - Fits CET buttons to the current font and stacks bulk-action pairs when needed. Sections start collapsed, and the Save label turns yellow after a name is entered while hover highlights stay blue. Manual upgrade controls are removed; **Advanced Preset Manager** remains available.
 - Keeps **Advanced Preset Manager** as the CET entry point and removes the separate Load Details button. The first status message includes a Refresh prompt, while startup also scans the preset library.
 - Adds **Export Option Catalog** under **Log → Technical Details**, with privacy filtering and no fixed diagnostic output-size limit. **Detailed appearance tracing** is optional in CET Settings and defaults off; normal load summaries remain available.
-- Places **Randomize** below **Load Selected Preset**, with **Randomize Settings** in **Advanced Preset Options**. Removes Help, full-library backup export/import, and Cancel Loading; preset sorting, sharing, Trash, and appearance history remain available.
+- Places **Randomize** below **Load Selected Preset**, with **Randomize Settings** in **Advanced Preset Options**. Removes Help, full-library backup export/import, and Cancel Loading; preset sorting, sharing, Trash, and Undo Last Load remain available.
 - Removes unused legacy apply helpers, unreachable loading transitions, and retired comparison tracing. The active loader's write order, timing, verification, cancellation, and occasional hair-color warning are unchanged by this cleanup.
 
 **Update:** Back up `Character Presets` and `Data`, remove the three old mod folders listed in the README, then install and restore your saved folders. This clears scripts that an overwrite could leave behind; keep any `.cpmbackup` files you want to retain.

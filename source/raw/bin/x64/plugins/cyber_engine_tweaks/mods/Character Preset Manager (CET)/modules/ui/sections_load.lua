@@ -254,41 +254,11 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
     local restoreUnavailable = not restoreFileAvailable or not state.app.inCustomization
       or state.load.auto or state.load.needsContinue
     if restoreUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Restore Previous Appearance##restoreAppearance",
+    if fullWidthButton("Undo Last Load##restoreAppearance",
         actionButtonHeight) then
       commands.run(runtime, "restore_previous")
     end
     if restoreUnavailable then ImGui.EndDisabled() end
-
-    if compactSubsectionButton("Appearance History",
-        "Hide Appearance History", "appearanceHistory") then
-      ImGui.Indent(8)
-      local historyEntries = state.history.entries
-      if #historyEntries == 0 then
-        ImGui.TextWrapped("There are no recovery entries yet. One is saved before each normal preset load.")
-      else
-        ImGui.TextWrapped("Choose the appearance you want to restore. The latest saved entry appears at the top.")
-        for visibleIndex, entry in ipairs(historyEntries) do
-          local label = ("Restore %d: %s | %d options | %s##appearanceHistory:%d")
-            :format(visibleIndex, tostring(entry.date), tonumber(entry.count) or 0,
-              tostring(entry.action), visibleIndex)
-          local unavailable = not state.app.inCustomization
-            or state.load.auto or state.load.needsContinue
-          if unavailable then ImGui.BeginDisabled() end
-          if fullWidthButton(label, actionButtonHeight) then
-            commands.run(runtime, "restore_history", {visibleIndex = visibleIndex})
-          end
-          if unavailable then ImGui.EndDisabled() end
-        end
-        local clearLabel = state.history.pendingClear
-          and "Confirm Clear Appearance History##clearAppearanceHistory"
-          or "Clear Appearance History##clearAppearanceHistory"
-        if dangerButton(clearLabel, ImGui.GetContentRegionAvail(), actionButtonHeight) then
-          commands.run(runtime, "clear_history")
-        end
-      end
-      finishCompactSubsection()
-    end
 
     if compactSubsectionButton("Advanced Preset Options",
         "Hide Advanced Preset Options", "loadFavorites") then
