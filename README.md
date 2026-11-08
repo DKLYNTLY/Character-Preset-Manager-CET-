@@ -186,6 +186,8 @@ New saves use readable **format 9** files named after the text you enter. Header
 
 Overwriting requires confirmation. Notes, tags, favorites, renaming, copies, and folders keep their normal save flow.
 
+The six bundled **Default Presets** already use format 9 and include their body type. They do not need automatic conversion.
+
 Identified CPM presets in formats 8 and below upgrade automatically. CPM finds them at startup and after **Refresh**, then uses the first matching-body editor catalog to convert their choices. A male preset waits for a male editor, and a female preset waits for a female editor.
 
 Before replacing a file, CPM saves and verifies its original bytes under:

@@ -1,151 +1,499 @@
 # CPM Preset
-# Format: 8
+# Format: 9
 # Name: Nomad - Male
 # Source: Character Preset Manager (CET)
 # Created: 2026-08-27 11:48:27
-# Modified: 2026-08-27 11:48:27
-# Notes:
-# Tags:
+# Modified: 2026-11-07 20:52:54
+# Notes: Automatically upgraded from CPM format 8.
+# Tags: 
 # Favorite: No
 # Library folder: Default Presets
-#
-# Appearance options
-# Each main line gives an option key and its saved number.
-# Editor slot and Saved choice describe the line above them.
-
-LocKey#898870017445300632:9
+# Source body: Male
+# Source voice: Unknown
 # Editor slot: skin_color
+# Option name: skin_color
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: h0_000_pma__basehead__04_ca_almond_00_umber
+# Source active: true
+# Source editable: true
+# Source value: 9
+# Option label: LocKey#898870017445300632
+# Localized name: 10
 
-LocKey#3358415767503712013:1
 # Editor slot: skin_type_switcher
-# Saved choice: options:02
+# Option name: skin_type
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: skin_type_02
+# Source active: true
+# Source editable: true
+# Source value: 1
+# Option label: LocKey#3358415767503712013
+# Localized name: 02
 
-LocKey#9502141975964618858:13
 # Editor slot: hairstyle
-# Saved choice: options:14
+# Option name: hairstyle
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: hair_color14
+# Choice identity: hair_color_fpp_14
+# Source active: true
+# Source editable: true
+# Source value: 13
+# Option label: LocKey#9502141975964618858
+# Localized name: 14
 
-LocKey#6270476291764046520:10
 # Editor slot: hair_color
+# Option name: hair_color14
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: 11_red_apple
+# Source active: true
+# Source editable: true
+# Source value: 10
+# Option label: LocKey#6270476291764046520
+# Localized name: UI-CharacterCreation-11_red_apple
+# Appearance tag: red_apple
 
-LocKey#17262437424467603883:8
 # Editor slot: eyes
+# Option name: eyes
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Morph
+# Choice identity: h081
+# Source active: true
+# Source editable: true
+# Source value: 8
+# Option label: LocKey#17262437424467603883
+# Localized name: 09
 
-LocKey#12711989018532128707:0
 # Editor slot: eyes_color
+# Option name: eyes_color
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: he_000_pma__basehead__12_gradient_brown
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#12711989018532128707
+# Localized name: 
 
-LocKey#7691166931990474829:3
 # Editor slot: eyebrows
-# Saved choice: options:04
+# Option name: eyebrows
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: eyebrows_color4
+# Source active: true
+# Source editable: true
+# Source value: 3
+# Option label: LocKey#7691166931990474829
+# Localized name: 04
 
-LocKey#2149257761322949687:0
 # Editor slot: eyebrows_color
+# Option name: eyebrows_color4
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: male__05_brown_liquorice
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#2149257761322949687
+# Localized name: UI-CharacterCreation-05_brown_liquorice
 
-LocKey#7291006053821317046:0
 # Editor slot: eyelash_color
+# Option name: eyelash_color
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: male__05_brown_liquorice
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#7291006053821317046
+# Localized name: 
 
-LocKey#4316695547651688874:18
 # Editor slot: nose
+# Option name: nose
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Morph
+# Choice identity: h182
+# Source active: true
+# Source editable: true
+# Source value: 18
+# Option label: LocKey#4316695547651688874
+# Localized name: 19
 
-LocKey#966737433676891676:1
 # Editor slot: mouth
+# Option name: mouth
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Morph
+# Choice identity: h013
+# Source active: true
+# Source editable: true
+# Source value: 1
+# Option label: LocKey#966737433676891676
+# Localized name: 02
 
-LocKey#5009244242618885753:3
 # Editor slot: jaw
+# Option name: jaw
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Morph
+# Choice identity: h034
+# Source active: true
+# Source editable: true
+# Source value: 3
+# Option label: LocKey#5009244242618885753
+# Localized name: 04
 
-LocKey#14034341346390445651:4
 # Editor slot: ear
+# Option name: ear
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Morph
+# Choice identity: h045
+# Source active: true
+# Source editable: true
+# Source value: 4
+# Option label: LocKey#14034341346390445651
+# Localized name: 05
 
-LocKey#7487713073032863221:5
 # Editor slot: beard
-# Saved choice: options:05
+# Option name: beard
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: beard5
+# Source active: true
+# Source editable: true
+# Source value: 5
+# Option label: LocKey#7487713073032863221
+# Localized name: 05
 
-LocKey#13707137814640364864:0
 # Editor slot: beard_part
-# Saved choice: options:01
+# Option name: beard5
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: beard_color5_0
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#13707137814640364864
+# Localized name: 01
 
-LocKey#7053978468823785611:0
 # Editor slot: beard_color
+# Option name: beard_color5_0
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: 05_brown_liquorice
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#7053978468823785611
+# Localized name: UI-CharacterCreation-05_brown_liquorice
 
-LocKey#6426888875968525879:0
 # Editor slot: cyberware_switcher
-# Saved choice: options:Common-Off
+# Option name: cyberware
+# Option occurrence: 1
+# Selection state: Off
+# Identity kind: Switcher
+# Choice identity: cyberware_00
+# Choice identity: hairstyle
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#6426888875968525879
+# Localized name: Common-Off
 
-LocKey#7665632322726285485:1
 # Editor slot: scars
+# Option name: scars
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: h0_000_pma__scars_01__scar_01
+# Source active: true
+# Source editable: true
+# Source value: 1
+# Option label: LocKey#7665632322726285485
+# Localized name: 01
+# Action	4	false	true	cyberware
 
-LocKey#7057535516503771275:0
 # Editor slot: facial_tattoo_switcher
-# Saved choice: options:Common-Off
+# Option name: facial_tattoo
+# Option occurrence: 1
+# Selection state: Off
+# Identity kind: Switcher
+# Choice identity: facial_tattoo_00
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#7057535516503771275
+# Localized name: Common-Off
 
-LocKey#9633374630979636519:3
 # Editor slot: piercings
-# Saved choice: options:03
+# Option name: piercings
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: piercings_03
+# Source active: true
+# Source editable: true
+# Source value: 3
+# Option label: LocKey#9633374630979636519
+# Localized name: 03
 
-LocKey#1741791618483041089:6
 # Editor slot: piercings_color
+# Option name: piercings_03
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: i0_000_pma__earring__03_black
+# Source active: true
+# Source editable: true
+# Source value: 6
+# Option label: LocKey#1741791618483041089
+# Localized name: 
 
-LocKey#16056554541361838785:0
 # Editor slot: teeth
+# Option name: teeth
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: male_ht_000__basehead
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#16056554541361838785
+# Localized name: 00
 
-LocKey#2482157010324784664:8
 # Editor slot: makeupEyes
-# Saved choice: options:08
+# Option name: makeupEyes
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: makeupEyes_08
+# Source active: true
+# Source editable: true
+# Source value: 8
+# Option label: LocKey#2482157010324784664
+# Localized name: 08
 
-LocKey#14413099152454174741:0
 # Editor slot: makeupEyes_color
+# Option name: makeupEyes_08
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: hx_000_pma__basehead_makeup_eyes__01_black
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#14413099152454174741
+# Localized name: 
 
-LocKey#9213787832085884965:0
 # Editor slot: makeupLips_type
-# Saved choice: options:Common-Off
+# Option name: makeupLips_type
+# Option occurrence: 1
+# Selection state: Off
+# Identity kind: Switcher
+# Choice identity: makeupLips_none
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#9213787832085884965
+# Localized name: Common-Off
 
-LocKey#6023230796470623251:0
 # Editor slot: makeupLips
+# Option name: makeupLips_none
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: makeupLips_none_00
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#6023230796470623251
+# Localized name: 
 
-LocKey#1500857893903977124:0
 # Editor slot: makeupLips_color
+# Option name: makeupLips_none_00
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: None
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#1500857893903977124
+# Localized name: 
 
-LocKey#4717882986422351521:0
 # Editor slot: makeupCheeks
-# Saved choice: options:Common-Off
+# Option name: makeupCheeks
+# Option occurrence: 1
+# Selection state: Off
+# Identity kind: Switcher
+# Choice identity: makeupCheeks_00
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#4717882986422351521
+# Localized name: Common-Off
 
-LocKey#5901794538846227818:0
 # Editor slot: makeupCheeks_color
+# Option name: makeupCheeks_00
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: None
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#5901794538846227818
+# Localized name: 
 
-LocKey#12418766767975042856:1
 # Editor slot: makeupPimples
-# Saved choice: options:01
+# Option name: makeupPimples
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: makeupPimples_03
+# Source active: true
+# Source editable: true
+# Source value: 1
+# Option label: LocKey#12418766767975042856
+# Localized name: 01
 
-LocKey#11868209119990413348:0
 # Editor slot: makeupPimples_color
+# Option name: makeupPimples_03
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: hx_000_pma__basehead_pimples_01__brown_02
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#11868209119990413348
+# Localized name: 
+# Action	4	false	true	cyberware
 
-LocKey#2154265467077242561:0
 # Editor slot: nails_l
+# Option name: nails_l
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Morph
+# Choice identity: None
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#2154265467077242561
+# Localized name: UI-CharacterCreation-Short
 
-LocKey#16223900489692860646:0
 # Editor slot: nails_color
+# Option name: nails_color
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: a0_000_pma_base__nails_beige
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#16223900489692860646
+# Localized name: 
 
-LocKey#7001506230645100200:0
 # Editor slot: nipples_switcher
-# Saved choice: options:Common-On
+# Option name: nipples
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: nipples_01
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#7001506230645100200
+# Localized name: Common-On
 
-LocKey#1579145253609442971:0
 # Editor slot: body_tattoo_switcher
-# Saved choice: options:Common-Off
+# Option name: body_tattoo
+# Option occurrence: 1
+# Selection state: Off
+# Identity kind: Switcher
+# Choice identity: body_tattoo_00
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#1579145253609442971
+# Localized name: Common-Off
 
-LocKey#15039822261823040660:1
 # Editor slot: body_scars_switcher
-# Saved choice: options:01
+# Option name: body_scars
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Switcher
+# Choice identity: body_scars_01
+# Source active: true
+# Source editable: true
+# Source value: 1
+# Option label: LocKey#15039822261823040660
+# Localized name: 01
 
-LocKey#7775711960886528826:0
 # Editor slot: genitals_switcher
-# Saved choice: options:Common-Off
+# Option name: genitals
+# Option occurrence: 1
+# Selection state: Off
+# Identity kind: Switcher
+# Choice identity: genitals_00
+# Choice identity: penis_none
+# Choice identity: penis_none_hairstyle
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#7775711960886528826
+# Localized name: Common-Off
 
-LocKey#11716572946352461499:0
 # Editor slot: genitals_size
+# Option name: penis_none
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: None
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#11716572946352461499
+# Localized name: 
 
-LocKey#2480942087249619917:0
 # Editor slot: pubic_hair
-# Saved choice: options:Common-Off
+# Option name: penis_none_hairstyle
+# Option occurrence: 1
+# Selection state: Off
+# Identity kind: Switcher
+# Choice identity: penis_none_hairstyle_00
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#2480942087249619917
+# Localized name: Common-Off
 
-LocKey#6445917731400909894:0
 # Editor slot: pubic_hair_color
+# Option name: penis_none_hairstyle_00
+# Option occurrence: 1
+# Selection state: Selected
+# Identity kind: Appearance
+# Choice identity: None
+# Source active: true
+# Source editable: true
+# Source value: 0
+# Option label: LocKey#6445917731400909894
+# Localized name: 
+
