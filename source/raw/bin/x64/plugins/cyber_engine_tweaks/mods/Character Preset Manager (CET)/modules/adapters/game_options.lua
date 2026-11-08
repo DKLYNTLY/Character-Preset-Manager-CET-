@@ -204,6 +204,7 @@ local function performPresetLoad()
     and state.load.pendingChange.kind ~= "apply"
     and state.load.pendingChange.confirmedAt == nil
   local system, options, optionsError = getOptions(refreshCleanup)
+  if helpers.loadProfile then helpers.loadProfile.add("optionTotal",math.max(0,helpers.loadClock()-optionsStarted)) end
   state.load.optionsSeconds = state.load.optionsSeconds
     + math.max(0, helpers.loadClock() - optionsStarted)
   state.load.optionCalls = state.load.optionCalls + 1
@@ -245,7 +246,9 @@ local function performPresetLoad()
     valueCount = state.load.valueCount
   else
     if not state.load.overridePreset then
+      local historyStarted=helpers.loadClock()
       saveAppearanceHistorySnapshot(options, "Before loading " .. tostring(loadName))
+      if helpers.loadProfile then helpers.loadProfile.add("historySeconds",math.max(0,helpers.loadClock()-historyStarted)) end
     end
     values, savedCounts, orderedEntries, savedSlotCounts, valueCount, savedEntryByKey =
       beginLoadPass(preset, loadName)

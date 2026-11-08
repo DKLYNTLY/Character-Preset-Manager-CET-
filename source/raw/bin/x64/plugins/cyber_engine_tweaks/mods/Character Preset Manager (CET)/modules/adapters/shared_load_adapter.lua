@@ -85,7 +85,9 @@ local function new(runtime)
     helpers.logLoadMeasurements("shared-" .. resultKind)
     reset()
     if state.app.inCustomization then
+      local uiStarted=helpers.loadProfile and helpers.loadClock()
       refreshCustomizationUi()
+      if helpers.loadProfile then helpers.loadProfile.add("uiSeconds",math.max(0,helpers.loadClock()-uiStarted)) end
       setStatus("load",message,statusKind == "error",statusKind)
     end
   end
