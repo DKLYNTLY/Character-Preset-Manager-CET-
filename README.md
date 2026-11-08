@@ -174,18 +174,27 @@ New saves use readable **format 9** files named after the text you enter. Header
 
 Overwriting requires confirmation. Notes, tags, favorites, renaming, copies, and folders keep their normal save flow.
 
-Older CPM presets need a reviewed upgrade before loading:
+Identified CPM presets in formats 8 and below upgrade automatically. CPM finds them at startup and after **Refresh**, then uses the first matching-body editor catalog to convert their choices.
 
-1. Open the character editor and select the old preset in the **CET menu**.
-2. Choose **Preview Upgrade to Format 9** and review each proposed choice.
-3. Enter a new name, then confirm **Save Format 9 Copy**.
-4. Load the copy and check the visible appearance before confirming the editor.
+Before replacing a file, CPM saves and verifies its original bytes under:
 
-The copy keeps the original notes, tags, and favorite status. Its source file stays unchanged; metadata edits to an old CPM file keep that file's older format.
+```text
+Data/Recovery/Preset Upgrades/<batch>/<original preset path>.preset
+```
 
-*Some older records store only a choice number. The preview shows the current catalog choice at that number, which may differ after mods reorder it. A changed source file, catalog, or body requires a fresh preview.*
+The new format 9 file replaces the old file at its existing library path. Names, folders, notes, tags, favorites, and creation dates are kept; notes gain an automatic-upgrade message. Backups stay outside the library and are not deleted automatically.
 
-In the simple menu, **OPEN CET TO UPGRADE** uses the configured CET binding and expands and scrolls to **Load & Restore Appearance**. CET sections otherwise start collapsed. **Advanced Preset Manager** opens CET; the separate Load Details button has been removed.
+If body evidence is missing or conflicting, open **Advanced Preset Manager → Load & Restore Appearance → Presets needing a body type** in CET. Choose **Male** or **Female** for the body that preset was saved for, independently of voice or its filename.
+
+*Older records may contain only a choice number. Automatic upgrades use the current catalog at that number, so changed mods can change the mapped choice. Missing or ambiguous records stay unresolved in partial upgrades; files with no actionable choices remain unchanged.*
+
+Selecting an old CPM preset loads it after a successful automatic upgrade in the current editor. Back, editor close, selection changes, and failures cancel that waiting load; opening an editor alone never applies an appearance.
+
+Unmarked old text files keep the existing ACU-compatible path. Backup, path, and validation failures preserve the source and appear in the Activity Log; update the native DLL with the rest of the mod before testing upgrades.
+
+To restore an original, close the game and copy its backup over the corresponding file in **Character Presets**. That old CPM file is eligible for automatic upgrade again on the next run.
+
+CET sections start collapsed, and **Advanced Preset Manager** remains the normal entry point. The manual upgrade preview, copy confirmation, and separate upgrade-opening action have been removed.
 
 ---
 
@@ -223,7 +232,7 @@ bin/x64/plugins/cyber_engine_tweaks/mods/Character Preset Manager (CET)/Characte
 
 To share a preset, send its `.preset` file. To install one, place it in this folder or a subfolder, then select **Refresh** in the Advanced Preset Manager.
 
-Reading, scanning, converting for a load, and loading leave source files unchanged. Use the reviewed upgrade flow to create a format 9 copy of an older CPM preset; metadata edits keep its existing format.
+Ordinary format 9 and ACU reads and loads leave source files unchanged. Identified older CPM files are replaced only through automatic migration after a verified backup.
 
 ---
 

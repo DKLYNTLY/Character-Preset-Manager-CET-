@@ -68,6 +68,7 @@ events.onInit = function()
   for _ in pairs(state.library.presets) do presetCount = presetCount + 1 end
   log(("Preset files loaded: presets=%d directory='%s'")
     :format(presetCount, PRESET_DIR), "info")
+  if recovered then helpers.startPresetMigration() end
   state.app.ready = true
   initializeAcuImport()
   initializeNativeBridge(configLoaded)
@@ -80,6 +81,7 @@ events.onInit = function()
 end
 
 events.onShutdown = function()
+  helpers.cancelPresetUpgradeLoad()
   if helpers.appearanceTrace then helpers.appearanceTrace("lifecycle", "shutdown") end
   helpers.shutdownEditor()
 end
@@ -91,6 +93,7 @@ events.onUpdate = function(delta)
   updateAcuImport(elapsed)
   local loadInvocationBeforeBridge = state.app.loadInvocation
   updateNativeBridge(elapsed)
+  helpers.updatePresetMigration(elapsed)
   if helpers.appearanceTrace then helpers.appearanceTrace("update", elapsed) end
   if not state.editor.openPending and not state.load.auto then
     return

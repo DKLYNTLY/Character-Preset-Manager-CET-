@@ -2,7 +2,7 @@ local paths = require("modules/domain/paths")
 local codecs = require("modules/domain/codecs")
 local MAX_BYTES = 1048576
 local MAX_RECORDS = 8192
-local phases = {reserved=true,verified=true,prepared=true,complete=true}
+local phases = {reserved=true,verified=true,prepared=true,installing=true,complete=true}
 local fields = {"storage","sourceFingerprint","backup","body","sourceFormat","phase","replacementFingerprint"}
 local function fingerprint(value)
   return type(value)=="string" and #value>0 and #value<=128 and not value:find("%c")
@@ -26,8 +26,8 @@ local function valid(entry)
   if type(entry.sourceFormat)~="number" or entry.sourceFormat<1 or entry.sourceFormat>8
       or entry.sourceFormat~=math.floor(entry.sourceFormat) then return false end
   if entry.replacementFingerprint~="" and not fingerprint(entry.replacementFingerprint) then return false end
-  if (entry.phase=="prepared" or entry.phase=="complete") and entry.replacementFingerprint=="" then return false end
-  if entry.phase~="prepared" and entry.phase~="complete" and entry.replacementFingerprint~="" then return false end
+  if (entry.phase=="prepared" or entry.phase=="installing" or entry.phase=="complete") and entry.replacementFingerprint=="" then return false end
+  if entry.phase~="prepared" and entry.phase~="installing" and entry.phase~="complete" and entry.replacementFingerprint~="" then return false end
   return true
 end
 local function encode(entries)

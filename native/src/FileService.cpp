@@ -2,6 +2,7 @@
 #include "AcuImporter.hpp"
 #include "DirectoryWatcher.hpp"
 #include "OverlayOpener.hpp"
+#include "UpgradeFilesystem.hpp"
 
 namespace cpm
 {
@@ -270,6 +271,7 @@ void Worker(std::stop_token stop)
     }
     auto requestTime = RequestTime(paths->request);
     OverlayOpener overlay(paths->library.parent_path());
+    UpgradeFilesystem upgrades(paths->library.parent_path());
     if (WaitFor(stop, std::chrono::duration_cast<std::chrono::milliseconds>(kStartupDelay)))
         return;
     DirectoryWatcher acuWatcher(g_stopEvent);
@@ -289,6 +291,7 @@ void Worker(std::stop_token stop)
     while (!stop.stop_requested())
     {
         overlay.Poll(stop);
+        upgrades.Poll();
         auto timeout = kRequestPoll;
         const auto beforeWait = std::chrono::steady_clock::now();
         if (watcherChangePending)

@@ -71,6 +71,10 @@ local function new(files)
       if entry.phase~="reserved" then
         local saved,reason=original(entry)
         if not saved or saved~=bytes then return nil,reason or "The backup no longer matches the source." end
+        if entry.phase=="complete" and expectedFingerprint==before then
+          local reset=copy(entry);reset.phase="verified";reset.replacementFingerprint=""
+          return persist(reset,index)
+        end
         return copy(entry)
       end
     else
@@ -116,6 +120,16 @@ local function new(files)
     local changed=copy(entry);changed.phase="prepared";changed.replacementFingerprint=replacementFingerprint
     return persist(changed,index)
   end
+  function api.beginInstall(storage,fingerprint)
+    if not loaded then return nil,"The upgrade journal is not loaded." end
+    local entry,index=find(storage)
+    if not entry or entry.phase~="prepared" or entry.sourceFingerprint~=fingerprint
+        or files.fingerprint(sourcePath(entry))~=fingerprint then return nil,"The source changed before replacement began." end
+    local bytes,reason=original(entry)
+    if not bytes or files.read(sourcePath(entry),MAX_BYTES)~=bytes then return nil,reason or "The source no longer matches its backup." end
+    local changed=copy(entry);changed.phase="installing"
+    return persist(changed,index)
+  end
   function api.recover(storage)
     if not loaded then return nil,"The upgrade journal is not loaded." end
     local entry,index=find(storage)
@@ -132,7 +146,7 @@ local function new(files)
       return nil,"The completed preset was changed or removed. It was left unchanged."
     end
     if not files.exists(path) then
-      if entry.phase~="prepared" then return nil,"The original preset was removed. It was not recreated." end
+      if entry.phase~="installing" then return nil,"The original preset was removed before replacement began. It was not recreated." end
       if not files.create(path,bytes) then return nil,"The missing original preset could not be restored safely." end
       if files.read(path,MAX_BYTES)~=bytes or files.fingerprint(path)~=entry.sourceFingerprint then
         return nil,"The restored original preset could not be verified."

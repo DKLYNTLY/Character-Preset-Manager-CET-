@@ -47,19 +47,27 @@ local function new(ports)
     if not journal.validStorage(source.storage or name) or type(source.entries)~="table" or #source.entries>4096 then return false end
     if type(fingerprint)~="string" or fingerprint=="" then return false end
     local previous=items[name]
-    if previous and previous.fingerprint==fingerprint then return false end
+    if previous and previous.fingerprint==fingerprint and previous.phase~="complete" then return false end
     if previous then discard(previous) else order[#order+1]=name end
     local savedSource=clone(source);savedSource.format=tonumber(source.format)
     items[name]={name=name,storage=source.storage or name,source=savedSource,fingerprint=fingerprint,
       body=sourceBody(source),phase="queued",restarts=0}
     return true
   end
+  function api.prune(keep)
+    local retained={}
+    for _,name in ipairs(order) do
+      if keep[name] then retained[#retained+1]=name
+      else discard(items[name]);items[name]=nil end
+    end
+    order=retained;cursor=0
+  end
   function api.rows()
     local result={}
     for _,name in ipairs(order) do
       local item=items[name]
       result[#result+1]={name=name,storage=item.storage,phase=item.phase,body=item.body,
-        message=item.message,missing=item.missing,assumed=item.assumed}
+        fingerprint=item.fingerprint,message=item.message,missing=item.missing,assumed=item.assumed}
     end
     return result
   end
@@ -70,6 +78,9 @@ local function new(ports)
     if not record then fail(item,reason);return nil,reason end
     item.body,item.phase=record.body,"catalog"
     return true
+  end
+  function api.reject(name,message)
+    if items[name] then fail(items[name],message) end
   end
   function api.retry(name)
     local item=items[name]
@@ -87,7 +98,7 @@ local function new(ports)
     if not unchanged(item) then return end
     if item.phase=="queued" then
       for _,record in ipairs(ports.backups.records() or {}) do
-        if record.storage==item.storage and record.sourceFingerprint==item.fingerprint and record.phase=="prepared" then
+        if record.storage==item.storage and record.sourceFingerprint==item.fingerprint and (record.phase=="prepared" or record.phase=="installing") then
           local recovered,reason=ports.backups.recover(item.storage)
           if not recovered then fail(item,reason);return end
           break
@@ -169,14 +180,15 @@ local function new(ports)
     for _=1,count do
       cursor=cursor%count+1
       local item=items[order[cursor]]
-      if item.phase~="complete" and item.phase~="failed" and item.phase~="body"
+      if (not context.allowedStorage or item.storage==context.allowedStorage)
+          and item.phase~="complete" and item.phase~="failed" and item.phase~="body"
           and (item.phase=="queued" or item.phase=="finish" or item.body==context.body) then
         if item.session and item.phase~="finish" and item.session~=context.session then reset(item) end
         local ok,reason=pcall(function()
           if item.phase=="finish" then
             local record,message=ports.backups.recover(item.storage)
             if not record or record.phase~="complete" then fail(item,message or "The installed upgrade could not be verified.");return end
-            if ports.completed and ports.completed(item.name,item.model,item.missing,item.assumed)==false then
+            if ports.completed and ports.completed(item.name,item.model,item.missing,item.assumed,item.fingerprint)==false then
               fail(item,"The preset was upgraded, but the library needs a refresh.");return
             end
             discard(item)

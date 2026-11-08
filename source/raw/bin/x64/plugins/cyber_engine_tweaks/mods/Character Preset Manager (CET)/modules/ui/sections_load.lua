@@ -208,34 +208,6 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
           state.presetEntryCount(preset), tostring(preset.format or 4),helpers.presetBody(preset)))
     end
 
-    if helpers.canUpgradePreset9(selectedPreset) then
-      local unavailable=not state.app.inCustomization or state.load.auto or state.load.needsContinue or state.load.pendingChange
-      if unavailable then ImGui.BeginDisabled() end
-      if fullWidthButton("Preview Upgrade to Format 9##upgradePreset9",actionButtonHeight) then
-        helpers.previewPresetUpgrade()
-      end
-      if unavailable then ImGui.EndDisabled() end
-      local upgrade=helpers.getPresetUpgrade()
-      if upgrade then
-        ImGui.TextWrapped(("Review %d choices mapped from saved numbers. %d choices could not be captured.")
-          :format(upgrade.assumed,upgrade.missing))
-        ImGui.TextWrapped("A saved number may refer to a different choice after mods change. Review every proposed choice before saving.")
-        ImGui.BeginChild("##upgradeChoices",0,180,true)
-        for _,item in ipairs(upgrade.details) do
-          ImGui.TextWrapped(("%s | saved %s | %s%s"):format(item.key,tostring(item.index),item.choice,
-            item.numeric and " (current catalog)" or ""))
-        end
-        ImGui.EndChild()
-        upgrade.newName=ImGui.InputText("New preset name##upgradeName",upgrade.newName,65)
-        if unavailable then ImGui.BeginDisabled() end
-        if fullWidthButton("Save Format 9 Copy##confirmUpgrade9",actionButtonHeight) then
-          helpers.confirmPresetUpgrade()
-        end
-        if unavailable then ImGui.EndDisabled() end
-        if fullWidthButton("Cancel Upgrade##cancelUpgrade9",actionButtonHeight) then helpers.cancelPresetUpgrade() end
-      end
-    end
-
     local migration=helpers.presetMigration
     if migration then
       local heading=false
@@ -256,7 +228,7 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
       end
     end
 
-    local loadUnavailable = not state.library.selected or not state.app.inCustomization or helpers.canUpgradePreset9(selectedPreset)
+    local loadUnavailable = not state.library.selected or not state.app.inCustomization
     local loadLabel
     if state.load.auto then
       loadLabel = ("Loading... (pass %d)"):format(state.load.pass)

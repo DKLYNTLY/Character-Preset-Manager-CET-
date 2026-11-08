@@ -20,6 +20,7 @@ add_library(CharacterPresetManagerNative SHARED
   src/AcuImporter.cpp
   src/DirectoryWatcher.cpp
   src/OverlayOpener.cpp
+  src/UpgradeFilesystem.cpp
 )
 target_link_libraries(CharacterPresetManagerNative PRIVATE RED4ext::SDK user32)
 target_compile_definitions(CharacterPresetManagerNative PRIVATE WIN32_LEAN_AND_MEAN NOMINMAX)

@@ -58,6 +58,7 @@ if not canRandomize() then
   end
 
   if not settings and helpers.appearanceTrace then helpers.appearanceTrace("begin", "randomize") end
+  if not settings and helpers.beginPresetMigrationRandomize then helpers.beginPresetMigrationRandomize() end
   local ok, changed = pcall(function()
 
     if settings then return state.editor.activeBodyMorphMenu:CPMRandomizeSettings() end
@@ -70,6 +71,7 @@ if not canRandomize() then
     helpers.appearanceTrace("after", "randomize", ok and changed and "requested" or "rejected")
   end
   if not ok or not changed then
+    if helpers.endPresetMigrationRandomize then helpers.endPresetMigrationRandomize() end
 
     return nativeStatus("The game's randomizer is not ready. Wait for the editor and try again.", true)
 
@@ -472,11 +474,12 @@ ports.setQuery(tostring(payload or ""))
     local payload = input.payload
 if state.library.presets[payload] then
 
+      if helpers.cancelPresetUpgradeLoad then helpers.cancelPresetUpgradeLoad() end
       state.library.selected = payload
 
       hydrateNamedPresetMetadata(payload)
       if helpers.canUpgradePreset9(state.library.presets[payload]) then
-        state.app.nativePanelStatus = "This CPM preset needs upgrading. Select OPEN CET TO UPGRADE to review a format 9 copy."
+        state.app.nativePanelStatus = "This CPM preset will upgrade automatically after a verified backup. Choose its body in CET if needed."
         state.app.nativePanelStatusError = false
       end
 

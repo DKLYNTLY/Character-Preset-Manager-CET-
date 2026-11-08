@@ -82,6 +82,7 @@ helpers.registerEditorHooks = function()
     for _, method in ipairs({ "OnAppearanceSwitched", "OnRandomizeComplete" }) do
       local eventName = method
       local ok = pcall(Observe, "characterCreationBodyMorphMenu", method, function()
+        if eventName=="OnRandomizeComplete" and helpers.endPresetMigrationRandomize then helpers.endPresetMigrationRandomize() end
         helpers.appearanceTrace("event", eventName)
         if helpers.noteAcuBatchChange then helpers.noteAcuBatchChange() end
       end)
@@ -112,6 +113,8 @@ helpers.registerEditorHooks = function()
     "OnUninitialize",
     function()
       if helpers.appearanceTrace then helpers.appearanceTrace("lifecycle", "creator-uninitialize") end
+      if helpers.cancelPresetUpgradeLoad then helpers.cancelPresetUpgradeLoad() end
+      if helpers.endPresetMigrationRandomize then helpers.endPresetMigrationRandomize() end
       execute(editorModel.plan("closed"))
     end
   )

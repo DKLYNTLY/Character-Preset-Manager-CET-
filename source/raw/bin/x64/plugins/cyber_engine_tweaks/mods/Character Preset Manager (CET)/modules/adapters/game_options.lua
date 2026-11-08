@@ -215,7 +215,8 @@ local function performPresetLoad()
   end
   if selectedPreset.format ~= 9 and (selectedPreset.managedByCpm or (tonumber(selectedPreset.format) or 4) >= 5) then
     resetLoadState()
-    setStatus("load", "Open the CET menu and review Upgrade to Format 9 before loading this CPM preset.", true)
+    if helpers.requestPresetUpgradeLoad then helpers.requestPresetUpgradeLoad(loadName)
+    else setStatus("load","Automatic preset upgrading is not available yet.",true) end
     return
   end
   if selectedPreset.format~=9 then
@@ -224,7 +225,7 @@ local function performPresetLoad()
     end
     if not selectedPreset.runtimeFormat9 then
       resetLoadState()
-      setStatus("load","This ACU preset could not be converted from the current catalog. Open CET to review its upgrade.",true)
+      setStatus("load","This ACU preset could not be converted from the current catalog. Check the Activity Log and installed appearance mods.",true)
       return
     end
     selectedPreset=selectedPreset.runtimeFormat9

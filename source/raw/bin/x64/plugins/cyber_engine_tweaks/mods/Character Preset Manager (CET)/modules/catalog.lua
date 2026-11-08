@@ -233,6 +233,7 @@ function refreshPresets(scanReason, recoveryAssignments, recoveryFolders,
   for storage in pairs(bodyCache) do
     if not scannedPresets[storage] then bodyCache[storage]=nil end
   end
+  if helpers.schedulePresetMigration then helpers.schedulePresetMigration() end
   return presets, true, changeSummary
 end
 
