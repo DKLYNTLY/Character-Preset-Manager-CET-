@@ -9,6 +9,7 @@ for current steps.
 
 ## 4.0.2
 
+- Prepares Undo snapshots across separate updates before normal preset loads and reuses validated capture text during comparison. Snapshot storage keeps checked replacement and readback validation; preparation failures stop loading before appearance changes. Detailed tracing adds **[UNDO PREP PROFILE]** stage timings without changing the loader's apply order or verification.
 - Saves new appearances and recovery snapshots as readable **format 9** presets. Files use the entered name and keep header metadata, notes, tags, favorites, dates, and library folders; overwriting still requires confirmation.
 - Ships six format 9 **Default Presets** with body metadata and the **Data/Recovery/Preset Upgrades** folder. Identified CPM formats 8 and below upgrade at their original paths only after an exact original backup is verified.
 - Waits for a matching-body catalog before upgrading and asks for missing or conflicting body types in CET. Upgrades preserve names, folders, metadata, and creation dates, append an upgrade note, and retain unresolved records in partial results. Numeric-only records map through the current catalog, so changed mods can change their meaning.

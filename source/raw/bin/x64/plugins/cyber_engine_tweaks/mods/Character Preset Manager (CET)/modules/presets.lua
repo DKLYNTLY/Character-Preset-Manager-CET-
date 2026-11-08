@@ -23,7 +23,7 @@ helpers.capturePreset9 = function(options)
   local started=helpers.loadProfile and helpers.loadClock()
   local preset = preset9.decode(contents, false)
   if helpers.loadProfile then helpers.loadProfile.add("historyDecode",math.max(0,helpers.loadClock()-started)) end
-  return preset, missing
+  return preset, missing, contents
 end
 
 local function encodeJsonCodepoint(codepoint)

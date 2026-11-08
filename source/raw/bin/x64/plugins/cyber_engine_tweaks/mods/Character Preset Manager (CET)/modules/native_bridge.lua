@@ -342,7 +342,8 @@ updateNativeBridge = function(delta)
   local elapsed = math.max(0, tonumber(delta) or 0)
   local busy = state.load.auto or state.load.needsContinue or state.load.pendingChange ~= nil
   local wasBusy = state.app.nativeBusy == true
-  local status = busy and ("Loading pass " .. tostring(state.load.pass) .. "...") or ""
+  local status = busy and (helpers.undoPreparationActive and helpers.undoPreparationActive()
+    and "Preparing Undo Last Load..." or ("Loading pass " .. tostring(state.load.pass) .. "...")) or ""
   local statusError = false
   if not busy and wasBusy then
     status = tostring(state.app.nativeLoadSummary

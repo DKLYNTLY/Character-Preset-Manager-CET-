@@ -230,7 +230,9 @@ if collapsibleSectionHeader("LOAD & RESTORE APPEARANCE", "load") then
 
     local loadUnavailable = not state.library.selected or not state.app.inCustomization
     local loadLabel
-    if state.load.auto then
+    if state.load.auto and helpers.undoPreparationActive and helpers.undoPreparationActive() then
+      loadLabel = "Preparing Undo Last Load..."
+    elseif state.load.auto then
       loadLabel = ("Loading... (pass %d)"):format(state.load.pass)
     elseif state.load.needsContinue then
       loadLabel = ("Continue Loading Preset (%d remaining)"):format(state.load.remaining)
