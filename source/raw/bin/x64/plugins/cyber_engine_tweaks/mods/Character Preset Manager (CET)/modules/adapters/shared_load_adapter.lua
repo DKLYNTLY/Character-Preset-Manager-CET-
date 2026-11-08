@@ -23,7 +23,8 @@ local function new(runtime)
     job = nil; lastProgress = nil
   end
 
-  local function changed()
+  local function changed(name)
+    selectorProfile.event(name or "unnamed",state.load.elapsed or 0)
     generation = generation + 1
   end
 
@@ -148,8 +149,9 @@ local function new(runtime)
     local event = {now=now,editorOpen=true,generation=generation}
     local waiting = job.machine.waiting
     if waiting then
-      event.matching = resolve(job.intents[waiting.position],candidates).status == "matching"
-      selectorProfile.sample(waiting,event)
+      local observed=resolve(job.intents[waiting.position],candidates)
+      event.matching = observed.status == "matching"
+      selectorProfile.sample(waiting,event,observed)
     else
       local position = job.machine.order[job.machine.cursor or 1]
       if position and job.machine.pending[position] then
@@ -160,7 +162,7 @@ local function new(runtime)
     local action = execution.step(job.machine,event)
     if action.kind == "write" then
       if job.machine.waiting then
-        selectorProfile.begin(job.intents,job.machine.parents,action.position,now,generation)
+        selectorProfile.begin(job.intents,job.machine.parents,action.position,now,generation,action.target)
       end
       progress("Applying saved choices. Dependencies are checked before their colors and styles.")
       job.wroteThisUpdate = true

@@ -73,8 +73,9 @@ local function setupPuppet(scenario, actions) execute(actions, scenario) end
 
 helpers.registerEditorHooks = function()
   for _, method in ipairs({"OnOptionUpdated", "OnAppearanceAppliedEvent", "OnPresetAppliedEvent"}) do
+    local eventName=method
     local ok = pcall(Observe, "characterCreationBodyMorphMenu", method, function()
-      if helpers.noteAcuBatchChange then helpers.noteAcuBatchChange() end
+      if helpers.noteAcuBatchChange then helpers.noteAcuBatchChange(eventName) end
     end)
     if not ok then log("[ACU BATCH] An editor change observer could not be registered: " .. method, "warn") end
   end
@@ -84,7 +85,7 @@ helpers.registerEditorHooks = function()
       local ok = pcall(Observe, "characterCreationBodyMorphMenu", method, function()
         if eventName=="OnRandomizeComplete" and helpers.endPresetMigrationRandomize then helpers.endPresetMigrationRandomize() end
         helpers.appearanceTrace("event", eventName)
-        if helpers.noteAcuBatchChange then helpers.noteAcuBatchChange() end
+        if helpers.noteAcuBatchChange then helpers.noteAcuBatchChange(eventName) end
       end)
       if not ok then helpers.appearanceTrace("event", "observer-unavailable:" .. method) end
     end
