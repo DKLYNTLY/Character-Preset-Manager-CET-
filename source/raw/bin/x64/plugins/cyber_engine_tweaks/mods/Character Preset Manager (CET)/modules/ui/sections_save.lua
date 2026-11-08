@@ -29,6 +29,11 @@ do
       commands.run(runtime, "save", {pendingCreateName = pendingCreateName})
     end
     if saveUnavailable then ImGui.EndDisabled() end
+    ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.library.selectedFolder))
+    end
+end
+
+ui.drawSaveLocation = function(presetListHeight,statusHeight,actionButtonHeight)
     if compactSubsectionButton("Change Save Location", "Hide Save Location",
         "saveDestination") then
       ImGui.Indent(8)
@@ -52,20 +57,6 @@ do
       end
       ImGui.EndChild()
       finishCompactSubsection()
-    end
-    ImGui.TextWrapped("Save location: " .. helpers.breadcrumb(state.library.selectedFolder))
-    local restoreUnavailable = not state.load.recoverySnapshotAvailable or not state.app.inCustomization
-      or state.load.auto or state.load.needsContinue
-    if restoreUnavailable then ImGui.BeginDisabled() end
-    if not restoreUnavailable then ImGui.PushStyleColor(ImGuiCol.Text,1.0,0.8,0.2,1.0) end
-    if fullWidthButton("Undo Last Load##restoreAppearance",actionButtonHeight) then commands.run(runtime,"restore_previous") end
-    if not restoreUnavailable then ImGui.PopStyleColor(1) end
-    if restoreUnavailable then ImGui.EndDisabled() end
-    if not state.library.selected then ImGui.BeginDisabled() end
-    local deleteLabel = state.trash.pendingDeleteName == state.library.selected and state.library.selected
-      and "Confirm Move to Trash##managerTrash" or "Move Selected Preset to Trash##managerTrash"
-    if dangerButton(deleteLabel,ImGui.GetContentRegionAvail(),actionButtonHeight) then commands.run(runtime,"delete") end
-    if not state.library.selected then ImGui.EndDisabled() end
     end
 end
 

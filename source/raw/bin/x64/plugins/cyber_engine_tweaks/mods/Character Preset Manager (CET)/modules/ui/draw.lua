@@ -51,36 +51,29 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local actionButtonHeight = math.max(32, ImGui.GetFrameHeight())
 
     local narrowTopRow = ImGui.GetWindowWidth() < 620
-    local topRowStartX = ImGui.GetCursorPosX()
-    local topRowWidth = ImGui.GetContentRegionAvail()
-    local topButtonWidth = math.max(ImGui.CalcTextSize("Settings"),ImGui.CalcTextSize("Log")) + ImGui.GetFontSize()*2
-    local topControlsWidth = topButtonWidth * 2 + 8
-    ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "v" .. VERSION)
+    ImGui.TextColored(1.0,1.0,1.0,1.0,"v"..VERSION)
     ImGui.SameLine()
-    if state.app.inCustomization then
-      ImGui.TextColored(0.35, 0.9, 0.45, 1.0,
-        narrowTopRow and "Editor ready" or "Customization editor open")
-    else
-      ImGui.TextColored(1.0, 0.65, 0.2, 1.0,
-        narrowTopRow and "Open editor" or "Open customization to save or load presets")
+    ImGui.TextColored(0.35,0.9,0.45,1.0,state.app.inCustomization and "Editor ready" or "Open a character editor to save or load")
+    local available=ImGui.GetContentRegionAvail()
+    local settingsWidth=ImGui.CalcTextSize("Settings")+ImGui.GetFontSize()*2
+    local logWidth=ImGui.CalcTextSize("Log")+ImGui.GetFontSize()*2
+    local creatorWidth=available-settingsWidth-logWidth-16
+    local stack=creatorWidth<ImGui.CalcTextSize("Character")+24
+    local creatorUnavailable=state.editor.openPending or state.app.inCustomization or not state.editor.hooksAvailable
+    if creatorUnavailable then ImGui.BeginDisabled() end
+    if ui.sizedActionButton("Open In-Game Character Creator##toolbarCreator",stack and available or creatorWidth,actionButtonHeight) then
+      require("modules/ui/commands").run(runtime,"open_editor")
     end
-    if topRowWidth > topControlsWidth + ImGui.GetFontSize()*16 then ImGui.SameLine() end
-    ImGui.SetCursorPosX(topRowStartX + math.max(0,topRowWidth - topControlsWidth))
-    if ImGui.Button("Settings##settings", topButtonWidth, actionButtonHeight) then
-      state.ui.settingsOpen = not state.ui.settingsOpen
-      if state.ui.settingsOpen then
-        ui.closeDebugPanel()
-      end
+    if creatorUnavailable then ImGui.EndDisabled() end
+    if not stack then ImGui.SameLine() end
+    if ui.sizedActionButton("Settings##settings",stack and (available-8)*0.5 or settingsWidth,actionButtonHeight) then
+      state.ui.settingsOpen=not state.ui.settingsOpen
+      if state.ui.settingsOpen then ui.closeDebugPanel() end
     end
     ImGui.SameLine()
-    if ImGui.Button("Log##debug", topButtonWidth, actionButtonHeight) then
-      if state.ui.debugOpen then
-        ui.closeDebugPanel()
-      else
-        state.ui.debugOpen = true
-        state.ui.settingsOpen = false
-        ui.readDiagnosticLog()
-      end
+    if ui.sizedActionButton("Log##debug",stack and (available-8)*0.5 or logWidth,actionButtonHeight) then
+      if state.ui.debugOpen then ui.closeDebugPanel()
+      else state.ui.debugOpen=true;state.ui.settingsOpen=false;ui.readDiagnosticLog() end
     end
     drawSettingsPanel(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     if state.ui.debugOpen then
@@ -89,7 +82,6 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local actionSection = state.ui.actionStatusSection or "load"
     drawSectionStatus(actionSection, "##managerActionStatus", statusHeight,
       "Choose a preset or save the current appearance. Press Refresh to reload the library.", "info")
-    drawEditorSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawLoadSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
     drawTrashSection(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
   end

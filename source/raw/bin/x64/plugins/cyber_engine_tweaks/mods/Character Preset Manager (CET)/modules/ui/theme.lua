@@ -120,6 +120,11 @@ local function fitButtonText(label,width,height)
   return table.concat(lines,"\n")..suffix,math.max(height or 32,ImGui.GetFrameHeight()+(#lines-1)*ImGui.GetFontSize())
 end
 
+ui.sizedActionButton = function(label,width,height)
+  local text,buttonHeight=fitButtonText(label,width,height)
+  return ImGui.Button(text,width,buttonHeight)
+end
+
 function fullWidthButton(label, height)
   local width = ImGui.GetContentRegionAvail()
   local text,buttonHeight=fitButtonText(label,width,height)
@@ -129,14 +134,8 @@ end
 function compactSubsectionButton(closedLabel, openLabel, key)
   ImGui.Spacing()
   local open = state.ui.openSubsections[key] == true
-  local closedWidth = ImGui.CalcTextSize(closedLabel)
-  local openWidth = ImGui.CalcTextSize(openLabel)
-  local availableWidth = ImGui.GetContentRegionAvail()
-  local responsiveWidth = math.min(360, availableWidth * 0.58)
-  local width = math.min(math.max(closedWidth, openWidth) + 32,
-    math.max(responsiveWidth, 0), availableWidth)
-  local startX = ImGui.GetCursorPosX()
-  ImGui.SetCursorPosX(startX + math.max(0, (availableWidth - width) * 0.5))
+  local width=ImGui.GetContentRegionAvail()
+  local startX=ImGui.GetCursorPosX()
   ImGui.PushStyleColor(ImGuiCol.Button,
     open and 0.18 or 0.10, open and 0.12 or 0.11,
     open and 0.04 or 0.14, 1.0)

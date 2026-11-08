@@ -16,30 +16,16 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
     local selectedPreset = state.library.selected
       and state.library.presets[state.library.selected]
     ImGui.Spacing()
-    local searchRowWidth = ImGui.GetContentRegionAvail()
-    local searchButtonWidth = narrowTopRow
-      and math.max(80, (searchRowWidth - 8) * 0.5) or 64
-    local searchInputWidth = narrowTopRow
-      and searchRowWidth or math.max(80, searchRowWidth - searchButtonWidth * 2 - 16)
-    ImGui.PushItemWidth(searchInputWidth)
-    local previousSearchText = state.library.searchText
-    state.library.searchText = ImGui.InputTextWithHint(
-      "##presetSearch", "Search presets, folders, or tags", state.library.searchText, 65)
-    if state.library.searchText ~= previousSearchText then
-      commands.run(runtime, "filter")
-    end
+    ImGui.PushItemWidth(-1)
+    local previousSearchText=state.library.searchText
+    state.library.searchText=ImGui.InputTextWithHint("##presetSearch","Search presets, folders, or tags",state.library.searchText,65)
+    if state.library.searchText~=previousSearchText then commands.run(runtime,"filter") end
     ImGui.PopItemWidth()
-    if not narrowTopRow then ImGui.SameLine() end
-    local clearSearchUnavailable = not tostring(state.library.searchText):match("%S")
-    if clearSearchUnavailable then ImGui.BeginDisabled() end
-    if ImGui.Button("Clear##presetSearchClear", searchButtonWidth, actionButtonHeight) then
-      commands.run(runtime, "clear_filter")
-    end
-    if clearSearchUnavailable then ImGui.EndDisabled() end
-    ImGui.SameLine()
-    if ImGui.Button("Refresh##presetRefresh", searchButtonWidth, actionButtonHeight) then
-      commands.run(runtime, "refresh")
-    end
+    local emptySearch=not tostring(state.library.searchText):match("%S")
+    if emptySearch then ImGui.BeginDisabled() end
+    if fullWidthButton("Clear Search##presetSearchClear",actionButtonHeight) then commands.run(runtime,"clear_filter") end
+    if emptySearch then ImGui.EndDisabled() end
+    if fullWidthButton("Refresh##presetRefresh",actionButtonHeight) then commands.run(runtime,"refresh") end
     local refreshOptionsUnavailable = not state.app.inCustomization
       or state.load.auto or state.load.needsContinue or state.load.pendingChange
     if refreshOptionsUnavailable then ImGui.BeginDisabled() end
@@ -74,7 +60,7 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
       local folderMatches = state.cache.folderMatches[folder] == true
       local matchingPresets = state.cache.matchingPresetsByFolder[folder] or EMPTY_LIST
       local descendantMatches = matchedFolders[folder] == true
-      local parentVisible = queryActive
+      local parentVisible = state.ui.multiplePresets or queryActive
         or folderAncestorsExpanded(folder, state.library.expandedLoadFolders)
       if subtreeCount > 0 and parentVisible
           and (folderMatches or #matchingPresets > 0 or descendantMatches) then
@@ -82,7 +68,7 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
         loadRows[#loadRows + 1] = {
           kind = "folder", folder = folder, count = subtreeCount, expanded = expanded
         }
-        if expanded or queryActive then
+        if expanded or queryActive or state.ui.multiplePresets then
           for _, name in ipairs(folderMatches and folderPresets or matchingPresets) do
             if helpers.presetVisibleForBody(state.library.presets[name],body) then
               loadRows[#loadRows + 1] = {kind="preset",name=name,label=baseName(name)}
@@ -96,17 +82,12 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
         loadRows[#loadRows + 1] = { kind = "preset", name = name, label = name }
       end
     end
-    local multiple = ImGui.Checkbox("Select multiple##managerMultiple", state.ui.multiplePresets == true)
-    if multiple ~= (state.ui.multiplePresets == true) then
-      state.ui.multiplePresets = multiple
-      commands.run(runtime, "bulk_clear", {selectedBulkNames=selectedBulkPresetNames()})
-    end
     if state.ui.multiplePresets then
       local visibleBulkNames, seenBulkNames = {}, {}
-      for _, row in ipairs(loadRows) do
-        if row.kind == "preset" and not seenBulkNames[row.name] then
-          seenBulkNames[row.name] = true
-          visibleBulkNames[#visibleBulkNames+1] = row.name
+      for _,name in ipairs(names) do
+        if visibleNames[name] and not seenBulkNames[name] then
+          seenBulkNames[name]=true
+          visibleBulkNames[#visibleBulkNames+1]=name
         end
       end
       state.ui.visibleBulkNames = visibleBulkNames
@@ -162,7 +143,7 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
           local depth = folderDepth(folder)
           local branch = depth > 0
             and string.rep("  ", depth - 1) .. "> " or ""
-          ImGui.SetNextItemOpen(expanded or queryActive, ImGuiCond.Always)
+          ImGui.SetNextItemOpen(expanded or queryActive or state.ui.multiplePresets, ImGuiCond.Always)
           local treeFlags = 8 + 2048 + (expanded and 1 or 0)
           if depth > 0 then
             ImGui.PushStyleColor(ImGuiCol.Text, 0.97, 0.72, 0.20, 1.0)
@@ -174,7 +155,7 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
               (" (%d)"):format(row.count) .. folderKind .. "##loadFolder:" .. folder,
             treeFlags)
           ImGui.PopStyleColor(1)
-          if not queryActive then
+          if not queryActive and not state.ui.multiplePresets then
             state.library.expandedLoadFolders[folder] = nodeOpen
           end
         end
@@ -233,6 +214,18 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
       commands.run(runtime, "load")
     end
     if loadButtonDisabled then ImGui.EndDisabled() end
+    local restoreUnavailable = not state.load.recoverySnapshotAvailable or not state.app.inCustomization
+      or state.load.auto or state.load.needsContinue
+    if restoreUnavailable then ImGui.BeginDisabled() end
+    if not restoreUnavailable then ImGui.PushStyleColor(ImGuiCol.Text,1.0,0.8,0.2,1.0) end
+    if fullWidthButton("Undo Last Load##restoreAppearance",actionButtonHeight) then commands.run(runtime,"restore_previous") end
+    if not restoreUnavailable then ImGui.PopStyleColor(1) end
+    if restoreUnavailable then ImGui.EndDisabled() end
+    if not state.library.selected then ImGui.BeginDisabled() end
+    local deleteLabel = state.trash.pendingDeleteName == state.library.selected and state.library.selected
+      and "Confirm Move to Trash##managerTrash" or "Move Selected Preset to Trash##managerTrash"
+    if dangerButton(deleteLabel,ImGui.GetContentRegionAvail(),actionButtonHeight) then commands.run(runtime,"delete") end
+    if not state.library.selected then ImGui.EndDisabled() end
     local randomizerAvailable = canRunAppearanceRandomizer()
     if not randomizerAvailable then ImGui.BeginDisabled() end
     if fullWidthButton("Randomize##appearanceRandomize", actionButtonHeight) then
@@ -240,6 +233,7 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
     end
     if not randomizerAvailable then ImGui.EndDisabled() end
     ImGui.Spacing()
+    drawSaveSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
     if compactSubsectionButton("Advanced Preset Options",
         "Hide Advanced Preset Options", "loadFavorites") then
       ImGui.Indent(8)
@@ -282,13 +276,19 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
     end
 
     end
+    if not state.ui.multiplePresets then ui.drawSaveLocation(presetListHeight,statusHeight,actionButtonHeight) end
     if state.ui.multiplePresets then
       drawBulkSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
     else
-      drawSaveSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
       drawManageSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
     end
     drawFoldersSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
+    local wasMultiple=state.ui.multiplePresets==true
+    local multiple=compactSubsectionButton("Select Multiple Presets","Finish Selecting","multiplePresets")
+    if multiple~=wasMultiple then
+      state.ui.multiplePresets=multiple
+      commands.run(runtime,"bulk_clear",{selectedBulkNames=selectedBulkPresetNames()})
+    end
     end
 end
 

@@ -144,7 +144,7 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Randomize your appearance and choose which categories can change.
 - Change preset sorting in **Settings** and view the Activity Log.
 
-CET has three sections: **Open In-Game Character Creator**, **Advanced Preset Manager**, and **Delete & Restore Items**. The manager uses one preset list for loading and **Select multiple** mode; leaving that mode clears its selection and confirmation without loading a preset. **Edit Details** contains rename, copy, favorite, notes, tags, and file-path controls. Actions share one status area.
+The **Open In-Game Character Creator** button sits beside **Settings** and **Log** in CET; on narrow windows it stacks above them. Below that toolbar are **Advanced Preset Manager** and **Delete & Restore Items**. The manager uses one preset list for loading and **Select Multiple Presets** mode. That mode exposes presets inside folders, and leaving it clears its selection and confirmation without loading a preset. **Edit Details** contains rename, copy, favorite, notes, tags, and file-path controls. Actions share one status area. Load, yellow Undo, and Trash stay together above Randomize. Save sits below Randomize, followed by full-width stacked controls for advanced options, save location, details, folders, and multiple selection.
 
 In the simple menu, Save appears above Save Location, followed by yellow **Undo Last Load** and **Move Preset to Trash**. After a confirmed move, **Advanced Preset Manager** turns yellow; clicking it opens CET at **Delete & Restore Items**. That section restores or permanently deletes items already in Trash.
 
