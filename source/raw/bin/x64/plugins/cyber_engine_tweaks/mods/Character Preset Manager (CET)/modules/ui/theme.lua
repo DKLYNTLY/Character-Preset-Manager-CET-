@@ -84,7 +84,7 @@ function collapsibleSectionHeader(label, key)
   ImGui.Spacing()
   ImGui.Separator()
   ImGui.Spacing()
-  local destination = state.ui.scrollToSectionRequested or (state.ui.scrollToLoadRequested and "load")
+  local destination = state.ui.scrollToSectionRequested or (state.ui.scrollToLoadRequested == true and "load" or nil)
   local focusLoad = destination ~= nil
   if focusLoad then
     ImGui.SetNextItemOpen(key == destination, ImGuiCond.Always)
