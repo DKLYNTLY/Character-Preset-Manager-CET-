@@ -129,35 +129,6 @@ helpers.releaseFinishedLoadWorkingData = function()
   transition("release")
 end
 
-helpers.forceFullLoadWarning = function(preset)
-  if preset and preset.importKind == "acu-v2" then
-    return "ACU version-2 imports use verified choices only. Numeric fallbacks and cleanup are disabled.", "warning"
-  end
-  local format = tonumber(preset and preset.format) or 4
-  if format >= FORCE_FULL_LOAD_FORMAT_THRESHOLD then
-    return "Force Full Load will try saved editor positions. Check the appearance after loading.",
-      "warning"
-  end
-  return "Older preset: added options may change the hair or color. Check the appearance after loading.",
-    "critical_warning"
-end
-
-helpers.syncForceFullLoadSelection = function()
-  local selected = state.load.overrideName or state.library.selected
-  if state.load.forceFullPresetName == selected then return end
-  local preset = state.load.overridePreset
-    or (selected and state.library.presets[selected] or nil)
-  local format = tonumber(preset and preset.format) or 4
-  local event = eventBuffers.force_selection
-  event.hasPreset,event.format,event.threshold,event.selected = preset ~= nil,format,FORCE_FULL_LOAD_FORMAT_THRESHOLD,selected
-  transition("force_selection")
-  if preset and preset.importKind == "acu-v2" then state.load.forceFull = false end
-  if selected then
-    log(("[LOAD] Force Full Load selected automatically for '%s': %s (format %s).")
-      :format(selected, state.load.forceFull and "on" or "off", tostring(format)), "info")
-  end
-end
-
 beginLoadPass = function(preset, loadName)
   acuBatch.reset()
   if helpers.appearanceTrace then helpers.appearanceTrace("begin", "load", loadName, preset.format) end
@@ -180,7 +151,6 @@ continueLoadPass = function(system, options, preset, values, savedCounts,
 end
 
 local function performPresetLoad()
-  helpers.syncForceFullLoadSelection()
   local loadName = state.load.overrideName or state.library.selected
   local selectedPreset = state.load.overridePreset
   if not selectedPreset and (not state.library.selected

@@ -334,19 +334,6 @@ clearStatus("load")
 
           refreshPreflight()
   end
-  cet.force_full = function(input, ports, decision)
-state.load.forceFull = not state.load.forceFull
-
-          resetLoadState()
-
-          state.invalidatePreflight()
-
-          clearStatus("load")
-
-          log(("[UI] Force Full Load toggled %s.")
-
-            :format(state.load.forceFull and "on" or "off"), "info")
-  end
   cet.favorite = function(input, ports, decision)
 toggleSelectedPresetFavorite()
   end

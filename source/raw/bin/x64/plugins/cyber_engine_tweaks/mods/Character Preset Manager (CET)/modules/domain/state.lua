@@ -31,8 +31,6 @@ local function newLoad(passInterval)
     optionCalls = 0,
     structureChanges = 0,
     nextInterval = passInterval,
-    forceFull = false,
-    forceFullPresetName = nil,
     resetBefore = false,
     auto = false,
     autoTimer = 0,

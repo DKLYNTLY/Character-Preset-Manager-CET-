@@ -95,7 +95,6 @@ state = {
     },
     openSubsections = {
       saveDestination = false,
-      loadFavorites = false,
       appearanceHistory = false,
       folderSharing = false,
       folderBundleFiles = false,

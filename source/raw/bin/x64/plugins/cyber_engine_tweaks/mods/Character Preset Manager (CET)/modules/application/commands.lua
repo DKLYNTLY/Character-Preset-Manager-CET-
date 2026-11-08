@@ -33,7 +33,6 @@ local cet = {
   restore_history = {operation = "restore_history", section = "load"},
   clear_history = {operation = "clear_history", section = "load"},
   compare = {operation = "compare", section = "load"},
-  force_full = {operation = "force_full", section = "load"},
   favorite = {operation = "favorite", section = "load"},
   rename = {operation = "rename", section = "rename"},
   duplicate = {operation = "duplicate", section = "rename"},
@@ -87,8 +86,6 @@ local function blocked(name, context)
     return not context.inCustomization or context.auto or context.needsContinue
   elseif name == "compare" then
     return not context.presetExists or not context.inCustomization or context.auto or context.needsContinue
-  elseif name == "force_full" then
-    return not context.presetExists or context.auto
   elseif name == "randomize" or name == "randomize_settings" then
     return not context.inCustomization or not context.hasEditor or context.auto
       or context.needsContinue or context.pendingChange or context.available == false

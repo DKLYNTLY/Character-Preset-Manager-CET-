@@ -10,7 +10,6 @@ local fields = {
   ["update"] = {"auto","elapsed","pendingChange","pendingElapsed","needsContinue","autoTimer","nextInterval","autoPasses","valueCount"},
   ["load_request"] = {"presetName","pass"},
   ["release_gate"] = {"presetName","needsContinue","pendingChange"},
-  ["force_selection"] = {"forceFull","forceFullPresetName"},
   ["camera_enter"] = {},
   ["camera_exit"] = {},
   ["invocation"] = {},
@@ -48,10 +47,6 @@ handlers.load_request=function(state,event)
 end
 handlers.release_gate=function(state)
   if state.presetName and not state.needsContinue and not state.pendingChange then return actions.release end
-  return actions.none
-end
-handlers.force_selection=function(state,event)
-  state.forceFull=event.hasPreset and event.format<event.threshold;state.forceFullPresetName=event.selected
   return actions.none
 end
 handlers.begin=function(state,event)stateModel.beginLoad(state,event.loadName);return actions.none end

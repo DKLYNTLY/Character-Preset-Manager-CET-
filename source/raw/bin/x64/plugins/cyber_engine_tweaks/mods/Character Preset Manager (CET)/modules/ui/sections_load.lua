@@ -5,7 +5,6 @@ local _ENV = runtime
 local commands = require("modules/ui/commands")
 
 drawLoadSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-helpers.syncForceFullLoadSelection()
 do
     ui.focusSection("load")
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
@@ -226,10 +225,20 @@ do
     if not state.library.selected then ImGui.EndDisabled() end
     local randomizerAvailable = canRunAppearanceRandomizer()
     if not randomizerAvailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Randomize##appearanceRandomize", actionButtonHeight) then
-      commands.run(runtime, "randomize", {available = randomizerAvailable})
+    local randomizerWidth=ImGui.GetContentRegionAvail()
+    local stackRandomizer=randomizerWidth<ImGui.CalcTextSize("Randomize Settings")*2+56
+    local buttonWidth=stackRandomizer and randomizerWidth or (randomizerWidth-8)*0.5
+    if ui.sizedActionButton("Randomize##appearanceRandomize",buttonWidth,actionButtonHeight) then
+      commands.run(runtime,"randomize",{available=randomizerAvailable})
+    end
+    if not stackRandomizer then ImGui.SameLine() end
+    if ui.sizedActionButton("Randomize Settings##appearanceRandomizeSettings",buttonWidth,actionButtonHeight) then
+      commands.run(runtime,"randomize_settings",{available=randomizerAvailable})
     end
     if not randomizerAvailable then ImGui.EndDisabled() end
+    if state.editor.pendingRandomizeSettings then
+      ImGui.TextWrapped("Close CET to open the game's Randomize Settings.")
+    end
     ImGui.Spacing()
     drawSaveSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
 
@@ -239,46 +248,6 @@ do
     drawFoldersSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
     if not state.ui.multiplePresets then
       drawManageSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
-    if compactSubsectionButton("Advanced Preset Options",
-        "Hide Advanced Preset Options", "loadFavorites") then
-      ImGui.Indent(8)
-      local randomizerAvailable = canRunAppearanceRandomizer()
-      if not randomizerAvailable then ImGui.BeginDisabled() end
-      if fullWidthButton("Randomize Settings##appearanceRandomizeSettings", actionButtonHeight) then
-        commands.run(runtime, "randomize_settings", {available = randomizerAvailable})
-      end
-      if not randomizerAvailable then ImGui.EndDisabled() end
-      if state.editor.pendingRandomizeSettings then
-        ImGui.TextWrapped("Close CET to open the game's Randomize Settings.")
-      end
-      local optionalPreset = state.library.selected
-        and state.library.presets[state.library.selected]
-      if optionalPreset then
-        local compatibilityUnavailable = not state.app.inCustomization
-          or state.load.auto or state.load.needsContinue
-        if compatibilityUnavailable then ImGui.BeginDisabled() end
-        if fullWidthButton("Check Compatibility##checkCompatibility",
-            actionButtonHeight) then
-          commands.run(runtime, "compare")
-        end
-        if compatibilityUnavailable then ImGui.EndDisabled() end
-        if state.load.auto then ImGui.BeginDisabled() end
-        local forceLoadLabel = state.load.forceFull
-          and "Force Full Load: On##forceFullLoad"
-          or "Force Full Load: Off##forceFullLoad"
-        if fullWidthButton(forceLoadLabel, actionButtonHeight) then
-          commands.run(runtime, "force_full")
-        end
-        if state.load.auto then ImGui.EndDisabled() end
-        if state.load.forceFull then
-          local warning,kind=helpers.forceFullLoadWarning(optionalPreset)
-          if kind=="critical_warning" then coloredWrapped(1.0,0.4,0.4,1.0,warning)
-          else coloredWrapped(1.0,0.8,0.2,1.0,warning) end
-        end
-
-      end
-      finishCompactSubsection()
-    end
 
     end
     local wasMultiple=state.ui.multiplePresets==true

@@ -139,19 +139,18 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Share individual preset files.
 - Undo the last preset load.
 - Move items to Trash, restore them, or delete them permanently.
-- Check preset compatibility and review warnings under **Advanced Preset Options**.
+- Refresh the library and editor options together, and review load warnings.
 - Open the full character customization menu.
 - Randomize your appearance and choose which categories can change.
 - Change preset sorting in **Settings** and view the Activity Log.
 
-The **Character Creator** button opens the in-game editor and sits beside **Settings** and **Log** in CET; on narrow windows it stacks above them. Preset management is always visible below the toolbar; **Permanently Delete or Restore** follows it under a divider, without an outer tab. The manager uses one preset list for loading and **Select Multiple Presets** mode. That mode exposes presets inside folders, and leaving it clears its selection and confirmation without loading a preset. **Edit Details** contains rename, copy, favorite, notes, tags, and file-path controls. Actions share one status area. **Refresh** updates the preset library and live editor options together; outside an editor it refreshes the library only, and it waits until loading has finished. Load, yellow Undo, and Trash stay together above Randomize. Save sits below Randomize, followed by full-width stacked controls in this order: **Change Save Location**, **Folders**, **Edit Details**, **Advanced Preset Options**, and **Select Multiple Presets**.
+The **Character Creator** button opens the in-game editor and sits beside **Settings** and **Log** in CET; on narrow windows it stacks above them. Preset management is always visible below the toolbar; **Permanently Delete or Restore** follows it under a divider, without an outer tab. The manager uses one preset list for loading and **Select Multiple Presets** mode. That mode exposes presets inside folders, and leaving it clears its selection and confirmation without loading a preset. **Edit Details** contains rename, copy, favorite, notes, tags, and file-path controls. Actions share one status area. **Refresh** updates the preset library and live editor options together; outside an editor it refreshes the library only, and it waits until loading has finished. Load, yellow Undo, and Trash stay together above Randomize. Save sits below Randomize, followed by full-width stacked controls in this order: **Change Save Location**, **Folders**, **Edit Details**, and **Select Multiple Presets**.
 
 In the simple menu, Save appears above Save Location, followed by yellow **Undo Last Load** and **Move Preset to Trash**. **Randomize** and **Randomize Settings** sit side by side directly above **Advanced Preset Manager**. The panel sits closer to the left edge. After a confirmed move, **Advanced Preset Manager** turns yellow; clicking it opens CET at **Permanently Delete or Restore**. That area restores or permanently deletes items already in Trash.
 
 Log controls resize with the font, pagination stays together, and **Technical Details** contains the severity guide and catalog export. Settings groups library choices, diagnostics, and saved settings into labeled areas with explicit controls.
 
-In CET, open **Advanced Preset Manager → Advanced Preset Options** to use
-**Randomize Settings**. The **Randomize** button is inside **Advanced Preset Manager**, below **Load Selected Preset**.
+In CET, **Randomize Settings** sits beside **Randomize**. The pair stacks when the window or font leaves too little room; both controls keep their existing availability rules.
 
 ![Advanced Preset Manager](https://raw.githubusercontent.com/DKLYNTLY/Character-Preset-Manager-CET-/34244e2f4fc334dbf0016fc4fd5a2ff976958d3b/images/Advanced%20Menu.gif)
 
@@ -178,7 +177,7 @@ Remove the **ACU mod** and keep its preset files. Old ACU text and JSON files, i
 
 Version-2 choices need a unique appearance name, morph name, or ordered switcher-name list. Indexed catalogs and unverifiable identities stay unresolved; those choices remain unchanged. Numeric-only ACU records use the choice currently at the saved index, so changed mods can change the mapped choice.
 
-Check **Panel Status**, the **Activity Log**, and the visible appearance before confirming the editor. **Force Full Load** does not bypass version-2 identity checks or clear unrelated choices. Header-prefixed ACU version-3 files are rejected without applying them.
+Check **Panel Status**, the **Activity Log**, and the visible appearance before confirming the editor. Loading keeps version-2 identity checks and does not clear unrelated choices. Header-prefixed ACU version-3 files are rejected without applying them.
 
 *Game version, body, and voice metadata do not prove compatibility. Loading never changes your character's body or voice.*
 
