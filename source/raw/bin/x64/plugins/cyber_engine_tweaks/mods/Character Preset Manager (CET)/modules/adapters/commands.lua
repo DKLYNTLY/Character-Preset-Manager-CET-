@@ -236,38 +236,30 @@ state.library.searchText = ""
 
       state.ui.listPages.loadPresets = 1
   end
-  cet.refresh = function(input, ports, decision)
-requestAcuImport("CET Refresh")
-
-      local _, refreshed, changes = refreshPresets("external")
-
-      refreshTrash()
-
-      if state.library.selected and state.library.presets[state.library.selected] then
-
-        state.library.presetNotes = state.library.presets[state.library.selected].notes or ""
-
-        state.library.presetTags = state.library.presets[state.library.selected].tags or ""
-
-      end
-
-      local added = changes and changes.added or 0
-
-      local removed = changes and changes.removed or 0
-
-      local updated = changes and changes.modified or 0
-
-      setStatus("load", refreshed
-
-        and ("Refreshed: %d added, %d updated, %d removed; %d available. Checking ACU presets in the background.")
-
-          :format(added, updated, removed, #helpers.sortedPresetNames())
-
-        or "Refresh failed; the previous list was kept.", not refreshed)
+  local function refreshLibraryAndOptions(source)
+    if state.load.auto or state.load.needsContinue or state.load.pendingChange then
+      setStatus("load","Wait for loading to finish before refreshing the library and options.")
+      return
+    end
+    requestAcuImport(source)
+    local _,refreshed,changes=refreshPresets("external")
+    refreshTrash()
+    if state.library.selected and state.library.presets[state.library.selected] then
+      state.library.presetNotes=state.library.presets[state.library.selected].notes or ""
+      state.library.presetTags=state.library.presets[state.library.selected].tags or ""
+    end
+    if not refreshed then setStatus("load","Refresh failed; the previous list was kept.",true);return end
+    local message=("Refreshed: %d added, %d updated, %d removed; %d available. Checking ACU presets in the background.")
+      :format(changes and changes.added or 0,changes and changes.modified or 0,changes and changes.removed or 0,#helpers.sortedPresetNames())
+    if state.app.inCustomization then
+      local refreshedOptions=helpers.refreshOptionCatalog()
+      local optionStatus=state.status.sections.load
+      setStatus("load",message.." "..tostring(optionStatus.message or ""),not refreshedOptions,
+        state.status.kinds.load)
+    else setStatus("load",message) end
   end
-  cet.refresh_options = function(input, ports, decision)
-helpers.refreshOptionCatalog()
-  end
+  cet.refresh = function(input,ports,decision) refreshLibraryAndOptions("CET Refresh") end
+  cet.refresh_options = function(input,ports,decision) refreshLibraryAndOptions("CET Refresh") end
   cet.select = function(input, ports, decision)
     local name = input.name
 log(("[UI] Preset selection changed: old='%s' new='%s'.")
@@ -581,15 +573,10 @@ if not state.library.selected then return nativeStatus("Select a preset first.",
 
     return "list", ports.listPayload(ports.query(), message, status.error)
   end
-  native.refresh = function(input, ports, decision)
-    local payload = input.payload
-requestAcuImport("native Refresh")
-
-    refreshPresets("external")
-
-    refreshTrash()
-
-    return "list", ports.listPayload(ports.query())
+  native.refresh = function(input,ports,decision)
+    refreshLibraryAndOptions("native Refresh")
+    local status=state.status.sections.load
+    return "list",ports.listPayload(ports.query(),status.message,status.error)
   end
   native.history = function(input, ports, decision)
     local payload = input.payload

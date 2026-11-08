@@ -105,6 +105,16 @@ function collapsibleSectionHeader(label, key)
   return open
 end
 
+ui.focusSection = function(key)
+  local destination=state.ui.scrollToSectionRequested or (state.ui.scrollToLoadRequested==true and "load" or nil)
+  if destination==key then
+    ImGui.SetScrollHereY(0.0)
+    state.ui.scrollToSectionRequested=nil
+    state.ui.scrollToLoadRequested=false
+    if key=="trash" and helpers.setTrashFollowup then helpers.setTrashFollowup(false) end
+  end
+end
+
 local function fitButtonText(label,width,height)
   local text,suffix=label:match("^(.-)(##.*)$")
   text,suffix=text or label,suffix or ""
@@ -131,7 +141,7 @@ function fullWidthButton(label, height)
   return ImGui.Button(text,width,buttonHeight)
 end
 
-function compactSubsectionButton(closedLabel, openLabel, key)
+function compactSubsectionButton(closedLabel, openLabel, key, plainToggle)
   ImGui.Spacing()
   local open = state.ui.openSubsections[key] == true
   local width=ImGui.GetContentRegionAvail()
@@ -152,7 +162,7 @@ function compactSubsectionButton(closedLabel, openLabel, key)
   end
   ImGui.PopStyleColor(5)
   ImGui.SetCursorPosX(startX)
-  if open then
+  if open and not plainToggle then
     ImGui.Spacing()
     ImGui.Separator()
     ImGui.Spacing()

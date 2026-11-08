@@ -5,7 +5,12 @@ local _ENV = runtime
 local commands = require("modules/ui/commands")
 
 drawTrashSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
-if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
+do
+      ImGui.Spacing()
+      ImGui.Separator()
+      ImGui.Spacing()
+      ImGui.TextColored(0.97,0.72,0.20,1.0,"Permanently Delete or Restore")
+      ui.focusSection("trash")
       ImGui.TextWrapped("Restore items already in Trash or permanently delete them.")
       state.ensureTrashViewCache()
       local trashNames = state.trash.cachedNames
@@ -13,10 +18,6 @@ if collapsibleSectionHeader("DELETE & RESTORE ITEMS", "trash") then
       local trashBundleNames = state.trash.cachedBundleNames
       local trashCount = #trashNames + #trashGroupIds + #trashBundleNames
       ImGui.TextWrapped(("Recoverable items: %d"):format(trashCount))
-      ImGui.Spacing()
-      ImGui.Separator()
-      ImGui.Spacing()
-      ImGui.TextColored(0.97, 0.72, 0.20, 1.0, "Recover from Trash")
       if #trashNames == 0 and #trashGroupIds == 0 and #trashBundleNames == 0 then
         ImGui.TextWrapped("Trash is empty.")
       else

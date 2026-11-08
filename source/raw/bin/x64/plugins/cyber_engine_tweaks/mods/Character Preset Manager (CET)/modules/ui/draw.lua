@@ -61,7 +61,7 @@ local extraHeight = math.max(0, ImGui.GetWindowHeight() - 700)
     local stack=creatorWidth<ImGui.CalcTextSize("Character")+24
     local creatorUnavailable=state.editor.openPending or state.app.inCustomization or not state.editor.hooksAvailable
     if creatorUnavailable then ImGui.BeginDisabled() end
-    if ui.sizedActionButton("Open In-Game Character Creator##toolbarCreator",stack and available or creatorWidth,actionButtonHeight) then
+    if ui.sizedActionButton("Character Creator##toolbarCreator",stack and available or creatorWidth,actionButtonHeight) then
       require("modules/ui/commands").run(runtime,"open_editor")
     end
     if creatorUnavailable then ImGui.EndDisabled() end

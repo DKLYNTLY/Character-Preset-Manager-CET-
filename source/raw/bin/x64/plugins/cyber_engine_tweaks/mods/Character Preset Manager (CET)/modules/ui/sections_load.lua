@@ -6,7 +6,8 @@ local commands = require("modules/ui/commands")
 
 drawLoadSection = function(presetListHeight, statusHeight, actionButtonHeight, extraHeight, narrowTopRow)
 helpers.syncForceFullLoadSelection()
-if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
+do
+    ui.focusSection("load")
     ImGui.TextColored(1.0, 1.0, 1.0, 1.0, "Select a preset to load")
     local body=helpers.editorBody()
     local names = {}
@@ -25,14 +26,10 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
     if emptySearch then ImGui.BeginDisabled() end
     if fullWidthButton("Clear Search##presetSearchClear",actionButtonHeight) then commands.run(runtime,"clear_filter") end
     if emptySearch then ImGui.EndDisabled() end
+    local refreshBusy=state.load.auto or state.load.needsContinue or state.load.pendingChange
+    if refreshBusy then ImGui.BeginDisabled() end
     if fullWidthButton("Refresh##presetRefresh",actionButtonHeight) then commands.run(runtime,"refresh") end
-    local refreshOptionsUnavailable = not state.app.inCustomization
-      or state.load.auto or state.load.needsContinue or state.load.pendingChange
-    if refreshOptionsUnavailable then ImGui.BeginDisabled() end
-    if fullWidthButton("Refresh options##refreshOptionCatalog", actionButtonHeight) then
-      commands.run(runtime, "refresh_options")
-    end
-    if refreshOptionsUnavailable then ImGui.EndDisabled() end
+    if refreshBusy then ImGui.EndDisabled() end
     ensureFilteredViewCache()
     local queryActive = state.cache.queryActive
     local matchedFolders = state.cache.matchedFolders
@@ -119,7 +116,8 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
         local selected = state.ui.multiplePresets and state.trash.bulkSelected[name] == true
           or not state.ui.multiplePresets and state.library.selected == name
         if state.ui.multiplePresets then displayLabel = (selected and "[Selected] " or "[ ] ") .. displayLabel end
-        if ImGui.Selectable(displayLabel .. "##preset:" .. name .. tostring(idSuffix or ""), selected) then
+        local nextSelected=ImGui.Selectable(displayLabel .. "##preset:" .. name .. tostring(idSuffix or ""),selected)
+        if nextSelected~=selected then
           if state.ui.multiplePresets then
             commands.run(runtime, "bulk_select", {name=name,selectedForBulk=selected})
           elseif state.library.selected ~= name then
@@ -234,6 +232,13 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
     if not randomizerAvailable then ImGui.EndDisabled() end
     ImGui.Spacing()
     drawSaveSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
+
+    end
+    if not state.ui.multiplePresets then ui.drawSaveLocation(presetListHeight,statusHeight,actionButtonHeight) end
+    if state.ui.multiplePresets then drawBulkSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow) end
+    drawFoldersSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
+    if not state.ui.multiplePresets then
+      drawManageSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
     if compactSubsectionButton("Advanced Preset Options",
         "Hide Advanced Preset Options", "loadFavorites") then
       ImGui.Indent(8)
@@ -276,15 +281,8 @@ if collapsibleSectionHeader("ADVANCED PRESET MANAGER", "load") then
     end
 
     end
-    if not state.ui.multiplePresets then ui.drawSaveLocation(presetListHeight,statusHeight,actionButtonHeight) end
-    if state.ui.multiplePresets then
-      drawBulkSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
-    else
-      drawManageSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
-    end
-    drawFoldersSection(presetListHeight,statusHeight,actionButtonHeight,extraHeight,narrowTopRow)
     local wasMultiple=state.ui.multiplePresets==true
-    local multiple=compactSubsectionButton("Select Multiple Presets","Finish Selecting","multiplePresets")
+    local multiple=compactSubsectionButton("Select Multiple Presets","Finish Selecting","multiplePresets",true)
     if multiple~=wasMultiple then
       state.ui.multiplePresets=multiple
       commands.run(runtime,"bulk_clear",{selectedBulkNames=selectedBulkPresetNames()})

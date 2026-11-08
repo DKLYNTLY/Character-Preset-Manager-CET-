@@ -144,9 +144,9 @@ Open it with your CET overlay key, or select **Advanced Preset Manager** in the 
 - Randomize your appearance and choose which categories can change.
 - Change preset sorting in **Settings** and view the Activity Log.
 
-The **Open In-Game Character Creator** button sits beside **Settings** and **Log** in CET; on narrow windows it stacks above them. Below that toolbar are **Advanced Preset Manager** and **Delete & Restore Items**. The manager uses one preset list for loading and **Select Multiple Presets** mode. That mode exposes presets inside folders, and leaving it clears its selection and confirmation without loading a preset. **Edit Details** contains rename, copy, favorite, notes, tags, and file-path controls. Actions share one status area. Load, yellow Undo, and Trash stay together above Randomize. Save sits below Randomize, followed by full-width stacked controls for advanced options, save location, details, folders, and multiple selection.
+The **Character Creator** button opens the in-game editor and sits beside **Settings** and **Log** in CET; on narrow windows it stacks above them. Preset management is always visible below the toolbar; **Permanently Delete or Restore** follows it under a divider, without an outer tab. The manager uses one preset list for loading and **Select Multiple Presets** mode. That mode exposes presets inside folders, and leaving it clears its selection and confirmation without loading a preset. **Edit Details** contains rename, copy, favorite, notes, tags, and file-path controls. Actions share one status area. **Refresh** updates the preset library and live editor options together; outside an editor it refreshes the library only, and it waits until loading has finished. Load, yellow Undo, and Trash stay together above Randomize. Save sits below Randomize, followed by full-width stacked controls in this order: **Change Save Location**, **Folders**, **Edit Details**, **Advanced Preset Options**, and **Select Multiple Presets**.
 
-In the simple menu, Save appears above Save Location, followed by yellow **Undo Last Load** and **Move Preset to Trash**. After a confirmed move, **Advanced Preset Manager** turns yellow; clicking it opens CET at **Delete & Restore Items**. That section restores or permanently deletes items already in Trash.
+In the simple menu, Save appears above Save Location, followed by yellow **Undo Last Load** and **Move Preset to Trash**. After a confirmed move, **Advanced Preset Manager** turns yellow; clicking it opens CET at **Permanently Delete or Restore**. That area restores or permanently deletes items already in Trash.
 
 Log controls resize with the font, pagination stays together, and **Technical Details** contains the severity guide and catalog export. Settings groups library choices, diagnostics, and saved settings into labeled areas with explicit controls.
 
@@ -303,7 +303,7 @@ Older files in `Data/Recovery/Appearance History` stay on disk. If the new undo 
 
 ### Trash
 
-Presets and folders moved to Trash can be restored through **Delete & Restore Items** in the Advanced Preset Manager. If a name is already taken, the restored item gets “Copy” added to its name.
+Presets and folders moved to Trash can be restored through **Permanently Delete or Restore** in the Advanced Preset Manager. If a name is already taken, the restored item gets “Copy” added to its name.
 
 **Empty Trash Permanently** deletes the items in Trash. This cannot be undone.
 
