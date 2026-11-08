@@ -11,6 +11,7 @@ for current steps.
 
 - Matches the README headings and section order to the Nexus description while keeping the updated instructions, warnings, and technical details.
 
+- Adds load-only **[LOAD PROFILE]** counters for option reads, matching, writes, verification, and observed wait intervals. Loading order and wait settings are unchanged.
 - Saves new appearances and recovery snapshots as readable **format 9** presets. Files use the name entered, keep header metadata, and support notes, tags, favorites, renaming, copies, and library folders. Overwriting still requires confirmation.
 - Ships the six bundled default presets in format 9 with body metadata and includes the **Data/Recovery/Preset Upgrades** folder.
 - Automatically upgrades identified CPM formats 8 and below after verifying an exact original backup in **Data/Recovery/Preset Upgrades**. Conversion waits for a matching-body editor catalog; CET asks for a body when evidence is unclear. Replacements keep names, folders, metadata, and appended upgrade notes, while partial results warn about unresolved choices.

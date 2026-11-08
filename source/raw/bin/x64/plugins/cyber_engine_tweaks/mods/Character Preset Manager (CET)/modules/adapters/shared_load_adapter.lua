@@ -25,7 +25,7 @@ local function new(runtime)
     generation = generation + 1
   end
 
-  local function resolve(intent, candidates)
+  local function resolveRaw(intent, candidates)
     if intent.outcome ~= "resolve" then return {status=intent.outcome} end
     local catalog = {}
     for _, candidate in ipairs(candidates) do
@@ -48,6 +48,14 @@ local function new(runtime)
     end
     local result = resolution.resolve(intent, catalog)
     if result.position then result.current = catalog[result.position].current end
+    return result
+  end
+
+  local function resolve(intent,candidates)
+    local profile=helpers.loadProfile
+    local started=profile and helpers.loadClock()
+    local result=resolveRaw(intent,candidates)
+    if profile then profile.add("resolves");profile.add("resolveSeconds",math.max(0,helpers.loadClock()-started)) end
     return result
   end
 
@@ -125,7 +133,12 @@ local function new(runtime)
       local intent = job.intents[job.verifyCursor]
       if not intent then finish(); return end
       progress("Checking saved choices.")
+      local verifyStarted=helpers.loadProfile and helpers.loadClock()
       job.verified[job.verifyCursor] = resolve(intent,candidates).status == "matching"
+      if helpers.loadProfile then
+        helpers.loadProfile.add("verification")
+        helpers.loadProfile.add("verificationSeconds",math.max(0,helpers.loadClock()-verifyStarted))
+      end
       job.verifyCursor = job.verifyCursor + 1
       state.load.nextInterval = 0
       return
@@ -160,7 +173,12 @@ local function new(runtime)
         execution.step(job.machine,{now=now,editorOpen=true,writeFailed=true})
       else
         log(("[SHARED LOAD] Apply '%s' target=%d."):format(intent.internalName or intent.label, action.target),"info")
+        local applyStarted=helpers.loadProfile and helpers.loadClock()
         local ok = pcall(system.ApplyChangeToOption,system,option,action.target)
+        if helpers.loadProfile then
+          helpers.loadProfile.add("applies")
+          helpers.loadProfile.add("applySeconds",math.max(0,helpers.loadClock()-applyStarted))
+        end
         if not ok then execution.step(job.machine,{now=now,editorOpen=true,writeFailed=true}) end
         state.app.optionsMemo = nil
       end
@@ -191,6 +209,10 @@ local function new(runtime)
             or helpers.loadClock() - started >= AUTO_LOAD_TIMING.groupBudgetSeconds then break end
       end
     end)
+    if helpers.loadProfile then
+      helpers.loadProfile.wait(job and job.machine.waiting and "selector"
+        or job and job.verifying and not job.verificationReady and "verification" or nil)
+    end
     state.load.choiceSeconds = state.load.choiceSeconds + math.max(0,helpers.loadClock()-started)
     if not ok then
       log("[SHARED LOAD] Loading stopped after an adapter failure.","error")

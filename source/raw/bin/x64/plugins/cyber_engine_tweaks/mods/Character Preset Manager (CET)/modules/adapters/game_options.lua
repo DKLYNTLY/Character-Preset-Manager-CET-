@@ -62,8 +62,11 @@ local function transition(kind)
   if kind == "release" then releaseControl() end
   return actions[1]
 end
+local profile=require("modules/adapters/load_profile").new(function() return helpers.loadClock() end,log)
+helpers.loadProfile=profile
 local oldReset = resetLoadState
 resetLoadState = function()
+  profile.finish("reset")
   if helpers.appearanceTrace then helpers.appearanceTrace("after", "load", "reset") end
   if transition("reset") == "reset" then
     oldReset()
@@ -259,6 +262,8 @@ end
 function loadPreset()
   transition("invocation")
   local started = helpers.loadClock()
+  profile.begin(state.load.overrideName or state.library.selected,state.load.elapsed)
+  profile.enter(state.load.elapsed)
   state.load.updateStarted = started
   local previousCameraHold = state.app.presetCameraHold
   transition("camera_enter")
@@ -267,6 +272,10 @@ function loadPreset()
   transition("camera_exit")
   state.load.longestUpdate = math.max(state.load.longestUpdate,
     math.max(0, helpers.loadClock() - started))
+  profile.leave(math.max(0,helpers.loadClock()-started))
+  if not ok or not state.load.needsContinue or state.load.stalled then
+    profile.finish(not ok and "error" or state.load.stalled and "partial" or "returned")
+  end
   state.load.updateStarted = nil
   if helpers.appearanceTrace and (not ok or not state.load.needsContinue or state.load.stalled) then
     helpers.appearanceTrace("after", "load", not ok and "error" or state.load.stalled and "stalled" or "returned")

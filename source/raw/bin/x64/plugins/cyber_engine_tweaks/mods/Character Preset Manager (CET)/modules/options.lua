@@ -294,6 +294,8 @@ function getOptions(forceRefresh)
     state.app.optionsMemo = { error = message }
     return nil, nil, message
   end
+  local profile=helpers.loadProfile
+  local readStarted=profile and helpers.loadClock()
   local ok, options = pcall(function()
     if not emptyCustomizationName then emptyCustomizationName = ToCName({}) end
     return system:GetUnitedOptions(
@@ -305,6 +307,7 @@ function getOptions(forceRefresh)
       emptyCustomizationName
     )
   end)
+  if profile then profile.add("reads");profile.add("readSeconds",math.max(0,helpers.loadClock()-readStarted)) end
   if not ok or type(options) ~= "table" or next(options) == nil then
     local message = "Character options have not loaded yet"
     helpers.clearOptionCatalog()
@@ -319,8 +322,12 @@ end
 
 
 helpers.acuCandidates = function(options)
+  local profile=helpers.loadProfile
+  local started=profile and helpers.loadClock()
+  if profile then profile.add("builds") end
   local live, occurrences = {}, {}
   for position, option in ipairs(options or {}) do
+    if profile then profile.add("visited") end
     if option and option.isEditable and option.isActive then
       local label = optionKey(option)
       local nameOk, internalName = pcall(function() return stableRuntimeValue(option.info.name) end)
@@ -333,6 +340,7 @@ helpers.acuCandidates = function(options)
       end
     end
   end
+  if profile then profile.add("candidateSeconds",math.max(0,helpers.loadClock()-started)) end
   return live
 end
 
@@ -346,11 +354,13 @@ helpers.resolveAcuChoice = function(option, choice)
   if sourceField ~= "options" and sourceField ~= "definitions" and sourceField ~= "morphNames" then return nil end
   local sourceOk, collection = pcall(function() return option.info[sourceField] end)
   if not sourceOk or collection == nil then return nil end
+  if helpers.loadProfile then helpers.loadProfile.add("arrays") end
   local sizeOk, size = pcall(function() return #collection end)
   if not sizeOk or not identities.optionIndexIsValid(size) then return nil end
   if field == "switcher" then
     local found
     for index = 0, size - 1 do
+      if helpers.loadProfile then helpers.loadProfile.add("elements") end
       local namesOk, identity = pcall(function()
         local source = collection[index + 1].names
         local count = #source
@@ -373,6 +383,7 @@ helpers.resolveAcuChoice = function(option, choice)
   local found
   local member = field == "definitions" and "name" or field == "morphNames" and "morphName" or "localizedName"
   for index = 0, size - 1 do
+    if helpers.loadProfile then helpers.loadProfile.add("elements") end
     local valueOk, value = pcall(function()
       local item = collection[index + 1]
       return type(item) == "string" and item or item[member]
