@@ -190,7 +190,7 @@ std::optional<format9::Preset> FromLegacy(const std::vector<LegacyEntry>& entrie
         row.state = "Selected";
         row.legacyKey = entry.key;
         row.legacyChoice = entry.choice;
-        row.value = std::to_string(entry.index.value_or(0));
+        row.value = entry.negativeZero && entry.index.value_or(0) == 0 ? "-0" : std::to_string(entry.index.value_or(0));
         row.kind = "Legacy index";
         row.choices = std::vector<std::string>{*row.value};
         if (entry.choice)

@@ -36,6 +36,7 @@ struct LegacyEntry
     std::optional<std::uint32_t> index;
     std::optional<std::string> choice;
     std::optional<Selection> selection;
+    bool negativeZero = false;
 };
 
 struct Preset
