@@ -17,6 +17,7 @@ add_library(CharacterPresetManagerNative SHARED
   src/Main.cpp
   src/FileService.cpp
   src/FileFormats.cpp
+  src/PresetFormat9.cpp
   src/AcuImporter.cpp
   src/DirectoryWatcher.cpp
   src/OverlayOpener.cpp
