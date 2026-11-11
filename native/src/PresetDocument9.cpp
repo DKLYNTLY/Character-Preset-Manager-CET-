@@ -2,6 +2,8 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
+#include <map>
 
 namespace cpm::document9
 {
@@ -141,7 +143,21 @@ std::optional<Preset> Decode(std::string_view input)
     if (!appearance) return std::nullopt;
     Preset preset;
     for (const auto& row : appearance->entries)
-        if (row.state == "Selected" || row.state == "Off") ++preset.entryCount;
+    {
+        if (row.state != "Selected" && row.state != "Off") continue;
+        LegacyEntry entry;
+        entry.key = row.legacyKey.value_or(row.name);
+        if (row.slot != "[unavailable]") entry.slot = row.slot;
+        std::uint32_t index = 0;
+        if (row.value) std::from_chars(row.value->data(), row.value->data() + row.value->size(), index);
+        entry.index = index;
+        entry.choice = row.legacyChoice;
+        if (row.kind == "Appearance") entry.selection = Selection{SelectionKind::Appearance, *row.choices};
+        else if (row.kind == "Morph") entry.selection = Selection{SelectionKind::Morph, *row.choices};
+        else if (row.kind == "Switcher") entry.selection = Selection{SelectionKind::Switcher, *row.choices};
+        preset.entries.push_back(std::move(entry));
+    }
+    preset.entryCount = preset.entries.size();
     if (!preset.entryCount) return std::nullopt;
     if (!appearance->body) appearance->body = "Unknown";
     if (!appearance->voice) appearance->voice = "Unknown";
@@ -155,5 +171,44 @@ bool SameAppearance(const Preset& first, const Preset& second)
 {
     const auto encoded = format9::Encode(Appearance(first));
     return encoded && encoded == format9::Encode(Appearance(second));
+}
+
+std::optional<format9::Preset> FromLegacy(const std::vector<LegacyEntry>& entries,
+    std::optional<std::string> body, std::optional<std::string> voice)
+{
+    if (entries.empty() || entries.size() > format9::MaximumEntries) return std::nullopt;
+    format9::Preset appearance;
+    appearance.body = body.value_or("Unknown");
+    appearance.voice = voice.value_or("Unknown");
+    std::map<std::string, std::uint32_t> counts;
+    for (const auto& entry : entries)
+    {
+        format9::Entry row;
+        row.slot = entry.slot.value_or("[unavailable]");
+        row.name = "[unavailable]";
+        row.occurrence = ++counts[row.slot + "\n" + entry.key.value_or("nil")];
+        row.state = "Selected";
+        row.legacyKey = entry.key;
+        row.legacyChoice = entry.choice;
+        row.value = std::to_string(entry.index.value_or(0));
+        row.kind = "Legacy index";
+        row.choices = std::vector<std::string>{*row.value};
+        if (entry.choice)
+        {
+            const auto colon = entry.choice->find(':');
+            if (colon != entry.choice->npos && colon > 0 && colon + 1 < entry.choice->size())
+            {
+                const auto field = entry.choice->substr(0, colon);
+                const auto value = entry.choice->substr(colon + 1);
+                if (field == "definitions") row.kind = "Appearance";
+                else if (field == "morphNames") row.kind = "Morph";
+                else if (field == "options") row.kind = "Legacy label";
+                if (row.kind != "Legacy index") row.choices = std::vector<std::string>{value};
+            }
+        }
+        appearance.entries.push_back(std::move(row));
+    }
+    if (!format9::Encode(appearance)) return std::nullopt;
+    return appearance;
 }
 }
