@@ -19,6 +19,7 @@ struct OperationResult
     std::uint64_t session = 0;
     OperationStatus status = OperationStatus::Failure;
     std::string payload;
+    std::string fingerprint;
 };
 
 class PresetOperations
