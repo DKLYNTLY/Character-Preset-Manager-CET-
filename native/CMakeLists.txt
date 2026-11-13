@@ -22,6 +22,7 @@ add_library(CharacterPresetManagerNative SHARED
   src/LegacyPresetText.cpp
   src/PresetJson.cpp
   src/AcuJson.cpp
+  src/PresetOperations.cpp
   src/AcuImporter.cpp
   src/DirectoryWatcher.cpp
   src/OverlayOpener.cpp
