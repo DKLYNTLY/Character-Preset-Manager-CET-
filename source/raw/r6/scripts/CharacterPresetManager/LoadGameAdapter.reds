@@ -2,8 +2,11 @@ module CPM
 
 public class LoadGameAdapter extends IScriptable {
   public static func Read(system: ref<gameuiICharacterCustomizationSystem>) -> array<ref<LoadOption>> {
+    return LoadGameAdapter.Copy(system.GetUnitedOptions(true, true, true));
+  }
+
+  private static func Copy(options: array<ref<CharacterCustomizationOption>>) -> array<ref<LoadOption>> {
     let catalog: array<ref<LoadOption>>;
-    let options = system.GetUnitedOptions(true, true, true);
     let position: Int32 = 0;
     while position < ArraySize(options) {
       let source = options[position];
@@ -62,5 +65,25 @@ public class LoadGameAdapter extends IScriptable {
       position += 1;
     };
     return catalog;
+  }
+
+  public static func ApplyFresh(system: ref<gameuiICharacterCustomizationSystem>, intent: ref<LoadIntent>, parent: Bool) -> ref<LoadResolution> {
+    let rejected = new LoadResolution();
+    rejected.status = "unresolved";
+    rejected.position = -1;
+    if !IsDefined(system) || !IsDefined(intent) { return rejected; };
+    if !intent.hasInternalName || !IsDefined(intent.identity) { return rejected; };
+    if NotEquals(intent.identity.kind, "appearance") && NotEquals(intent.identity.kind, "morph")
+      && NotEquals(intent.identity.kind, "switcher") { return rejected; };
+    let options = system.GetUnitedOptions(true, true, true);
+    let resolution = LoadResolution.Resolve(intent, LoadGameAdapter.Copy(options));
+    if NotEquals(resolution.status, "ready") { return resolution; };
+    if parent {
+      system.ApplyChangeToOption(options[resolution.position], resolution.target, true);
+    } else {
+      system.ApplyChangeToOption(options[resolution.position], resolution.target);
+    };
+    resolution.status = "applied";
+    return resolution;
   }
 }
