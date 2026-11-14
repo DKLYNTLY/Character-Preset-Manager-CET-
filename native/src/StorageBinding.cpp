@@ -10,6 +10,7 @@ namespace
 std::unique_ptr<PresetStore> store;
 std::optional<OperationResult> collected;
 bool enabled = true;
+std::mutex bindingMutex;
 
 bool EnsureStore()
 {
@@ -29,6 +30,7 @@ void SubmitRead(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result
     RED4ext::CString relative;
     RED4ext::GetParameter(frame, &id); RED4ext::GetParameter(frame, &session); RED4ext::GetParameter(frame, &relative);
     frame->Step();
+    std::lock_guard lock(bindingMutex);
     *result = false;
     try { *result = EnsureStore() && store->Read(id, session, std::string(relative.c_str(), relative.Length())); }
     catch (...) {}
@@ -41,6 +43,7 @@ void SubmitSave(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result
     RED4ext::GetParameter(frame, &id); RED4ext::GetParameter(frame, &session);
     RED4ext::GetParameter(frame, &relative); RED4ext::GetParameter(frame, &contents); RED4ext::GetParameter(frame, &fingerprint);
     frame->Step();
+    std::lock_guard lock(bindingMutex);
     *result = false;
     try
     {
@@ -55,6 +58,7 @@ void SubmitSave(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result
 void Poll(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result, int64_t)
 {
     frame->Step();
+    std::lock_guard lock(bindingMutex);
     *result = false;
     try { collected = enabled && store ? store->Poll() : std::nullopt; *result = collected.has_value(); }
     catch (...) { collected.reset(); }
@@ -64,6 +68,7 @@ void Text(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, RED4ext::CString* 
 {
     RED4ext::CString field;
     RED4ext::GetParameter(frame, &field); frame->Step();
+    std::lock_guard lock(bindingMutex);
     *result = RED4ext::CString("");
     if (!enabled || !collected) return;
     if (field == "contents") *result = RED4ext::CString(collected->payload);
@@ -80,6 +85,7 @@ void Text(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, RED4ext::CString* 
 
 void RegisterStorageBinding()
 {
+    std::lock_guard lock(bindingMutex);
     if (!enabled) return;
     auto rtti = RED4ext::CRTTISystem::Get();
     auto read = RED4ext::CGlobalFunction::Create("CPMStorageRead", "CPMStorageRead", &SubmitRead);
@@ -99,6 +105,7 @@ void RegisterStorageBinding()
 
 void StopStorageBinding()
 {
+    std::lock_guard lock(bindingMutex);
     enabled = false;
     if (store) store->Stop();
     store.reset(); collected.reset();

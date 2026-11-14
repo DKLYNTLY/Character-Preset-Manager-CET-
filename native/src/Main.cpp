@@ -1,5 +1,6 @@
 #include <RED4ext/RED4ext.hpp>
 #include "FileService.hpp"
+#include "StorageBinding.hpp"
 
 namespace
 {
@@ -30,10 +31,20 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
         {
             g_handle = handle;
             g_sdk = sdk;
-            return cpm::StartFileService(LogInfo, LogWarning);
+            if (!cpm::StartFileService(LogInfo, LogWarning)) return false;
+            HMODULE pinned{};
+            if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
+                reinterpret_cast<LPCWSTR>(&Main), &pinned))
+            {
+                cpm::StopFileService();
+                return false;
+            }
+            RED4ext::CRTTISystem::Get()->AddPostRegisterCallback(cpm::RegisterStorageBinding);
+            return true;
         }
         if (reason == RED4ext::v1::EMainReason::Unload)
         {
+            cpm::StopStorageBinding();
             cpm::StopFileService();
             g_sdk = nullptr;
         }
