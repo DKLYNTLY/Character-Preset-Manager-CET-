@@ -1,6 +1,7 @@
 #include "PresetStore.hpp"
 #include "PresetRead.hpp"
 #include <Windows.h>
+#include <algorithm>
 
 namespace cpm
 {
@@ -76,5 +77,43 @@ bool PresetStore::Save(std::uint64_t id, std::uint64_t session, std::string rela
 }
 
 std::optional<OperationResult> PresetStore::Poll() { return operations_.Poll(); }
+bool PresetStore::List(std::uint64_t id, std::uint64_t session)
+{
+    return operations_.Submit(id, session, [root = root_](std::stop_token stop) {
+        OperationResult result;
+        if (!Resolve(root, "validation.preset")) return result;
+        std::error_code error;
+        std::filesystem::recursive_directory_iterator iterator(root, error), end;
+        if (error) return result;
+        std::vector<std::string> paths;
+        std::size_t visited = 0;
+        while (iterator != end)
+        {
+            if (stop.stop_requested()) { result.status = OperationStatus::Cancelled; return result; }
+            if (++visited > 100000) return result;
+            const auto path = iterator->path();
+            const auto attributes = GetFileAttributesW(path.c_str());
+            if (attributes == INVALID_FILE_ATTRIBUTES) return result;
+            if (attributes & FILE_ATTRIBUTE_REPARSE_POINT) iterator.disable_recursion_pending();
+            else if (!(attributes & FILE_ATTRIBUTE_DIRECTORY))
+            {
+                const auto encoded = path.lexically_relative(root).generic_u8string();
+                const std::string relative(encoded.begin(), encoded.end());
+                if (Resolve(root, relative)) paths.push_back(relative);
+            }
+            if (iterator.depth() >= 31) iterator.disable_recursion_pending();
+            iterator.increment(error);
+            if (error) return result;
+        }
+        std::sort(paths.begin(), paths.end());
+        for (const auto& path : paths)
+        {
+            if (result.payload.size() + path.size() + 1 > format9::MaximumBytes) return OperationResult{};
+            result.payload += path + "\n";
+        }
+        result.status = OperationStatus::Success;
+        return result;
+    });
+}
 void PresetStore::Stop() { operations_.Stop(); }
 }

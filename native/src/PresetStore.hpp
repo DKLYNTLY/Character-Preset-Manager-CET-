@@ -10,6 +10,7 @@ class PresetStore
 public:
     explicit PresetStore(std::filesystem::path root, std::size_t capacity = 16);
     bool Read(std::uint64_t id, std::uint64_t session, std::string relative);
+    bool List(std::uint64_t id, std::uint64_t session);
     bool Save(std::uint64_t id, std::uint64_t session, std::string relative,
         document9::Preset preset, std::optional<std::string> expectedFingerprint);
     std::optional<OperationResult> Poll();

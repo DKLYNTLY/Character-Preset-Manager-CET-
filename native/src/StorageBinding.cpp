@@ -55,6 +55,18 @@ void SubmitSave(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result
     catch (...) {}
 }
 
+void List(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result, int64_t)
+{
+    std::uint64_t id = 0, session = 0;
+    RED4ext::GetParameter(frame, &id);
+    RED4ext::GetParameter(frame, &session);
+    frame->Step();
+    std::lock_guard lock(bindingMutex);
+    *result = false;
+    try { *result = EnsureStore() && store->List(id, session); }
+    catch (...) {}
+}
+
 void Poll(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result, int64_t)
 {
     frame->Step();
@@ -88,6 +100,12 @@ void RegisterStorageBinding()
     std::lock_guard lock(bindingMutex);
     if (!enabled) return;
     auto rtti = RED4ext::CRTTISystem::Get();
+    auto list = RED4ext::CGlobalFunction::Create("CPMStorageList", "CPMStorageList", &List);
+    list->flags = {.isNative = true, .isStatic = true};
+    list->SetReturnType("Bool");
+    list->AddParam("Uint64", "id");
+    list->AddParam("Uint64", "session");
+    rtti->RegisterFunction(list);
     auto read = RED4ext::CGlobalFunction::Create("CPMStorageRead", "CPMStorageRead", &SubmitRead);
     read->flags = {.isNative = true, .isStatic = true}; read->SetReturnType("Bool");
     read->AddParam("Uint64", "id"); read->AddParam("Uint64", "session"); read->AddParam("String", "relative");
