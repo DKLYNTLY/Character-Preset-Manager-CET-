@@ -2,6 +2,11 @@ module CPM
 
 public class CoreCapture extends IScriptable {
   public static func Capture(system: ref<gameuiICharacterCustomizationSystem>, presetName: String) -> String {
+    let intents: array<ref<LoadIntent>>;
+    return CoreCapture.Snapshot(system, presetName, intents);
+  }
+
+  public static func Snapshot(system: ref<gameuiICharacterCustomizationSystem>, presetName: String, out intents: array<ref<LoadIntent>>) -> String {
     let catalog = LoadGameAdapter.Read(system);
     let state = system.GetState();
     let body = "Unknown";
@@ -68,6 +73,14 @@ public class CoreCapture extends IScriptable {
               + ToString(option.current) + "\n" + details + "\n";
             count += 1;
             captured = true;
+            let intent = new LoadIntent();
+            intent.internalName = name;
+            intent.hasInternalName = true;
+            intent.slot = slot;
+            intent.hasSlot = true;
+            intent.identity = identity;
+            intent.outcome = "resolve";
+            ArrayPush(intents, intent);
           };
         };
       };

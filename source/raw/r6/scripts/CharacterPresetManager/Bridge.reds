@@ -29,6 +29,7 @@ public class NativeBridge extends ScriptableSystem {
   private let coreSaveFingerprint: String;
   private let coreMenu: wref<characterCreationBodyMorphMenu>;
   private let coreIntents: array<ref<LoadIntent>>;
+  private let coreUndo: array<ref<LoadIntent>>;
   private let coreGraph: ref<LoadDependencies>;
   private let coreExecution: ref<LoadExecution>;
   private let coreSkipped: Int32;
@@ -75,6 +76,7 @@ public class NativeBridge extends ScriptableSystem {
       this.coreExecution = null;
       this.coreVerification = null;
       this.coreMenu = null;
+      ArrayClear(this.coreUndo);
       this.coreSaveFingerprint = "";
     };
   }
@@ -105,6 +107,15 @@ public class NativeBridge extends ScriptableSystem {
         };
         if Equals(action, "save") {
           if !this.busy { this.RequestCoreSave(payload); };
+          return;
+        };
+        if Equals(action, "restore_previous") {
+          if !this.busy && ArraySize(this.coreUndo) > 0 {
+            this.coreIntents = this.coreUndo;
+            ArrayClear(this.coreUndo);
+            this.NotifyPanels("core_undo", "0", false);
+            this.StartCoreLoad();
+          };
           return;
         };
         this.NotifyPanels("error", "This action is not available in the core test build.", this.busy);
@@ -223,15 +234,19 @@ public class NativeBridge extends ScriptableSystem {
                 return;
               };
             };
-            this.coreGraph = LoadDependencies.Build(this.coreIntents);
-            this.coreSkipped = ArraySize(this.coreGraph.cyclic);
-            this.coreExecution = LoadExecution.Create(this.coreGraph, 120.0);
-            this.SetBusy(true, "Applying preset…", false);
-            this.ScheduleCoreList(session);
+            let snapshot: array<ref<LoadIntent>>;
+            CoreCapture.Snapshot(system, "Undo Last Load", snapshot);
+            if ArraySize(snapshot) == 0 {
+              this.NotifyPanels("error", "Could not capture the current appearance for Undo.", false);
+              return;
+            };
+            this.coreUndo = snapshot;
+            this.NotifyPanels("core_undo", "1", false);
+            this.StartCoreLoad();
             return;
           };
           let paths = StrSplit(CPMStorageResult("contents"), "\n", false);
-          let list: String = "";
+          let list = ArraySize(this.coreUndo) > 0 ? "RECOVERY\t1\n" : "RECOVERY\t0\n";
           let index: Int32 = 0;
           while index < ArraySize(paths) {
             let path = paths[index];
@@ -265,6 +280,14 @@ public class NativeBridge extends ScriptableSystem {
       steps += 1;
     };
     this.ScheduleCoreList(session);
+  }
+
+  private func StartCoreLoad() -> Void {
+    this.coreGraph = LoadDependencies.Build(this.coreIntents);
+    this.coreSkipped = ArraySize(this.coreGraph.cyclic);
+    this.coreExecution = LoadExecution.Create(this.coreGraph, 120.0);
+    this.SetBusy(true, "Applying preset…", false);
+    this.ScheduleCoreList(this.coreSession);
   }
 
   private func ExecuteCoreStep(session: Uint64) -> Bool {

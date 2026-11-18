@@ -549,6 +549,11 @@ public class PresetPanel extends inkCustomController {
   }
   public func OnBridgeResponse(kind: String, payload: String, isBusy: Bool) -> Void {
     this.OnBusyChanged(isBusy, "", false);
+    if Equals(kind, "core_undo") {
+      this.recoveryAvailable = Equals(payload, "1");
+      this.UpdateActionAvailability();
+      return;
+    };
     if Equals(kind, "list") { this.ReadPresetList(payload); return; };
     if Equals(kind, "history") { this.ReadHistory(payload); return; };
     if Equals(kind, "confirm_state") {
