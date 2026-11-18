@@ -177,7 +177,9 @@ public class PresetPanel extends inkCustomController {
     title.SetTintColor(HDRColor(0.22, 0.92, 1.0, 1.0));
     title.Reparent(root);
 
-    let advancedText: ref<inkText> = this.MakeText("Choose a preset to load it. Open the advanced manager for folders or details.", 29, 34.0, 48.0, 654.0, 58.0);
+    let description = CPMCoreTestEnabled() ? "Choose a preset to load it, or save your current appearance."
+      : "Choose a preset to load it. Open the advanced manager for folders or details.";
+    let advancedText: ref<inkText> = this.MakeText(description, 29, 34.0, 48.0, 654.0, 58.0);
     advancedText.SetWrapping(true, 644.0);
     advancedText.SetHorizontalAlignment(textHorizontalAlignment.Center);
     advancedText.SetTintColor(HDRColor(1.0, 1.0, 1.0, 1.0));
@@ -257,6 +259,13 @@ public class PresetPanel extends inkCustomController {
     this.randomizeSettingsAction.SetDisabled(true);
     this.openCETAction = this.AddAction(root, "ADVANCED PRESET MANAGER", 34.0, 1464.0, n"OnOpenCET");
     this.openCETAction.SetWidth(654.0);
+    if CPMCoreTestEnabled() {
+      this.locationButton.GetRootWidget().SetVisible(false);
+      this.trashAction.GetRootWidget().SetVisible(false);
+      this.randomizeAction.GetRootWidget().SetVisible(false);
+      this.randomizeSettingsAction.GetRootWidget().SetVisible(false);
+      this.openCETAction.GetRootWidget().SetVisible(false);
+    };
     this.SetRootWidget(root);
     return true;
   }
