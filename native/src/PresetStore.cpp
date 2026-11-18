@@ -3,9 +3,23 @@
 #include "LegacyPresetText.hpp"
 #include <Windows.h>
 #include <algorithm>
+#include <cstdio>
 
 namespace cpm
 {
+namespace
+{
+std::string LocalTimestamp()
+{
+    SYSTEMTIME local{};
+    GetLocalTime(&local);
+    char timestamp[32]{};
+    std::snprintf(timestamp, sizeof(timestamp), "%04d-%02d-%02d %02d:%02d:%02d",
+        static_cast<int>(local.wYear), static_cast<int>(local.wMonth), static_cast<int>(local.wDay),
+        static_cast<int>(local.wHour), static_cast<int>(local.wMinute), static_cast<int>(local.wSecond));
+    return timestamp;
+}
+}
 PresetStore::PresetStore(std::filesystem::path root, std::size_t capacity)
     : root_(std::filesystem::absolute(root).lexically_normal()), operations_(capacity) {}
 
@@ -123,6 +137,9 @@ bool PresetStore::Save(std::uint64_t id, std::uint64_t session, std::string rela
                 saved.metadata.libraryFolder = previous->metadata.libraryFolder;
             }
         }
+        const auto timestamp = LocalTimestamp();
+        if (!saved.metadata.created || saved.metadata.created->empty()) saved.metadata.created = timestamp;
+        saved.metadata.modified = timestamp;
         result.status = SavePreset(*path, saved, expected);
         if (result.status == OperationStatus::Conflict)
         {
