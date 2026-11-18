@@ -53,11 +53,19 @@ public class CoreCapture extends IScriptable {
               kind = Equals(identity.kind, "morph") ? "Morph" : "Appearance";
               identities = "# Choice identity: " + identity.name + "\n";
             };
-            let selected = Equals(kind, "Switcher") && Equals(option.choices[current].label, "Common-Off") ? "Off" : "Selected";
+            let label = option.choices[current].label;
+            let selected = Equals(kind, "Switcher") && Equals(label, "Common-Off") ? "Off" : "Selected";
+            let details = "# Detail unavailable: localized_name\n";
+            if StrLen(label) <= 1024 && !StrContains(label, "\n") && !StrContains(label, "\r") && !StrContains(label, "\t") {
+              details = "# Localized name: " + label + "\n";
+            };
+            if Equals(kind, "Appearance") {
+              details += "# Detail unavailable: tags\n# Detail unavailable: actions\n";
+            };
             result += "# Editor slot: " + slot + "\n# Option name: " + name
               + "\n# Option occurrence: " + ToString(occurrence) + "\n# Selection state: " + selected + "\n# Identity kind: "
               + kind + "\n" + identities + "# Source active: true\n# Source editable: true\n# Source value: "
-              + ToString(option.current) + "\n\n";
+              + ToString(option.current) + "\n" + details + "\n";
             count += 1;
             captured = true;
           };
