@@ -31,7 +31,7 @@ RED4EXT_C_EXPORT bool RED4EXT_CALL Main(RED4ext::v1::PluginHandle handle,
         {
             g_handle = handle;
             g_sdk = sdk;
-            if (!cpm::StartFileService(LogInfo, LogWarning)) return false;
+            if (!cpm::CoreTestEnabled() && !cpm::StartFileService(LogInfo, LogWarning)) return false;
             HMODULE pinned{};
             if (!GetModuleHandleExW(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_PIN,
                 reinterpret_cast<LPCWSTR>(&Main), &pinned))
@@ -61,7 +61,7 @@ RED4EXT_C_EXPORT void RED4EXT_CALL Query(RED4ext::v1::PluginInfo* info)
     info->name = L"Character Preset Manager Native File Service";
     info->author = L"Dnydd";
     info->version = RED4EXT_V1_SEMVER(4, 1, 0);
-    info->runtime = RED4EXT_V1_RUNTIME_VERSION_INDEPENDENT;
+    info->runtime = RED4EXT_V1_RUNTIME_VERSION_2_50;
     info->sdk = RED4EXT_V1_SDK_VERSION_CURRENT;
 }
 

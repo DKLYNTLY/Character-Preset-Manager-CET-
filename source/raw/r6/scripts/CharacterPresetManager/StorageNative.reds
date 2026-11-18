@@ -3,3 +3,5 @@ public static native func CPMStorageSave(id: Uint64, session: Uint64, relative: 
 public static native func CPMStoragePoll() -> Bool;
 public static native func CPMStorageList(id: Uint64, session: Uint64) -> Bool;
 public static native func CPMStorageResult(field: String) -> String;
+public static native func CPMCoreTestEnabled() -> Bool;
+public static native func CPMMonotonicTime() -> Double;

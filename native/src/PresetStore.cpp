@@ -1,5 +1,6 @@
 #include "PresetStore.hpp"
 #include "PresetRead.hpp"
+#include "LegacyPresetText.hpp"
 #include <Windows.h>
 #include <algorithm>
 
@@ -58,6 +59,42 @@ bool PresetStore::Read(std::uint64_t id, std::uint64_t session, std::string rela
         if (!bytes) return result;
         result.status = OperationStatus::Success;
         result.payload = bytes->contents; result.fingerprint = bytes->fingerprint;
+        if (const auto document = document9::Decode(bytes->contents))
+        {
+            result.sourceBody = document->appearance.body.value_or("");
+            for (const auto& row : document->appearance.entries)
+            {
+                if (row.state != "Selected" && row.state != "Off") continue;
+                if (!row.kind || !row.choices) continue;
+                result.intents += row.slot + '\t' + row.name + '\t' + *row.kind + '\t' + row.legacyKey.value_or("");
+                for (const auto& choice : *row.choices) result.intents += '\t' + choice;
+                result.intents += '\n';
+            }
+        }
+        else if (const auto legacy = legacy::DecodeText(bytes->contents, relative).preset)
+        {
+            for (const auto& row : legacy->entries)
+            {
+                if (!row.key || row.key->find_first_of("\t\r\n") != std::string::npos) continue;
+                auto kind = "Unresolved";
+                std::string choice;
+                if (row.choice)
+                {
+                    const auto separator = row.choice->find(':');
+                    if (separator != std::string::npos)
+                    {
+                        const auto field = row.choice->substr(0, separator);
+                        if (field == "definitions") kind = "Appearance";
+                        else if (field == "morphNames") kind = "Morph";
+                        else if (field == "options") kind = "Legacy label";
+                        choice = row.choice->substr(separator + 1);
+                    }
+                }
+                if (choice.find_first_of("\t\r\n") != std::string::npos) continue;
+                result.intents += row.slot.value_or("[unavailable]") + "\t[unavailable]\t" + kind
+                    + '\t' + *row.key + '\t' + choice + '\n';
+            }
+        }
         return result;
     });
 }
@@ -71,7 +108,26 @@ bool PresetStore::Save(std::uint64_t id, std::uint64_t session, std::string rela
         const auto path = Resolve(root, relative);
         if (!path) return result;
         if (stop.stop_requested()) { result.status = OperationStatus::Cancelled; return result; }
-        result.status = SavePreset(*path, preset, expected);
+        auto saved = preset;
+        if (expected)
+        {
+            const auto current = ReadPresetBytes(*path);
+            if (current && current->fingerprint == *expected)
+            {
+                const auto previous = document9::Decode(current->contents);
+                if (!previous) return result;
+                saved.metadata.notes = previous->metadata.notes;
+                saved.metadata.tags = previous->metadata.tags;
+                saved.metadata.favorite = previous->metadata.favorite;
+                saved.metadata.created = previous->metadata.created;
+                saved.metadata.libraryFolder = previous->metadata.libraryFolder;
+            }
+        }
+        result.status = SavePreset(*path, saved, expected);
+        if (result.status == OperationStatus::Conflict)
+        {
+            if (const auto current = ReadPresetBytes(*path)) result.fingerprint = current->fingerprint;
+        }
         return result;
     });
 }

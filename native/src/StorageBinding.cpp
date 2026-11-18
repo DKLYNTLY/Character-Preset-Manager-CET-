@@ -67,6 +67,25 @@ void List(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result, int6
     catch (...) {}
 }
 
+void PilotEnabled(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result, int64_t)
+{
+    frame->Step();
+    std::lock_guard lock(bindingMutex);
+    *result = false;
+    try
+    {
+        *result = enabled && CoreTestEnabled();
+    }
+    catch (...) {}
+}
+
+void MonotonicTime(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, double* result, int64_t)
+{
+    frame->Step();
+    static const auto origin = std::chrono::steady_clock::now();
+    *result = std::chrono::duration<double>(std::chrono::steady_clock::now() - origin).count();
+}
+
 void Poll(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, bool* result, int64_t)
 {
     frame->Step();
@@ -85,6 +104,8 @@ void Text(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, RED4ext::CString* 
     if (!enabled || !collected) return;
     if (field == "contents") *result = RED4ext::CString(collected->payload);
     else if (field == "fingerprint") *result = RED4ext::CString(collected->fingerprint);
+    else if (field == "intents") *result = RED4ext::CString(collected->intents);
+    else if (field == "body") *result = RED4ext::CString(collected->sourceBody);
     else if (field == "id") *result = RED4ext::CString(std::to_string(collected->id));
     else if (field == "session") *result = RED4ext::CString(std::to_string(collected->session));
     else if (field == "status")
@@ -95,11 +116,28 @@ void Text(RED4ext::IScriptable*, RED4ext::CStackFrame* frame, RED4ext::CString* 
 }
 }
 
+bool CoreTestEnabled()
+{
+    const auto root = GameRoot();
+    if (!root) return false;
+    std::error_code error;
+    return std::filesystem::is_regular_file(
+        *root / "red4ext/plugins/CharacterPresetManager/CoreTest.enabled", error);
+}
+
 void RegisterStorageBinding()
 {
     std::lock_guard lock(bindingMutex);
     if (!enabled) return;
     auto rtti = RED4ext::CRTTISystem::Get();
+    auto time = RED4ext::CGlobalFunction::Create("CPMMonotonicTime", "CPMMonotonicTime", &MonotonicTime);
+    time->flags = {.isNative = true, .isStatic = true};
+    time->SetReturnType("Double");
+    rtti->RegisterFunction(time);
+    auto pilot = RED4ext::CGlobalFunction::Create("CPMCoreTestEnabled", "CPMCoreTestEnabled", &PilotEnabled);
+    pilot->flags = {.isNative = true, .isStatic = true};
+    pilot->SetReturnType("Bool");
+    rtti->RegisterFunction(pilot);
     auto list = RED4ext::CGlobalFunction::Create("CPMStorageList", "CPMStorageList", &List);
     list->flags = {.isNative = true, .isStatic = true};
     list->SetReturnType("Bool");

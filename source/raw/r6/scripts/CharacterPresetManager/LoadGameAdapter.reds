@@ -12,6 +12,7 @@ public class LoadGameAdapter extends IScriptable {
       let source = options[position];
       let option = new LoadOption();
       option.name = NameToString(source.info.name);
+      option.label = LocKeyToString(source.info.name);
       option.slot = NameToString(source.info.uiSlot);
       option.current = source.currIndex;
       option.active = source.isActive;
@@ -27,6 +28,7 @@ public class LoadGameAdapter extends IScriptable {
           choice.identity = new LoadIdentity();
           choice.identity.kind = "appearance";
           choice.identity.name = NameToString(appearance.definitions[index].name);
+          choice.label = appearance.definitions[index].localizedName;
           choice.identity.hasName = true;
           ArrayPush(option.choices, choice);
           index += 1;
@@ -39,6 +41,7 @@ public class LoadGameAdapter extends IScriptable {
             choice.identity = new LoadIdentity();
             choice.identity.kind = "morph";
             choice.identity.name = NameToString(morph.morphNames[index].morphName);
+            choice.label = morph.morphNames[index].localizedName;
             choice.identity.hasName = true;
             ArrayPush(option.choices, choice);
             index += 1;
@@ -50,6 +53,7 @@ public class LoadGameAdapter extends IScriptable {
               choice.index = Cast<Uint32>(index);
               choice.identity = new LoadIdentity();
               choice.identity.kind = "switcher";
+              choice.label = switcher.options[index].localizedName;
               let member: Int32 = 0;
               while member < ArraySize(switcher.options[index].names) {
                 ArrayPush(choice.identity.names, NameToString(switcher.options[index].names[member]));
@@ -72,9 +76,9 @@ public class LoadGameAdapter extends IScriptable {
     rejected.status = "unresolved";
     rejected.position = -1;
     if !IsDefined(system) || !IsDefined(intent) { return rejected; };
-    if !intent.hasInternalName || !IsDefined(intent.identity) { return rejected; };
+    if (!intent.hasInternalName && !intent.hasLabel) || !IsDefined(intent.identity) { return rejected; };
     if NotEquals(intent.identity.kind, "appearance") && NotEquals(intent.identity.kind, "morph")
-      && NotEquals(intent.identity.kind, "switcher") { return rejected; };
+      && NotEquals(intent.identity.kind, "switcher") && NotEquals(intent.identity.kind, "legacy-label") { return rejected; };
     let options = system.GetUnitedOptions(true, true, true);
     let resolution = LoadResolution.Resolve(intent, LoadGameAdapter.Copy(options));
     if NotEquals(resolution.status, "ready") { return resolution; };

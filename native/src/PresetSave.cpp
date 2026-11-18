@@ -36,7 +36,11 @@ OperationStatus SavePreset(const std::filesystem::path& destination, const docum
     temporary.path += L".cpm-" + std::to_wstring(GetCurrentProcessId()) + L"-" + std::to_wstring(++sequence) + L".tmp";
     temporary.handle = CreateFileW(temporary.path.c_str(), GENERIC_WRITE, 0, nullptr, CREATE_NEW,
         FILE_ATTRIBUTE_NORMAL, nullptr);
-    if (temporary.handle == INVALID_HANDLE_VALUE) return OperationStatus::Failure;
+    if (temporary.handle == INVALID_HANDLE_VALUE)
+    {
+        temporary.path.clear();
+        return OperationStatus::Failure;
+    }
     DWORD written = 0;
     if (!WriteFile(temporary.handle, contents->data(), static_cast<DWORD>(contents->size()), &written, nullptr)
         || written != contents->size() || !FlushFileBuffers(temporary.handle)) return OperationStatus::Failure;

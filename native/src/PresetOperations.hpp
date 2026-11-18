@@ -20,6 +20,8 @@ struct OperationResult
     OperationStatus status = OperationStatus::Failure;
     std::string payload;
     std::string fingerprint;
+    std::string intents;
+    std::string sourceBody;
 };
 
 class PresetOperations

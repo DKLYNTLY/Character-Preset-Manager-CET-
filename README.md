@@ -1,5 +1,11 @@
 <h1 align="center">CHARACTER PRESET MANAGER</h1>
 
+The `codex/cet-free-core-pilot` branch contains an unreleased test build for Cyberpunk 2077 2.50. It uses RED4ext, redscript, and Codeware for basic preset browsing, loading, and saving. Install Mod Settings to assign **Open Character Creator**. The shortcut starts unbound.
+
+For the pilot, install the scripts and DLL from the same build. Put test presets in `red4ext/plugins/CharacterPresetManager/Character Presets` and create an empty `CoreTest.enabled` file in `red4ext/plugins/CharacterPresetManager` before starting the game. Keep a backup of your current installation and disable CET for the test. Use a new name when testing saves.
+
+The rest of this guide describes the current CET release.
+
 <p align="center"><strong>Your character. Your presets.</strong><br>
 <em>Save, load, and share your looks. Supports ACU preset files.</em></p>
 

@@ -552,6 +552,10 @@ public class PresetPanel extends inkCustomController {
     if Equals(kind, "list") { this.ReadPresetList(payload); return; };
     if Equals(kind, "history") { this.ReadHistory(payload); return; };
     if Equals(kind, "confirm_state") {
+      if Equals(payload, "SAVE\t1") {
+        this.saveAction.SetText("CONFIRM OVERWRITE");
+        this.SetStatus("A preset already uses that name. Confirm overwrite to replace it.", false);
+      };
       if Equals(payload, "SAVE\t0") { this.saveAction.SetText("SAVE PRESET"); };
       if Equals(payload, "TRASH\t0") { this.trashAction.SetText("MOVE PRESET TO TRASH"); };
       return;
@@ -724,8 +728,13 @@ protected cb func OnInitialize() -> Bool {
 
 @addMethod(characterCreationBodyMorphMenu)
 private func CPMInitializePresetPanel() -> Void {
+  if CPMCoreTestEnabled() {
+    let launcher = CoreLauncher.Get();
+    if IsDefined(launcher) { launcher.EditorOpened(this); };
+  };
   let bridge: ref<NativeBridge> = this.CPMGetNativeBridge();
   if IsDefined(bridge) {
+    bridge.AttachCoreMenu(this);
     this.cpmPresetPanel = PresetPanel.Create(bridge);
     this.cpmPresetPanel.Reparent(this.GetRootCompoundWidget(), this);
     let settings: ref<inkWidget> = inkWidgetRef.Get(this.m_randomizationSettingsWidget);
@@ -749,6 +758,39 @@ private func CPMInitializePresetPanel() -> Void {
   };
 }
 
+@addMethod(characterCreationBodyMorphMenu)
+public func CPMCoreCustomizationSystem() -> ref<gameuiICharacterCustomizationSystem> {
+  return this.GetCharacterCustomizationSystem();
+}
+
+@addMethod(characterCreationBodyMorphMenu)
+private func CPMCoreNotifyAppearance() -> Void {
+  if !IsDefined(this.cpmPresetPanel) { return; };
+  let bridge = this.CPMGetNativeBridge();
+  if IsDefined(bridge) { bridge.CoreAppearanceChanged(); };
+}
+
+@wrapMethod(characterCreationBodyMorphMenu)
+protected cb func OnOptionUpdated(evt: ref<gameuiCharacterCustomizationSystem_OnOptionUpdatedEvent>) -> Bool {
+  let result = wrappedMethod(evt);
+  this.CPMCoreNotifyAppearance();
+  return result;
+}
+
+@wrapMethod(characterCreationBodyMorphMenu)
+protected cb func OnAppearanceAppliedEvent(evt: ref<gameuiCharacterCustomizationSystem_OnAppearanceAppliedEvent>) -> Bool {
+  let result = wrappedMethod(evt);
+  this.CPMCoreNotifyAppearance();
+  return result;
+}
+
+@wrapMethod(characterCreationBodyMorphMenu)
+protected cb func OnAppearanceSwitched(evt: ref<gameuiCharacterCustomizationSystem_OnAppearanceSwitchedEvent>) -> Bool {
+  let result = wrappedMethod(evt);
+  this.CPMCoreNotifyAppearance();
+  return result;
+}
+
 @wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnUninitialize() -> Bool {
   this.CPMTeardownPresetPanel();
@@ -757,6 +799,10 @@ protected cb func OnUninitialize() -> Bool {
 
 @addMethod(characterCreationBodyMorphMenu)
 private func CPMTeardownPresetPanel() -> Void {
+  if CPMCoreTestEnabled() {
+    let launcher = CoreLauncher.Get();
+    if IsDefined(launcher) { launcher.EditorClosed(this); };
+  };
   if IsDefined(this.cpmPresetPanel) {
     this.cpmPresetPanel.Detach();
     this.cpmPresetPanel = null;
