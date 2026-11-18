@@ -792,6 +792,20 @@ protected cb func OnAppearanceSwitched(evt: ref<gameuiCharacterCustomizationSyst
 }
 
 @wrapMethod(characterCreationBodyMorphMenu)
+protected cb func OnPresetAppliedEvent(evt: ref<gameuiCharacterCustomizationSystem_OnPresetAppliedEvent>) -> Bool {
+  let result = wrappedMethod(evt);
+  this.CPMCoreNotifyAppearance();
+  return result;
+}
+
+@wrapMethod(characterCreationBodyMorphMenu)
+protected cb func OnRandomizeComplete(evt: ref<gameuiCharacterCustomizationSystem_OnRandomizeCompleteEvent>) -> Bool {
+  let result = wrappedMethod(evt);
+  this.CPMCoreNotifyAppearance();
+  return result;
+}
+
+@wrapMethod(characterCreationBodyMorphMenu)
 protected cb func OnUninitialize() -> Bool {
   this.CPMTeardownPresetPanel();
   wrappedMethod();

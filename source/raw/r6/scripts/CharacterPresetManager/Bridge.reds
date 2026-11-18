@@ -43,7 +43,7 @@ public class NativeBridge extends ScriptableSystem {
     if !IsDefined(this.coreVerification) { return; };
     this.coreGeneration += 1;
     this.coreVerification.Invalidate(this.coreGeneration);
-    this.coreQuietUntil = EngineTime.ToFloat(GameInstance.GetEngineTime(GetGameInstance())) + 0.20;
+    this.coreQuietUntil = Cast<Float>(CPMMonotonicTime()) + 0.20;
   }
 
   public func AttachCoreMenu(menu: ref<characterCreationBodyMorphMenu>) -> Void {
@@ -126,7 +126,7 @@ public class NativeBridge extends ScriptableSystem {
       this.NotifyPanels("error", "Could not request the preset list.", false);
       return;
     };
-    this.coreDeadline = EngineTime.ToFloat(GameInstance.GetEngineTime(GetGameInstance())) + 5.0;
+    this.coreDeadline = Cast<Float>(CPMMonotonicTime()) + 5.0;
     this.SetBusy(true, "Reading presets…", false);
     this.ScheduleCoreList(this.coreSession);
   }
@@ -139,7 +139,7 @@ public class NativeBridge extends ScriptableSystem {
       return;
     };
     this.coreReadingPreset = true;
-    this.coreDeadline = EngineTime.ToFloat(GameInstance.GetEngineTime(GetGameInstance())) + 5.0;
+    this.coreDeadline = Cast<Float>(CPMMonotonicTime()) + 5.0;
     this.SetBusy(true, "Reading preset…", false);
     this.ScheduleCoreList(this.coreSession);
   }
@@ -157,7 +157,7 @@ public class NativeBridge extends ScriptableSystem {
     };
     this.coreSaveName = name;
     this.coreSaving = true;
-    this.coreDeadline = EngineTime.ToFloat(GameInstance.GetEngineTime(GetGameInstance())) + 5.0;
+    this.coreDeadline = Cast<Float>(CPMMonotonicTime()) + 5.0;
     this.SetBusy(true, "Saving preset…", false);
     this.ScheduleCoreList(this.coreSession);
   }
@@ -225,7 +225,7 @@ public class NativeBridge extends ScriptableSystem {
             };
             this.coreGraph = LoadDependencies.Build(this.coreIntents);
             this.coreSkipped = ArraySize(this.coreGraph.cyclic);
-            this.coreExecution = LoadExecution.Create(this.coreGraph, 30.0);
+            this.coreExecution = LoadExecution.Create(this.coreGraph, 120.0);
             this.SetBusy(true, "Applying preset…", false);
             this.ScheduleCoreList(session);
             return;
@@ -249,7 +249,7 @@ public class NativeBridge extends ScriptableSystem {
         return;
       };
     };
-    if EngineTime.ToFloat(GameInstance.GetEngineTime(GetGameInstance())) >= this.coreDeadline {
+    if Cast<Float>(CPMMonotonicTime()) >= this.coreDeadline {
       this.busy = false;
       this.NotifyPanels("error", "The preset library did not respond.", false);
       return;
@@ -269,7 +269,7 @@ public class NativeBridge extends ScriptableSystem {
 
   private func ExecuteCoreStep(session: Uint64) -> Bool {
     let event = new LoadStepEvent();
-    event.now = EngineTime.ToFloat(GameInstance.GetEngineTime(GetGameInstance()));
+    event.now = Cast<Float>(CPMMonotonicTime());
     event.editorOpen = IsDefined(this.coreMenu);
     let step = this.coreExecution.Step(event);
     if Equals(step.kind, "resolve") {
@@ -316,7 +316,7 @@ public class NativeBridge extends ScriptableSystem {
   }
 
   private func VerifyCoreLoad(session: Uint64) -> Void {
-    let now = EngineTime.ToFloat(GameInstance.GetEngineTime(GetGameInstance()));
+    let now = Cast<Float>(CPMMonotonicTime());
     if !IsDefined(this.coreMenu) {
       this.coreVerification = null;
       this.SetBusy(false, "The character editor closed.", true);
